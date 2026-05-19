@@ -1,0 +1,19 @@
+# node_modules
+node_modules/
+
+# Environment variables
+.env
+
+# Large assets and storage
+local-content/
+
+# SQLite databases (data should not be in git)
+src/db/*.sqlite
+src/db/*.sqlite3
+src/db/*.sqlite3-shm
+src/db/*.sqlite3-wal
+
+# Snapshots and temporary files
+api_snapshots/
+snapshots/
+.DS_Store

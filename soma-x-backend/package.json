@@ -1,0 +1,30 @@
+{
+  "name": "soma-x-backend",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon --exitcrash index.js",
+    "setup": "node -e \"import('./src/helpers/db-manager.js').then(m => m.initSchemas())\"",
+    "backfill:lesson-progress": "node ./src/scripts/backfill-lesson-progress.js",
+    "seed:test-data": "node ./src/scripts/seed-test-data.js",
+    "seed": "node src/db/seed.js",
+    "start": "pm2 start index.js --name soma-x-backend"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "better-sqlite3": "^12.2.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.1",
+    "epub": "^2.1.1",
+    "express": "^5.1.0",
+    "multer": "^2.0.2",
+    "pdf-to-png-converter": "^3.11.0",
+    "sharp": "^0.34.5"
+  }
+}

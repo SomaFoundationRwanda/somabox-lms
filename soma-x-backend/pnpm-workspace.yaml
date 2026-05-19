@@ -1,0 +1,5 @@
+ignoredBuiltDependencies:
+  - bcrypt
+  - better-sqlite3
+  - sharp
+  - zipfile
