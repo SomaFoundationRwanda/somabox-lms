@@ -5,8 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { hashPassword } from "./users.service.js"
 import bcrypt from "bcrypt";
-
-
+import { runFirebaseSync } from './firebase-sync.service.js';
 
 import { serverDb } from '../helpers/db-manager.js';
 
@@ -36,6 +35,9 @@ router.post('/login', async (req, res) => {
         if (String(row.role || '').trim().toLowerCase() !== role) {
             return res.status(401).json({ message: 'Invalid role' });
         }
+
+        // Trigger sync-manager in the background asynchronously
+        runFirebaseSync().catch(console.error);
 
         return res.json({
             message: 'Login successful',

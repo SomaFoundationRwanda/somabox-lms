@@ -271,17 +271,23 @@ export default function DynamicContentPage() {
 
   if (!currentLevel && dataSource) {
     return (
-      <div className="min-h-screen flex-1 bg-slate-200 flex items-center justify-center">
-        <div className="text-center p-8">
-          <SentimentVeryDissatisfied className="text-slate-300 text-6xl mb-4" />
-          <h2 className="text-xl font-semibold text-slate-600">{t("notFound")}</h2>
-          <p className="text-slate-500 mt-2">{t("thePath")} "/{slug.join('/')}" {t("doesNotExist")}.</p>
+      <div className="min-h-screen flex-1 bg-slate-200 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-8 text-center space-y-6">
+          <div className="w-20 h-20 bg-accent-light/10 text-accent-dark rounded-full flex items-center justify-center mx-auto mb-2">
+            <SentimentVeryDissatisfied className="text-4xl" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-2xl font-bold text-slate-800">Oops, you lost your way!</h2>
+            <p className="text-slate-500 leading-relaxed text-sm">
+              You are currently logged out or trying to access a page that does not exist. Click below to login again and continue learning. Enjoy learning!
+            </p>
+          </div>
           <Button
             variant="default"
             onClick={() => router.push('/')}
-            className="mt-6 px-8"
+            className="w-full h-12 text-base font-bold bg-accent-dark hover:bg-black text-white transition-colors rounded-xl"
           >
-            {t("goHOme")}
+            Login to Continue
           </Button>
         </div>
       </div>
