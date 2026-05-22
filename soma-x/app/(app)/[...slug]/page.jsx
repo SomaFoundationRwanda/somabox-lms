@@ -174,7 +174,7 @@ function ContentDisplayPage({ levelInfo, breadcrumbs, onBreadcrumbClick }) {
                     </div>
 
                     <div className="p-4 flex flex-col gap-2">
-                      <Typography variant="h4" className="line-clamp-1">{item.title}</Typography>
+                      <Typography variant="h6" className="line-clamp-1">{item.title}</Typography>
                       <Typography variant="body" color="muted" className="line-clamp-2">{item.description}</Typography>
 
                       <Button
