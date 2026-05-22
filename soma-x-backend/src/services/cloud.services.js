@@ -12,7 +12,8 @@ import { config } from '../config/index.js';
 
 const router = express.Router();
 const CLOUD_URL = config.cloudUrl;
-const CLOUD_CONTENT_ROOT = `${CLOUD_URL}/content`;
+const normalizedCloudUrl = CLOUD_URL.replace(/\/$/, '');
+const CLOUD_CONTENT_ROOT = `${normalizedCloudUrl}/content`;
 const LOCAL_STORAGE_ROOT = config.paths.rwandanEducation;
 const LOCAL_STORAGE_ROOT_PDF_COVERS = config.paths.rwandanPdfCovers;
 
@@ -20,7 +21,8 @@ router.get('/available-content', async (req, res) => {
     try {
         let cloudRes;
         try {
-            cloudRes = await fetch(`${CLOUD_URL}/metadata`);
+            cloudRes = await fetch(`${normalizedCloudUrl}/metadata`);
+            if (!cloudRes.ok) throw new Error(`HTTP error! status: ${cloudRes.status}`);
         } catch (err) {
             console.error('Network error fetching cloud:', err);
             return res.status(503).json({ error: 'Cloud server is not reachable' });
@@ -57,6 +59,46 @@ router.get('/available-content', async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch available content' });
     }
 });
+
+router.get('/metadata', (req, res) => {
+    try {
+        const buildTree = (dirPath, relPath = '') => {
+            if (!fs.existsSync(dirPath)) return [];
+            const items = fs.readdirSync(dirPath);
+            const nodes = [];
+            for (const item of items) {
+                if (item.startsWith('.')) continue;
+                const fullPath = path.join(dirPath, item);
+                const itemRelPath = relPath ? `${relPath}/${item}` : item;
+                const stat = fs.statSync(fullPath);
+                
+                if (stat.isDirectory()) {
+                    nodes.push({
+                        type: 'folder',
+                        name: item,
+                        path: itemRelPath,
+                        children: buildTree(fullPath, itemRelPath)
+                    });
+                } else {
+                    nodes.push({
+                        type: 'file',
+                        name: item,
+                        path: itemRelPath,
+                        size: stat.size
+                    });
+                }
+            }
+            return nodes;
+        };
+
+        const tree = buildTree(LOCAL_STORAGE_ROOT);
+        res.json(tree);
+    } catch (err) {
+        console.error('Failed to generate metadata:', err);
+        res.status(500).json({ error: 'Failed to generate metadata' });
+    }
+});
+
 
 const MAX_CONCURRENT = 5;
 let downloadStatus = "init";
@@ -120,7 +162,8 @@ async function generatePDFCover(filePath) {
 }
 
 async function downloadFile(filePath) {
-    const cloudFileUrl = `${CLOUD_CONTENT_ROOT}/${encodeURIComponent(filePath)}`;
+    const encodedPath = filePath.split('/').map(encodeURIComponent).join('/');
+    const cloudFileUrl = `${CLOUD_CONTENT_ROOT}/${encodedPath}`;
     const localPath = path.join(LOCAL_STORAGE_ROOT, filePath);
 
     fs.mkdirSync(path.dirname(localPath), { recursive: true });
