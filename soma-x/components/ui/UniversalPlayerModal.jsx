@@ -25,10 +25,13 @@ const UniversalPlayerModal = ({
     // Helper function to construct full URL
     const getMediaUrl = (url) => {
         if (!url) return '';
-        // If URL already starts with http, return as is
-        if (url.startsWith('http')) return url;
-        // Otherwise, prepend the base URL
-        return `${SERVER_URL}/content/files${encodeURI(url)}`;
+        // If URL already starts with http or is a direct API route, return as is
+        if (url.startsWith('http') || url.includes('/library/file/') || url.includes('/content/files/')) return url;
+        
+        // Otherwise, prepend the base URL for static lesson files
+        // Ensure no double slashes (e.g. /api/content/files//custom-content)
+        const cleanUrl = url.startsWith('/') ? url : `/${url}`;
+        return `${SERVER_URL}/content/files${encodeURI(cleanUrl)}`;
     };
 
     // Reset state when modal opens with new media
