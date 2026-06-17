@@ -156,7 +156,7 @@ function inferStepType(stepType, body, metadata) {
 }
 
 export default function EditClassLessonPage() {
-  const { authenticated, unshiftString, SERVER_URL } = useContext(DataContext);
+  const { authenticated, unshiftString, SERVER_URL, startUpload } = useContext(DataContext);
   const router = useRouter();
   const params = useParams();
   const classId = String(params?.classId || "");
@@ -865,15 +865,13 @@ export default function EditClassLessonPage() {
 
       formData.append("steps", JSON.stringify(stepPayload));
 
-      const response = await fetch(`${SERVER_URL}/classes/${classId}/lessons/${lessonId}`, {
-        method: "PATCH",
-        body: formData,
-      });
-
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload.message || "Failed to update lesson");
-      }
+      startUpload(
+        `${SERVER_URL}/classes/${classId}/lessons/${lessonId}`,
+        "PATCH",
+        formData,
+        title.trim(),
+        classId
+      );
 
       if (draftStorageKey) {
         localStorage.removeItem(draftStorageKey);

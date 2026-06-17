@@ -110,7 +110,7 @@ function normalizeDraftStep(step) {
 }
 
 export default function CreateClassLessonPage() {
-  const { authenticated, unshiftString, SERVER_URL } = useContext(DataContext);
+  const { authenticated, unshiftString, SERVER_URL, startUpload } = useContext(DataContext);
   const router = useRouter();
   const params = useParams();
   const classId = String(params?.classId || "");
@@ -725,15 +725,13 @@ export default function CreateClassLessonPage() {
 
       formData.append("steps", JSON.stringify(stepPayload));
 
-      const response = await fetch(`${SERVER_URL}/classes/${classId}/lessons`, {
-        method: "POST",
-        body: formData,
-      });
-
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload.message || "Failed to create lesson");
-      }
+      startUpload(
+        `${SERVER_URL}/classes/${classId}/lessons`,
+        "POST",
+        formData,
+        title.trim(),
+        classId
+      );
 
       if (draftStorageKey) {
         localStorage.removeItem(draftStorageKey);

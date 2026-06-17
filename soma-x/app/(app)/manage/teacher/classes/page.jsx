@@ -126,6 +126,18 @@ function TeacherClassesPage() {
     }
 
     loadClassDetails(selectedClassId);
+
+    const handleLessonUploaded = (event) => {
+      const detailClassId = String(event.detail?.classId || "");
+      if (detailClassId && String(selectedClassId) === detailClassId) {
+        loadClassDetails(selectedClassId);
+      }
+    };
+
+    document.addEventListener("lesson-uploaded", handleLessonUploaded);
+    return () => {
+      document.removeEventListener("lesson-uploaded", handleLessonUploaded);
+    };
   }, [selectedClassId, SERVER_URL, teacherEmail]);
 
   const handleCreateClass = async () => {

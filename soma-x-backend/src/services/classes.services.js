@@ -10,7 +10,54 @@ const router = express.Router();
 
 const ASSIGNMENT_STATUSES = new Set(["assigned", "in_progress", "completed"]);
 const LESSON_PROGRESS_STATUSES = new Set(["not_started", "in_progress", "completed"]);
-const upload = multer({ storage: multer.memoryStorage() });
+
+const tempUploadsDir = path.join(config.paths.content, "temp-uploads");
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    fs.mkdirSync(tempUploadsDir, { recursive: true });
+    cb(null, tempUploadsDir);
+  },
+  filename: function (req, file, cb) {
+    cb(null, `${Date.now()}-${file.originalname}`);
+  }
+});
+const upload = multer({ storage });
+
+function saveUploadedFile(tempPath, destPath) {
+  try {
+    fs.renameSync(tempPath, destPath);
+  } catch (error) {
+    if (error.code === 'EXDEV') {
+      fs.copyFileSync(tempPath, destPath);
+      fs.unlinkSync(tempPath);
+    } else {
+      throw error;
+    }
+  }
+}
+
+const cleanupTempFiles = (files) => {
+  if (Array.isArray(files)) {
+    for (const file of files) {
+      if (file.path && fs.existsSync(file.path)) {
+        try {
+          fs.unlinkSync(file.path);
+        } catch (err) {
+          console.error("Failed to delete temp file:", file.path, err);
+        }
+      }
+    }
+  } else if (files && typeof files === 'object') {
+    if (files.path && fs.existsSync(files.path)) {
+      try {
+        fs.unlinkSync(files.path);
+      } catch (err) {
+        console.error("Failed to delete temp file:", files.path, err);
+      }
+    }
+  }
+};
+
 const DEFAULT_MOCK_STUDENT_COUNT = 5;
 const DEFAULT_MOCK_STUDENT_PASSWORD = "scholar123";
 
@@ -1856,7 +1903,7 @@ router.post("/:id/lessons", upload.any(), (req, res) => {
 
         const safeFileName = sanitizeFilename(matchingFile.originalname || `content-${index + 1}`);
         const absoluteFilePath = path.join(config.paths.content, contentFolder, safeFileName);
-        fs.writeFileSync(absoluteFilePath, matchingFile.buffer);
+        saveUploadedFile(matchingFile.path, absoluteFilePath);
         resolvedStepBody = `${contentFolder}/${safeFileName}`;
       }
 
@@ -1934,6 +1981,8 @@ router.post("/:id/lessons", upload.any(), (req, res) => {
   } catch (error) {
     console.error("Error creating class lesson:", error);
     return res.status(500).json({ message: error.message });
+  } finally {
+    cleanupTempFiles(req.files);
   }
 });
 
@@ -2151,7 +2200,7 @@ router.patch("/:id/lessons/:lessonId", upload.any(), (req, res) => {
         if (matchingFile) {
           const safeFileName = sanitizeFilename(matchingFile.originalname || `content-${index + 1}`);
           const absoluteFilePath = path.join(config.paths.content, contentFolder, safeFileName);
-          fs.writeFileSync(absoluteFilePath, matchingFile.buffer);
+          saveUploadedFile(matchingFile.path, absoluteFilePath);
           resolvedStepBody = `${contentFolder}/${safeFileName}`;
         }
       }
@@ -2230,6 +2279,8 @@ router.patch("/:id/lessons/:lessonId", upload.any(), (req, res) => {
   } catch (error) {
     console.error("Error updating class lesson:", error);
     return res.status(500).json({ message: error.message });
+  } finally {
+    cleanupTempFiles(req.files);
   }
 });
 
@@ -3114,7 +3165,7 @@ router.post("/:id/image", upload.single("image"), async (req, res) => {
     const filepath = path.join(coversDir, filename);
 
     const sharp = (await import("sharp")).default;
-    await sharp(req.file.buffer).resize(600, 400, { fit: "cover" }).jpeg({ quality: 85 }).toFile(filepath);
+    await sharp(req.file.path).resize(600, 400, { fit: "cover" }).jpeg({ quality: 85 }).toFile(filepath);
 
     localDb
       .prepare("UPDATE classes SET cover_image = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?")
@@ -3124,6 +3175,8 @@ router.post("/:id/image", upload.single("image"), async (req, res) => {
   } catch (error) {
     console.error("Error uploading class image:", error);
     return res.status(500).json({ message: error.message });
+  } finally {
+    cleanupTempFiles(req.file);
   }
 });
 
