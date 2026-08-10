@@ -21,7 +21,9 @@ const corsOptions = {
         'http://127.0.0.1:3002',
         'http://10.0.0.62:3001',
         'http://192.168.1.186:3001',
-        'https://9c38c031342a.ngrok-free.app'
+        'https://9c38c031342a.ngrok-free.app',
+	    'https://somabox.somaglobaltalent.org',
+	    'https://demo.somabox.org'
     ],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
