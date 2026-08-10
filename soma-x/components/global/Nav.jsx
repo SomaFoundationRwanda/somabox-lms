@@ -1,5 +1,5 @@
 "use client"
-import { BookOpen, BookMarked, Compass, LayoutDashboard, Library, LogOut, Menu, Moon, RefreshCcw, Sun, UserRound, X } from "lucide-react";
+import { BookOpen, BookMarked, Compass, Globe, LayoutDashboard, Library, LogOut, Menu, Moon, RefreshCcw, Sun, UserRound, X } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { useContext, useState } from "react";
@@ -42,6 +42,7 @@ export default function SomaboxNav() {
     : [];
 
   const otherNavItems = [
+    { id: "discover-courses", label: "Discover Courses", Icon: Globe, to: "/discover-courses" },
     { id: "library", label: t("nav.library") || "Library", Icon: BookMarked, to: "/library" },
     { id: "account", label: t("nav.account") || "Account", Icon: UserRound, to: "/account" },
   ];

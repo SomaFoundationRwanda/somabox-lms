@@ -5,7 +5,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
 import { useCourseSection } from "@/lib/useCourseSection";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
-import { EmptyState } from "@/components/ui/empty-state";
+import AsyncListState from "@/components/course/AsyncListState";
 
 const ROLE_OPTIONS = ["teacher", "ta", "student", "observer"];
 
@@ -16,7 +16,7 @@ export default function PeoplePage() {
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState({ email: "", role: "student" });
 
-  const filtered = (people || []).filter((p) => roleFilter === "all" || p.role === roleFilter);
+  const filtered = Array.isArray(people) ? people.filter((p) => roleFilter === "all" || p.role === roleFilter) : people;
 
   const addPerson = async () => {
     if (!form.email.trim()) return;
@@ -70,42 +70,40 @@ export default function PeoplePage() {
           ))}
         </div>
 
-        {loading ? <p className="text-sm text-slate-500">Loading people...</p> : null}
-        {error ? <p className="text-sm text-rose-600">{error}</p> : null}
-        {!loading && !error && filtered.length === 0 ? <EmptyState message="No one here yet." /> : null}
-
-        {filtered.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[520px]">
-              <thead>
-                <tr className="border-b border-slate-200">
-                  <th className="pb-2 px-2 text-xs font-bold text-slate-500 uppercase">Name</th>
-                  <th className="pb-2 px-2 text-xs font-bold text-slate-500 uppercase">Email</th>
-                  <th className="pb-2 px-2 text-xs font-bold text-slate-500 uppercase">Role</th>
-                  <th className="pb-2 px-2 text-xs font-bold text-slate-500 uppercase">Status</th>
-                  {isTeacher ? <th className="pb-2 px-2 text-xs font-bold text-slate-500 uppercase">Manage</th> : null}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filtered.map((person) => (
-                  <tr key={person.id}>
-                    <td className="py-2.5 px-2 text-sm font-medium text-slate-700">{person.fullName}</td>
-                    <td className="py-2.5 px-2 text-sm text-slate-600">{person.email}</td>
-                    <td className="py-2.5 px-2 text-sm text-slate-600 capitalize">{person.role}</td>
-                    <td className="py-2.5 px-2 text-sm text-slate-600 capitalize">{person.status}</td>
-                    {isTeacher ? (
-                      <td className="py-2.5 px-2">
-                        <button onClick={() => removePerson(person.id)} className="p-1.5 rounded-md hover:bg-slate-100 text-rose-500">
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </td>
-                    ) : null}
+        <AsyncListState loading={loading} error={error} data={filtered} onRetry={refetch} emptyMessage="No one here yet.">
+          {(list) => (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse min-w-[520px]">
+                <thead>
+                  <tr className="border-b border-slate-200">
+                    <th className="pb-2 px-2 text-xs font-bold text-slate-500 uppercase">Name</th>
+                    <th className="pb-2 px-2 text-xs font-bold text-slate-500 uppercase">Email</th>
+                    <th className="pb-2 px-2 text-xs font-bold text-slate-500 uppercase">Role</th>
+                    <th className="pb-2 px-2 text-xs font-bold text-slate-500 uppercase">Status</th>
+                    {isTeacher ? <th className="pb-2 px-2 text-xs font-bold text-slate-500 uppercase">Manage</th> : null}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : null}
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {list.map((person) => (
+                    <tr key={person.id}>
+                      <td className="py-2.5 px-2 text-sm font-medium text-slate-700">{person.fullName}</td>
+                      <td className="py-2.5 px-2 text-sm text-slate-600">{person.email}</td>
+                      <td className="py-2.5 px-2 text-sm text-slate-600 capitalize">{person.role}</td>
+                      <td className="py-2.5 px-2 text-sm text-slate-600 capitalize">{person.status}</td>
+                      {isTeacher ? (
+                        <td className="py-2.5 px-2">
+                          <button onClick={() => removePerson(person.id)} className="p-1.5 rounded-md hover:bg-slate-100 text-rose-500">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </td>
+                      ) : null}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </AsyncListState>
       </div>
     </div>
   );

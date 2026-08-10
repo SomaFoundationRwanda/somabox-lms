@@ -8,13 +8,13 @@ import Breadcrumbs from "@/components/course/Breadcrumbs";
 export default function CourseSettingsPage() {
   const { SERVER_URL, courseId, userEmail, course, nav, refresh } = useCourse();
   const [tab, setTab] = useState("details");
-  const [form, setForm] = useState({ title: "", description: "", grade: "" });
+  const [form, setForm] = useState({ title: "", description: "", grade: "", visibility: "private" });
   const [navItems, setNavItems] = useState([]);
   const [saving, setSaving] = useState(false);
   const [coverFile, setCoverFile] = useState(null);
 
   useEffect(() => {
-    if (course) setForm({ title: course.title || "", description: course.description || "", grade: course.grade || "" });
+    if (course) setForm({ title: course.title || "", description: course.description || "", grade: course.grade || "", visibility: course.visibility || "private" });
   }, [course]);
 
   useEffect(() => {
@@ -116,6 +116,20 @@ export default function CourseSettingsPage() {
             <div>
               <label className="text-xs font-semibold text-slate-600 mb-1 block">Banner Image</label>
               <input type="file" accept="image/*" onChange={(e) => setCoverFile(e.target.files?.[0] || null)} className="text-sm" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-600 mb-1 block">Visibility</label>
+              <select
+                value={form.visibility}
+                onChange={(e) => setForm((p) => ({ ...p, visibility: e.target.value }))}
+                className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none bg-white"
+              >
+                <option value="private">Private — invite only</option>
+                <option value="public">Public — listed in Discover Courses</option>
+              </select>
+              <p className="text-xs text-slate-500 mt-1">
+                Public courses appear in the platform's course catalog and can be joined by any user without an invite.
+              </p>
             </div>
             <button onClick={saveDetails} disabled={saving} className="text-xs font-semibold text-white bg-[#203A3A] rounded-lg px-4 py-2 disabled:opacity-50">
               {saving ? "Saving..." : "Save Changes"}

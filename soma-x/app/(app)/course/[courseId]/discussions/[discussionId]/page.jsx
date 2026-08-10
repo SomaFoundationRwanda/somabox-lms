@@ -7,17 +7,37 @@ import Breadcrumbs from "@/components/course/Breadcrumbs";
 
 export default function DiscussionThreadPage() {
   const { courseId, discussionId } = useParams();
-  const { SERVER_URL, userEmail } = useCourse();
+  const { SERVER_URL, userEmail, isTeacher } = useCourse();
   const [discussion, setDiscussion] = useState(null);
   const [loading, setLoading] = useState(true);
   const [reply, setReply] = useState("");
+  const [pointsInput, setPointsInput] = useState("");
+  const [savingGraded, setSavingGraded] = useState(false);
 
   const load = async () => {
     setLoading(true);
     const res = await fetch(`${SERVER_URL}/courses/${courseId}/discussions/${discussionId}?userEmail=${encodeURIComponent(userEmail)}`);
     const payload = await res.json();
-    if (res.ok) setDiscussion(payload);
+    if (res.ok) {
+      setDiscussion(payload);
+      setPointsInput(payload.points_possible ? String(payload.points_possible) : "");
+    }
     setLoading(false);
+  };
+
+  const toggleGraded = async () => {
+    setSavingGraded(true);
+    await fetch(`${SERVER_URL}/courses/${courseId}/discussions/${discussionId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userEmail,
+        graded: !discussion.graded,
+        pointsPossible: Number(pointsInput) || 0,
+      }),
+    });
+    setSavingGraded(false);
+    load();
   };
 
   useEffect(() => { if (SERVER_URL && userEmail) load(); }, [SERVER_URL, userEmail]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -41,8 +61,38 @@ export default function DiscussionThreadPage() {
       <Breadcrumbs sectionKey="discussions" itemName={discussion.title} />
       <div className="p-4 md:p-6 space-y-4 max-w-2xl">
         <div>
-          <h1 className="text-lg font-bold text-slate-900">{discussion.title}</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-lg font-bold text-slate-900">{discussion.title}</h1>
+            {discussion.graded ? <span className="text-[10px] font-bold uppercase text-teal-600 bg-teal-50 rounded-full px-1.5 py-0.5">Graded</span> : null}
+          </div>
           {discussion.body ? <p className="text-sm text-slate-700 mt-1 whitespace-pre-wrap">{discussion.body}</p> : null}
+
+          {isTeacher ? (
+            <div className="mt-3 flex items-center gap-2 rounded-xl border border-slate-200 p-2.5">
+              {!discussion.graded ? (
+                <input
+                  type="number"
+                  min="0"
+                  value={pointsInput}
+                  onChange={(e) => setPointsInput(e.target.value)}
+                  placeholder="Points possible"
+                  className="w-28 text-sm border border-slate-200 rounded-lg px-2 py-1.5 outline-none"
+                />
+              ) : null}
+              <button
+                onClick={toggleGraded}
+                disabled={savingGraded}
+                className="text-xs font-semibold text-white bg-[#203A3A] rounded-lg px-3 py-1.5 disabled:opacity-50"
+              >
+                {discussion.graded ? "Remove grading" : "Mark as graded"}
+              </button>
+              {discussion.graded ? (
+                <span className="text-xs text-slate-500">
+                  {discussion.points_possible} pt{discussion.points_possible === 1 ? "" : "s"} · syncs to Assignments & Grades
+                </span>
+              ) : null}
+            </div>
+          ) : null}
         </div>
 
         <div className="space-y-3">
