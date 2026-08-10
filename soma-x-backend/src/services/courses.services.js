@@ -99,6 +99,15 @@ function normalizeDueAt(value) {
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
+function linkDiscussionAssignment(courseId, discussionId, title, pointsPossible, teacherEmail) {
+  const info = localDb.prepare(`
+    INSERT INTO assignments (course_id, title, description, points_possible, published, created_by_teacher_email)
+    VALUES (?, ?, ?, ?, 1, ?)
+  `).run(courseId, title, "Graded discussion — see Discussions for the conversation.", pointsPossible || 0, teacherEmail);
+  localDb.prepare("UPDATE discussions SET linked_assignment_id = ? WHERE id = ?").run(info.lastInsertRowid, discussionId);
+  return info.lastInsertRowid;
+}
+
 function calculateEstimatedReadMinutes(bodyJson, bodyHtml, bodyText) {
   let text = "";
   if (bodyJson) {
@@ -236,6 +245,60 @@ router.get("/mine", (req, res) => {
   }
 });
 
+router.get("/public", (req, res) => {
+  try {
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const pageSize = Math.min(50, Math.max(1, Number(req.query.pageSize) || 20));
+    const offset = (page - 1) * pageSize;
+
+    const total = Number(localDb.prepare("SELECT COUNT(*) AS c FROM courses WHERE visibility = 'public'").get()?.c || 0);
+    const rows = localDb.prepare(`
+      SELECT * FROM courses WHERE visibility = 'public' ORDER BY created_at DESC LIMIT ? OFFSET ?
+    `).all(pageSize, offset);
+
+    const courses = rows.map((course) => {
+      const studentCount = Number(
+        localDb.prepare("SELECT COUNT(*) AS total FROM enrollments WHERE course_id = ? AND role = 'student' AND status = 'active'").get(course.id)?.total || 0
+      );
+      return { ...course, studentCount, coverImageUrl: course.cover_image ? `/course-covers/${course.cover_image}` : null };
+    });
+
+    return res.json({ courses, page, pageSize, total });
+  } catch (error) {
+    console.error("Error listing public courses:", error);
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+router.post("/:id/join", (req, res) => {
+  try {
+    const courseId = String(req.params.id || "").trim();
+    const course = courseExists(courseId);
+    if (!course) return res.status(404).json({ message: "Course not found" });
+    if (course.visibility !== "public") return res.status(403).json({ message: "This course is private and requires an invite" });
+
+    const email = normalizeEmail(req.body?.userEmail || req.query?.userEmail);
+    if (!email) return res.status(400).json({ message: "userEmail is required" });
+
+    const existing = getEnrollment(courseId, email);
+    if (existing) {
+      if (existing.status !== "active") {
+        localDb.prepare("UPDATE enrollments SET status = 'active' WHERE course_id = ? AND LOWER(user_email) = LOWER(?)").run(courseId, email);
+      }
+    } else {
+      localDb.prepare(`
+        INSERT INTO enrollments (course_id, user_email, role, status)
+        VALUES (?, ?, 'student', 'active')
+      `).run(courseId, email);
+    }
+
+    return res.status(200).json({ message: "Joined course", course: courseExists(courseId) });
+  } catch (error) {
+    console.error("Error joining course:", error);
+    return res.status(500).json({ message: error.message });
+  }
+});
+
 router.get("/:id", (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
@@ -267,7 +330,7 @@ router.patch("/:id", (req, res) => {
     if (!courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
     if (!requireTeacher(req, res, courseId)) return;
 
-    const { title, description, grade, status, homePageType, startDate, endDate } = req.body;
+    const { title, description, grade, status, homePageType, startDate, endDate, visibility } = req.body;
     const updates = [];
     const params = [];
 
@@ -278,6 +341,7 @@ router.patch("/:id", (req, res) => {
     if (homePageType !== undefined && ["modules", "activity", "page"].includes(homePageType)) { updates.push("home_page_type = ?"); params.push(homePageType); }
     if (startDate !== undefined) { updates.push("start_date = ?"); params.push(normalizeDueAt(startDate)); }
     if (endDate !== undefined) { updates.push("end_date = ?"); params.push(normalizeDueAt(endDate)); }
+    if (visibility !== undefined && ["private", "public"].includes(visibility)) { updates.push("visibility = ?"); params.push(visibility); }
 
     if (updates.length === 0) return res.status(400).json({ message: "No fields to update" });
 
@@ -1186,7 +1250,7 @@ router.get("/:id/assignments", (req, res) => {
         return { id: q.id, kind: "quiz", title: q.title, dueAt: q.due_at, pointsPossible: points, published: Number(q.published) === 1 };
       });
 
-    const discussions = localDb.prepare("SELECT * FROM discussions WHERE course_id = ? AND graded = 1").all(courseId)
+    const discussions = localDb.prepare("SELECT * FROM discussions WHERE course_id = ? AND graded = 1 AND linked_assignment_id IS NULL").all(courseId)
       .filter((d) => isTeacher || Number(d.published) === 1)
       .map((d) => ({ id: d.id, kind: "discussion", title: d.title, dueAt: null, pointsPossible: d.points_possible, published: Number(d.published) === 1 }));
 
@@ -1358,11 +1422,13 @@ router.get("/:id/grades", (req, res) => {
     if (!isTeacherRole(auth.enrollment.role)) {
       const myAssignmentGrades = assignments.map((a) => {
         const submission = localDb.prepare("SELECT grade, feedback FROM assignment_submissions WHERE assignment_id = ? AND LOWER(scholar_email) = LOWER(?)").get(a.id, auth.email);
-        return { id: a.id, kind: "assignment", title: a.title, pointsPossible: a.points_possible, grade: submission?.grade ?? null, feedback: submission?.feedback || "" };
+        const status = !submission ? "not_submitted" : submission.grade != null ? "graded" : "submitted";
+        return { id: a.id, kind: "assignment", title: a.title, pointsPossible: a.points_possible, grade: submission?.grade ?? null, feedback: submission?.feedback || "", status };
       });
       const myQuizGrades = quizzes.map((q) => {
         const submission = localDb.prepare("SELECT score FROM quiz_submissions WHERE quiz_id = ? AND LOWER(scholar_email) = LOWER(?)").get(q.id, auth.email);
-        return { id: q.id, kind: "quiz", title: q.title, pointsPossible: null, grade: submission?.score ?? null, feedback: "" };
+        const status = !submission ? "not_submitted" : submission.score != null ? "graded" : "submitted";
+        return { id: q.id, kind: "quiz", title: q.title, pointsPossible: null, grade: submission?.score ?? null, feedback: "", status };
       });
       return res.json({ role: "student", grades: [...myAssignmentGrades, ...myQuizGrades] });
     }
@@ -1371,7 +1437,8 @@ router.get("/:id/grades", (req, res) => {
     const grid = students.map((student) => {
       const assignmentGrades = assignments.map((a) => {
         const submission = localDb.prepare("SELECT grade FROM assignment_submissions WHERE assignment_id = ? AND LOWER(scholar_email) = LOWER(?)").get(a.id, student.user_email);
-        return { assignmentId: a.id, title: a.title, grade: submission?.grade ?? null };
+        const status = !submission ? "not_submitted" : submission.grade != null ? "graded" : "submitted";
+        return { assignmentId: a.id, title: a.title, grade: submission?.grade ?? null, status };
       });
       return { email: student.user_email, fullName: userFullName(student.user_email), assignmentGrades };
     });
@@ -1379,6 +1446,57 @@ router.get("/:id/grades", (req, res) => {
     return res.json({ role: "teacher", assignments, grid });
   } catch (error) {
     console.error("Error fetching grades:", error);
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+// ===== Activity feed (backs the "activity" Home page type) =====
+
+router.get("/:id/activity", (req, res) => {
+  try {
+    const courseId = String(req.params.id || "").trim();
+    if (!courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    const auth = requireEnrolled(req, res, courseId);
+    if (!auth) return;
+    const isTeacher = isTeacherRole(auth.enrollment.role);
+
+    const items = [];
+
+    const announcements = localDb.prepare("SELECT * FROM announcements WHERE course_id = ? AND published = 1 ORDER BY created_at DESC LIMIT 10").all(courseId);
+    for (const a of announcements) {
+      items.push({ type: "announcement", id: a.id, summary: `New announcement: "${a.title}"`, createdAt: a.created_at });
+    }
+
+    const discussions = localDb.prepare("SELECT * FROM discussions WHERE course_id = ? AND published = 1 ORDER BY created_at DESC LIMIT 10").all(courseId);
+    for (const d of discussions) {
+      items.push({ type: "discussion", id: d.id, summary: `New discussion: "${d.title}"`, createdAt: d.created_at });
+    }
+
+    if (isTeacher) {
+      const recentSubmissions = localDb.prepare(`
+        SELECT s.*, a.title AS assignment_title FROM assignment_submissions s
+        JOIN assignments a ON a.id = s.assignment_id
+        WHERE a.course_id = ? ORDER BY s.submitted_at DESC LIMIT 10
+      `).all(courseId);
+      for (const s of recentSubmissions) {
+        items.push({ type: "grade", id: s.id, summary: `${userFullName(s.scholar_email)} submitted "${s.assignment_title}"`, createdAt: s.submitted_at });
+      }
+    } else {
+      const myGraded = localDb.prepare(`
+        SELECT s.*, a.title AS assignment_title FROM assignment_submissions s
+        JOIN assignments a ON a.id = s.assignment_id
+        WHERE a.course_id = ? AND LOWER(s.scholar_email) = LOWER(?) AND s.graded_at IS NOT NULL
+        ORDER BY s.graded_at DESC LIMIT 10
+      `).all(courseId, auth.email);
+      for (const s of myGraded) {
+        items.push({ type: "grade", id: s.id, summary: `"${s.assignment_title}" was graded: ${s.grade}`, createdAt: s.graded_at });
+      }
+    }
+
+    items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    return res.json(items.slice(0, 20));
+  } catch (error) {
+    console.error("Error fetching activity:", error);
     return res.status(500).json({ message: error.message });
   }
 });
@@ -1427,12 +1545,13 @@ router.patch("/:id/announcements/:announcementId", (req, res) => {
     if (!courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
     if (!requireTeacher(req, res, courseId)) return;
 
-    const { title, body, published } = req.body;
+    const { title, body, published, pinned } = req.body;
     const updates = [];
     const params = [];
     if (title !== undefined) { updates.push("title = ?"); params.push(title); }
     if (body !== undefined) { updates.push("body = ?"); params.push(body); }
     if (published !== undefined) { updates.push("published = ?"); params.push(published ? 1 : 0); }
+    if (pinned !== undefined) { updates.push("pinned = ?"); params.push(pinned ? 1 : 0); }
     if (!updates.length) return res.status(400).json({ message: "No fields to update" });
 
     params.push(req.params.announcementId, courseId);
@@ -1728,15 +1847,28 @@ router.delete("/:id/files/:fileId", (req, res) => {
   }
 });
 
-// ===== Collaborations (stub) =====
+// ===== Collaborations =====
+// A shared-link registry (title + external URL, optionally scoped to specific
+// members) — intentionally simple, not embedded real-time editing.
 
 router.get("/:id/collaborations", (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
     if (!courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
-    if (!requireNavVisible(req, res, courseId, "collaborations")) return;
+    const auth = requireNavVisible(req, res, courseId, "collaborations");
+    if (!auth) return;
+
     const rows = localDb.prepare("SELECT * FROM collaborations WHERE course_id = ? ORDER BY created_at DESC").all(courseId);
-    return res.json(rows);
+    const memberStmt = localDb.prepare("SELECT user_email FROM collaboration_members WHERE collaboration_id = ?");
+
+    const visible = rows
+      .map((c) => {
+        const members = memberStmt.all(c.id).map((m) => m.user_email);
+        return { ...c, memberCount: members.length, members };
+      })
+      .filter((c) => isTeacherRole(auth.enrollment.role) || c.memberCount === 0 || c.members.some((m) => m.toLowerCase() === auth.email.toLowerCase()) || normalizeEmail(c.created_by_teacher_email) === auth.email);
+
+    return res.json(visible.map(({ members, ...rest }) => rest));
   } catch (error) {
     console.error("Error fetching collaborations:", error);
     return res.status(500).json({ message: error.message });
@@ -1747,21 +1879,53 @@ router.post("/:id/collaborations", (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
     if (!courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
-    const auth = requireTeacher(req, res, courseId);
+    const auth = requireEnrolled(req, res, courseId);
     if (!auth) return;
     const title = String(req.body.title || "").trim();
     if (!title) return res.status(400).json({ message: "title is required" });
 
     const info = localDb.prepare("INSERT INTO collaborations (course_id, title, url, created_by_teacher_email) VALUES (?, ?, ?, ?)")
       .run(courseId, title, req.body.url || "", auth.email);
-    return res.status(201).json(localDb.prepare("SELECT * FROM collaborations WHERE id = ?").get(info.lastInsertRowid));
+    const collaborationId = Number(info.lastInsertRowid);
+
+    const memberEmails = Array.isArray(req.body.memberEmails) ? req.body.memberEmails : [];
+    const insertMember = localDb.prepare("INSERT OR IGNORE INTO collaboration_members (collaboration_id, user_email) VALUES (?, ?)");
+    memberEmails.forEach((email) => {
+      const normalized = normalizeEmail(email);
+      if (normalized) insertMember.run(collaborationId, normalized);
+    });
+
+    return res.status(201).json(localDb.prepare("SELECT * FROM collaborations WHERE id = ?").get(collaborationId));
   } catch (error) {
     console.error("Error creating collaboration:", error);
     return res.status(500).json({ message: error.message });
   }
 });
 
-// ===== Outcomes (stub) =====
+router.delete("/:id/collaborations/:collaborationId", (req, res) => {
+  try {
+    const courseId = String(req.params.id || "").trim();
+    if (!courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    const auth = requireEnrolled(req, res, courseId);
+    if (!auth) return;
+
+    const collaboration = localDb.prepare("SELECT * FROM collaborations WHERE id = ? AND course_id = ?").get(req.params.collaborationId, courseId);
+    if (!collaboration) return res.status(404).json({ message: "Collaboration not found" });
+
+    const isOwner = normalizeEmail(collaboration.created_by_teacher_email) === auth.email;
+    if (!isOwner && !isTeacherRole(auth.enrollment.role)) {
+      return res.status(403).json({ message: "Not allowed to delete this collaboration" });
+    }
+
+    localDb.prepare("DELETE FROM collaborations WHERE id = ?").run(req.params.collaborationId);
+    return res.status(204).end();
+  } catch (error) {
+    console.error("Error deleting collaboration:", error);
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+// ===== Outcomes =====
 
 router.get("/:id/outcomes", (req, res) => {
   try {
@@ -1784,12 +1948,49 @@ router.post("/:id/outcomes", (req, res) => {
     if (!auth) return;
     const title = String(req.body.title || "").trim();
     if (!title) return res.status(400).json({ message: "title is required" });
+    const masteryScale = ["4pt", "percent", "pass_fail"].includes(req.body.masteryScale) ? req.body.masteryScale : "4pt";
 
-    const info = localDb.prepare("INSERT INTO outcomes (course_id, title, description) VALUES (?, ?, ?)")
-      .run(courseId, title, req.body.description || "");
+    const info = localDb.prepare("INSERT INTO outcomes (course_id, title, description, mastery_scale) VALUES (?, ?, ?, ?)")
+      .run(courseId, title, req.body.description || "", masteryScale);
     return res.status(201).json(localDb.prepare("SELECT * FROM outcomes WHERE id = ?").get(info.lastInsertRowid));
   } catch (error) {
     console.error("Error creating outcome:", error);
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+router.patch("/:id/outcomes/:outcomeId", (req, res) => {
+  try {
+    const courseId = String(req.params.id || "").trim();
+    if (!courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!requireTeacher(req, res, courseId)) return;
+
+    const { title, description, masteryScale } = req.body;
+    const updates = [];
+    const params = [];
+    if (title !== undefined) { updates.push("title = ?"); params.push(title); }
+    if (description !== undefined) { updates.push("description = ?"); params.push(description); }
+    if (masteryScale !== undefined && ["4pt", "percent", "pass_fail"].includes(masteryScale)) { updates.push("mastery_scale = ?"); params.push(masteryScale); }
+    if (!updates.length) return res.status(400).json({ message: "No fields to update" });
+
+    params.push(req.params.outcomeId, courseId);
+    localDb.prepare(`UPDATE outcomes SET ${updates.join(", ")} WHERE id = ? AND course_id = ?`).run(...params);
+    return res.json(localDb.prepare("SELECT * FROM outcomes WHERE id = ?").get(req.params.outcomeId));
+  } catch (error) {
+    console.error("Error updating outcome:", error);
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+router.delete("/:id/outcomes/:outcomeId", (req, res) => {
+  try {
+    const courseId = String(req.params.id || "").trim();
+    if (!courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!requireTeacher(req, res, courseId)) return;
+    localDb.prepare("DELETE FROM outcomes WHERE id = ? AND course_id = ?").run(req.params.outcomeId, courseId);
+    return res.status(204).end();
+  } catch (error) {
+    console.error("Error deleting outcome:", error);
     return res.status(500).json({ message: error.message });
   }
 });
@@ -2189,13 +2390,64 @@ router.post("/:id/discussions", (req, res) => {
     if (!title) return res.status(400).json({ message: "title is required" });
     const isTeacher = isTeacherRole(auth.enrollment.role);
 
+    const isGraded = !!(req.body.graded && isTeacher);
+    const pointsPossible = Number(req.body.pointsPossible) || 0;
+
     const info = localDb.prepare(`
       INSERT INTO discussions (course_id, title, body, graded, points_possible, published, created_by_teacher_email)
       VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(courseId, title, req.body.body || "", req.body.graded && isTeacher ? 1 : 0, Number(req.body.pointsPossible) || 0, isTeacher ? (req.body.published ? 1 : 0) : 1, auth.email);
+    `).run(courseId, title, req.body.body || "", isGraded ? 1 : 0, pointsPossible, isTeacher ? (req.body.published ? 1 : 0) : 1, auth.email);
+
+    if (isGraded) {
+      linkDiscussionAssignment(courseId, info.lastInsertRowid, title, pointsPossible, auth.email);
+    }
+
     return res.status(201).json(localDb.prepare("SELECT * FROM discussions WHERE id = ?").get(info.lastInsertRowid));
   } catch (error) {
     console.error("Error creating discussion:", error);
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+router.patch("/:id/discussions/:discussionId", (req, res) => {
+  try {
+    const courseId = String(req.params.id || "").trim();
+    if (!courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    const auth = requireTeacher(req, res, courseId);
+    if (!auth) return;
+
+    const discussion = localDb.prepare("SELECT * FROM discussions WHERE id = ? AND course_id = ?").get(req.params.discussionId, courseId);
+    if (!discussion) return res.status(404).json({ message: "Discussion not found" });
+
+    const { title, body, published, graded, pointsPossible } = req.body;
+    const updates = [];
+    const params = [];
+    if (title !== undefined) { updates.push("title = ?"); params.push(title); }
+    if (body !== undefined) { updates.push("body = ?"); params.push(body); }
+    if (published !== undefined) { updates.push("published = ?"); params.push(published ? 1 : 0); }
+    if (pointsPossible !== undefined) { updates.push("points_possible = ?"); params.push(Number(pointsPossible) || 0); }
+
+    if (graded !== undefined) {
+      const willBeGraded = !!graded;
+      updates.push("graded = ?"); params.push(willBeGraded ? 1 : 0);
+
+      if (willBeGraded && !discussion.linked_assignment_id) {
+        const effectiveTitle = title !== undefined ? title : discussion.title;
+        const effectivePoints = pointsPossible !== undefined ? (Number(pointsPossible) || 0) : discussion.points_possible;
+        linkDiscussionAssignment(courseId, discussion.id, effectiveTitle, effectivePoints, auth.email);
+      } else if (!willBeGraded && discussion.linked_assignment_id) {
+        localDb.prepare("UPDATE discussions SET linked_assignment_id = NULL WHERE id = ?").run(discussion.id);
+        localDb.prepare("DELETE FROM assignments WHERE id = ?").run(discussion.linked_assignment_id);
+      }
+    }
+
+    if (!updates.length) return res.status(400).json({ message: "No fields to update" });
+
+    params.push(req.params.discussionId, courseId);
+    localDb.prepare(`UPDATE discussions SET ${updates.join(", ")} WHERE id = ? AND course_id = ?`).run(...params);
+    return res.json(localDb.prepare("SELECT * FROM discussions WHERE id = ?").get(req.params.discussionId));
+  } catch (error) {
+    console.error("Error updating discussion:", error);
     return res.status(500).json({ message: error.message });
   }
 });

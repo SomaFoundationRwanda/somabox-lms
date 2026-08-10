@@ -1,7 +1,7 @@
 import express from 'express';
 import bcrypt from "bcrypt";
 
-import { serverDb } from '../helpers/db-manager.js';
+import { serverDb, localDb } from '../helpers/db-manager.js';
 
 const router = express.Router();
 
@@ -107,6 +107,128 @@ router.get('/', (req, res) => {
     } catch (err) {
         console.error("GET /users error:", err);
         res.status(500).json({ message: err.message });
+    }
+});
+
+router.get('/me/assignment-summary', (req, res) => {
+    try {
+        const email = String(req.query.userEmail || '').trim().toLowerCase();
+        if (!email) return res.status(400).json({ message: 'userEmail is required' });
+
+        const enrolledCourseIds = localDb.prepare(
+            "SELECT course_id FROM enrollments WHERE LOWER(user_email) = LOWER(?) AND status = 'active'"
+        ).all(email).map((r) => r.course_id);
+
+        const outstanding = [];
+        let completedCount = 0;
+
+        for (const courseId of enrolledCourseIds) {
+            const course = localDb.prepare("SELECT id, title FROM courses WHERE id = ?").get(courseId);
+            if (!course) continue;
+
+            const assignments = localDb.prepare(
+                "SELECT id, title, due_at FROM assignments WHERE course_id = ? AND published = 1"
+            ).all(courseId);
+
+            for (const a of assignments) {
+                const submission = localDb.prepare(
+                    "SELECT grade FROM assignment_submissions WHERE assignment_id = ? AND LOWER(scholar_email) = LOWER(?)"
+                ).get(a.id, email);
+
+                const status = !submission ? 'not_submitted' : submission.grade != null ? 'graded' : 'submitted';
+
+                if (status === 'graded') {
+                    completedCount += 1;
+                } else {
+                    outstanding.push({
+                        assignment_id: a.id,
+                        course_id: courseId,
+                        title: a.title,
+                        course_title: course.title,
+                        due_at: a.due_at,
+                        overdue: status === 'not_submitted' && !!a.due_at && new Date(a.due_at) < new Date(),
+                    });
+                }
+            }
+        }
+
+        outstanding.sort((x, y) => {
+            if (!x.due_at && !y.due_at) return 0;
+            if (!x.due_at) return 1;
+            if (!y.due_at) return -1;
+            return new Date(x.due_at) - new Date(y.due_at);
+        });
+
+        return res.json({
+            outstanding,
+            completed_count: completedCount,
+            outstanding_count: outstanding.length,
+        });
+    } catch (error) {
+        console.error('Error building assignment summary:', error);
+        return res.status(500).json({ message: error.message });
+    }
+});
+
+router.get('/me/dashboard', (req, res) => {
+    try {
+        const email = String(req.query.userEmail || '').trim().toLowerCase();
+        if (!email) return res.status(400).json({ message: 'userEmail is required' });
+
+        const enrolledRows = localDb.prepare(`
+            SELECT c.*, e.role AS my_role, e.status AS my_status
+            FROM courses c
+            JOIN enrollments e ON e.course_id = c.id
+            WHERE LOWER(e.user_email) = LOWER(?) AND e.status = 'active'
+            ORDER BY c.created_at DESC
+        `).all(email);
+
+        const enrolledCourses = enrolledRows.map((course) => {
+            const totalAssignments = Number(
+                localDb.prepare("SELECT COUNT(*) AS c FROM assignments WHERE course_id = ? AND published = 1").get(course.id)?.c || 0
+            );
+            const gradedAssignments = Number(
+                localDb.prepare(`
+                    SELECT COUNT(*) AS c FROM assignment_submissions s
+                    JOIN assignments a ON a.id = s.assignment_id
+                    WHERE a.course_id = ? AND LOWER(s.scholar_email) = LOWER(?) AND s.grade IS NOT NULL
+                `).get(course.id, email)?.c || 0
+            );
+            const studentCount = Number(
+                localDb.prepare("SELECT COUNT(*) AS total FROM enrollments WHERE course_id = ? AND role = 'student' AND status = 'active'").get(course.id)?.total || 0
+            );
+            const progress = totalAssignments > 0 ? Math.round((gradedAssignments / totalAssignments) * 100) : 0;
+
+            return {
+                ...course,
+                studentCount,
+                progress,
+                coverImageUrl: course.cover_image ? `/course-covers/${course.cover_image}` : null,
+            };
+        });
+
+        const publicRows = localDb.prepare(
+            "SELECT * FROM courses WHERE visibility = 'public' ORDER BY created_at DESC"
+        ).all();
+
+        const enrolledIds = new Set(enrolledCourses.map((c) => c.id));
+        const publicCourses = publicRows
+            .filter((course) => !enrolledIds.has(course.id))
+            .map((course) => {
+                const studentCount = Number(
+                    localDb.prepare("SELECT COUNT(*) AS total FROM enrollments WHERE course_id = ? AND role = 'student' AND status = 'active'").get(course.id)?.total || 0
+                );
+                return {
+                    ...course,
+                    studentCount,
+                    coverImageUrl: course.cover_image ? `/course-covers/${course.cover_image}` : null,
+                };
+            });
+
+        return res.json({ enrolled_courses: enrolledCourses, public_courses: publicCourses });
+    } catch (error) {
+        console.error('Error building dashboard:', error);
+        return res.status(500).json({ message: error.message });
     }
 });
 

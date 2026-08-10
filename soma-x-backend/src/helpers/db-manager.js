@@ -466,6 +466,15 @@ export async function initSchemas() {
             FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE
         );
 
+        CREATE TABLE IF NOT EXISTS collaboration_members (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            collaboration_id INTEGER NOT NULL,
+            user_email TEXT NOT NULL,
+            added_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE (collaboration_id, user_email),
+            FOREIGN KEY (collaboration_id) REFERENCES collaborations(id) ON DELETE CASCADE
+        );
+
         CREATE INDEX IF NOT EXISTS idx_course_nav_items_course_id ON course_nav_items(course_id);
         CREATE INDEX IF NOT EXISTS idx_enrollments_course_id ON enrollments(course_id);
         CREATE INDEX IF NOT EXISTS idx_enrollments_user_email ON enrollments(user_email);
@@ -486,6 +495,7 @@ export async function initSchemas() {
         CREATE INDEX IF NOT EXISTS idx_announcements_course_id ON announcements(course_id);
         CREATE INDEX IF NOT EXISTS idx_outcomes_course_id ON outcomes(course_id);
         CREATE INDEX IF NOT EXISTS idx_collaborations_course_id ON collaborations(course_id);
+        CREATE INDEX IF NOT EXISTS idx_collaboration_members_collaboration_id ON collaboration_members(collaboration_id);
         CREATE INDEX IF NOT EXISTS idx_page_file_references_page ON page_file_references(page_id);
         CREATE INDEX IF NOT EXISTS idx_page_file_references_file ON page_file_references(file_id);
         CREATE INDEX IF NOT EXISTS idx_page_views_page ON page_views(page_id);
@@ -496,6 +506,7 @@ export async function initSchemas() {
     migrateModuleItemsSchema();
     migrateCoursePagesTipTap();
     migratePageFileReferencesAndViews();
+    migrateCourseNavExtras();
 
     migrateClassesToCoursesIfNeeded();
 
@@ -694,6 +705,37 @@ function migrateCoursePagesTipTap() {
         }
     } catch (error) {
         console.error("course_pages TipTap migration failed:", error.message);
+    }
+}
+
+// ===== Adds columns for Grades/Collaborations/Outcomes/Announcements/Visibility features (for existing DBs) =====
+function migrateCourseNavExtras() {
+    try {
+        const courseCols = localDb.prepare("PRAGMA table_info(courses)").all().map(c => c.name);
+        if (!courseCols.includes('visibility')) {
+            console.log("Adding visibility column to courses...");
+            localDb.exec("ALTER TABLE courses ADD COLUMN visibility TEXT NOT NULL DEFAULT 'private' CHECK (visibility IN ('private', 'public'));");
+        }
+
+        const announcementCols = localDb.prepare("PRAGMA table_info(announcements)").all().map(c => c.name);
+        if (!announcementCols.includes('pinned')) {
+            console.log("Adding pinned column to announcements...");
+            localDb.exec("ALTER TABLE announcements ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0;");
+        }
+
+        const outcomeCols = localDb.prepare("PRAGMA table_info(outcomes)").all().map(c => c.name);
+        if (!outcomeCols.includes('mastery_scale')) {
+            console.log("Adding mastery_scale column to outcomes...");
+            localDb.exec("ALTER TABLE outcomes ADD COLUMN mastery_scale TEXT NOT NULL DEFAULT '4pt';");
+        }
+
+        const discussionCols = localDb.prepare("PRAGMA table_info(discussions)").all().map(c => c.name);
+        if (!discussionCols.includes('linked_assignment_id')) {
+            console.log("Adding linked_assignment_id column to discussions...");
+            localDb.exec("ALTER TABLE discussions ADD COLUMN linked_assignment_id INTEGER REFERENCES assignments(id);");
+        }
+    } catch (error) {
+        console.error("course nav extras migration failed:", error.message);
     }
 }
 
