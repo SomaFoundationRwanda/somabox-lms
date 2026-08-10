@@ -6,6 +6,7 @@ import { useContext, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
 import DataContext from "@/context/DataContext";
+import NotificationBellDrawer from "../notifications/NotificationBellDrawer";
 
 const ACCENT_LIGHT = "#203A3A";
 const ACCENT_DARK = "#0D9488";
@@ -26,7 +27,7 @@ export default function SomaboxNav() {
     { id: "dashboard", label: t("nav.dashboard") || "Dashboard", Icon: LayoutDashboard, to: dashboardLocation },
     ...(currentRole === "scholar"
       ? [
-        { id: "lessons", label: t("nav.lessons") || "Lessons", Icon: BookOpen, to: "/manage/scholar-dashboard/lessons" },
+        { id: "courses", label: t("nav.courses") || "Courses", Icon: BookOpen, to: "/manage/scholar-dashboard/courses" },
         { id: "explore", label: "Explore", Icon: Compass, to: "/home" }
       ]
       : []),
@@ -102,33 +103,22 @@ export default function SomaboxNav() {
   const SidebarContent = ({ onNavClick }) => (
     <>
       {/* Brand */}
-      <div className="flex items-center gap-3 px-5 py-5 shrink-0" style={{ borderBottom: `1px solid ${borderColor}` }}>
-        <div className="w-9 h-9 rounded-[8px] overflow-hidden shrink-0 flex items-center justify-center"
-          style={{ background: dm ? "rgba(255,255,255,0.06)" : "#f1f5f9", border: `1px solid ${borderColor}` }}>
-          <Image src="/schoolLogo/somabox-logo-dark.webp" alt="SomaBox" width={32} height={32} className="w-8 h-8 object-contain" />
-        </div>
-        <div className="min-w-0 leading-tight">
-          <p className="text-[14px] font-black truncate" style={{ color: titleColor }}>SOMABOX</p>
-          <p className="text-[10px] font-medium truncate capitalize" style={{ color: subColor }}>{currentRole} Dashboard</p>
-        </div>
+      <div className="flex items-center justify-center px-5 py-5 shrink-0" style={{ borderBottom: `1px solid ${borderColor}` }}>
+        <Image 
+            src="/schoolLogo/somabox.png" 
+            alt="SomaBox" 
+            width={160} 
+            height={55} 
+            className="w-auto h-12 object-contain" 
+            priority
+        />
       </div>
 
-      {/* Nav links */}
-      <div className="flex-1 overflow-y-auto px-3 py-5 space-y-6 min-h-0">
-        <div className="space-y-1">
-          <p className="text-[9.5px] font-bold uppercase tracking-widest px-2 mb-2.5" style={{ color: labelColor }}>Main Menu</p>
-          {mainNavItems.map(item => <NavRow key={item.id} {...item} onClick={onNavClick} />)}
-        </div>
-        {managementNavItems.length > 0 && (
-          <div className="space-y-1">
-            <p className="text-[9.5px] font-bold uppercase tracking-widest px-2 mb-2.5" style={{ color: labelColor }}>Management</p>
-            {managementNavItems.map(item => <NavRow key={item.id} {...item} onClick={onNavClick} />)}
-          </div>
-        )}
-        <div className="space-y-1">
-          <p className="text-[9.5px] font-bold uppercase tracking-widest px-2 mb-2.5" style={{ color: labelColor }}>Other Menu</p>
-          {otherNavItems.map(item => <NavRow key={item.id} {...item} onClick={onNavClick} />)}
-        </div>
+      {/* Nav links - Flattened without section headers */}
+      <div className="flex-1 overflow-y-auto px-3 py-5 space-y-1 min-h-0">
+        {[...mainNavItems, ...managementNavItems, ...otherNavItems].map(item => (
+          <NavRow key={item.id} {...item} onClick={onNavClick} />
+        ))}
       </div>
 
       {/* Bottom pinned */}
@@ -156,17 +146,6 @@ export default function SomaboxNav() {
             </button>
           </div>
         </div>
-
-        <button
-          onClick={logout}
-          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-full transition-colors"
-          style={{ color: logoutColor }}
-          onMouseEnter={e => e.currentTarget.style.backgroundColor = logoutHover}
-          onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}
-        >
-          <LogOut size={15} strokeWidth={1.75} className="shrink-0" />
-          <span className="text-[13px] font-semibold">Logout</span>
-        </button>
       </div>
     </>
   );

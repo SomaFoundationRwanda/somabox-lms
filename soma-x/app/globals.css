@@ -371,6 +371,29 @@ body{
   body {
     @apply bg-background text-foreground;
   }
+  /* Global High Contrast Form Controls & Text Legibility */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  input[type="number"],
+  input[type="tel"],
+  select,
+  textarea {
+    color: #0f172a !important;
+    font-weight: 600 !important;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: #475569 !important;
+    opacity: 1 !important;
+  }
+
+  label {
+    color: #1e293b;
+    font-weight: 700;
+  }
 }
 
 /* ═══════════════════════════════════════════════════

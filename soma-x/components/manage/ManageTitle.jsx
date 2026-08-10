@@ -1,8 +1,9 @@
 "use client"
 import Link from "next/link";
-import { ArrowLeft, Bell, ChevronRight, Search } from "lucide-react";
+import { ArrowLeft, ChevronRight, Search } from "lucide-react";
 import { useContext, useEffect, useState } from "react";
 import DataContext from "@/context/DataContext";
+import NotificationBellDrawer from "@/components/notifications/NotificationBellDrawer";
 
 const ManageTitle = ({ title }) => {
     const { unshiftString, isDark } = useContext(DataContext);
@@ -28,7 +29,7 @@ const ManageTitle = ({ title }) => {
                     </button>
                 </Link>
                 <div className="min-w-0">
-                    <div className="flex items-center gap-1 text-[10px] text-slate-400 font-medium">
+                    <div className="flex items-center gap-1 text-[10px] text-slate-600 font-medium">
                         <Link href="/manage/admin" className="hover:text-slate-600 transition-colors">Admin</Link>
                         <ChevronRight className="w-3 h-3" />
                         <span className="text-slate-600 font-semibold">{title}</span>
@@ -36,13 +37,11 @@ const ManageTitle = ({ title }) => {
                     <h1 className="text-[16px] font-black text-slate-900 leading-tight tracking-tight">{title}</h1>
                 </div>
             </div>
-            <div className="flex items-center gap-1 shrink-0">
-                <button type="button" className="w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 transition-colors">
+            <div className="flex items-center gap-1.5 shrink-0">
+                <button type="button" className="w-8 h-8 flex items-center justify-center rounded-full text-slate-600 hover:bg-slate-100 transition-colors">
                     <Search className="w-[15px] h-[15px]" />
                 </button>
-                <button type="button" className="w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 transition-colors">
-                    <Bell className="w-[15px] h-[15px]" />
-                </button>
+                <NotificationBellDrawer />
                 <div
                     className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 ml-0.5"
                     style={{ backgroundColor: ACCENT }}

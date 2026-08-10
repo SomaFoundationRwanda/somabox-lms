@@ -87,7 +87,7 @@ export default function SomaboxHomepage() {
                             Categories
                         </Typography>
                         {sidebarItems.length === 0 ? (
-                            <div className="text-gray-400 text-sm p-4 text-center italic">{t("loadingCategories")}</div>
+                            <div className="text-gray-600 text-sm p-4 text-center italic">{t("loadingCategories")}</div>
                         ) : (
                             sidebarItems.map((item, index) => (
                                 <div
@@ -113,7 +113,7 @@ export default function SomaboxHomepage() {
                         itemsToDisplay.length === 0 ? (
                             <div className="flex flex-col items-center justify-center h-full py-12 text-slate-500 gap-4">
                                 <div className="w-16 h-16 bg-slate-200 rounded-full flex items-center justify-center opacity-50">
-                                    <BookOutlined className="text-slate-400" />
+                                    <BookOutlined className="text-slate-600" />
                                 </div>
                                 <Typography variant="body" color="muted" className="text-center max-w-xs md:max-w-md">
                                     {activeTab === 'custom-content' || activeTab === 'school-content'

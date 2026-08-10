@@ -75,7 +75,7 @@ const TreeNode = ({ node, onCheck, checked }) => {
                                 Downloaded
                             </span>
                         )}
-                        <span className="ml-auto text-slate-300">
+                        <span className="ml-auto text-slate-500">
                             {collapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                         </span>
                     </button>
@@ -98,14 +98,14 @@ const TreeNode = ({ node, onCheck, checked }) => {
                     checked={!!checked[node.path]}
                     onCheckedChange={(v) => onCheck(node, v === true)}
                 />
-                <File className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <File className="w-3.5 h-3.5 text-slate-600 shrink-0" />
                 <span className="text-[12px] text-slate-600 flex-1">{node.name}</span>
                 {node.isDownloaded && (
                     <span className="text-[9px] bg-green-50 text-green-600 px-2 py-0.5 rounded-full font-bold">
                         Downloaded
                     </span>
                 )}
-                <span className="text-[11px] text-slate-400">{formatSize(node.size)}</span>
+                <span className="text-[11px] text-slate-600">{formatSize(node.size)}</span>
             </div>
         );
     }
@@ -284,12 +284,12 @@ const ManageSync = () => {
                         ) : cloudUnavailable ? (
                             <div className="flex flex-col items-center justify-center py-12 gap-2">
                                 <AlertCircle className="w-8 h-8 text-red-300" />
-                                <p className="text-[12px] font-semibold text-slate-400">Remote server is not available</p>
+                                <p className="text-[12px] font-semibold text-slate-600">Remote server is not available</p>
                             </div>
                         ) : contentTree.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-12 gap-2">
                                 <FolderClosed className="w-8 h-8 text-slate-200" />
-                                <p className="text-[12px] font-semibold text-slate-400">No content available</p>
+                                <p className="text-[12px] font-semibold text-slate-600">No content available</p>
                             </div>
                         ) : (
                             contentTree.map((node, i) => (

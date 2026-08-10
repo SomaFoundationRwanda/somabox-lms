@@ -6,6 +6,7 @@ import {
     GraduationCap, Loader2, ShieldCheck, User, UserPlus, X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/context/ToastContext";
 
 /* ── Role config ── */
 const ROLES = [
@@ -22,6 +23,7 @@ function getInitials(name, email) {
 }
 
 export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = false }) {
+    const { showToast }                     = useToast();
     const [open, setOpen]                   = useState(false);
     const [email, setEmail]                 = useState("");
     const [password, setPassword]           = useState("");
@@ -32,17 +34,33 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
     const [error, setError]                 = useState(null);
     const [success, setSuccess]             = useState(null);
 
+    const [gender, setGender]               = useState("prefer_not_to_say");
+    const [regionProvince, setRegionProvince] = useState("Not Specified");
+    const [regionDistrict, setRegionDistrict] = useState("Not Specified");
+    const [isRural, setIsRural]             = useState(false);
+    const [disabilityStatus, setDisabilityStatus] = useState("none");
+
     /* Populate form when editing an existing user */
     useEffect(() => {
         if (user) {
             setEmail(user.email || "");
             setFullName(user.full_name || "");
             setSelectedRole(user.role || "teacher");
+            setGender(user.gender || "prefer_not_to_say");
+            setRegionProvince(user.region_province || "Not Specified");
+            setRegionDistrict(user.region_district || "Not Specified");
+            setIsRural(user.is_rural === 1);
+            setDisabilityStatus(user.disability_status || "none");
             setPassword("");
         } else {
             setEmail("");
             setFullName("");
             setSelectedRole("teacher");
+            setGender("prefer_not_to_say");
+            setRegionProvince("Not Specified");
+            setRegionDistrict("Not Specified");
+            setIsRural(false);
+            setDisabilityStatus("none");
             setPassword("");
         }
         setError(null);
@@ -78,19 +96,30 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
                 : `${process.env.NEXT_PUBLIC_SERVER_URL}/users`;
             const method = user ? "PATCH" : "POST";
             const body   = { email };
-            if (!restrictToLoginInfo) { body.fullName = fullName; body.role = selectedRole; }
+            if (!restrictToLoginInfo) {
+                body.fullName = fullName;
+                body.role = selectedRole;
+                body.gender = gender;
+                body.regionProvince = regionProvince;
+                body.regionDistrict = regionDistrict;
+                body.isRural = isRural;
+                body.disabilityStatus = disabilityStatus;
+            }
             if (password) body.password = password;
 
             const res  = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
             const data = await res.json();
             if (!res.ok) throw new Error(data.message || `Failed to ${user ? "update" : "add"} user`);
 
-            setSuccess(`User ${user ? "updated" : "added"} successfully.`);
+            const successMsg = `User ${user ? "updated" : "created"} successfully!`;
+            setSuccess(successMsg);
+            showToast(successMsg, "success");
             if (!user) { setEmail(""); setFullName(""); setPassword(""); setSelectedRole("teacher"); }
             if (onSuccess) onSuccess();
             setTimeout(handleClose, 1200);
         } catch (err) {
             setError(err.message);
+            showToast(`Action failed: ${err.message}`, "error");
             console.error(err);
         } finally {
             setLoading(false);
@@ -131,7 +160,7 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
                             {!loading && (
                                 <button
                                     onClick={handleClose}
-                                    className="w-7 h-7 flex items-center justify-center rounded-[5px] text-slate-400 hover:bg-slate-100 transition-colors"
+                                    className="w-7 h-7 flex items-center justify-center rounded-[5px] text-slate-600 hover:bg-slate-100 transition-colors"
                                 >
                                     <X className="w-3.5 h-3.5" />
                                 </button>
@@ -151,7 +180,7 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
                                     </div>
                                     <div className="min-w-0 flex-1">
                                         <p className="text-[13px] font-bold text-slate-800 truncate">{displayName}</p>
-                                        <p className="text-[11px] text-slate-400 truncate">{email || "email@example.com"}</p>
+                                        <p className="text-[11px] text-slate-600 truncate">{email || "email@example.com"}</p>
                                     </div>
                                     <span className={`flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${roleConfig.color}`}>
                                         <roleConfig.Icon className="w-3 h-3" />
@@ -189,8 +218,7 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
                                         </div>
                                     </div>
                                 )}
-
-                                {/* ── Full name ── */}
+                                 {/* ── Full name ── */}
                                 {!restrictToLoginInfo && (
                                     <div>
                                         <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest block mb-2">
@@ -204,6 +232,88 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
                                             disabled={loading}
                                             className="w-full h-10 px-3 rounded-[5px] border border-slate-200 bg-slate-50 text-[13px] text-slate-800 placeholder:text-slate-400 outline-none focus:border-slate-400 focus:bg-white transition-all disabled:opacity-50"
                                         />
+                                    </div>
+                                )}
+
+                                {/* ── Demographic & Inclusivity Fields ── */}
+                                {!restrictToLoginInfo && (
+                                    <div className="space-y-3 pt-2 border-t border-slate-100">
+                                        <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider block">
+                                            Demographic & Inclusivity Settings (V2.1)
+                                        </label>
+
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <div>
+                                                <label className="text-[10px] font-bold text-slate-500 block mb-1">Gender</label>
+                                                <select
+                                                    value={gender}
+                                                    onChange={(e) => setGender(e.target.value)}
+                                                    disabled={loading}
+                                                    className="w-full h-9 px-2 rounded-[5px] border border-slate-200 bg-slate-50 text-xs text-slate-800 outline-none"
+                                                >
+                                                    <option value="prefer_not_to_say">Prefer Not To Say</option>
+                                                    <option value="female">Female</option>
+                                                    <option value="male">Male</option>
+                                                    <option value="non_binary">Non-binary</option>
+                                                </select>
+                                            </div>
+
+                                            <div>
+                                                <label className="text-[10px] font-bold text-slate-500 block mb-1">Accessibility / Disability</label>
+                                                <select
+                                                    value={disabilityStatus}
+                                                    onChange={(e) => setDisabilityStatus(e.target.value)}
+                                                    disabled={loading}
+                                                    className="w-full h-9 px-2 rounded-[5px] border border-slate-200 bg-slate-50 text-xs text-slate-800 outline-none"
+                                                >
+                                                    <option value="none">None</option>
+                                                    <option value="visual">Visual Impairment</option>
+                                                    <option value="hearing">Hearing Impairment</option>
+                                                    <option value="mobility">Mobility Impairment</option>
+                                                    <option value="cognitive">Cognitive / Learning</option>
+                                                    <option value="other">Other</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <div>
+                                                <label className="text-[10px] font-bold text-slate-500 block mb-1">Province</label>
+                                                <input
+                                                    type="text"
+                                                    value={regionProvince}
+                                                    onChange={(e) => setRegionProvince(e.target.value)}
+                                                    placeholder="e.g. Kigali / Northern"
+                                                    disabled={loading}
+                                                    className="w-full h-9 px-2.5 rounded-[5px] border border-slate-200 bg-slate-50 text-xs text-slate-800 outline-none"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-[10px] font-bold text-slate-500 block mb-1">District</label>
+                                                <input
+                                                    type="text"
+                                                    value={regionDistrict}
+                                                    onChange={(e) => setRegionDistrict(e.target.value)}
+                                                    placeholder="e.g. Gasabo / Musanze"
+                                                    disabled={loading}
+                                                    className="w-full h-9 px-2.5 rounded-[5px] border border-slate-200 bg-slate-50 text-xs text-slate-800 outline-none"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-2 pt-1">
+                                            <input
+                                                type="checkbox"
+                                                id="isRuralCheck"
+                                                checked={isRural}
+                                                onChange={(e) => setIsRural(e.target.checked)}
+                                                disabled={loading}
+                                                className="rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                                            />
+                                            <label htmlFor="isRuralCheck" className="text-xs font-bold text-slate-700 cursor-pointer">
+                                                Located in Rural / Remote Region (M&E Equity Tracking)
+                                            </label>
+                                        </div>
                                     </div>
                                 )}
 
@@ -226,7 +336,7 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
                                 <div>
                                     <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest block mb-2">
                                         {user ? "New Password" : "Password"}
-                                        {user && <span className="normal-case font-medium text-slate-400 ml-1">(leave blank to keep current)</span>}
+                                        {user && <span className="normal-case font-medium text-slate-600 ml-1">(leave blank to keep current)</span>}
                                     </label>
                                     <div className="relative">
                                         <input
@@ -240,7 +350,7 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
                                         <button
                                             type="button"
                                             onClick={() => setShowPassword(s => !s)}
-                                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-600 transition-colors"
                                             tabIndex={-1}
                                         >
                                             {showPassword

@@ -4,13 +4,14 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useContext } from "react"
 import DataContext from "@/context/DataContext"
+import MandatoryProfileSetupModal from "@/components/onboarding/MandatoryProfileSetupModal";
 import { BookOpen, Compass, LayoutDashboard, LogOut, Moon, Settings, Sun } from "lucide-react"
 
 const ACCENT_LIGHT = "#203A3A"
 
 const mainNavItems = [
   { id: "dashboard", label: "Dashboard", Icon: LayoutDashboard, href: "/teacher/dashboard" },
-  { id: "classes", label: "Class Page", Icon: BookOpen, href: "/teacher/classes" },
+  { id: "courses", label: "Courses", Icon: BookOpen, href: "/teacher/courses" },
   { id: "explore", label: "Explore", Icon: Compass, href: "/teacher/explore" },
 ]
 
@@ -138,6 +139,7 @@ export default function TeacherUILayout({ children }) {
           {children}
         </main>
       </div>
+      <MandatoryProfileSetupModal />
     </div>
   )
 }

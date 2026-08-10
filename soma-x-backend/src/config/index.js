@@ -23,7 +23,8 @@ export const config = {
         lessons: path.join(ROOT_DIR, 'local-content/lessons'),
         library: path.join(ROOT_DIR, 'local-content/library'),
         libraryCovers: path.join(ROOT_DIR, 'local-content/library/covers'),
-        classCovers: path.join(ROOT_DIR, 'local-content/class-covers'),
+        courseCovers: path.join(ROOT_DIR, 'local-content/course-covers'),
+        courseFiles: path.join(ROOT_DIR, 'local-content/course-files'),
         pdfCovers: path.join(ROOT_DIR, 'local-content/pdf-book-covers'),
         rwandanPdfCovers: path.join(ROOT_DIR, 'local-content/pdf-book-covers/rwandan-education'),
         static: {

@@ -2,14 +2,17 @@
 import DataContext from "@/context/DataContext";
 import { useContext, useState } from "react";
 import { useLanguage } from '@/context/LanguageContext';
-import { BookOpen, ChevronDown, Globe, GraduationCap, ShieldCheck, Users, Wifi } from "lucide-react";
+import { BookOpen, ChevronDown, Eye, EyeOff, Globe, GraduationCap, ShieldCheck, Users, Wifi } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import Image from "next/image";
+import { useToast } from "@/context/ToastContext";
 
 const AuthComp = () => {
     const { t, setLang, lang } = useLanguage();
+    const { showToast } = useToast();
     const [showLangMenu, setShowLangMenu] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
     const languages = ["en", "fr", "rw", "sw", "es"];
 
     const { shiftString } = useContext(DataContext);
@@ -42,11 +45,17 @@ const AuthComp = () => {
             localStorage.setItem('un', shiftString(data.user.full_name || ''));
             localStorage.setItem('gh', shiftString(formData.role));
 
-            if (formData.role === 'teacher') window.location.href = '/manage/teacher';
-            else if (formData.role === 'admin') window.location.href = '/manage/admin';
-            else window.location.href = '/manage/scholar-dashboard';
+            showToast(`Welcome back, ${data.user.full_name || 'User'}! Login successful.`, 'success');
+
+            setTimeout(() => {
+                if (formData.role === 'teacher') window.location.href = '/manage/teacher';
+                else if (formData.role === 'admin') window.location.href = '/manage/admin';
+                else window.location.href = '/manage/scholar-dashboard';
+            }, 600);
         } catch (err) {
-            setLoginError(err.message || 'Something went wrong. Please try again.');
+            const errMsg = err.message || 'Something went wrong. Please try again.';
+            setLoginError(errMsg);
+            showToast(`Login failed: ${errMsg}`, 'error');
         } finally {
             setLoading(false);
         }
@@ -163,17 +172,17 @@ const AuthComp = () => {
 
                     {/* Form header */}
                     <div className="mb-7">
-                        <h2 className="text-[26px] font-black text-slate-900 tracking-tight leading-tight">
+                        <h2 className="text-[28px] font-black text-slate-900 tracking-tight leading-tight">
                             Welcome Back!
                         </h2>
-                        <p className="text-slate-400 text-[13px] mt-1">
+                        <p className="text-slate-600 text-[14px] font-medium mt-1">
                             Please enter your credentials to continue
                         </p>
                     </div>
 
                     {/* Email */}
                     <div className="space-y-1.5">
-                        <label htmlFor="auth-email" className="block text-[12px] font-semibold text-slate-600 uppercase tracking-wide">
+                        <label htmlFor="auth-email" className="block text-[12px] font-bold text-slate-800 uppercase tracking-wider">
                             Email
                         </label>
                         <input
@@ -182,28 +191,38 @@ const AuthComp = () => {
                             placeholder="you@example.com"
                             required
                             onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                            className="w-full h-11 rounded-lg bg-slate-50 border border-slate-200 px-3.5 text-[14px] text-slate-900 font-medium placeholder:text-slate-300 outline-none focus:border-slate-400 focus:bg-white transition-colors"
+                            className="w-full h-11 rounded-lg bg-white border-2 border-slate-300 hover:border-slate-400 focus:border-accent-dark px-3.5 text-[14px] text-slate-900 font-semibold placeholder:text-slate-500 shadow-sm outline-none transition-colors"
                         />
                     </div>
 
                     {/* Password */}
                     <div className="space-y-1.5">
-                        <label htmlFor="auth-password" className="block text-[12px] font-semibold text-slate-600 uppercase tracking-wide">
+                        <label htmlFor="auth-password" className="block text-[12px] font-bold text-slate-800 uppercase tracking-wider">
                             Password
                         </label>
-                        <input
-                            type="password"
-                            id="auth-password"
-                            placeholder="••••••••"
-                            required
-                            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                            className="w-full h-11 rounded-lg bg-slate-50 border border-slate-200 px-3.5 text-[14px] text-slate-900 font-medium placeholder:text-slate-300 outline-none focus:border-slate-400 focus:bg-white transition-colors"
-                        />
+                        <div className="relative">
+                            <input
+                                type={showPassword ? "text" : "password"}
+                                id="auth-password"
+                                placeholder="••••••••"
+                                required
+                                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                className="w-full h-11 rounded-lg bg-white border-2 border-slate-300 hover:border-slate-400 focus:border-accent-dark px-3.5 pr-11 text-[14px] text-slate-900 font-semibold placeholder:text-slate-500 shadow-sm outline-none transition-colors"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5 text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-md transition-colors"
+                                aria-label="Toggle password visibility"
+                            >
+                                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                        </div>
                     </div>
 
                     {/* Role segmented control */}
                     <div className="space-y-1.5 pt-1">
-                        <label className="block text-[12px] font-semibold text-slate-600 uppercase tracking-wide">
+                        <label className="block text-[12px] font-bold text-slate-800 uppercase tracking-wider">
                             Sign in as
                         </label>
                         <div className="flex gap-2">
@@ -214,13 +233,13 @@ const AuthComp = () => {
                                         key={value}
                                         type="button"
                                         onClick={() => setFormData({ ...formData, role: value })}
-                                        className={`flex-1 flex flex-col items-center gap-1.5 py-3 rounded-lg border text-[11px] font-bold transition-colors duration-150 cursor-pointer ${
+                                        className={`flex-1 flex flex-col items-center gap-1.5 py-3 rounded-lg border-2 text-[12px] font-bold transition-all duration-150 cursor-pointer shadow-sm ${
                                             active
                                                 ? 'bg-accent-dark text-white border-accent-dark'
-                                                : 'bg-slate-50 text-slate-500 border-slate-200 hover:border-slate-300 hover:text-slate-700'
+                                                : 'bg-white text-slate-700 border-slate-300 hover:border-slate-400 hover:text-slate-900'
                                         }`}
                                     >
-                                        <Icon size={15} strokeWidth={2} />
+                                        <Icon size={16} strokeWidth={2.5} />
                                         {label}
                                     </button>
                                 );
@@ -230,9 +249,9 @@ const AuthComp = () => {
 
                     {/* Inline error */}
                     {loginError && (
-                        <div className="flex items-start gap-2.5 bg-red-50 border border-red-100 rounded-lg px-3.5 py-2.5">
-                            <div className="w-1.5 h-1.5 mt-1.5 rounded-full bg-red-400 shrink-0" />
-                            <p className="text-red-600 text-[12px] font-medium leading-snug">{loginError}</p>
+                        <div className="flex items-start gap-2.5 bg-rose-50 border border-rose-200 rounded-lg px-3.5 py-2.5">
+                            <div className="w-2 h-2 mt-1.5 rounded-full bg-rose-600 shrink-0" />
+                            <p className="text-rose-700 text-[13px] font-bold leading-snug">{loginError}</p>
                         </div>
                     )}
 
@@ -242,26 +261,26 @@ const AuthComp = () => {
                             type="submit"
                             width="full"
                             disabled={loading}
-                            className="w-full h-11 text-[14px] font-bold rounded-lg bg-accent-dark hover:bg-black text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full h-11 text-[15px] font-bold rounded-lg bg-accent-dark hover:bg-black text-white shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {loading ? "Signing in…" : t("auth.authLogin") || "Login"}
                         </Button>
                     </div>
 
                     {/* Divider */}
-                    <div className="relative py-1">
+                    <div className="relative py-2">
                         <div className="absolute inset-0 flex items-center">
-                            <div className="w-full border-t border-slate-200" />
+                            <div className="w-full border-t-2 border-slate-300" />
                         </div>
                         <div className="relative flex justify-center">
-                            <span className="bg-white px-3 text-[11px] text-slate-300 font-medium">or</span>
+                            <span className="bg-white px-3 text-[12px] text-slate-600 font-bold uppercase tracking-wider">or</span>
                         </div>
                     </div>
 
                     {/* Sign up */}
-                    <p className="text-center text-[13px] text-slate-400">
+                    <p className="text-center text-[14px] text-slate-700 font-medium">
                         Don&apos;t have an account?{' '}
-                        <Link href="/signup" className="text-accent-dark font-bold hover:underline underline-offset-2">
+                        <Link href="/signup" className="text-accent-dark font-extrabold hover:underline underline-offset-2">
                             Sign Up
                         </Link>
                     </p>

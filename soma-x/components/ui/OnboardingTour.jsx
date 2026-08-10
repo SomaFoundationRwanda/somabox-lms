@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useState, useCallback, useContext } from "react";
-import { X, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Sparkles, Rocket, BarChart3, BookOpen, Zap, Compass } from "lucide-react";
 import DataContext from "@/context/DataContext";
 
 const TOUR_KEY = "somabox_tour_seen_v1";
@@ -8,7 +8,7 @@ const TOUR_KEY = "somabox_tour_seen_v1";
 const STEPS = [
     {
         id: "welcome",
-        emoji: "🚀",
+        icon: Rocket,
         tag: "WELCOME",
         title: "Hey there, Scholar!",
         body: "Welcome to SOMABOX — your personal learning space! Let me give you a super quick tour of what's here. It'll only take about 30 seconds!",
@@ -17,46 +17,46 @@ const STEPS = [
     },
     {
         id: "stats",
-        emoji: "",
+        icon: BarChart3,
         tag: "STATS",
         title: "Your Learning Stats",
-        body: "These cards show your classes, lessons in progress, and how much you've completed. The more you learn, the bigger these numbers grow! ",
+        body: "These cards show your classes, lessons in progress, and how much you've completed. The more you learn, the bigger these numbers grow!",
         pointer: { top: "30%", left: "50%" },
         cardPos: "bottom",
     },
     {
         id: "lessons",
-        emoji: "📚",
+        icon: BookOpen,
         tag: "LESSONS",
         title: "Recent Lessons",
-        body: "Here you can see your latest lessons and their status. Click any lesson to jump right in and continue where you left off! ⚡",
+        body: "Here you can see your latest lessons and their status. Click any lesson to jump right in and continue where you left off!",
         pointer: { top: "65%", left: "35%" },
         cardPos: "top",
     },
     {
         id: "quick-access",
-        emoji: "⚡",
+        icon: Zap,
         tag: "QUICK ACCESS",
         title: "Quick Access Panel",
-        body: "Jump straight to your classes, lessons, library, or completed work — all in one tap! Think of it as your shortcut board. 🎯",
+        body: "Jump straight to your classes, lessons, library, or completed work — all in one tap! Think of it as your shortcut board.",
         pointer: { top: "65%", left: "75%" },
         cardPos: "top",
     },
     {
         id: "nav",
-        emoji: "🧭",
+        icon: Compass,
         tag: "NAVIGATION",
         title: "Your Navigation Sidebar",
-        body: "Use this sidebar on the left to move between Dashboard, Lessons, Library, and your Account anytime. You're always one click away! 🗺️",
+        body: "Use this sidebar on the left to move between Dashboard, Lessons, Library, and your Account anytime. You're always one click away!",
         pointer: { top: "50%", left: "8%" },
         cardPos: "right",
     },
     {
         id: "finish",
-        emoji: "🌟",
+        icon: Sparkles,
         tag: "ALL DONE",
         title: "You're All Set!",
-        body: "Amazing — you know everything! Now go ahead and start learning. Every lesson brings you closer to your goals. You've totally got this! 💪🎉",
+        body: "Amazing — you know everything! Now go ahead and start learning. Every lesson brings you closer to your goals. You've totally got this!",
         pointer: null,
         cardPos: "center",
     },
@@ -166,8 +166,12 @@ function TourCard({ step, stepIndex, total, onNext, onPrev, onSkip }) {
                         </button>
                     </div>
 
-                    {/* Emoji */}
-                    <div className="text-[48px] mb-3 leading-none select-none">{step.emoji}</div>
+                    {/* Icon */}
+                    {step.icon && (
+                        <div className="w-12 h-12 rounded-2xl bg-teal-500/20 border border-teal-500/30 flex items-center justify-center text-teal-300 mb-3 shadow-md">
+                            <step.icon className="w-6 h-6" />
+                        </div>
+                    )}
 
                     {/* Title */}
                     <h3 className="text-[20px] font-black text-white leading-tight mb-2 tracking-tight">

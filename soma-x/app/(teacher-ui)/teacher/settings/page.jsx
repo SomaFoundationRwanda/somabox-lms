@@ -18,7 +18,7 @@ function Row({ label, description, children }) {
     <div className="flex items-center justify-between px-5 py-4 gap-4">
       <div>
         <p className="text-sm font-medium text-slate-700 dark:text-slate-200">{label}</p>
-        {description && <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{description}</p>}
+        {description && <p className="text-xs text-slate-600 dark:text-slate-500 mt-0.5">{description}</p>}
       </div>
       <div className="flex-shrink-0">{children}</div>
     </div>

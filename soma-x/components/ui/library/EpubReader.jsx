@@ -1,7 +1,7 @@
-"use client"
-import React, { useState, useEffect } from 'react'
-import { ReactReader } from 'react-reader'
-import { X } from 'lucide-react'
+"use client";
+import React, { useState, useEffect } from 'react';
+import { ReactReader } from 'react-reader';
+import { AlertTriangle, X } from 'lucide-react';
 
 const EpubReader = ({ url, title, onClose }) => {
     const [location, setLocation] = useState(null)
@@ -71,7 +71,7 @@ const EpubReader = ({ url, title, onClose }) => {
                         className="p-2 hover:bg-gray-100 rounded-full transition-colors group"
                         title="Close Reader"
                     >
-                        <X className="w-6 h-6 text-gray-400 group-hover:text-gray-600" />
+                        <X className="w-6 h-6 text-gray-600 group-hover:text-gray-600" />
                     </button>
                 </div>
 
@@ -84,7 +84,7 @@ const EpubReader = ({ url, title, onClose }) => {
                         </div>
                     ) : error ? (
                         <div className="text-center p-8">
-                            <div className="text-4xl mb-4">⚠️</div>
+                            <AlertTriangle className="w-10 h-10 text-amber-500 mx-auto mb-4" />
                             <h3 className="text-lg font-bold text-gray-800 mb-2">Failed to load book</h3>
                             <p className="text-gray-500 max-w-md mx-auto">{error}</p>
                             <button
@@ -117,7 +117,7 @@ const EpubReader = ({ url, title, onClose }) => {
 
                 {/* Footer/Progress (Optional) */}
                 {/* <div className="p-2 bg-gray-50 border-t border-gray-100 flex justify-center items-center">
-                    <p className="text-[10px] text-gray-400 uppercase tracking-widest font-medium">Soma-X Library Reader</p>
+                    <p className="text-[10px] text-gray-600 uppercase tracking-widest font-medium">Soma-X Library Reader</p>
                 </div> */}
             </div>
         </div>

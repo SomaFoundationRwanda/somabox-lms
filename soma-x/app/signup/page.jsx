@@ -1,28 +1,58 @@
 "use client";
 
-import { BookOpen, ChevronDown, Globe, Users, Wifi } from "lucide-react";
+import { BookOpen, ChevronDown, Eye, EyeOff, Globe, Users, Wifi } from "lucide-react";
 import { useLanguage } from '@/context/LanguageContext';
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useState, useContext } from "react";
 import Image from "next/image";
 import DataContext from "@/context/DataContext";
+import { useToast } from "@/context/ToastContext";
 
 export default function SignupPage() {
   const { t, setLang, lang } = useLanguage();
+  const { showToast } = useToast();
   const [showLangMenu, setShowLangMenu] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({ email: '', password: '', confirmPassword: '', name: '' });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const languages = ["en", "fr", "rw", "sw", "es"];
   const { shiftString } = useContext(DataContext);
+
+  // Child-friendly password strength calculator
+  const calculateStrength = (pwd) => {
+    if (!pwd) return { score: 0, label: '', color: 'bg-slate-200' };
+    if (pwd.length < 6) return { score: 1, label: 'Too short (6+ characters needed)', color: 'bg-rose-500', text: 'text-rose-500' };
+    
+    let points = 1;
+    if (pwd.length >= 8) points++;
+    if (/[0-9]/.test(pwd) || /[^A-Za-z0-9]/.test(pwd)) points++;
+    if (/[A-Z]/.test(pwd) && /[a-z]/.test(pwd)) points++;
+
+    if (points <= 2) return { score: 2, label: 'Fair (Add numbers or symbols)', color: 'bg-amber-500', text: 'text-amber-600' };
+    if (points === 3) return { score: 3, label: 'Good password!', color: 'bg-teal-500', text: 'text-teal-600' };
+    return { score: 4, label: 'Awesome strong password!', color: 'bg-emerald-500', text: 'text-emerald-600' };
+  };
+
+  const strength = calculateStrength(formData.password);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
+    if (formData.password.length < 6) {
+      const msg = "Password must be at least 6 characters long";
+      setError(msg);
+      showToast(msg, "error");
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
-      setError("Passwords don't match");
+      const msg = "Passwords don't match";
+      setError(msg);
+      showToast(msg, "error");
       return;
     }
 
@@ -39,17 +69,24 @@ export default function SignupPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        setError(errorData.message || 'Failed to create account');
+        const msg = errorData.message || 'Failed to create account';
+        setError(msg);
+        showToast(`Signup failed: ${msg}`, 'error');
         return;
       }
 
       localStorage.setItem('al', shiftString(normalizedEmail));
       localStorage.setItem('un', shiftString(formData.name));
       localStorage.setItem('gh', shiftString('scholar'));
-      window.location.href = '/manage/scholar-dashboard';
+      showToast('Account created successfully! Redirecting to your dashboard...', 'success');
+      setTimeout(() => {
+        window.location.href = '/manage/scholar-dashboard';
+      }, 1000);
     } catch (err) {
       console.error('Signup error:', err);
-      setError('An error occurred during signup');
+      const msg = 'An error occurred during signup';
+      setError(msg);
+      showToast(msg, 'error');
     } finally {
       setLoading(false);
     }
@@ -147,17 +184,17 @@ export default function SignupPage() {
 
           {/* Form header */}
           <div className="mb-7">
-            <h2 className="text-[26px] font-black text-slate-900 tracking-tight leading-tight">
+            <h2 className="text-[28px] font-black text-slate-900 tracking-tight leading-tight">
               Get Started
             </h2>
-            <p className="text-slate-400 text-[13px] mt-1">
+            <p className="text-slate-600 text-[14px] font-medium mt-1">
               Create your account to begin learning
             </p>
           </div>
 
           {/* Full name */}
           <div className="space-y-1.5">
-            <label htmlFor="signup-name" className="block text-[12px] font-semibold text-slate-600 uppercase tracking-wide">
+            <label htmlFor="signup-name" className="block text-[12px] font-bold text-slate-800 uppercase tracking-wider">
               Full Name
             </label>
             <input
@@ -166,13 +203,13 @@ export default function SignupPage() {
               placeholder="Jane Doe"
               required
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full h-11 rounded-lg bg-slate-50 border border-slate-200 px-3.5 text-[14px] text-slate-900 font-medium placeholder:text-slate-300 outline-none focus:border-slate-400 focus:bg-white transition-colors"
+              className="w-full h-11 rounded-lg bg-white border-2 border-slate-300 hover:border-slate-400 focus:border-accent-dark px-3.5 text-[14px] text-slate-900 font-semibold placeholder:text-slate-500 shadow-sm outline-none transition-colors"
             />
           </div>
 
           {/* Email */}
           <div className="space-y-1.5">
-            <label htmlFor="signup-email" className="block text-[12px] font-semibold text-slate-600 uppercase tracking-wide">
+            <label htmlFor="signup-email" className="block text-[12px] font-bold text-slate-800 uppercase tracking-wider">
               Email
             </label>
             <input
@@ -181,45 +218,86 @@ export default function SignupPage() {
               placeholder="you@example.com"
               required
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full h-11 rounded-lg bg-slate-50 border border-slate-200 px-3.5 text-[14px] text-slate-900 font-medium placeholder:text-slate-300 outline-none focus:border-slate-400 focus:bg-white transition-colors"
+              className="w-full h-11 rounded-lg bg-white border-2 border-slate-300 hover:border-slate-400 focus:border-accent-dark px-3.5 text-[14px] text-slate-900 font-semibold placeholder:text-slate-500 shadow-sm outline-none transition-colors"
             />
           </div>
 
           {/* Password */}
           <div className="space-y-1.5">
-            <label htmlFor="signup-password" className="block text-[12px] font-semibold text-slate-600 uppercase tracking-wide">
+            <label htmlFor="signup-password" className="block text-[12px] font-bold text-slate-800 uppercase tracking-wider">
               Password
             </label>
-            <input
-              type="password"
-              id="signup-password"
-              placeholder="••••••••"
-              required
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              className="w-full h-11 rounded-lg bg-slate-50 border border-slate-200 px-3.5 text-[14px] text-slate-900 font-medium placeholder:text-slate-300 outline-none focus:border-slate-400 focus:bg-white transition-colors"
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                id="signup-password"
+                placeholder="••••••••"
+                required
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                className="w-full h-11 rounded-lg bg-white border-2 border-slate-300 hover:border-slate-400 focus:border-accent-dark px-3.5 pr-11 text-[14px] text-slate-900 font-semibold placeholder:text-slate-500 shadow-sm outline-none transition-colors"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5 text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-md transition-colors"
+                aria-label="Toggle password visibility"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+
+            {/* Child-friendly Password Strength Meter */}
+            {formData.password && (
+              <div className="pt-1.5 space-y-1">
+                <div className="flex gap-1.5">
+                  {[1, 2, 3, 4].map((step) => (
+                    <div
+                      key={step}
+                      className={`h-2 flex-1 rounded-full transition-all duration-300 ${
+                        step <= strength.score ? strength.color : 'bg-slate-200'
+                      }`}
+                    />
+                  ))}
+                </div>
+                {strength.label && (
+                  <p className={`text-[12px] font-extrabold ${strength.text}`}>
+                    Strength: {strength.label}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Confirm password */}
           <div className="space-y-1.5">
-            <label htmlFor="signup-confirm" className="block text-[12px] font-semibold text-slate-600 uppercase tracking-wide">
+            <label htmlFor="signup-confirm" className="block text-[12px] font-bold text-slate-800 uppercase tracking-wider">
               Confirm Password
             </label>
-            <input
-              type="password"
-              id="signup-confirm"
-              placeholder="••••••••"
-              required
-              onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-              className="w-full h-11 rounded-lg bg-slate-50 border border-slate-200 px-3.5 text-[14px] text-slate-900 font-medium placeholder:text-slate-300 outline-none focus:border-slate-400 focus:bg-white transition-colors"
-            />
+            <div className="relative">
+              <input
+                type={showConfirmPassword ? "text" : "password"}
+                id="signup-confirm"
+                placeholder="••••••••"
+                required
+                onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                className="w-full h-11 rounded-lg bg-white border-2 border-slate-300 hover:border-slate-400 focus:border-accent-dark px-3.5 pr-11 text-[14px] text-slate-900 font-semibold placeholder:text-slate-500 shadow-sm outline-none transition-colors"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5 text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-md transition-colors"
+                aria-label="Toggle confirm password visibility"
+              >
+                {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
           </div>
 
           {/* Inline error */}
           {error && (
-            <div className="flex items-start gap-2.5 bg-red-50 border border-red-100 rounded-lg px-3.5 py-2.5">
-              <div className="w-1.5 h-1.5 mt-1.5 rounded-full bg-red-400 shrink-0" />
-              <p className="text-red-600 text-[12px] font-medium leading-snug">{error}</p>
+            <div className="flex items-start gap-2.5 bg-rose-50 border border-rose-200 rounded-lg px-3.5 py-2.5">
+              <div className="w-2 h-2 mt-1.5 rounded-full bg-rose-600 shrink-0" />
+              <p className="text-rose-700 text-[13px] font-bold leading-snug">{error}</p>
             </div>
           )}
 
@@ -228,26 +306,26 @@ export default function SignupPage() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full h-11 text-[14px] font-bold rounded-lg bg-accent-dark hover:bg-black text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full h-11 text-[15px] font-bold rounded-lg bg-accent-dark hover:bg-black text-white shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? "Creating account…" : "Create Account"}
             </Button>
           </div>
 
           {/* Divider */}
-          <div className="relative py-1">
+          <div className="relative py-2">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-slate-200" />
+              <div className="w-full border-t-2 border-slate-300" />
             </div>
             <div className="relative flex justify-center">
-              <span className="bg-white px-3 text-[11px] text-slate-300 font-medium">or</span>
+              <span className="bg-white px-3 text-[12px] text-slate-600 font-bold uppercase tracking-wider">or</span>
             </div>
           </div>
 
           {/* Sign in */}
-          <p className="text-center text-[13px] text-slate-400">
+          <p className="text-center text-[14px] text-slate-700 font-medium">
             Already have an account?{' '}
-            <Link href="/" className="text-accent-dark font-bold hover:underline underline-offset-2">
+            <Link href="/" className="text-accent-dark font-extrabold hover:underline underline-offset-2">
               Sign In
             </Link>
           </p>

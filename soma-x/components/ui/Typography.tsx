@@ -16,7 +16,7 @@ const textVariants = cva("", {
       body: "text-[15px] leading-relaxed",
       caption: "text-sm leading-snug",
       label: "text-xs font-bold uppercase tracking-wider",
-      muted: "text-sm opacity-70",
+      muted: "text-sm",
       p: "",
     },
     weight: {
@@ -30,7 +30,7 @@ const textVariants = cva("", {
       default: "text-slate-900",
       black: "text-black",
       white: "text-white",
-      muted: "text-slate-500",
+      muted: "text-slate-700 font-medium",
       accent: "text-accent-dark",
       primary: "text-primary-600",
     },
@@ -44,6 +44,12 @@ const textVariants = cva("", {
       "3xl": "text-3xl",
     }
   },
+  compoundVariants: [
+    // "muted" used to dim text via opacity-70 regardless of color, which combined
+    // with small caption/helper sizes made text both tiny and low-contrast.
+    // Give it a fixed, AA-legible color instead when no explicit color is set.
+    { variant: "muted", color: "default", class: "text-slate-600" },
+  ],
   defaultVariants: {
     variant: "p",
     weight: "medium",

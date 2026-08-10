@@ -3,9 +3,10 @@
 import { useContext, useEffect, useState } from "react";
 import {
     BookOpen, CheckCircle2, GraduationCap,
-    KeyRound, Lock, Mail, ShieldAlert, User,
+    KeyRound, Lock, Mail, MapPin, Pencil, Save, ShieldAlert, User, X
 } from "lucide-react";
 import DataContext from "@/context/DataContext";
+import { useToast } from "@/context/ToastContext";
 
 
 const AVATAR_GRADIENTS = [
@@ -32,7 +33,7 @@ function PasswordField({ id, label, placeholder, value, onChange }) {
         <div className="space-y-1.5">
             <label htmlFor={id} className="text-[11px] font-semibold text-slate-500">{label}</label>
             <div className="relative">
-                <Lock size={13} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                <Lock size={13} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-600 pointer-events-none" />
                 <input
                     id={id}
                     type={show ? "text" : "password"}
@@ -46,7 +47,7 @@ function PasswordField({ id, label, placeholder, value, onChange }) {
                 <button
                     type="button"
                     onClick={() => setShow(v => !v)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-slate-400 hover:text-slate-600"
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-slate-600 hover:text-slate-600"
                 >
                     {show ? "Hide" : "Show"}
                 </button>
@@ -61,16 +62,26 @@ export default function AccountPage() {
     const pageBg = isDark ? "#080B0F" : "#F0F2F5";
     const heroFade = isDark ? "#080B0F" : "#F0F2F5";
 
+    const { showToast } = useToast();
     const [currentEmail, setCurrentEmail] = useState("");
     const [currentRole,  setCurrentRole]  = useState("");
     const [loadingProfile, setLoadingProfile] = useState(true);
     const [savingPassword,  setSavingPassword]  = useState(false);
+    const [savingDemographics, setSavingDemographics] = useState(false);
+    const [editDemographics, setEditDemographics] = useState(false);
     const [activeTab, setActiveTab] = useState("profile");
     const [status, setStatus] = useState({ type: "", message: "" });
 
     const [profileView, setProfileView] = useState({ email: "", fullName: "" });
     const [passwordForm, setPasswordForm] = useState({
         currentPassword: "", newPassword: "", confirmPassword: "",
+    });
+    const [demoForm, setDemoForm] = useState({
+        gender: "prefer_not_to_say",
+        regionProvince: "",
+        regionDistrict: "",
+        isRural: false,
+        disabilityStatus: "none"
     });
 
     useEffect(() => {
@@ -92,7 +103,22 @@ export default function AccountPage() {
                 const res  = await fetch(`${SERVER_URL}/users/profile/view?${params}`);
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.message || "Failed to load profile");
-                setProfileView({ email: data.email || "", fullName: data.full_name || "" });
+                setProfileView({
+                    email: data.email || "",
+                    fullName: data.full_name || "",
+                    gender: data.gender || "prefer_not_to_say",
+                    province: data.region_province || "Not Specified",
+                    district: data.region_district || "Not Specified",
+                    isRural: data.is_rural === 1,
+                    disability: data.disability_status || "none"
+                });
+                setDemoForm({
+                    gender: data.gender || "prefer_not_to_say",
+                    regionProvince: data.region_province && data.region_province !== 'Not Specified' ? data.region_province : "",
+                    regionDistrict: data.region_district && data.region_district !== 'Not Specified' ? data.region_district : "",
+                    isRural: data.is_rural === 1,
+                    disabilityStatus: data.disability_status || "none"
+                });
             } catch (err) {
                 setStatus({ type: "error", message: err.message });
             } finally {
@@ -101,6 +127,53 @@ export default function AccountPage() {
         };
         load();
     }, [SERVER_URL, currentEmail, currentRole, authenticated]);
+
+    const handleDemographicsSave = async (e) => {
+        e.preventDefault();
+        try {
+            setSavingDemographics(true);
+            setStatus({ type: "", message: "" });
+            const res = await fetch(`${SERVER_URL}/users/profile/update`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    email: currentEmail,
+                    gender: demoForm.gender,
+                    regionProvince: demoForm.regionProvince || "Not Specified",
+                    regionDistrict: demoForm.regionDistrict || "Not Specified",
+                    isRural: demoForm.isRural,
+                    disabilityStatus: demoForm.disabilityStatus
+                })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || "Failed to update profile");
+            
+            const updatedProvince = demoForm.regionProvince || "Not Specified";
+            const updatedDistrict = demoForm.regionDistrict || "Not Specified";
+
+            setProfileView(prev => ({
+                ...prev,
+                gender: demoForm.gender,
+                province: updatedProvince,
+                district: updatedDistrict,
+                isRural: demoForm.isRural,
+                disability: demoForm.disabilityStatus
+            }));
+
+            if (typeof window !== 'undefined' && currentEmail) {
+                localStorage.setItem(`somabox_profile_completed_${currentEmail}`, 'true');
+            }
+
+            showToast("Profile & Demographic information updated successfully!", "success");
+            setStatus({ type: "success", message: "Profile & demographic details updated successfully." });
+            setEditDemographics(false);
+        } catch (err) {
+            showToast(err.message || "Failed to update profile", "error");
+            setStatus({ type: "error", message: err.message });
+        } finally {
+            setSavingDemographics(false);
+        }
+    };
 
     const handlePasswordSave = async (e) => {
         e.preventDefault();
@@ -201,9 +274,11 @@ export default function AccountPage() {
                                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                                             Active
                                         </span>
-                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold text-white/50 border border-white/10 bg-white/5 backdrop-blur-sm">
-                                            SOMABOX Platform
-                                        </span>
+                                        {profileView.isRural && (
+                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold text-teal-300 border border-teal-500/30 bg-teal-500/10 backdrop-blur-sm">
+                                                Rural Learner Profile
+                                            </span>
+                                        )}
                                     </div>
                                 </>
                             )}
@@ -276,31 +351,127 @@ export default function AccountPage() {
 
                         {/* Personal info card */}
                         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                            <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2.5">
-                                <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${c1}20` }}>
-                                    <User size={13} style={{ color: c1 }} />
+                            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                                <div className="flex items-center gap-2.5">
+                                    <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${c1}20` }}>
+                                        <User size={13} style={{ color: c1 }} />
+                                    </div>
+                                    <div>
+                                        <p className="text-[13px] font-bold text-slate-800">Personal Info & Demographics</p>
+                                        <p className="text-[10px] text-slate-600">V2.1 Inclusivity & Regional profile</p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <p className="text-[13px] font-bold text-slate-800">Personal Info</p>
-                                    <p className="text-[10px] text-slate-400">Managed by your school administrator</p>
-                                </div>
+                                {!loadingProfile && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setEditDemographics(!editDemographics)}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-[11px] font-bold text-slate-700 transition-colors"
+                                    >
+                                        {editDemographics ? <X size={12} /> : <Pencil size={12} />}
+                                        {editDemographics ? "Cancel" : "Edit Profile"}
+                                    </button>
+                                )}
                             </div>
 
                             {loadingProfile ? (
                                 <div className="p-5 space-y-4 animate-pulse">
-                                    {[1, 2, 3].map(i => (
+                                    {[1, 2, 3, 4, 5].map(i => (
                                         <div key={i} className="flex justify-between">
                                             <div className="h-3 bg-slate-100 rounded w-20" />
                                             <div className="h-3 bg-slate-100 rounded w-32" />
                                         </div>
                                     ))}
                                 </div>
+                            ) : editDemographics ? (
+                                <form onSubmit={handleDemographicsSave} className="p-5 space-y-4">
+                                    {/* Gender */}
+                                    <div className="space-y-1">
+                                        <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">Gender</label>
+                                        <select
+                                            value={demoForm.gender}
+                                            onChange={e => setDemoForm({ ...demoForm, gender: e.target.value })}
+                                            className="w-full h-10 px-3 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 bg-white outline-none focus:border-accent-dark"
+                                        >
+                                            <option value="male">Male</option>
+                                            <option value="female">Female</option>
+                                            <option value="non_binary">Non-Binary</option>
+                                            <option value="prefer_not_to_say">Prefer Not To Say</option>
+                                        </select>
+                                    </div>
+
+                                    {/* Province */}
+                                    <div className="space-y-1">
+                                        <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">Province / State</label>
+                                        <input
+                                            type="text"
+                                            placeholder="e.g. Kigali, Northern Province, Eastern Province"
+                                            value={demoForm.regionProvince}
+                                            onChange={e => setDemoForm({ ...demoForm, regionProvince: e.target.value })}
+                                            className="w-full h-10 px-3 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 bg-white outline-none focus:border-accent-dark"
+                                        />
+                                    </div>
+
+                                    {/* District */}
+                                    <div className="space-y-1">
+                                        <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">District / Region</label>
+                                        <input
+                                            type="text"
+                                            placeholder="e.g. Gasabo, Nyarugenge, Musanze, Huye"
+                                            value={demoForm.regionDistrict}
+                                            onChange={e => setDemoForm({ ...demoForm, regionDistrict: e.target.value })}
+                                            className="w-full h-10 px-3 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 bg-white outline-none focus:border-accent-dark"
+                                        />
+                                    </div>
+
+                                    {/* Is Rural checkbox */}
+                                    <div className="flex items-center gap-2 pt-1">
+                                        <input
+                                            type="checkbox"
+                                            id="account-is-rural"
+                                            checked={demoForm.isRural}
+                                            onChange={e => setDemoForm({ ...demoForm, isRural: e.target.checked })}
+                                            className="w-4 h-4 rounded text-accent-dark focus:ring-accent-dark border-slate-300 cursor-pointer"
+                                        />
+                                        <label htmlFor="account-is-rural" className="text-xs font-semibold text-slate-700 cursor-pointer select-none">
+                                            Located in a rural / remote learning area
+                                        </label>
+                                    </div>
+
+                                    {/* Disability status */}
+                                    <div className="space-y-1 pt-1">
+                                        <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">Accessibility Options</label>
+                                        <select
+                                            value={demoForm.disabilityStatus}
+                                            onChange={e => setDemoForm({ ...demoForm, disabilityStatus: e.target.value })}
+                                            className="w-full h-10 px-3 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 bg-white outline-none focus:border-accent-dark"
+                                        >
+                                            <option value="none">None / Standard</option>
+                                            <option value="visual">Visual Impairment</option>
+                                            <option value="hearing">Hearing Impairment</option>
+                                            <option value="mobility">Mobility Impairment</option>
+                                            <option value="cognitive">Cognitive Adaptation</option>
+                                            <option value="other">Other Need</option>
+                                        </select>
+                                    </div>
+
+                                    <button
+                                        type="submit"
+                                        disabled={savingDemographics}
+                                        className="w-full h-10 rounded-xl bg-accent-dark text-white text-xs font-extrabold flex items-center justify-center gap-2 shadow-md hover:bg-black transition-colors disabled:opacity-50 mt-2"
+                                    >
+                                        <Save size={13} />
+                                        {savingDemographics ? "Saving Profile…" : "Save Demographic Info"}
+                                    </button>
+                                </form>
                             ) : (
                                 <div className="divide-y divide-slate-50">
                                     {[
-                                        { icon: <User size={13} className="text-slate-400" />,         label: "Full name",    value: profileView.fullName },
-                                        { icon: <Mail size={13} className="text-slate-400" />,         label: "Email",        value: profileView.email },
-                                        { icon: <GraduationCap size={13} className="text-slate-400" />, label: "Role",        value: roleLabel },
+                                        { icon: <User size={13} className="text-slate-600" />,         label: "Full name",          value: profileView.fullName },
+                                        { icon: <Mail size={13} className="text-slate-600" />,         label: "Email",              value: profileView.email },
+                                        { icon: <GraduationCap size={13} className="text-slate-600" />, label: "Role",              value: roleLabel },
+                                        { icon: <User size={13} className="text-slate-600" />,         label: "Gender",             value: profileView.gender ? profileView.gender.replace('_', ' ').toUpperCase() : "Prefer Not To Say" },
+                                        { icon: <MapPin size={13} className="text-slate-600" />,      label: "Region / Location",  value: `${profileView.province} (${profileView.district})${profileView.isRural ? " - Rural" : " - Urban"}` },
+                                        { icon: <User size={13} className="text-slate-600" />,         label: "Accessibility Status", value: profileView.disability ? profileView.disability.toUpperCase() : "NONE" },
                                     ].map(({ icon, label, value }) => (
                                         <div key={label} className="flex items-center justify-between px-5 py-3.5">
                                             <div className="flex items-center gap-2 text-slate-500">
@@ -356,7 +527,7 @@ export default function AccountPage() {
                                 </div>
                                 <div>
                                     <p className="text-[13px] font-bold text-slate-800">Change Password</p>
-                                    <p className="text-[10px] text-slate-400">Minimum 6 characters</p>
+                                    <p className="text-[10px] text-slate-600">Minimum 6 characters</p>
                                 </div>
                             </div>
                             <div className="p-5 space-y-4">
@@ -393,7 +564,7 @@ export default function AccountPage() {
                         </form>
 
                         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">Tips</p>
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-600 mb-3">Tips</p>
                             <div className="space-y-2.5">
                                 {[
                                     "Use at least 6 characters",

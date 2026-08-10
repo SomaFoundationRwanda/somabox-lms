@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useContext } from 'react';
-import { X, Play, Pause, Volume2, VolumeX, Maximize, Minimize, SkipBack, SkipForward, RotateCcw, RotateCw, ZoomIn, ZoomOut } from 'lucide-react';
+import { X, Play, Pause, Volume2, VolumeX, Maximize, Minimize, SkipBack, SkipForward, RotateCcw, RotateCw, ZoomIn, ZoomOut, FileText, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const UniversalPlayerModal = ({
@@ -293,8 +293,8 @@ const UniversalPlayerModal = ({
                                     />
                                 ) : (
                                     <div className="text-center text-gray-500">
-                                        <div className="w-24 h-32 bg-white border-2 border-gray-300 rounded-lg flex items-center justify-center mx-auto mb-4">
-                                            <span className="text-4xl">📄</span>
+                                        <div className="w-24 h-32 bg-white border-2 border-gray-300 rounded-lg flex items-center justify-center mx-auto mb-4 text-slate-600">
+                                            <FileText size={40} />
                                         </div>
                                         <p className="text-lg font-medium">{mediaItem.title}</p>
                                         <p className="text-sm">PDF Viewer</p>
@@ -326,8 +326,8 @@ const UniversalPlayerModal = ({
                 return (
                     <div className="flex items-center justify-center h-full bg-accent-dark text-white">
                         <div className="text-center">
-                            <div className="w-32 h-32 bg-white/10 rounded-full flex items-center justify-center mb-6 mx-auto backdrop-blur-sm">
-                                <span className="text-5xl">🔗</span>
+                            <div className="w-32 h-32 bg-white/10 rounded-full flex items-center justify-center mb-6 mx-auto backdrop-blur-sm text-white">
+                                <ExternalLink size={48} />
                             </div>
                             <h3 className="text-2xl font-bold mb-4">{mediaItem.title}</h3>
                             <p className="text-white/70 mb-6">External Link</p>

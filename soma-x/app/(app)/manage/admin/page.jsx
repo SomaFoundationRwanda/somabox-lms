@@ -7,11 +7,18 @@ import { useLanguage } from '@/context/LanguageContext';
 import { AddUserDrawer } from "@/components/AddUserDrawer";
 import { Button } from "@/components/ui/button";
 import Users from "./comps/Users";
-import { Bell, LayoutDashboard, Library, Plus, RefreshCcw, Search, Users as UsersIcon } from "lucide-react";
+import { BarChart3, ChevronRight, LayoutDashboard, Library, Megaphone, Palette, Plus, RefreshCcw, Search, Sparkles, Users as UsersIcon } from "lucide-react";
+import NotificationBellDrawer from "@/components/notifications/NotificationBellDrawer";
+import SendNotificationModal from "@/components/notifications/SendNotificationModal";
+import InclusivityGapReport from "@/components/analytics/InclusivityGapReport";
+import GrowthCurvesChart from "@/components/analytics/GrowthCurvesChart";
+import Link from "next/link";
+
+import ProfileCard from "@/components/ui/ProfileCard";
 
 const AdminPortal = () => {
     const { t } = useLanguage();
-    const { authenticated, role, unshiftString, isDark } = useContext(DataContext);
+    const { authenticated, role, unshiftString, isDark, SERVER_URL } = useContext(DataContext);
     const userRole = unshiftString(role);
     const dm = isDark;
 
@@ -30,6 +37,7 @@ const AdminPortal = () => {
     const sectionIconColor= dm ? "#7dd3fc"                   : "#2563eb";
 
     const [initials, setInitials] = useState("A");
+    const [sendNotifModal, setSendNotifModal] = useState(false);
 
     useEffect(() => {
         const name = unshiftString(localStorage.getItem("un") || "");
@@ -42,6 +50,13 @@ const AdminPortal = () => {
             subtitle: t("AdminManageOptions.syncSubtitle"),
             href: "/manage/admin/sync",
             icon: RefreshCcw,
+            allowedRoles: ['admin'],
+        },
+        {
+            title: "Accessibility & Analytics",
+            subtitle: "Inclusivity M&E, equity gaps & growth curves",
+            href: "/manage/admin/analytics",
+            icon: BarChart3,
             allowedRoles: ['admin'],
         },
         {
@@ -58,12 +73,20 @@ const AdminPortal = () => {
             icon: Library,
             allowedRoles: ['admin'],
         },
+        {
+            title: "Unit Branding",
+            subtitle: "Partner school logo & M&E settings",
+            href: "/manage/admin/branding",
+            icon: Palette,
+            allowedRoles: ['admin'],
+        },
     ].filter(o => o.allowedRoles.includes(userRole)), [t, userRole]);
 
     if (!authenticated) return <Unauthorized />;
 
     return (
         <div className="min-h-screen pb-24 md:pb-8">
+            <SendNotificationModal isOpen={sendNotifModal} onClose={() => setSendNotifModal(false)} />
 
             {/* ── Top bar ── */}
             <div
@@ -79,19 +102,21 @@ const AdminPortal = () => {
                         Manage system tools, users, and content.
                     </p>
                 </div>
-                <div className="flex items-center gap-1 shrink-0">
-                    {[Search, Bell].map((Icon, i) => (
-                        <IconBtn key={i} Icon={Icon} color={iconBtnColor} hoverBg={iconBtnHover} />
-                    ))}
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 ml-0.5"
-                        style={{ backgroundColor: ACCENT }}>
-                        <span className="text-[11px] font-black text-white tracking-wide">{initials}</span>
-                    </div>
+                <div className="flex items-center gap-2 shrink-0">
+                    <button
+                        onClick={() => setSendNotifModal(true)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold shadow-md transition-colors"
+                    >
+                        <Megaphone size={13} />
+                        <span className="hidden sm:inline">Broadcast Notification</span>
+                    </button>
+                    <NotificationBellDrawer />
+                    <ProfileCard />
                 </div>
             </div>
 
             {/* ── Content ── */}
-            <div className="px-4 flex flex-col gap-5 mt-4">
+            <div className="px-4 flex flex-col gap-6 mt-4">
 
                 {/* Quick Actions */}
                 <div>
@@ -99,11 +124,37 @@ const AdminPortal = () => {
                         style={{ color: sectionLabel }}>
                         Quick Actions
                     </p>
-                    <div className="grid gap-2.5"
-                        style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2.5">
                         {options.map((option, i) => <AdminOption key={i} {...option} />)}
                     </div>
                 </div>
+
+                {/* Accessibility & Analytics M&E Section (Admin Only) */}
+                {userRole === 'admin' && (
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between px-0.5">
+                            <div className="flex items-center gap-2">
+                                <p className="text-[9.5px] font-bold uppercase tracking-widest" style={{ color: sectionLabel }}>
+                                    Accessibility, Inclusivity & Growth Analytics
+                                </p>
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20">
+                                    Admin Reserved
+                                </span>
+                            </div>
+                            <Link
+                                href="/manage/admin/analytics"
+                                className="inline-flex items-center gap-1 text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline"
+                            >
+                                Open Full Analytics Hub
+                                <ChevronRight className="w-3.5 h-3.5" />
+                            </Link>
+                        </div>
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                            <InclusivityGapReport serverUrl={SERVER_URL} />
+                            <GrowthCurvesChart serverUrl={SERVER_URL} />
+                        </div>
+                    </div>
+                )}
 
                 {/* Users Management */}
                 {userRole === 'admin' && (

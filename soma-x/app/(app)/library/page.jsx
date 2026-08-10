@@ -19,7 +19,7 @@ const Library = () => {
             <div className="flex items-center justify-between pl-12 pr-4 md:px-6 py-3 bg-white border-b border-slate-200 sticky top-0 z-10">
                 <div>
                     <h1 className="text-[17px] font-bold text-slate-900">Library</h1>
-                    <p className="text-[11px] text-slate-400 hidden sm:block">Browse and read books in your collection</p>
+                    <p className="text-[11px] text-slate-600 hidden sm:block">Browse and read books in your collection</p>
                 </div>
                 <button
                     type="button"
@@ -39,7 +39,7 @@ const Library = () => {
             {/* Search bar */}
             <div className="px-3 sm:px-5 pt-4">
                 <div className="relative">
-                    <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                    <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-600 pointer-events-none" />
                     <input
                         type="text"
                         placeholder="Search books by title…"
@@ -51,7 +51,7 @@ const Library = () => {
                         <button
                             type="button"
                             onClick={() => setSearchQuery("")}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-600"
                         >
                             <X size={13} />
                         </button>

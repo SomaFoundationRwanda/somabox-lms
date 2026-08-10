@@ -2,6 +2,7 @@ import { Manrope } from "next/font/google";
 import "./globals.css";
 import { DataProvider } from "@/context/DataContext";
 import { LanguageProvider } from "@/context/LanguageContext";
+import { ToastProvider } from "@/context/ToastContext";
 import NextTopLoader from "nextjs-toploader";
 
 const manRope = Manrope({
@@ -21,7 +22,9 @@ export default function RootLayout({ children }) {
         <NextTopLoader color="#2E8282"/>
         <DataProvider>
           <LanguageProvider>
-            {children}
+            <ToastProvider>
+              {children}
+            </ToastProvider>
           </LanguageProvider>
         </DataProvider>
       </body>

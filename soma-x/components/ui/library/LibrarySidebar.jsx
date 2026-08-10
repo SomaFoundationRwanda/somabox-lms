@@ -44,12 +44,12 @@ const LibrarySidebar = ({ selectedFilters, setSelectedFilters, mobile = false, o
     const content = (
         <div className="bg-white rounded-2xl border border-slate-200 p-4">
             <div className="flex items-center justify-between mb-3">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Categories</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-600">Categories</p>
                 {activeCount > 0 && (
                     <button
                         type="button"
                         onClick={clearAll}
-                        className="flex items-center gap-1 text-[10px] font-semibold text-slate-400 hover:text-slate-600 transition-colors"
+                        className="flex items-center gap-1 text-[10px] font-semibold text-slate-600 hover:text-slate-600 transition-colors"
                     >
                         <X size={10} />
                         Clear
@@ -60,7 +60,7 @@ const LibrarySidebar = ({ selectedFilters, setSelectedFilters, mobile = false, o
             {categories.length === 0 ? (
                 <div className="flex flex-col items-center py-8 text-center">
                     <Book className="w-7 h-7 text-slate-200 mb-2" />
-                    <p className="text-[11px] text-slate-400">No categories found</p>
+                    <p className="text-[11px] text-slate-600">No categories found</p>
                 </div>
             ) : (
                 <div className="space-y-0.5">
@@ -78,7 +78,7 @@ const LibrarySidebar = ({ selectedFilters, setSelectedFilters, mobile = false, o
                             >
                                 <span className={`w-2 h-2 rounded-full shrink-0 ${dot}`} />
                                 <p className="text-[11px] font-medium text-slate-700 flex-1 truncate capitalize">{cat}</p>
-                                {isChecked && <CheckCircle2 size={12} className="shrink-0 text-slate-400" />}
+                                {isChecked && <CheckCircle2 size={12} className="shrink-0 text-slate-600" />}
                             </button>
                         );
                     })}

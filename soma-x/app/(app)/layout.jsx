@@ -1,5 +1,6 @@
 "use client"
 import Nav from "@/components/global/Nav";
+import MandatoryProfileSetupModal from "@/components/onboarding/MandatoryProfileSetupModal";
 import DataContext from "@/context/DataContext";
 import { useContext, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -28,6 +29,7 @@ export default function AppLayout({ children }) {
       <div className="md:ml-[180px] w-full h-full global-horizontal-padding bg-[#EFEFEF] dark:bg-[#080B0F]">
         {children}
       </div>
+      <MandatoryProfileSetupModal />
     </>
   );
 }

@@ -60,7 +60,7 @@ function FilterDropdown({ label, options, value, onChange }) {
                 {isFiltered && (
                     <span className="text-[10px] font-bold opacity-80">· {selected?.label}</span>
                 )}
-                <ChevronDown className={`w-3 h-3 transition-transform ${open ? 'rotate-180' : ''} ${isFiltered ? 'text-white/70' : 'text-slate-400'}`} />
+                <ChevronDown className={`w-3 h-3 transition-transform ${open ? 'rotate-180' : ''} ${isFiltered ? 'text-white/70' : 'text-slate-600'}`} />
             </button>
 
             {open && (
@@ -71,7 +71,7 @@ function FilterDropdown({ label, options, value, onChange }) {
                             onClick={() => { if (!opt.disabled) { onChange(opt.value); setOpen(false); } }}
                             className={`w-full flex items-center justify-between px-3 py-2 text-[12px] font-medium transition-colors text-left gap-6 ${
                                 opt.disabled
-                                    ? 'text-slate-300 cursor-default'
+                                    ? 'text-slate-500 cursor-default'
                                     : opt.value === value
                                     ? 'text-accent-dark bg-slate-50'
                                     : 'text-slate-600 hover:bg-slate-50'
@@ -156,7 +156,7 @@ function NewFolderModal({ onClose, onSubmit }) {
                 {status !== 'loading' && (
                     <button
                         onClick={onClose}
-                        className="w-7 h-7 flex items-center justify-center rounded-[5px] text-slate-400 hover:bg-slate-100 transition-colors"
+                        className="w-7 h-7 flex items-center justify-center rounded-[5px] text-slate-600 hover:bg-slate-100 transition-colors"
                     >
                         <X className="w-3.5 h-3.5" />
                     </button>
@@ -183,7 +183,7 @@ function NewFolderModal({ onClose, onSubmit }) {
                         <p className="text-[12px] font-bold text-slate-700 max-w-[200px] truncate text-center">
                             {preview}
                         </p>
-                        <p className="text-[10px] text-slate-400 font-medium">New folder · 0 items</p>
+                        <p className="text-[10px] text-slate-600 font-medium">New folder · 0 items</p>
                     </div>
 
                     {/* Name input */}
@@ -193,7 +193,7 @@ function NewFolderModal({ onClose, onSubmit }) {
                                 Folder name
                             </label>
                             <span className={`text-[10px] font-medium tabular-nums ${
-                                isOverLimit ? 'text-red-500' : remaining <= 10 ? 'text-amber-500' : 'text-slate-400'
+                                isOverLimit ? 'text-red-500' : remaining <= 10 ? 'text-amber-500' : 'text-slate-600'
                             }`}>
                                 {remaining}
                             </span>
@@ -324,7 +324,7 @@ function UploadModal({ onClose, onSubmit }) {
                 {status !== 'uploading' && (
                     <button
                         onClick={onClose}
-                        className="w-7 h-7 flex items-center justify-center rounded-[5px] text-slate-400 hover:bg-slate-100 transition-colors"
+                        className="w-7 h-7 flex items-center justify-center rounded-[5px] text-slate-600 hover:bg-slate-100 transition-colors"
                     >
                         <X className="w-3.5 h-3.5" />
                     </button>
@@ -367,21 +367,21 @@ function UploadModal({ onClose, onSubmit }) {
                                         </div>
                                         <div className="min-w-0 text-left">
                                             <p className="text-[12px] font-semibold text-slate-800 truncate max-w-[240px]">{file.name}</p>
-                                            <p className="text-[10px] text-slate-400 mt-0.5">{formatBytes(file.size)}</p>
+                                            <p className="text-[10px] text-slate-600 mt-0.5">{formatBytes(file.size)}</p>
                                         </div>
                                     </div>
-                                    <p className="text-[10px] text-slate-400">Click to change file</p>
+                                    <p className="text-[10px] text-slate-600">Click to change file</p>
                                 </>
                             ) : (
                                 <>
                                     <div className="w-9 h-9 rounded-[5px] bg-slate-100 flex items-center justify-center">
-                                        <File className="w-4 h-4 text-slate-400" />
+                                        <File className="w-4 h-4 text-slate-600" />
                                     </div>
                                     <div className="text-center">
                                         <p className="text-[12px] font-semibold text-slate-600">
                                             Drop a file here or <span className="text-accent-dark underline underline-offset-2">browse</span>
                                         </p>
-                                        <p className="text-[10px] text-slate-400 mt-0.5">Video, PDF, EPUB, MP3 and more</p>
+                                        <p className="text-[10px] text-slate-600 mt-0.5">Video, PDF, EPUB, MP3 and more</p>
                                     </div>
                                 </>
                             )}
@@ -601,7 +601,7 @@ const FileManager = () => {
                 <div className="flex items-center gap-2 px-3 py-2.5 border-b border-slate-100 flex-wrap">
                     {/* Search */}
                     <div className="flex items-center gap-2 px-3 h-8 rounded-[5px] border border-slate-200 bg-slate-50 focus-within:bg-white focus-within:border-slate-400 transition-all flex-1 min-w-[180px] max-w-[280px]">
-                        <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <Search className="w-3.5 h-3.5 text-slate-600 shrink-0" />
                         <input
                             type="text"
                             placeholder="Search files/folders…"
@@ -621,7 +621,7 @@ const FileManager = () => {
                     {activeFilterCount > 0 && (
                         <button
                             onClick={() => setFilters({ type: 'all', people: 'all', modified: 'all', source: 'all' })}
-                            className="flex items-center gap-1 h-8 px-2.5 rounded-[5px] text-[11px] font-semibold text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors shrink-0"
+                            className="flex items-center gap-1 h-8 px-2.5 rounded-[5px] text-[11px] font-semibold text-slate-600 hover:text-slate-600 hover:bg-slate-100 transition-colors shrink-0"
                         >
                             <X className="w-3 h-3" /> Clear
                         </button>
@@ -659,20 +659,20 @@ const FileManager = () => {
                                     <React.Fragment key={b.path}>
                                         <button
                                             onClick={() => fetchList(b.path)}
-                                            className={`font-semibold transition-colors hover:text-slate-800 ${isLast ? 'text-slate-700' : 'text-slate-400 hover:text-slate-600'}`}
+                                            className={`font-semibold transition-colors hover:text-slate-800 ${isLast ? 'text-slate-700' : 'text-slate-600 hover:text-slate-600'}`}
                                         >
                                             {b.name}
                                         </button>
-                                        {!isLast && <ChevronRight className="w-3 h-3 text-slate-300" />}
+                                        {!isLast && <ChevronRight className="w-3 h-3 text-slate-500" />}
                                     </React.Fragment>
                                 );
                             })
                         ) : (
-                            <span className="text-slate-400 font-semibold">Root</span>
+                            <span className="text-slate-600 font-semibold">Root</span>
                         )}
                     </div>
                     {!loading && (
-                        <div className="flex items-center gap-2 text-[10px] text-slate-400 font-medium shrink-0">
+                        <div className="flex items-center gap-2 text-[10px] text-slate-600 font-medium shrink-0">
                             {folderCount > 0 && <span>{folderCount} folder{folderCount !== 1 ? 's' : ''}</span>}
                             {folderCount > 0 && fileCount > 0 && <span className="text-slate-200">·</span>}
                             {fileCount > 0 && <span>{fileCount} file{fileCount !== 1 ? 's' : ''}</span>}

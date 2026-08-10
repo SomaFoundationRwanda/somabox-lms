@@ -86,7 +86,7 @@ function LibraryUploadModal({ onClose, onSubmit }) {
                 {status !== 'uploading' && (
                     <button
                         onClick={onClose}
-                        className="w-7 h-7 flex items-center justify-center rounded-[5px] text-slate-400 hover:bg-slate-100 transition-colors"
+                        className="w-7 h-7 flex items-center justify-center rounded-[5px] text-slate-600 hover:bg-slate-100 transition-colors"
                     >
                         <X className="w-3.5 h-3.5" />
                     </button>
@@ -128,21 +128,21 @@ function LibraryUploadModal({ onClose, onSubmit }) {
                                         </div>
                                         <div className="min-w-0 text-left">
                                             <p className="text-[12px] font-semibold text-slate-800 truncate max-w-[240px]">{file.name}</p>
-                                            <p className="text-[10px] text-slate-400 mt-0.5">{formatBytes(file.size)}</p>
+                                            <p className="text-[10px] text-slate-600 mt-0.5">{formatBytes(file.size)}</p>
                                         </div>
                                     </div>
-                                    <p className="text-[10px] text-slate-400 mt-2">Click to change file</p>
+                                    <p className="text-[10px] text-slate-600 mt-2">Click to change file</p>
                                 </>
                             ) : (
                                 <>
                                     <div className="w-9 h-9 rounded-[5px] bg-slate-100 flex items-center justify-center">
-                                        <File className="w-4 h-4 text-slate-400" />
+                                        <File className="w-4 h-4 text-slate-600" />
                                     </div>
                                     <div className="text-center">
                                         <p className="text-[12px] font-semibold text-slate-600">
                                             Drop a file here or <span className="text-[#0D9488] underline underline-offset-2">browse</span>
                                         </p>
-                                        <p className="text-[10px] text-slate-400 mt-0.5">EPUB or PDF files only</p>
+                                        <p className="text-[10px] text-slate-600 mt-0.5">EPUB or PDF files only</p>
                                     </div>
                                 </>
                             )}
@@ -420,7 +420,7 @@ const ManageLibrary = () => {
                                 </div>
                                 <p className="text-[13px] font-bold text-slate-900">Available on Cloud</p>
                             </div>
-                            <span className="text-[10px] font-semibold text-slate-400">{books.length} books</span>
+                            <span className="text-[10px] font-semibold text-slate-600">{books.length} books</span>
                         </div>
 
                         {/* Table */}
@@ -428,8 +428,8 @@ const ManageLibrary = () => {
                             <table className="min-w-full">
                                 <thead className="bg-slate-50 sticky top-0">
                                     <tr>
-                                        <th className="px-4 py-3 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest w-10">Select</th>
-                                        <th className="px-4 py-3 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest">Name</th>
+                                        <th className="px-4 py-3 text-left text-[10px] font-bold text-slate-600 uppercase tracking-widest w-10">Select</th>
+                                        <th className="px-4 py-3 text-left text-[10px] font-bold text-slate-600 uppercase tracking-widest">Name</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50">
@@ -440,7 +440,7 @@ const ManageLibrary = () => {
                                             </td></tr>
                                         ))
                                     ) : books.length === 0 ? (
-                                        <tr><td colSpan={2} className="px-4 py-8 text-center text-[12px] font-semibold text-slate-400">No books available</td></tr>
+                                        <tr><td colSpan={2} className="px-4 py-8 text-center text-[12px] font-semibold text-slate-600">No books available</td></tr>
                                     ) : books.map((book) => {
                                         const isLocal = localBooks.some(lb => lb.id === parseInt(book.id));
                                         return (
@@ -461,7 +461,7 @@ const ManageLibrary = () => {
                                                             </span>
                                                         )}
                                                     </div>
-                                                    <p className="text-[11px] text-slate-400 mt-0.5">{book.categories}</p>
+                                                    <p className="text-[11px] text-slate-600 mt-0.5">{book.categories}</p>
                                                 </td>
                                             </tr>
                                         );
@@ -504,7 +504,7 @@ const ManageLibrary = () => {
                                 </div>
                                 <p className="text-[13px] font-bold text-slate-900">Downloaded Books</p>
                             </div>
-                            <span className="text-[10px] font-semibold text-slate-400">{localBooks.length} books</span>
+                            <span className="text-[10px] font-semibold text-slate-600">{localBooks.length} books</span>
                         </div>
 
                         {/* Table */}
@@ -512,18 +512,18 @@ const ManageLibrary = () => {
                             <table className="min-w-full">
                                 <thead className="bg-slate-50 sticky top-0">
                                     <tr>
-                                        <th className="px-4 py-3 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest">Name</th>
-                                        <th className="px-4 py-3 text-right text-[10px] font-bold text-slate-400 uppercase tracking-widest">Action</th>
+                                        <th className="px-4 py-3 text-left text-[10px] font-bold text-slate-600 uppercase tracking-widest">Name</th>
+                                        <th className="px-4 py-3 text-right text-[10px] font-bold text-slate-600 uppercase tracking-widest">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50">
                                     {localBooks.length === 0 ? (
-                                        <tr><td colSpan={2} className="px-4 py-8 text-center text-[12px] font-semibold text-slate-400">No books downloaded yet</td></tr>
+                                        <tr><td colSpan={2} className="px-4 py-8 text-center text-[12px] font-semibold text-slate-600">No books downloaded yet</td></tr>
                                     ) : localBooks.map((book) => (
                                         <tr key={book.id} className="hover:bg-slate-50 transition-colors">
                                             <td className="px-4 py-3">
                                                 <p className="text-[12px] font-medium text-slate-800">{book.name}</p>
-                                                <p className="text-[11px] text-slate-400 mt-0.5">{book.category_ids}</p>
+                                                <p className="text-[11px] text-slate-600 mt-0.5">{book.category_ids}</p>
                                             </td>
                                             <td className="px-4 py-3 text-right">
                                                 <div className="flex items-center justify-end gap-1">

@@ -72,10 +72,10 @@ const BooksPage = ({ selectedFilters, searchQuery }) => {
         return (
             <div className="flex flex-col items-center justify-center py-20 text-center px-4">
                 <div className="w-14 h-14 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center mb-3">
-                    <BookOpen className="w-6 h-6 text-slate-300" />
+                    <BookOpen className="w-6 h-6 text-slate-500" />
                 </div>
                 <p className="text-[13px] font-semibold text-slate-500">No books found</p>
-                <p className="text-[11px] text-slate-400 mt-1">Try adjusting your search or category filters</p>
+                <p className="text-[11px] text-slate-600 mt-1">Try adjusting your search or category filters</p>
             </div>
         );
     }
@@ -137,7 +137,7 @@ const BooksPage = ({ selectedFilters, searchQuery }) => {
                                 {item.name}
                             </p>
                             {item.category_ids && (
-                                <p className="text-[10px] text-slate-400 truncate capitalize">
+                                <p className="text-[10px] text-slate-600 truncate capitalize">
                                     {item.category_ids.split(",")[0].trim()}
                                 </p>
                             )}

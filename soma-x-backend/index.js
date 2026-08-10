@@ -8,7 +8,10 @@ import contentServices from './src/services/content.services.js';
 import authServices from './src/services/auth.services.js';
 import userServices from "./src/services/users.service.js";
 import libraryServices from "./src/services/library.services.js";
-import classesServices from "./src/services/classes.services.js";
+import coursesServices from "./src/services/courses.services.js";
+import solServices from "./src/services/sol.services.js";
+import analyticsServices from "./src/services/analytics.services.js";
+import notificationsServices from "./src/services/notifications.service.js";
 
 const app = express();
 
@@ -46,7 +49,10 @@ app.use("/content", contentServices);
 app.use("/auth", authServices);
 app.use("/users", userServices);
 app.use("/library", libraryServices);
-app.use("/classes", classesServices);
+app.use("/courses", coursesServices);
+app.use("/sol", solServices);
+app.use("/analytics", analyticsServices);
+app.use("/notifications", notificationsServices);
 
 // Static Content Serving
 app.use("/khan-academy", express.static(config.paths.static.khan));
@@ -54,7 +60,8 @@ app.use("/w3schools", express.static(config.paths.static.w3schools));
 app.use("/wikipedia", express.static(config.paths.static.wikipedia));
 app.use("/lessons", express.static(config.paths.lessons));
 app.use("/library-book-covers", express.static(config.paths.libraryCovers));
-app.use("/class-covers", express.static(config.paths.classCovers));
+app.use("/course-covers", express.static(config.paths.courseCovers));
+app.use("/course-files", express.static(config.paths.courseFiles));
 app.use("/pdf-book-covers", express.static(config.paths.pdfCovers));
 
 // Server Start

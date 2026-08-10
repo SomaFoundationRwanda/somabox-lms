@@ -6,6 +6,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import Typography from './Typography';
 import Input from './input';
 import { Button } from './button';
+import NotificationBellDrawer from '../notifications/NotificationBellDrawer';
 
 const HeaderSection = ({
   title,
@@ -101,8 +102,9 @@ const HeaderSection = ({
             </div>
           </div>
 
-          {/* Right section: Language selector — pushed left of the illustration */}
-          <div className="shrink-0 w-full md:w-fit md:mr-[260px]">
+          {/* Right section: Language selector + Notifications — pushed left of illustration */}
+          <div className="shrink-0 w-full md:w-fit md:mr-[260px] flex items-center gap-3">
+            <NotificationBellDrawer />
             <Input
               prefix={<Globe className="w-4 h-4 mr-2" />}
               value={lang}

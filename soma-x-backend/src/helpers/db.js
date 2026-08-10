@@ -43,9 +43,16 @@ function insertFileContent(file, categoryId, type, relativePath, filePath) {
   const { getContent, insertContent } = getStatements();
   if (getContent.get(relativePath)) return;
   const stat = fs.statSync(filePath);
+  
+  const ext = path.extname(file).toLowerCase();
+  let actualType = type;
+  if (['.mp4', '.webm', '.mkv'].includes(ext)) actualType = 'video';
+  else if (['.pdf', '.epub'].includes(ext)) actualType = 'book';
+  else if (['.mp3', '.wav', '.ogg'].includes(ext)) actualType = 'audio';
+
   return insertContent.run(
     categoryId, file.replace(/-/g, " ").replace(/^\w/, c => c.toUpperCase()),
-    `Description for ${file}`, type, `${relativePath}`, relativePath, stat.size, null, null, 0
+    `Description for ${file}`, actualType, `${relativePath}`, relativePath, stat.size, null, null, 0
   ).lastInsertRowid;
 }
 

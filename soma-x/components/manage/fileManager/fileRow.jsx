@@ -56,7 +56,7 @@ const FileRow = ({ file, onOpenFolder, onToggleVisibility, onView }) => {
                     {file.type === 'folder' ? (
                         <Folder className="w-5 h-5 text-amber-500 shrink-0" />
                     ) : (
-                        <File className="w-5 h-5 text-slate-400 shrink-0" />
+                        <File className="w-5 h-5 text-slate-600 shrink-0" />
                     )}
                     <span className="text-[12px] font-medium text-slate-800">{file.name}</span>
 
@@ -69,7 +69,7 @@ const FileRow = ({ file, onOpenFolder, onToggleVisibility, onView }) => {
 
                     {/* Preview hint — fades in on row hover */}
                     {canPreview && (
-                        <span className="ml-auto flex items-center gap-1 text-[11px] font-semibold text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 pr-1">
+                        <span className="ml-auto flex items-center gap-1 text-[11px] font-semibold text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 pr-1">
                             <Eye className="w-3.5 h-3.5" />
                             Preview
                         </span>
@@ -78,10 +78,10 @@ const FileRow = ({ file, onOpenFolder, onToggleVisibility, onView }) => {
             </td>
 
             {/* Added by */}
-            <td className="px-5 py-3 text-[12px] text-slate-400">--</td>
+            <td className="px-5 py-3 text-[12px] text-slate-600">--</td>
 
             {/* Size */}
-            <td className="px-5 py-3 text-[12px] text-slate-400">
+            <td className="px-5 py-3 text-[12px] text-slate-600">
                 {file.size ? formatBytes(file.size) : '--'}
             </td>
 

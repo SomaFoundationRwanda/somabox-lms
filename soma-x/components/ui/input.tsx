@@ -80,11 +80,11 @@ export default function Input({
     const isSearch = inputId.startsWith("search");
 
     const baseClasses =
-        "px-[14px] py-[10px] rounded-md outline-none transition ring-[1.2px] text-[16px] text-gray-700 font-normal placeholder:font-light placeholder:text-gray w-auto h-10 focus:border-gray-300";
-    const errorClasses = error ? "ring-red-500 focus:ring-red-500" : "ring-gray-300 focus:ring-primary-500";
+        "px-[14px] py-[10px] rounded-lg outline-none transition ring-2 ring-slate-300 text-[15px] text-slate-900 font-semibold placeholder:font-medium placeholder:text-slate-600 w-auto h-10 focus:ring-accent-dark focus:border-accent-dark bg-white";
+    const errorClasses = error ? "ring-red-500 focus:ring-red-500" : "ring-slate-300 focus:ring-accent-dark";
     const searchClasses = isSearch ? "ring-0 focus:ring-0 px-3 py-0 m-0 h-full w-full" : "";
-    const prefixClasses = prefix ? "ring-0" : ""
-    const wrapperPrefixClasses = prefix ? "flex flex-row items-center border ring-[1.2] ring-red-300 focus-within:border-primary-500 rounded-lg px-0.5" : "";
+    const prefixClasses = prefix ? "ring-0" : "";
+    const wrapperPrefixClasses = prefix ? "flex flex-row items-center border-2 border-slate-300 ring-0 focus-within:border-accent-dark rounded-lg px-0.5 bg-white" : "";
     const mergedClasses = cn(baseClasses, errorClasses, searchClasses, !border && "ring-0", prefixClasses, inputClassName);
 
     const inputElement = (
@@ -160,12 +160,12 @@ export default function Input({
                 <div className={cn(`w-full flex items-center`, wrapperPrefixClasses)}>
                     <div className="w-full flex items-center">
 
-                    <Typography size="base" className="px-2 py-2 h-full w-fit border-r">{prefix}</Typography>
+                    <Typography size="normal" className="px-2 py-2 h-full w-fit border-r">{prefix}</Typography>
                     {inputElement}
                     </div>
                     {   
                         suffix && (
-                            <Typography size="base" className="px-2 py-2 h-full w-fit">{suffix}</Typography>
+                            <Typography size="normal" className="px-2 py-2 h-full w-fit">{suffix}</Typography>
                         )
                     }   
                 </div>

@@ -156,7 +156,7 @@ function ContentDisplayPage({ levelInfo, breadcrumbs, onBreadcrumbClick }) {
                       )}
                       {item.type === 'audio' && (
                         <div className="w-full h-48 bg-slate-100 flex items-center justify-center">
-                          <AudioFile className="text-slate-400" size={48} />
+                          <AudioFile className="text-slate-600" size={48} />
                         </div>
                       )}
 
@@ -191,7 +191,7 @@ function ContentDisplayPage({ levelInfo, breadcrumbs, onBreadcrumbClick }) {
 
               {filteredContent.length === 0 && (
                 <div className="bg-white rounded-lg p-12 text-center">
-                  <SentimentVeryDissatisfied className="text-gray-300 text-6xl mb-4" />
+                  <SentimentVeryDissatisfied className="text-gray-500 text-6xl mb-4" />
                   <Typography variant="h3" color="muted" className="mb-2">No content found</Typography>
                   <Typography variant="body" color="muted">No {activeFilter === 'all' ? '' : activeFilter} content available for this topic.</Typography>
                 </div>

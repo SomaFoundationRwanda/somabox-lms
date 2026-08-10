@@ -7,10 +7,10 @@ const FileTable = ({ files, loading, onOpenFolder, onToggleVisibility, onView })
             <table className="w-full">
                 <thead className="bg-slate-50">
                     <tr>
-                        <th className="px-5 py-3 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest">Name</th>
-                        <th className="px-5 py-3 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest">Added by</th>
-                        <th className="px-5 py-3 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest">Size</th>
-                        <th className="px-5 py-3 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest">Visibility</th>
+                        <th className="px-5 py-3 text-left text-[10px] font-bold text-slate-600 uppercase tracking-widest">Name</th>
+                        <th className="px-5 py-3 text-left text-[10px] font-bold text-slate-600 uppercase tracking-widest">Added by</th>
+                        <th className="px-5 py-3 text-left text-[10px] font-bold text-slate-600 uppercase tracking-widest">Size</th>
+                        <th className="px-5 py-3 text-left text-[10px] font-bold text-slate-600 uppercase tracking-widest">Visibility</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -27,7 +27,7 @@ const FileTable = ({ files, loading, onOpenFolder, onToggleVisibility, onView })
                             <td className="px-5 py-12 text-center" colSpan={4}>
                                 <div className="flex flex-col items-center gap-2">
                                     <Folder className="w-8 h-8 text-slate-200" />
-                                    <p className="text-[12px] font-semibold text-slate-400">This folder is empty</p>
+                                    <p className="text-[12px] font-semibold text-slate-600">This folder is empty</p>
                                 </div>
                             </td>
                         </tr>
