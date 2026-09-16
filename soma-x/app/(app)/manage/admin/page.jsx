@@ -8,13 +8,10 @@ import { AddUserDrawer } from "@/components/AddUserDrawer";
 import { Button } from "@/components/ui/button";
 import Users from "./comps/Users";
 import { BarChart3, ChevronRight, LayoutDashboard, Library, Megaphone, Palette, Plus, RefreshCcw, Search, Sparkles, Users as UsersIcon } from "lucide-react";
-import NotificationBellDrawer from "@/components/notifications/NotificationBellDrawer";
 import SendNotificationModal from "@/components/notifications/SendNotificationModal";
 import InclusivityGapReport from "@/components/analytics/InclusivityGapReport";
 import GrowthCurvesChart from "@/components/analytics/GrowthCurvesChart";
 import Link from "next/link";
-
-import ProfileCard from "@/components/ui/ProfileCard";
 
 const AdminPortal = () => {
     const { t } = useLanguage();
@@ -23,8 +20,6 @@ const AdminPortal = () => {
     const dm = isDark;
 
     const ACCENT          = dm ? "#0D9488"                   : "#203B3B";
-    const topBarBg        = dm ? "#080B0F"                   : "#ffffff";
-    const topBarBorder    = dm ? "rgba(255,255,255,0.07)"    : "#f1f5f9";
     const titleColor      = dm ? "#E8ECF0"                   : "#0f172a";
     const subtitleColor   = dm ? "#637080"                   : "#94a3b8";
     const iconBtnColor    = dm ? "#637080"                   : "#94a3b8";
@@ -88,31 +83,15 @@ const AdminPortal = () => {
         <div className="min-h-screen pb-24 md:pb-8">
             <SendNotificationModal isOpen={sendNotifModal} onClose={() => setSendNotifModal(false)} />
 
-            {/* ── Top bar ── */}
-            <div
-                className="flex items-center justify-between pl-12 pr-4 md:px-4 py-3 sticky top-0 z-10 rounded-b-[5px]"
-                style={{ backgroundColor: topBarBg, borderBottom: `1px solid ${topBarBorder}` }}
-            >
-                <div className="min-w-0">
-                    <h1 className="text-[16px] sm:text-[18px] md:text-[20px] font-black leading-tight tracking-tight"
-                        style={{ color: titleColor }}>
-                        Admin Portal
-                    </h1>
-                    <p className="text-[11px] mt-0.5 hidden sm:block" style={{ color: subtitleColor }}>
-                        Manage system tools, users, and content.
-                    </p>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                    <button
-                        onClick={() => setSendNotifModal(true)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold shadow-md transition-colors"
-                    >
-                        <Megaphone size={13} />
-                        <span className="hidden sm:inline">Broadcast Notification</span>
-                    </button>
-                    <NotificationBellDrawer />
-                    <ProfileCard />
-                </div>
+            {/* ── Page-specific header action (shared header now lives in the app shell layout) ── */}
+            <div className="flex items-center justify-end pt-3 px-4">
+                <button
+                    onClick={() => setSendNotifModal(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold shadow-md transition-colors"
+                >
+                    <Megaphone size={13} />
+                    <span className="hidden sm:inline">Broadcast Notification</span>
+                </button>
             </div>
 
             {/* ── Content ── */}

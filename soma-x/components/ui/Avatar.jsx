@@ -2,6 +2,7 @@ import { useState } from "react";
 import AvatarFallback from "./AvatarFallBack";
 
 const sizeClasses = {
+  xsmall: "w-7 h-7",
   small: "w-12 h-12 md:w-14 md:h-14",
   medium: "w-16 h-16 sm:w-20 sm:h-20",
   large: "w-20 h-20 sm:w-24 sm:h-24 lg:w-[100px] lg:h-[100px]"

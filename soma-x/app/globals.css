@@ -4,6 +4,11 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  /* Continuous brightness-slider canvas (see DataContext.jsx computeCanvasVars).
+     Recomputed live on every slider change; these are just the pre-JS/SSR
+     fallback so there's no flash of unstyled content. */
+  --canvas-bg: #F5F6F8;
+  --canvas-text: #000000;
   --color-bg-light-green: #242722;
   --color-bg-light-blue: #E6F1FA;
   --color-dark-accent: #203b3b;
@@ -13,8 +18,8 @@
   --color-primary-600: #1f6767;
   --color-primary-700: #295656;
   --color-accent-light-2: #E3F2F2;
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-poppins);
+  --font-mono: var(--font-poppins);
   --radius: 0.625rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.129 0.042 264.695);
@@ -66,8 +71,8 @@
   --color-accent-light-2: var(--color-accent-light-2);
   --color-text-light: var(--color-text-light);
   --color-dark-accent: var(--color-dark-accent);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-poppins);
+  --font-mono: var(--font-poppins);
 }
 
 div *{
@@ -83,7 +88,7 @@ button, [role="button"] {
 }
 
 body{
-  background-color: #F3FAFF;
+  background-color: var(--canvas-bg);
 }
 
 .button-diagonal {
@@ -394,13 +399,38 @@ body{
     color: #1e293b;
     font-weight: 700;
   }
+
+  /* Dark-mode counterpart to the rule above. Must stay inside this same
+     @layer base block (not the unlayered html.dark override list further
+     down this file) — cross-layer !important precedence beats unlayered
+     !important regardless of specificity, so a dark override for these
+     inputs placed outside @layer base would silently lose to the rule
+     above and render near-black text on a near-black background. */
+  html.dark input[type="text"],
+  html.dark input[type="email"],
+  html.dark input[type="password"],
+  html.dark input[type="search"],
+  html.dark input[type="number"],
+  html.dark input[type="tel"],
+  html.dark select,
+  html.dark textarea {
+    color: #E8ECF0 !important;
+  }
+  html.dark input::placeholder,
+  html.dark textarea::placeholder {
+    color: #8B929E !important;
+  }
 }
 
 /* ═══════════════════════════════════════════════════
    SCHOLAR DARK MODE — pro obsidian theme
    ═══════════════════════════════════════════════════ */
 
-html.dark body { background-color: #080B0F; }
+/* body's background now comes from the shared --canvas-bg token (see the
+   plain `body{}` rule near the top of this file) instead of a separate
+   hardcoded dark value — that mismatch was the "second background layer"
+   bug (content container height collapses on short pages, exposing body,
+   whose color didn't match the sidebar/header/content canvas). */
 
 /* ── Kill the global --border white glow ── */
 html.dark { --border: oklch(1 0 0 / 4%); }
@@ -476,6 +506,7 @@ html.dark .text-red-500      { color: #F87171 !important; }
 html.dark .text-teal-600     { color: #0D9488 !important; }
 html.dark .text-teal-500     { color: #0D9488 !important; }
 html.dark .text-teal-300     { color: #5EEAD4 !important; }
+html.dark .text-accent-dark  { color: #5EEAD4 !important; }
 html.dark .text-amber-500    { color: #FB923C !important; }
 html.dark .text-emerald-700  { color: #34D399 !important; }
 html.dark .text-emerald-400  { color: #34D399 !important; }

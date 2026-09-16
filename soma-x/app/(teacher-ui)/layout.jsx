@@ -2,12 +2,17 @@
 import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useContext } from "react"
+import { useContext, useEffect, useState } from "react"
 import DataContext from "@/context/DataContext"
 import MandatoryProfileSetupModal from "@/components/onboarding/MandatoryProfileSetupModal";
-import { BookOpen, Compass, LayoutDashboard, LogOut, Moon, Settings, Sun } from "lucide-react"
+import BrightnessSlider from "@/components/ui/BrightnessSlider";
+import Header from "@/components/global/Header";
+import { BookOpen, Compass, LayoutDashboard, LogOut, PanelLeftClose, PanelLeftOpen, Settings } from "lucide-react"
 
 const ACCENT_LIGHT = "#203A3A"
+const ACCENT_DARK = "#0D9488"
+const EXPANDED_WIDTH = 180
+const COLLAPSED_WIDTH = 64
 
 const mainNavItems = [
   { id: "dashboard", label: "Dashboard", Icon: LayoutDashboard, href: "/teacher/dashboard" },
@@ -21,19 +26,34 @@ const otherNavItems = [
 
 export default function TeacherUILayout({ children }) {
   const pathname = usePathname()
-  const { logout, isDark, toggleDark } = useContext(DataContext)
+  const { logout, isDark } = useContext(DataContext)
   const dm = isDark
+  const [collapsed, setCollapsed] = useState(false)
+
+  // Same collapse mechanism and localStorage key as the scholar/admin shell
+  // (Nav.jsx) — kept in sync so the preference carries over between shells.
+  useEffect(() => {
+    const stored = localStorage.getItem("sidebarCollapsed")
+    setCollapsed(stored === "true")
+  }, [])
+
+  const toggleCollapsed = () => {
+    setCollapsed((prev) => {
+      const next = !prev
+      localStorage.setItem("sidebarCollapsed", String(next))
+      return next
+    })
+  }
+
   const sidebarBg = dm ? "#080B0F" : "#ffffff"
   const borderColor = dm ? "rgba(255,255,255,0.07)" : "#f1f5f9"
-  const labelColor = dm ? "#556272" : "#94a3b8"
-  const titleColor = dm ? "#E8ECF0" : "#0f172a"
-  const subColor = dm ? "#637080" : "#94a3b8"
+  const labelColor = dm ? "#7A8595" : "#475569"
   const logoutColor = dm ? "#7A8595" : "#393F30"
   const logoutHover = dm ? "rgba(255,255,255,0.05)" : "#f1f5f9"
 
   const isActive = (href) => pathname === href || pathname.startsWith(href + "/")
 
-  const NavRow = ({ href, label, Icon, onClick }) => {
+  const NavRow = ({ href, label, Icon, onClick, iconOnly }) => {
     const on = isActive(href)
     const activeStyle = dm
       ? { backgroundColor: "rgba(13,148,136,0.10)", color: "#0D9488", border: "1px solid rgba(13,148,136,0.18)", boxShadow: "0 0 14px rgba(13,148,136,0.10)" }
@@ -41,101 +61,93 @@ export default function TeacherUILayout({ children }) {
     const inactiveColor = dm ? "#7A8595" : "#393F30"
     const hoverBg = dm ? "rgba(255,255,255,0.05)" : "#f1f5f9"
     return (
-      <Link href={href} onClick={onClick}>
+      <Link href={href} onClick={onClick} title={iconOnly ? label : undefined}>
         <div
-          className="flex items-center gap-3 px-3 py-2.5 rounded-full transition-colors duration-150 cursor-pointer"
+          className={`flex items-center gap-3 py-2.5 rounded-full transition-colors duration-150 cursor-pointer ${iconOnly ? "justify-center px-2.5" : "px-3"}`}
           style={on ? activeStyle : { color: inactiveColor }}
           onMouseEnter={e => { if (!on) e.currentTarget.style.backgroundColor = hoverBg }}
           onMouseLeave={e => { if (!on) e.currentTarget.style.backgroundColor = "transparent" }}
         >
           <Icon size={16} strokeWidth={1.75} className="shrink-0" />
-          <span className="text-[13px] font-semibold leading-none">{label}</span>
+          {!iconOnly && <span className="text-[13px] font-semibold leading-none truncate">{label}</span>}
         </div>
       </Link>
     )
   }
 
-  const SidebarContent = ({ onNavClick }) => (
+  const SidebarContent = ({ onNavClick, iconOnly = false }) => (
     <>
-      {/* Brand */}
-      <div className="flex items-center gap-3 px-5 py-5 shrink-0" style={{ borderBottom: `1px solid ${borderColor}` }}>
-        <div
-          className="w-9 h-9 rounded-[8px] overflow-hidden shrink-0 flex items-center justify-center"
-          style={{ background: dm ? "rgba(255,255,255,0.06)" : "#f1f5f9", border: `1px solid ${borderColor}` }}
+      {/* Brand — same full wordmark used across every dashboard, no background
+          card. Toggle sits as a normal flex sibling so it never overlaps the
+          logo artwork. */}
+      <div className={`flex items-center shrink-0 ${iconOnly ? "flex-col gap-2 px-2 py-4" : "justify-between px-4 py-5"}`}>
+        <div className={iconOnly ? "" : "flex-1 flex justify-center"}>
+          {iconOnly ? (
+            <Image src="/schoolLogo/somabox-logo-dark.webp" alt="SomaBox" width={32} height={32} className="w-8 h-8 object-contain" priority />
+          ) : (
+            <Image src="/schoolLogo/somabox.png" alt="SomaBox" width={160} height={55} className="w-auto h-12 object-contain" priority />
+          )}
+        </div>
+        <button
+          onClick={toggleCollapsed}
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          className="w-6 h-6 shrink-0 flex items-center justify-center rounded-full transition-colors"
+          style={{ color: labelColor }}
+          onMouseEnter={e => { e.currentTarget.style.backgroundColor = dm ? "rgba(255,255,255,0.06)" : "#f1f5f9" }}
+          onMouseLeave={e => { e.currentTarget.style.backgroundColor = "transparent" }}
         >
-          <Image src="/schoolLogo/somabox-logo-dark.webp" alt="SOMABOX" width={32} height={32} className="w-8 h-8 object-contain" />
-        </div>
-        <div className="min-w-0 leading-tight">
-          <p className="text-[14px] font-black truncate" style={{ color: titleColor }}>SOMABOX</p>
-          <p className="text-[10px] font-medium truncate" style={{ color: subColor }}>Teacher Dashboard</p>
-        </div>
+          {collapsed ? <PanelLeftOpen size={15} strokeWidth={1.75} /> : <PanelLeftClose size={15} strokeWidth={1.75} />}
+        </button>
       </div>
 
       {/* Nav links */}
-      <div className="flex-1 overflow-y-auto px-3 py-5 space-y-6 min-h-0">
-        <div className="space-y-1">
-          <p className="text-[9.5px] font-bold uppercase tracking-widest px-2 mb-2.5" style={{ color: labelColor }}>Main Menu</p>
-          {mainNavItems.map(item => <NavRow key={item.id} href={item.href} label={item.label} Icon={item.Icon} onClick={onNavClick} />)}
-        </div>
-        <div className="space-y-1">
-          <p className="text-[9.5px] font-bold uppercase tracking-widest px-2 mb-2.5" style={{ color: labelColor }}>Other</p>
-          {otherNavItems.map(item => <NavRow key={item.id} href={item.href} label={item.label} Icon={item.Icon} onClick={onNavClick} />)}
-        </div>
+      <div className={`flex-1 overflow-y-auto py-5 space-y-1 min-h-0 ${iconOnly ? "px-2" : "px-3"}`}>
+        {[...mainNavItems, ...otherNavItems].map(item => (
+          <NavRow key={item.id} href={item.href} label={item.label} Icon={item.Icon} onClick={onNavClick} iconOnly={iconOnly} />
+        ))}
       </div>
 
       {/* Bottom pinned */}
-      <div className="shrink-0 px-4 pt-6 pb-5 space-y-5" style={{ borderTop: `1px solid ${borderColor}` }}>
-        <div className="space-y-3">
-          <p className="text-[9.5px] font-bold uppercase tracking-widest" style={{ color: labelColor }}>Mode</p>
-          <div className="flex gap-2">
-            <button
-              onClick={() => toggleDark(false)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold transition-all"
-              style={!dm
-                ? { backgroundColor: ACCENT_LIGHT, color: "#fff" }
-                : { backgroundColor: "rgba(255,255,255,0.06)", color: "#7A8595", border: "1px solid rgba(255,255,255,0.08)" }}
-            >
-              <Sun size={12} strokeWidth={2} /> Light
-            </button>
-            <button
-              onClick={() => toggleDark(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold transition-all"
-              style={dm
-                ? { backgroundColor: "rgba(13,148,136,0.15)", color: "#0D9488", border: "1px solid rgba(13,148,136,0.25)", boxShadow: "0 0 10px rgba(13,148,136,0.2)" }
-                : { backgroundColor: "#e2e8f0", color: "#64748b" }}
-            >
-              <Moon size={12} strokeWidth={2} /> Dark
-            </button>
+      <div className={`shrink-0 pt-6 pb-5 space-y-5 ${iconOnly ? "px-2" : "px-4"}`} style={{ borderTop: `1px solid ${borderColor}` }}>
+        {!iconOnly && (
+          <div className="space-y-3">
+            <p className="text-[9.5px] font-bold uppercase tracking-widest" style={{ color: labelColor }}>Brightness</p>
+            <BrightnessSlider labelColor={labelColor} trackAccent={dm ? ACCENT_DARK : ACCENT_LIGHT} />
           </div>
-        </div>
+        )}
 
         <button
           onClick={logout}
-          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-full transition-colors"
+          title={iconOnly ? "Logout" : undefined}
+          className={`flex items-center w-full py-2.5 rounded-full transition-colors ${iconOnly ? "justify-center px-2.5" : "gap-3 px-3"}`}
           style={{ color: logoutColor }}
           onMouseEnter={e => e.currentTarget.style.backgroundColor = logoutHover}
           onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}
         >
           <LogOut size={15} strokeWidth={1.75} className="shrink-0" />
-          <span className="text-[13px] font-semibold">Logout</span>
+          {!iconOnly && <span className="text-[13px] font-semibold">Logout</span>}
         </button>
       </div>
     </>
   )
 
   return (
-    <div className="flex w-full h-screen overflow-hidden" style={{ backgroundColor: dm ? "#080B0F" : "#ffffff" }}>
-      {/* Sidebar */}
+    <div className="flex w-full h-screen overflow-hidden" style={{ backgroundColor: sidebarBg }}>
+      {/* Sidebar — collapsible, expanded by default (same behavior as the
+          scholar/admin shell's Nav.jsx) */}
       <aside
-        className="flex flex-col flex-shrink-0 h-full w-[180px]"
-        style={{ backgroundColor: sidebarBg, borderRight: `1px solid ${borderColor}` }}
+        className="flex flex-col flex-shrink-0 h-full transition-[width] duration-200 ease-in-out"
+        style={{ backgroundColor: sidebarBg, width: `${collapsed ? COLLAPSED_WIDTH : EXPANDED_WIDTH}px` }}
       >
-        <SidebarContent onNavClick={undefined} />
+        <SidebarContent iconOnly={collapsed} />
       </aside>
 
-      {/* Main content */}
+      {/* Main content — persistent header shared with the rest of the app,
+          so it no longer disappears when navigating away from the dashboard. */}
       <div className="flex flex-col flex-1 overflow-hidden min-w-0">
-        <main className="flex-1 overflow-y-auto px-8 py-6" style={{ backgroundColor: dm ? "#080B0F" : "#ffffff" }}>
+        <Header />
+        <main className="flex-1 overflow-y-auto px-8 py-6" style={{ backgroundColor: sidebarBg }}>
           {children}
         </main>
       </div>

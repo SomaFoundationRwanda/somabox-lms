@@ -14,7 +14,7 @@ const AVATAR_GRADIENTS = [
     ["#2563eb", "#4f46e5"],
     ["#0d9488", "#059669"],
     ["#d97706", "#ea580c"],
-    ["#e11d48", "#db2777"],
+    ["#203A3A", "#0D9488"], // app's own teal accent, replacing the former red/rose entry
 ];
 
 function getAvatarColors(name) {

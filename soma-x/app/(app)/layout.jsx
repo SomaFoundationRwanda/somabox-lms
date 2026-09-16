@@ -1,5 +1,6 @@
 "use client"
 import Nav from "@/components/global/Nav";
+import Header from "@/components/global/Header";
 import MandatoryProfileSetupModal from "@/components/onboarding/MandatoryProfileSetupModal";
 import DataContext from "@/context/DataContext";
 import { useContext, useEffect } from "react";
@@ -26,8 +27,14 @@ export default function AppLayout({ children }) {
   return (
     <>
       <Nav />
-      <div className="md:ml-[180px] w-full h-full global-horizontal-padding bg-[#EFEFEF] dark:bg-[#080B0F]">
-        {children}
+      <div className="md:ml-[var(--sidebar-width,180px)] w-full min-h-screen flex flex-col transition-[margin-left] duration-200 ease-in-out">
+        <Header />
+        <div
+          className="flex-1 global-horizontal-padding"
+          style={{ backgroundColor: "var(--canvas-bg)" }}
+        >
+          {children}
+        </div>
       </div>
       <MandatoryProfileSetupModal />
     </>

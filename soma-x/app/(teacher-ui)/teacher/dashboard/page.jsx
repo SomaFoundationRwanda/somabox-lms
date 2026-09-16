@@ -6,8 +6,6 @@ import Image from "next/image"
 import { ChevronRight, Plus, X } from "lucide-react"
 import DataContext from "@/context/DataContext"
 import ProfileCompletionBanner from "@/components/notifications/ProfileCompletionBanner"
-import NotificationBellDrawer from "@/components/notifications/NotificationBellDrawer"
-import ProfileCard from "@/components/ui/ProfileCard"
 import CreateCourseModal from "@/components/teacher/CreateCourseModal"
 
 function Modal({ title, onClose, children }) {
@@ -84,16 +82,6 @@ export default function TeacherDashboardPage() {
   return (
     <div className="space-y-6">
       <ProfileCompletionBanner />
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white">Welcome, Teacher!</h1>
-          <p className="text-xs text-slate-600 dark:text-slate-400">Classroom Management</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <NotificationBellDrawer />
-          <ProfileCard />
-        </div>
-      </div>
 
       <section>
         <div className="flex items-center justify-between mb-4">

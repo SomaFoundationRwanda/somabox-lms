@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useRef } from 'react';
 import {
     User,
     Phone,
@@ -74,6 +74,12 @@ export default function MandatoryProfileSetupModal() {
 
     // Validation errors
     const [errors, setErrors] = useState({});
+    // Screen-reader-only live region text — announced whenever the step
+    // changes or a blocked Continue attempt needs explaining.
+    const [announcement, setAnnouncement] = useState('');
+    // Focus target for the newly-shown step, so screen readers land on its
+    // heading (and read it) instead of silently staying on the Continue button.
+    const stepHeadingRef = useRef(null);
 
     const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3002';
 
@@ -141,6 +147,17 @@ export default function MandatoryProfileSetupModal() {
         checkProfileCompleteness();
     }, [authenticated, userEmail, currentRole, SERVER_URL]);
 
+    // Live per-step validity — drives the disabled/aria-disabled state on
+    // Continue directly, independent of whether the user has attempted to
+    // submit yet, so the requirement is always accurately represented.
+    const isStep1Valid = fullName.trim() !== '' && !!gender;
+    const isStep2Valid = !!province && (
+        province === "International / Other" ? customDistrict.trim() !== '' : !!district
+    );
+    const isStep3Valid = currentRole !== 'scholar' || !!gradeLevel;
+
+    const STEP_LABELS = { 1: "Personal Details", 2: "Location & Region", 3: "Academic Info" };
+
     // Handle step 1 validation
     const validateStep1 = () => {
         const errs = {};
@@ -171,19 +188,37 @@ export default function MandatoryProfileSetupModal() {
     };
 
     const handleNext = () => {
-        if (step === 1) {
-            if (validateStep1()) setStep(2);
-        } else if (step === 2) {
-            if (validateStep2()) setStep(3);
+        const valid = step === 1 ? validateStep1() : step === 2 ? validateStep2() : true;
+        if (!valid) {
+            // Continue is only reachable here via keyboard activation racing the
+            // disabled state, or a stale click — announce why it didn't move so
+            // a screen-reader user isn't left wondering if anything happened.
+            setAnnouncement("Please fill in the required fields before continuing.");
+            return;
         }
+        const nextStep = step + 1;
+        setStep(nextStep);
+        setErrors({});
+        setAnnouncement(`Step ${nextStep} of 3: ${STEP_LABELS[nextStep]}`);
     };
 
     const handleBack = () => {
         if (step > 1) {
             setErrors({});
-            setStep(step - 1);
+            const prevStep = step - 1;
+            setStep(prevStep);
+            setAnnouncement(`Step ${prevStep} of 3: ${STEP_LABELS[prevStep]}`);
         }
     };
+
+    // Move focus to the new step's heading whenever the step changes, so
+    // screen readers land on (and read) the new section instead of silently
+    // remaining on the Continue/Previous button that triggered the change.
+    useEffect(() => {
+        if (isOpen && !isCompletedSuccess) {
+            stepHeadingRef.current?.focus();
+        }
+    }, [step, isOpen, isCompletedSuccess]);
 
     const handleFinalSubmit = async (e) => {
         e.preventDefault();
@@ -250,6 +285,9 @@ export default function MandatoryProfileSetupModal() {
         <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-6 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
             {/* Modal Container */}
             <div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="onboarding-modal-title"
                 className="w-full max-w-2xl bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[90vh] transition-all transform animate-in zoom-in-95 duration-200"
                 onClick={(e) => e.stopPropagation()}
             >
@@ -264,7 +302,7 @@ export default function MandatoryProfileSetupModal() {
                                 <Sparkles className="w-3.5 h-3.5 text-teal-300" />
                                 First-Time Onboarding
                             </div>
-                            <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white">
+                            <h2 id="onboarding-modal-title" className="text-xl sm:text-2xl font-black tracking-tight text-white">
                                 Complete Your Profile
                             </h2>
                             <p className="text-white/80 text-xs sm:text-sm font-medium">
@@ -341,7 +379,7 @@ export default function MandatoryProfileSetupModal() {
                             {step === 1 && (
                                 <div className="space-y-5 animate-in fade-in-50 duration-200">
                                     <div className="border-b border-slate-200 dark:border-slate-800 pb-3">
-                                        <h3 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                                        <h3 ref={stepHeadingRef} tabIndex={-1} className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2 outline-none">
                                             <User className="w-4 h-4 text-teal-600 dark:text-teal-400" />
                                             Personal Information
                                         </h3>
@@ -429,7 +467,7 @@ export default function MandatoryProfileSetupModal() {
                             {step === 2 && (
                                 <div className="space-y-5 animate-in fade-in-50 duration-200">
                                     <div className="border-b border-slate-200 dark:border-slate-800 pb-3">
-                                        <h3 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                                        <h3 ref={stepHeadingRef} tabIndex={-1} className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2 outline-none">
                                             <MapPin className="w-4 h-4 text-teal-600 dark:text-teal-400" />
                                             Geographic Location & Inclusion
                                         </h3>
@@ -440,10 +478,11 @@ export default function MandatoryProfileSetupModal() {
 
                                     {/* Province Selection */}
                                     <div>
-                                        <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1.5">
+                                        <label htmlFor="onboarding-province" className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1.5">
                                             Province / Region <span className="text-rose-500">*</span>
                                         </label>
                                         <select
+                                            id="onboarding-province"
                                             value={province}
                                             onChange={(e) => {
                                                 setProvince(e.target.value);
@@ -467,11 +506,17 @@ export default function MandatoryProfileSetupModal() {
 
                                     {/* District Selection */}
                                     <div>
-                                        <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1.5">
+                                        <label htmlFor="onboarding-district" className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1.5">
                                             District <span className="text-rose-500">*</span>
                                         </label>
+                                        {!province && (
+                                            <p id="district-hint" className="text-[11px] font-semibold text-amber-700 dark:text-amber-400 mb-1.5">
+                                                Select a province above first — district options depend on it.
+                                            </p>
+                                        )}
                                         {province === "International / Other" ? (
                                             <input
+                                                id="onboarding-district"
                                                 type="text"
                                                 value={customDistrict}
                                                 onChange={(e) => setCustomDistrict(e.target.value)}
@@ -480,14 +525,16 @@ export default function MandatoryProfileSetupModal() {
                                             />
                                         ) : (
                                             <select
+                                                id="onboarding-district"
                                                 value={district}
                                                 onChange={(e) => setDistrict(e.target.value)}
                                                 disabled={!province}
+                                                aria-describedby={!province ? "district-hint" : undefined}
                                                 className={`w-full h-11 px-3 rounded-xl border ${
                                                     errors.district
                                                         ? "border-rose-500 bg-rose-50/30 dark:bg-rose-950/20"
                                                         : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/60"
-                                                } text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all disabled:opacity-50`}
+                                                } text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed`}
                                             >
                                                 <option value="">{province ? "-- Select District --" : "Select a province first"}</option>
                                                 {province && RWANDA_LOCATIONS[province]?.map((dist) => (
@@ -542,7 +589,7 @@ export default function MandatoryProfileSetupModal() {
                             {step === 3 && (
                                 <div className="space-y-5 animate-in fade-in-50 duration-200">
                                     <div className="border-b border-slate-200 dark:border-slate-800 pb-3">
-                                        <h3 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                                        <h3 ref={stepHeadingRef} tabIndex={-1} className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2 outline-none">
                                             <GraduationCap className="w-4 h-4 text-teal-600 dark:text-teal-400" />
                                             Academic & Learning Profile
                                         </h3>
@@ -652,7 +699,9 @@ export default function MandatoryProfileSetupModal() {
                                 <button
                                     type="button"
                                     onClick={handleNext}
-                                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-accent-dark hover:bg-teal-800 text-white text-xs font-black shadow-md hover:shadow-lg transition-all"
+                                    disabled={step === 1 ? !isStep1Valid : !isStep2Valid}
+                                    aria-disabled={step === 1 ? !isStep1Valid : !isStep2Valid}
+                                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-accent-dark hover:bg-teal-800 text-white text-xs font-black shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-accent-dark"
                                 >
                                     Continue
                                     <ArrowRight className="w-3.5 h-3.5" />
@@ -661,8 +710,9 @@ export default function MandatoryProfileSetupModal() {
                                 <button
                                     type="button"
                                     onClick={handleFinalSubmit}
-                                    disabled={loading}
-                                    className="inline-flex items-center gap-2 px-7 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white text-xs font-black shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
+                                    disabled={loading || !isStep3Valid}
+                                    aria-disabled={loading || !isStep3Valid}
+                                    className="inline-flex items-center gap-2 px-7 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white text-xs font-black shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {loading ? (
                                         <>
@@ -680,6 +730,13 @@ export default function MandatoryProfileSetupModal() {
                         </div>
                     </div>
                 )}
+
+                {/* Screen-reader-only live region: announces step changes and
+                    blocked Continue attempts that JAWS/VoiceOver users would
+                    otherwise have no signal for. */}
+                <div aria-live="polite" role="status" className="sr-only">
+                    {announcement}
+                </div>
             </div>
         </div>
     );

@@ -12,6 +12,7 @@ import { useCourse } from "@/context/CourseContext";
 import { useCourseSection } from "@/lib/useCourseSection";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
 import { EmptyState } from "@/components/ui/empty-state";
+import InfoTooltip from "@/components/ui/InfoTooltip";
 import ModuleCard from "@/components/course/modules/ModuleCard";
 import DeleteItemDialog from "@/components/course/modules/DeleteItemDialog";
 import PageEditorModal from "@/components/course/modules/editors/PageEditorModal";
@@ -272,7 +273,10 @@ export default function ModulesPage() {
       <div className="p-4 md:p-6 space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <h1 className="text-lg font-bold text-slate-900">Modules</h1>
+          <div className="flex items-center gap-1.5">
+            <h1 className="text-lg font-bold text-slate-900">Modules</h1>
+            <InfoTooltip text="A Module groups related content — pages, assignments, quizzes, and files — into one learning unit. Example: 'Module 1: Cell Biology' might contain a reading page, a quiz, and an assignment, all in the order students should complete them." />
+          </div>
           {isTeacher && (
             <button
               onClick={() => setCreating((v) => !v)}

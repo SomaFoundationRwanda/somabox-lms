@@ -24,7 +24,7 @@ function CourseShell({ children }) {
   }
 
   return (
-    <div className="flex min-h-[80vh] bg-white rounded-2xl border border-slate-200 overflow-hidden -mx-4 md:mx-0">
+    <div className="flex min-h-full bg-white rounded-2xl border border-slate-200 overflow-hidden -mx-[1%]">
       <CourseSidebar />
       <div className="flex-1 min-w-0">{children}</div>
     </div>

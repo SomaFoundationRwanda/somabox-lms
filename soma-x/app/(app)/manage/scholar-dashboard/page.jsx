@@ -9,12 +9,9 @@ import OnboardingTour, { TourLaunchButton } from "@/components/ui/OnboardingTour
 import SpacedPracticeWidget from "@/components/sol/SpacedPracticeWidget";
 import DiagnosticQuizModal from "@/components/sol/DiagnosticQuizModal";
 import ProfileCompletionBanner from "@/components/notifications/ProfileCompletionBanner";
-import NotificationBellDrawer from "@/components/notifications/NotificationBellDrawer";
 import AssignmentBell from "@/components/notifications/AssignmentBell";
 import { getDiagnosticStatus } from "@/lib/sol-service";
 import { SOL_QUIZ_ENABLED } from "@/lib/featureFlags";
-
-import ProfileCard from "@/components/ui/ProfileCard";
 
 const ScholarDashboard = () => {
     const { authenticated, role, unshiftString, SERVER_URL, isDark } = useContext(DataContext);
@@ -23,12 +20,10 @@ const ScholarDashboard = () => {
 
     const currentRole = useMemo(() => (role ? unshiftString(role) : ""), [role, unshiftString]);
 
-    const [displayName, setDisplayName] = useState("");
     const [scholarEmail, setScholarEmail] = useState("");
     const [showDiagnostic, setShowDiagnostic] = useState(false);
 
     useEffect(() => {
-        setDisplayName(unshiftString(localStorage.getItem("un") || ""));
         const stored = localStorage.getItem("al");
         setScholarEmail(stored ? unshiftString(stored) : "");
     }, [unshiftString]);
@@ -67,8 +62,6 @@ const ScholarDashboard = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [authenticated, currentRole, SERVER_URL, scholarEmail]);
 
-    const firstName = displayName ? displayName.split(" ")[0] : "Scholar";
-
     const joinCourse = async (courseId) => {
         setJoiningId(courseId);
         setJoinError("");
@@ -102,20 +95,10 @@ const ScholarDashboard = () => {
             {/* Onboarding tour — auto-shows on first visit */}
             <OnboardingTour />
 
-            {/* ── Top bar ── */}
-            <div className="flex items-center justify-between pl-12 pr-4 md:px-4 py-3 bg-white border-b border-slate-200 sticky top-0 z-10 rounded-b-[5px]">
-                <div className="min-w-0">
-                    <h1 className="text-[16px] sm:text-[18px] md:text-[20px] font-black text-slate-900 leading-tight tracking-tight truncate">
-                        Welcome On SOMABOX, {firstName} !
-                    </h1>
-                    <p className="text-[11px] text-slate-600 mt-0.5 hidden sm:block">Let&apos;s learn something new today!</p>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                    <TourLaunchButton className="hidden sm:flex mr-1" />
-                    <AssignmentBell />
-                    <NotificationBellDrawer />
-                    <ProfileCard />
-                </div>
+            {/* ── Page-specific header actions (shared header now lives in the app shell layout) ── */}
+            <div className="flex items-center justify-end gap-2 pt-3">
+                <TourLaunchButton className="hidden sm:flex mr-1" />
+                <AssignmentBell />
             </div>
 
             {/* Diagnostic Baseline Assessment Modal */}
@@ -145,10 +128,10 @@ const ScholarDashboard = () => {
 
                     <div className="relative z-10">
                         <h2 className="text-[16px] sm:text-[18px] font-black text-white leading-tight tracking-tight">
-                            Be the Reason They Keep Learning
+                            Keep Learning, Even Offline
                         </h2>
                         <p className="text-white/40 text-[11px] leading-relaxed mt-1">
-                            Keeping 12,450 scholars learning offline — even when the internet is not there.
+                            Browse books and materials in your Library anytime — no internet connection needed.
                         </p>
                     </div>
 

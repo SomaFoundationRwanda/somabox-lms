@@ -1,22 +1,46 @@
 "use client"
-import { BookOpen, BookMarked, Compass, Globe, LayoutDashboard, Library, LogOut, Menu, Moon, RefreshCcw, Sun, UserRound, X } from "lucide-react";
+import { BookOpen, BookMarked, Compass, Globe, LayoutDashboard, Library, LogOut, Menu, PanelLeftClose, PanelLeftOpen, RefreshCcw, UserRound, X } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
 import DataContext from "@/context/DataContext";
 import NotificationBellDrawer from "../notifications/NotificationBellDrawer";
+import BrightnessSlider from "@/components/ui/BrightnessSlider";
 
 const ACCENT_LIGHT = "#203A3A";
 const ACCENT_DARK = "#0D9488";
+const EXPANDED_WIDTH = 180;
+const COLLAPSED_WIDTH = 64;
 
 export default function SomaboxNav() {
   const { t } = useLanguage();
   const pathname = usePathname();
-  const { role, unshiftString, logout, isDark, toggleDark } = useContext(DataContext);
+  const { role, unshiftString, logout, isDark } = useContext(DataContext);
   const currentRole = role ? unshiftString(role) : "scholar";
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+
+  // Desktop-only collapse state, remembered across visits (mirrors Drive).
+  // Written to a CSS var so the app-shell layout's content margin can react
+  // to it without needing its own copy of this state.
+  useEffect(() => {
+    const stored = localStorage.getItem("sidebarCollapsed");
+    setCollapsed(stored === "true");
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.style.setProperty("--sidebar-width", `${collapsed ? COLLAPSED_WIDTH : EXPANDED_WIDTH}px`);
+  }, [collapsed]);
+
+  const toggleCollapsed = () => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem("sidebarCollapsed", String(next));
+      return next;
+    });
+  };
 
   const dashboardLocation =
     currentRole === "admin" ? "/manage/admin" :
@@ -53,7 +77,7 @@ export default function SomaboxNav() {
   };
 
   /* ── Shared nav row (used by both desktop sidebar & mobile drawer) ── */
-  const NavRow = ({ to, label, Icon, onClick }) => {
+  const NavRow = ({ to, label, Icon, onClick, iconOnly }) => {
     const on = active(to);
     const activeStyle = isDark
       ? { backgroundColor: "rgba(13,148,136,0.10)", color: "#0D9488", border: "1px solid rgba(13,148,136,0.18)", boxShadow: "0 0 14px rgba(13,148,136,0.10)" }
@@ -61,15 +85,15 @@ export default function SomaboxNav() {
     const inactiveColor = isDark ? "#7A8595" : "#393F30";
     const hoverBg = isDark ? "rgba(255,255,255,0.05)" : "#f1f5f9";
     return (
-      <Link href={to} onClick={onClick}>
+      <Link href={to} onClick={onClick} title={iconOnly ? label : undefined}>
         <div
-          className="flex items-center gap-3 px-3 py-2.5 rounded-full transition-colors duration-150 cursor-pointer"
+          className={`flex items-center gap-3 py-2.5 rounded-full transition-colors duration-150 cursor-pointer ${iconOnly ? "justify-center px-2.5" : "px-3"}`}
           style={on ? activeStyle : { color: inactiveColor }}
           onMouseEnter={e => { if (!on) e.currentTarget.style.backgroundColor = hoverBg; }}
           onMouseLeave={e => { if (!on) e.currentTarget.style.backgroundColor = "transparent"; }}
         >
           <Icon size={16} strokeWidth={1.75} className="shrink-0" />
-          <span className="text-[13px] font-semibold leading-none">{label}</span>
+          {!iconOnly && <span className="text-[13px] font-semibold leading-none truncate">{label}</span>}
         </div>
       </Link>
     );
@@ -81,7 +105,7 @@ export default function SomaboxNav() {
     const accent = isDark ? ACCENT_DARK : ACCENT_LIGHT;
     return (
       <Link href={to}>
-        <div className="flex flex-col items-center gap-1 px-2" style={{ color: on ? accent : (isDark ? "#4A5260" : "#94a3b8") }}>
+        <div className="flex flex-col items-center gap-1 px-2" style={{ color: on ? accent : (isDark ? "#7A8595" : "#475569") }}>
           <div className="p-1.5 rounded-full" style={on ? { backgroundColor: isDark ? "rgba(13,148,136,0.12)" : "rgba(32,58,58,0.10)" } : {}}>
             <Icon size={19} strokeWidth={1.75} />
           </div>
@@ -94,59 +118,79 @@ export default function SomaboxNav() {
   const dm = isDark;
   const sidebarBg = dm ? "#080B0F" : "#ffffff";
   const borderColor = dm ? "rgba(255,255,255,0.07)" : "#f1f5f9";
-  const labelColor = dm ? "#556272" : "#94a3b8";
-  const titleColor = dm ? "#E8ECF0" : "#0f172a";
-  const subColor = dm ? "#637080" : "#94a3b8";
+  const labelColor = dm ? "#7A8595" : "#475569";
   const logoutColor = dm ? "#7A8595" : "#393F30";
   const logoutHover = dm ? "rgba(255,255,255,0.05)" : "#f1f5f9";
 
   /* ── Sidebar inner content (shared between desktop + mobile drawer) ── */
-  const SidebarContent = ({ onNavClick }) => (
+  const SidebarContent = ({ onNavClick, iconOnly = false, showCollapseToggle = false }) => (
     <>
-      {/* Brand */}
-      <div className="flex items-center justify-center px-5 py-5 shrink-0" style={{ borderBottom: `1px solid ${borderColor}` }}>
-        <Image 
-            src="/schoolLogo/somabox.png" 
-            alt="SomaBox" 
-            width={160} 
-            height={55} 
-            className="w-auto h-12 object-contain" 
-            priority
-        />
+      {/* Brand — toggle sits as a normal flex sibling here (not absolutely
+          positioned) so it can never overlap the logo artwork. */}
+      <div className={`flex items-center shrink-0 ${iconOnly ? "flex-col gap-2 px-2 py-4" : "justify-between px-4 py-5"}`}>
+        <div className={iconOnly ? "" : "flex-1 flex justify-center"}>
+          {iconOnly ? (
+            <Image
+              src="/schoolLogo/somabox-logo-dark.webp"
+              alt="SomaBox"
+              width={32}
+              height={32}
+              className="w-8 h-8 object-contain"
+              priority
+            />
+          ) : (
+            <Image
+              src="/schoolLogo/somabox.png"
+              alt="SomaBox"
+              width={160}
+              height={55}
+              className="w-auto h-12 object-contain"
+              priority
+            />
+          )}
+        </div>
+        {showCollapseToggle && (
+          <button
+            onClick={toggleCollapsed}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            className="w-6 h-6 shrink-0 flex items-center justify-center rounded-full transition-colors"
+            style={{ color: labelColor }}
+            onMouseEnter={e => { e.currentTarget.style.backgroundColor = dm ? "rgba(255,255,255,0.06)" : "#f1f5f9"; }}
+            onMouseLeave={e => { e.currentTarget.style.backgroundColor = "transparent"; }}
+          >
+            {collapsed ? <PanelLeftOpen size={15} strokeWidth={1.75} /> : <PanelLeftClose size={15} strokeWidth={1.75} />}
+          </button>
+        )}
       </div>
 
       {/* Nav links - Flattened without section headers */}
-      <div className="flex-1 overflow-y-auto px-3 py-5 space-y-1 min-h-0">
+      <div className={`flex-1 overflow-y-auto py-5 space-y-1 min-h-0 ${iconOnly ? "px-2" : "px-3"}`}>
         {[...mainNavItems, ...managementNavItems, ...otherNavItems].map(item => (
-          <NavRow key={item.id} {...item} onClick={onNavClick} />
+          <NavRow key={item.id} {...item} onClick={onNavClick} iconOnly={iconOnly} />
         ))}
       </div>
 
       {/* Bottom pinned */}
-      <div className="shrink-0 px-4 pt-6 pb-5 space-y-5" style={{ borderTop: `1px solid ${borderColor}` }}>
-        <div className="space-y-3">
-          <p className="text-[9.5px] font-bold uppercase tracking-widest" style={{ color: labelColor }}>Mode</p>
-          <div className="flex gap-2">
-            <button
-              onClick={() => toggleDark(false)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold transition-all"
-              style={!dm
-                ? { backgroundColor: ACCENT_LIGHT, color: "#fff" }
-                : { backgroundColor: "rgba(255,255,255,0.06)", color: "#7A8595", border: "1px solid rgba(255,255,255,0.08)" }}
-            >
-              <Sun size={12} strokeWidth={2} /> Light
-            </button>
-            <button
-              onClick={() => toggleDark(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold transition-all"
-              style={dm
-                ? { backgroundColor: "rgba(13,148,136,0.15)", color: "#0D9488", border: "1px solid rgba(13,148,136,0.25)", boxShadow: "0 0 10px rgba(13,148,136,0.2)" }
-                : { backgroundColor: "#e2e8f0", color: "#64748b" }}
-            >
-              <Moon size={12} strokeWidth={2} /> Dark
-            </button>
+      <div className={`shrink-0 pt-6 pb-5 space-y-5 ${iconOnly ? "px-2" : "px-4"}`} style={{ borderTop: `1px solid ${borderColor}` }}>
+        {!iconOnly && (
+          <div className="space-y-3">
+            <p className="text-[9.5px] font-bold uppercase tracking-widest" style={{ color: labelColor }}>Brightness</p>
+            <BrightnessSlider labelColor={labelColor} trackAccent={dm ? ACCENT_DARK : ACCENT_LIGHT} />
           </div>
-        </div>
+        )}
+
+        <button
+          onClick={logout}
+          title={iconOnly ? "Logout" : undefined}
+          className={`flex items-center w-full py-2.5 rounded-full transition-colors ${iconOnly ? "justify-center px-2.5" : "gap-3 px-3"}`}
+          style={{ color: logoutColor }}
+          onMouseEnter={e => { e.currentTarget.style.backgroundColor = logoutHover; }}
+          onMouseLeave={e => { e.currentTarget.style.backgroundColor = "transparent"; }}
+        >
+          <LogOut size={15} strokeWidth={1.75} className="shrink-0" />
+          {!iconOnly && <span className="text-[13px] font-semibold">Logout</span>}
+        </button>
       </div>
     </>
   );
@@ -171,7 +215,7 @@ export default function SomaboxNav() {
         />
       )}
 
-      {/* ══════════════ Mobile drawer ══════════════ */}
+      {/* ══════════════ Mobile drawer (always fully expanded — it's an overlay, not a persistent rail) ══════════════ */}
       <nav
         className={`fixed top-0 left-0 h-screen w-[180px] z-[1001] md:hidden flex flex-col transition-transform duration-300 ease-in-out rounded-r-[8px] ${mobileOpen ? "translate-x-0" : "-translate-x-full"
           }`}
@@ -186,13 +230,15 @@ export default function SomaboxNav() {
         >
           <X size={14} strokeWidth={2} />
         </button>
-        <SidebarContent onNavClick={() => setMobileOpen(false)} />
+        <SidebarContent onNavClick={() => setMobileOpen(false)} iconOnly={false} />
       </nav>
 
-      {/* ══════════════ Desktop sidebar ══════════════ */}
-      <nav className="fixed hidden md:flex flex-col h-screen w-[180px] z-50 overflow-hidden rounded-r-[8px]"
-        style={{ backgroundColor: sidebarBg, borderRight: `1px solid ${borderColor}` }}>
-        <SidebarContent onNavClick={undefined} />
+      {/* ══════════════ Desktop sidebar — collapsible, expanded by default ══════════════ */}
+      <nav
+        className="fixed hidden md:flex flex-col h-screen z-50 overflow-hidden transition-[width] duration-200 ease-in-out"
+        style={{ backgroundColor: sidebarBg, width: `${collapsed ? COLLAPSED_WIDTH : EXPANDED_WIDTH}px` }}
+      >
+        <SidebarContent iconOnly={collapsed} showCollapseToggle />
       </nav>
 
       {/* ══════════════ Mobile bottom tab bar ══════════════ */}
@@ -202,7 +248,7 @@ export default function SomaboxNav() {
           {[...mainNavItems, ...managementNavItems, ...otherNavItems].map(item => (
             <TabItem key={item.id} to={item.to} label={item.label} Icon={item.Icon} />
           ))}
-          <button onClick={logout} className="flex flex-col items-center gap-1 px-2" style={{ color: "#94a3b8" }}>
+          <button onClick={logout} className="flex flex-col items-center gap-1 px-2" style={{ color: dm ? "#7A8595" : "#475569" }}>
             <div className="p-1.5 rounded-full hover:bg-slate-100">
               <LogOut size={19} strokeWidth={1.75} />
             </div>

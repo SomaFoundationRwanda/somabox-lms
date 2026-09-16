@@ -2,7 +2,7 @@
 import DataContext from "@/context/DataContext";
 import { useContext, useState } from "react";
 import { useLanguage } from '@/context/LanguageContext';
-import { BookOpen, ChevronDown, Eye, EyeOff, Globe, GraduationCap, ShieldCheck, Users, Wifi } from "lucide-react";
+import { BookOpen, ChevronDown, Eye, EyeOff, Globe, GraduationCap, Loader2, ShieldCheck, Users, Wifi } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import Image from "next/image";
@@ -89,17 +89,19 @@ const AuthComp = () => {
 
                 <div className="relative z-10 flex flex-col items-center text-center gap-4 md:gap-8 max-w-sm w-full">
 
-                    {/* Floating logo card */}
-                    <div className="bg-white rounded-2xl md:rounded-3xl p-3 md:p-5 shadow-2xl shadow-black/40 ring-1 ring-white/20">
-                        <Image
-                            src="/schoolLogo/somabox-logo-dark.webp"
-                            alt="SFR Logo"
-                            width={96}
-                            height={96}
-                            className="w-12 h-12 md:w-20 md:h-20 object-contain"
-                            priority
-                        />
-                    </div>
+                    {/* Logo — same wordmark used in the dashboard sidebar, no background card.
+                        Forced to solid white via filter: the source file has dark gray text
+                        meant for light backgrounds, which would be unreadable directly on this
+                        dark teal panel otherwise. */}
+                    <Image
+                        src="/schoolLogo/somabox.png"
+                        alt="SomaBox"
+                        width={160}
+                        height={55}
+                        className="w-auto h-14 md:h-20 object-contain"
+                        style={{ filter: "brightness(0) invert(1)" }}
+                        priority
+                    />
 
                     {/* Headline */}
                     <div className="space-y-2 md:space-y-3">
@@ -261,8 +263,10 @@ const AuthComp = () => {
                             type="submit"
                             width="full"
                             disabled={loading}
-                            className="w-full h-11 text-[15px] font-bold rounded-lg bg-accent-dark hover:bg-black text-white shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            aria-busy={loading}
+                            className="w-full h-11 text-[15px] font-bold rounded-lg bg-accent-dark hover:bg-black text-white shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
+                            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                             {loading ? "Signing in…" : t("auth.authLogin") || "Login"}
                         </Button>
                     </div>

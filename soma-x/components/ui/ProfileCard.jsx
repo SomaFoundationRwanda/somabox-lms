@@ -37,17 +37,12 @@ const ProfileCard = () => {
     // Show loading state
     if (loading) {
         return (
-            <section className="relative cursor-pointer bg-white border border-slate-100 px-3 shadow-sm flex items-center justify-around rounded-full w-[12rem] h-[3.5rem]">
-                {/* the decorations */}
-                <div className="absolute flex bottom-0 right-6">
-                    <div className="w-7 h-1 bg-[#203A3A]"></div>
-                    <div className="w-4 h-1 bg-amber-400"></div>
-                </div>
-                <div className="w-7 h-7 px-3 flex items-center justify-center rounded-[100%] bg-amber-400">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+            <section className="relative cursor-pointer bg-white border border-slate-100 px-2.5 shadow-sm flex items-center justify-around rounded-full w-[11rem] h-10">
+                <div className="w-6 h-6 px-3 flex items-center justify-center rounded-[100%] bg-amber-400">
+                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
                 </div>
                 <div>
-                    <p className="ml-3 text-sm font-bold text-slate-600">Loading...</p>
+                    <p className="ml-3 text-xs font-bold text-slate-600">Loading...</p>
                 </div>
             </section>
         );
@@ -56,33 +51,27 @@ const ProfileCard = () => {
     return (
         <DropdownMenu>
             <DropdownMenuTrigger className="outline-none">
-                <section 
-                    className={`relative hover:opacity-90 cursor-pointer shadow-sm border border-transparent flex items-center rounded-full w-[12rem] h-[3.5rem] px-2 gap-3 transition-opacity`}
+                <section
+                    className={`relative hover:opacity-90 cursor-pointer shadow-sm border border-transparent flex items-center rounded-full w-[11rem] h-10 px-2 gap-2.5 transition-opacity`}
                     style={{ backgroundColor: "#203A3A" }}>
-                    {/* the decorations */}
-                    <div className="absolute flex bottom-0 right-6">
-                        <div className="w-7 h-1 bg-[#0D9488]"></div>
-                        <div className="w-4 h-1 bg-amber-400"></div>
-                    </div>
-                    
                     {/* Profile picture or default icon */}
-                    <Avatar 
-                        src={getAvatarUrl()} 
-                        size="small" 
-                        isLoggedIn={true} 
+                    <Avatar
+                        src={getAvatarUrl()}
+                        size="xsmall"
+                        isLoggedIn={true}
                         showStatus={true}
                     />
-                    
+
                     {/* Dynamic text based on login status */}
-                    <div className="flex flex-col justify-center text-left">
-                        <p className={`ml-2 text-sm ${isLoggedIn ? "hidden" : "visible"} font-bold text-white`}>
+                    <div className="flex flex-col justify-center text-left min-w-0">
+                        <p className={`text-xs ${isLoggedIn ? "hidden" : "visible"} font-bold text-white`}>
                             Sign in
                         </p>
-                        <div className={`${isLoggedIn ? "visible" : "hidden"} flex flex-col ml-1`}>
-                            <p className="text-sm font-bold leading-tight truncate w-24 text-white">
+                        <div className={`${isLoggedIn ? "visible" : "hidden"} flex flex-col`}>
+                            <p className="text-xs font-bold leading-tight truncate w-24 text-white">
                                 {getDisplayName()}
                             </p>
-                            <p className="text-[10px] capitalize text-slate-500 font-medium">
+                            <p className="text-[9px] leading-tight capitalize text-slate-400 font-medium">
                                 {role}
                             </p>
                         </div>

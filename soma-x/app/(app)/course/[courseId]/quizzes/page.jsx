@@ -8,6 +8,7 @@ import { useCourseSection } from "@/lib/useCourseSection";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
 import AsyncListState from "@/components/course/AsyncListState";
 import { Button } from "@/components/ui/button";
+import InfoTooltip from "@/components/ui/InfoTooltip";
 
 export default function QuizzesListPage() {
   const { SERVER_URL, courseId, userEmail, isTeacher } = useCourse();
@@ -64,12 +65,18 @@ export default function QuizzesListPage() {
                   <input value={q.prompt} onChange={(e) => updateQuestion(idx, { prompt: e.target.value })} placeholder={`Question ${idx + 1}`} className="flex-1 text-sm border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none" />
                   <button onClick={() => removeQuestion(idx)} className="text-rose-500"><Trash2 className="w-4 h-4" /></button>
                 </div>
+                <div className="flex items-center gap-1 pl-3">
+                  <span className="text-[10px] font-semibold uppercase text-slate-500">Select the correct answer</span>
+                  <InfoTooltip text="Click the radio button next to the choice students should pick to get this question right. You can only mark one choice correct per question." />
+                </div>
                 {(Array.isArray(q.options) ? q.options : []).map((opt, optIdx) => {
                   const val = typeof opt === "object" && opt !== null ? (opt.text || opt.id || "") : String(opt || "");
                   return (
                     <div key={optIdx} className="flex items-center gap-2 pl-3">
                       <input
                         type="radio"
+                        name={`correct-answer-${idx}`}
+                        aria-label={`Mark choice ${optIdx + 1} as the correct answer for question ${idx + 1}`}
                         checked={q.correctOption === val && val !== ""}
                         onChange={() => updateQuestion(idx, { correctOption: val })}
                       />

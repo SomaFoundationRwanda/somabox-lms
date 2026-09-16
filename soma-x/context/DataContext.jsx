@@ -31,6 +31,48 @@ const unshiftString = (str) => {
     }).join('');
 }
 
+// ── Brightness engine ──────────────────────────────────────────────
+// Replaces the old binary dark/light toggle with a continuous 0-100
+// slider. The page canvas (background + primary text) is computed live
+// from the slider value and always meets WCAG AA (>=4.5:1) — verified
+// empirically: interpolating CANVAS_DARK -> CANVAS_LIGHT and
+// auto-picking pure black/white text for whichever gives higher
+// contrast never drops below ~4.6:1 across the full 0-100 range.
+// Softer/branded near-black or near-white text fails this guarantee
+// (dips to ~3.9:1 mid-slider), so the auto-picked text MUST stay pure
+// black/white — don't "soften" TEXT_DARK/TEXT_LIGHT below.
+const CANVAS_DARK = [0x08, 0x0B, 0x0F];
+const CANVAS_LIGHT = [0xF5, 0xF6, 0xF8];
+const TEXT_DARK = [0, 0, 0];
+const TEXT_LIGHT = [255, 255, 255];
+
+function srgbToLinear(c) {
+    const v = c / 255;
+    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+}
+function relativeLuminance([r, g, b]) {
+    return 0.2126 * srgbToLinear(r) + 0.7152 * srgbToLinear(g) + 0.0722 * srgbToLinear(b);
+}
+function contrastRatio(c1, c2) {
+    const l1 = relativeLuminance(c1), l2 = relativeLuminance(c2);
+    const lighter = Math.max(l1, l2), darker = Math.min(l1, l2);
+    return (lighter + 0.05) / (darker + 0.05);
+}
+function lerpRgb(a, b, t) {
+    return [0, 1, 2].map((i) => Math.round(a[i] + (b[i] - a[i]) * t));
+}
+function rgbCss([r, g, b]) {
+    return `rgb(${r}, ${g}, ${b})`;
+}
+
+// brightness: 0 (darkest) .. 100 (lightest)
+function computeCanvasVars(brightness) {
+    const t = Math.min(100, Math.max(0, brightness)) / 100;
+    const bg = lerpRgb(CANVAS_DARK, CANVAS_LIGHT, t);
+    const textColor = contrastRatio(bg, TEXT_LIGHT) > contrastRatio(bg, TEXT_DARK) ? TEXT_LIGHT : TEXT_DARK;
+    return { canvasBg: rgbCss(bg), canvasText: rgbCss(textColor) };
+}
+
 export function DataProvider({ children }) {
     const [summaryData, setSummaryData] = useState(null);
     const [mainCategories, setMainCategories] = useState(null);
@@ -39,6 +81,7 @@ export function DataProvider({ children }) {
     const [authenticated, setAuthenticated] = useState(false);
     const [authLoading, setAuthLoading] = useState(true);
     const [isDark, setIsDark] = useState(false);
+    const [brightness, setBrightnessState] = useState(100);
     // Guards against hydration mismatch (#418): components using isDark/
     // authenticated won't render browser-specific content until after mount.
     const [mounted, setMounted] = useState(false);
@@ -65,6 +108,28 @@ export function DataProvider({ children }) {
         loadAllData();
     }, [SERVER_URL]);
 
+    const applyBrightness = useCallback((value, { persist = true } = {}) => {
+        const clamped = Math.min(100, Math.max(0, value));
+        const dark = clamped < 50;
+        const { canvasBg, canvasText } = computeCanvasVars(clamped);
+
+        setBrightnessState(clamped);
+        setIsDark(dark);
+        document.documentElement.classList.toggle('dark', dark);
+        document.documentElement.style.setProperty('--canvas-bg', canvasBg);
+        document.documentElement.style.setProperty('--canvas-text', canvasText);
+
+        if (persist) {
+            localStorage.setItem('brightness', String(clamped));
+            localStorage.setItem('theme', dark ? 'dark' : 'light');
+        }
+    }, []);
+
+    const setBrightness = useCallback((value) => applyBrightness(value), [applyBrightness]);
+
+    // Back-compat shim for existing Light/Dark buttons: true -> darkest, false -> lightest.
+    const toggleDark = useCallback((val) => applyBrightness(val ? 0 : 100), [applyBrightness]);
+
     // Auth + theme — runs only on the client after mount
     useEffect(() => {
         const storedAl = localStorage.getItem('al');
@@ -85,20 +150,22 @@ export function DataProvider({ children }) {
 
         setAuthLoading(false);
 
-        // Apply dark mode from localStorage
-        const stored = localStorage.getItem('theme');
-        const dark = stored === 'dark';
-        setIsDark(dark);
-        document.documentElement.classList.toggle('dark', dark);
+        // Resolve initial brightness: prefer the new "brightness" key; fall
+        // back to migrating the old binary "theme" key (dark -> 0, light -> 100)
+        // so returning users keep their prior preference.
+        const storedBrightness = localStorage.getItem('brightness');
+        let initialBrightness;
+        if (storedBrightness !== null && !Number.isNaN(Number(storedBrightness))) {
+            initialBrightness = Number(storedBrightness);
+        } else {
+            const storedTheme = localStorage.getItem('theme');
+            initialBrightness = storedTheme === 'dark' ? 0 : 100;
+        }
+        applyBrightness(initialBrightness, { persist: false });
 
         // Signal that client has fully mounted — safe to use isDark / authenticated
         setMounted(true);
-    }, []);
-
-    const toggleDark = useCallback((val) => {
-        setIsDark(val);
-        document.documentElement.classList.toggle('dark', val);
-        localStorage.setItem('theme', val ? 'dark' : 'light');
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const logout = useCallback(() => {
@@ -199,6 +266,8 @@ export function DataProvider({ children }) {
         authLoading,
         isDark,
         toggleDark,
+        brightness,
+        setBrightness,
         role,
         setRole,
         shiftString,

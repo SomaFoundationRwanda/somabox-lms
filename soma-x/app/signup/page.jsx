@@ -114,10 +114,18 @@ export default function SignupPage() {
 
         <div className="relative z-10 flex flex-col items-center text-center gap-4 md:gap-8 max-w-sm w-full">
 
-          {/* Floating logo card */}
-          <div className="bg-white rounded-2xl md:rounded-3xl p-3 md:p-5 shadow-2xl shadow-black/40 ring-1 ring-white/20">
-            <Image src="/schoolLogo/somabox-logo-dark.webp" alt="SFR Logo" width={96} height={96} className="w-12 h-12 md:w-20 md:h-20 object-contain" priority />
-          </div>
+          {/* Logo — same wordmark used across the dashboards, no background card.
+              Forced to solid white via filter: the source file has dark gray text
+              meant for light backgrounds, unreadable directly on this dark teal panel. */}
+          <Image
+            src="/schoolLogo/somabox.png"
+            alt="SomaBox"
+            width={160}
+            height={55}
+            className="w-auto h-14 md:h-20 object-contain"
+            style={{ filter: "brightness(0) invert(1)" }}
+            priority
+          />
 
           {/* Headline */}
           <div className="space-y-2 md:space-y-3">

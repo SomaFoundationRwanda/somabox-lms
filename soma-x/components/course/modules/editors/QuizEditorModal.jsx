@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { X, Plus, Trash2, Check } from "lucide-react";
+import InfoTooltip from "@/components/ui/InfoTooltip";
 
 function QuestionBuilder({ question, index, onChange, onRemove }) {
   const updateField = (field, value) => onChange(index, { ...question, [field]: value });
@@ -57,12 +58,17 @@ function QuestionBuilder({ question, index, onChange, onRemove }) {
 
       {question.questionType !== "open" && (
         <div className="space-y-2">
-          <label className="text-[10px] font-bold uppercase text-slate-400">Options (click ✓ to mark correct)</label>
+          <div className="flex items-center gap-1">
+            <label className="text-[10px] font-bold uppercase text-slate-400">Options (click ✓ to mark correct)</label>
+            <InfoTooltip text="Click the circle beside a choice to mark it as the correct answer. Only one choice per question can be marked correct." />
+          </div>
           {options.map((opt, optIdx) => (
             <div key={opt.id || optIdx} className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => updateField("correctOption", opt.id || String(optIdx))}
+                aria-pressed={question.correctOption === (opt.id || String(optIdx))}
+                aria-label={`Mark option ${optIdx + 1} as the correct answer`}
                 className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
                   question.correctOption === (opt.id || String(optIdx))
                     ? "border-emerald-500 bg-emerald-500 text-white"

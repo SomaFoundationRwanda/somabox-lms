@@ -1,6 +1,7 @@
 "use client"
 import { useContext, useMemo, useState } from "react"
 import DataContext from "@/context/DataContext"
+import BrightnessSlider from "@/components/ui/BrightnessSlider"
 
 function Section({ title, children }) {
   return (
@@ -37,7 +38,7 @@ function Toggle({ enabled, onChange }) {
 }
 
 export default function TeacherSettingsPage() {
-  const { unshiftString, logout, isDark, toggleDark } = useContext(DataContext)
+  const { unshiftString, logout } = useContext(DataContext)
 
   const teacherEmail = useMemo(() => {
     if (typeof window === "undefined") return ""
@@ -73,8 +74,8 @@ export default function TeacherSettingsPage() {
       </Section>
 
       <Section title="Display">
-        <Row label="Dark Mode" description="Switch to dark theme">
-          <Toggle enabled={isDark} onChange={toggleDark} />
+        <Row label="Brightness" description="Adjust screen brightness to your preference">
+          <BrightnessSlider className="w-32" />
         </Row>
         <Row label="Language" description="Interface language">
           <select
