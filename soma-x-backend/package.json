@@ -26,6 +26,7 @@
     "firebase-admin": "^13.10.0",
     "multer": "^2.0.2",
     "pdf-to-png-converter": "^3.11.0",
+    "pg": "^8.23.0",
     "sharp": "^0.34.5",
     "typescript": "^6.0.3"
   }

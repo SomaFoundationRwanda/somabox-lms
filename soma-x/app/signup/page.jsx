@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, ChevronDown, Eye, EyeOff, Globe, Users, Wifi } from "lucide-react";
+import { ChevronDown, Eye, EyeOff, Globe } from "lucide-react";
 import { useLanguage } from '@/context/LanguageContext';
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -112,11 +112,9 @@ export default function SignupPage() {
         <div className="absolute -bottom-40 -right-24 w-[28rem] h-[28rem] bg-white/5 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute top-1/3 right-0 w-48 h-48 bg-white/[0.04] rounded-full pointer-events-none" />
 
-        <div className="relative z-10 flex flex-col items-center text-center gap-4 md:gap-8 max-w-sm w-full">
+        <div className="relative z-10 flex flex-col items-center text-center gap-4 md:gap-6 max-w-sm w-full">
 
-          {/* Logo — same wordmark used across the dashboards, no background card.
-              Forced to solid white via filter: the source file has dark gray text
-              meant for light backgrounds, unreadable directly on this dark teal panel. */}
+          {/* Logo */}
           <Image
             src="/schoolLogo/somabox.png"
             alt="SomaBox"
@@ -128,27 +126,13 @@ export default function SignupPage() {
           />
 
           {/* Headline */}
-          <div className="space-y-2 md:space-y-3">
-            <h1 className="text-white font-black text-2xl md:text-[3.25rem] leading-tight tracking-tight">
+          <div className="space-y-1.5 md:space-y-2">
+            <h1 className="text-white font-bold text-xl md:text-3xl leading-tight tracking-tight whitespace-nowrap">
               Create Account
             </h1>
-            <p className="text-white/65 text-sm md:text-lg font-medium leading-relaxed max-w-xs mx-auto">
+            <p className="text-white/70 text-sm md:text-base font-medium leading-relaxed max-w-xs mx-auto">
               Join the SomaBox learning community
             </p>
-          </div>
-
-          {/* Feature pills — hidden on mobile to save space */}
-          <div className="hidden md:flex flex-wrap justify-center gap-2">
-            {[
-              { icon: Users, label: "12,450+ Scholars" },
-              { icon: Wifi, label: "Offline Ready" },
-              { icon: BookOpen, label: "5 Languages" },
-            ].map(({ icon: Icon, label }) => (
-              <div key={label} className="flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-4 py-2 backdrop-blur-sm">
-                <Icon className="w-3.5 h-3.5 text-white/80 shrink-0" />
-                <span className="text-white/90 text-xs font-semibold">{label}</span>
-              </div>
-            ))}
           </div>
         </div>
       </div>
@@ -191,8 +175,8 @@ export default function SignupPage() {
         <form onSubmit={handleSubmit} className="w-full max-w-[400px] space-y-4">
 
           {/* Form header */}
-          <div className="mb-7">
-            <h2 className="text-[28px] font-black text-slate-900 tracking-tight leading-tight">
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-slate-900 tracking-tight leading-tight">
               Get Started
             </h2>
             <p className="text-slate-600 text-[14px] font-medium mt-1">

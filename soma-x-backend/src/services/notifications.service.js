@@ -6,7 +6,7 @@ const router = Router();
 /**
  * Helper utility to create a system notification
  */
-export function createNotification({ userEmail, title, message, type = 'system', link = null }) {
+export async function createNotification({ userEmail, title, message, type = 'system', link = null }) {
     if (!userEmail) return null;
     const normalizedEmail = userEmail.trim().toLowerCase();
     try {
@@ -14,7 +14,7 @@ export function createNotification({ userEmail, title, message, type = 'system',
             INSERT INTO user_notifications (user_email, title, message, type, link)
             VALUES (?, ?, ?, ?, ?)
         `);
-        const info = stmt.run(normalizedEmail, title, message, type, link);
+        const info = await stmt.run(normalizedEmail, title, message, type, link);
         return info.lastInsertRowid;
     } catch (err) {
         console.error("Failed to create notification:", err);
@@ -26,7 +26,7 @@ export function createNotification({ userEmail, title, message, type = 'system',
  * GET /notifications?userEmail=...
  * Returns list of user notifications, unread count, and auto-injects profile reminder if incomplete.
  */
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
     const userEmail = req.query.userEmail?.trim()?.toLowerCase();
     if (!userEmail) {
         return res.status(400).json({ message: "userEmail query parameter is required" });
@@ -34,9 +34,9 @@ router.get('/', (req, res) => {
 
     try {
         // 1. Check if user's profile is incomplete in serverDb
-        const user = serverDb.prepare(`
+        const user = await serverDb.prepare(`
             SELECT gender, region_province, region_district, is_rural
-            FROM users WHERE email = ?
+            FROM users WHERE LOWER(email) = LOWER(?)
         `).get(userEmail);
 
         let isProfileIncomplete = false;
@@ -49,13 +49,13 @@ router.get('/', (req, res) => {
                 isProfileIncomplete = true;
 
                 // Check if an unread profile_reminder already exists
-                const existingReminder = localDb.prepare(`
+                const existingReminder = await localDb.prepare(`
                     SELECT id FROM user_notifications
-                    WHERE user_email = ? AND type = 'profile_reminder' AND is_read = 0
+                    WHERE LOWER(user_email) = LOWER(?) AND type = 'profile_reminder' AND is_read = 0
                 `).get(userEmail);
 
                 if (!existingReminder) {
-                    createNotification({
+                    await createNotification({
                         userEmail,
                         title: "Complete Your Profile",
                         message: "Please fill in your gender, province, and district information to complete your SomaBox profile.",
@@ -67,15 +67,15 @@ router.get('/', (req, res) => {
         }
 
         // 2. Fetch all notifications for user
-        const notifications = localDb.prepare(`
+        const notifications = await localDb.prepare(`
             SELECT id, user_email, title, message, type, link, is_read, created_at
             FROM user_notifications
-            WHERE user_email = ?
+            WHERE LOWER(user_email) = LOWER(?)
             ORDER BY created_at DESC
             LIMIT 50
         `).all(userEmail);
 
-        const unreadCount = notifications.filter(n => n.is_read === 0).length;
+        const unreadCount = notifications.filter(n => Number(n.is_read) === 0).length;
 
         res.json({
             notifications,
@@ -92,13 +92,13 @@ router.get('/', (req, res) => {
  * POST /notifications
  * Create a new notification manually
  */
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
     const { userEmail, title, message, type, link } = req.body;
     if (!userEmail || !title || !message) {
         return res.status(400).json({ message: "userEmail, title, and message are required" });
     }
 
-    const id = createNotification({ userEmail, title, message, type, link });
+    const id = await createNotification({ userEmail, title, message, type, link });
     if (id) {
         res.status(201).json({ id, message: "Notification created successfully" });
     } else {
@@ -110,10 +110,10 @@ router.post('/', (req, res) => {
  * PATCH /notifications/:id/read
  * Mark single notification as read
  */
-router.patch('/:id/read', (req, res) => {
+router.patch('/:id/read', async (req, res) => {
     const { id } = req.params;
     try {
-        localDb.prepare(`UPDATE user_notifications SET is_read = 1 WHERE id = ?`).run(id);
+        await localDb.prepare(`UPDATE user_notifications SET is_read = 1 WHERE id = ?`).run(id);
         res.json({ message: "Notification marked as read" });
     } catch (err) {
         console.error("PATCH /notifications/:id/read error:", err);
@@ -125,13 +125,13 @@ router.patch('/:id/read', (req, res) => {
  * POST /notifications/read-all
  * Mark all notifications for a user as read
  */
-router.post('/read-all', (req, res) => {
+router.post('/read-all', async (req, res) => {
     const { userEmail } = req.body;
     if (!userEmail) return res.status(400).json({ message: "userEmail is required" });
 
     try {
-        localDb.prepare(`
-            UPDATE user_notifications SET is_read = 1 WHERE user_email = ?
+        await localDb.prepare(`
+            UPDATE user_notifications SET is_read = 1 WHERE LOWER(user_email) = LOWER(?)
         `).run(userEmail.trim().toLowerCase());
         res.json({ message: "All notifications marked as read" });
     } catch (err) {
@@ -144,7 +144,7 @@ router.post('/read-all', (req, res) => {
  * POST /notifications/send
  * Allows Admin users to broadcast notifications to students, teachers, admins, or specific users
  */
-router.post('/send', (req, res) => {
+router.post('/send', async (req, res) => {
     try {
         const { senderEmail, targetRole, targetEmail, title, message, type = 'announcement', link = null } = req.body;
         
@@ -153,7 +153,7 @@ router.post('/send', (req, res) => {
         }
 
         // Verify sender is an Admin
-        const sender = serverDb.prepare(`
+        const sender = await serverDb.prepare(`
             SELECT id, role FROM users WHERE LOWER(email) = LOWER(?)
         `).get(senderEmail.trim().toLowerCase());
 
@@ -169,11 +169,11 @@ router.post('/send', (req, res) => {
             }
             recipientEmails = [targetEmail.trim().toLowerCase()];
         } else if (targetRole === 'all' || !targetRole) {
-            const users = serverDb.prepare(`SELECT email FROM users`).all();
+            const users = await serverDb.prepare(`SELECT email FROM users`).all();
             recipientEmails = users.map(u => u.email.toLowerCase());
         } else {
             // Target specific role: scholar, teacher, admin
-            const users = serverDb.prepare(`
+            const users = await serverDb.prepare(`
                 SELECT email FROM users WHERE LOWER(role) = LOWER(?)
             `).all(targetRole.trim().toLowerCase());
             recipientEmails = users.map(u => u.email.toLowerCase());
@@ -189,14 +189,10 @@ router.post('/send', (req, res) => {
             VALUES (?, ?, ?, ?, ?)
         `);
 
-        const insertMany = localDb.transaction((emails) => {
-            for (const email of emails) {
-                insertStmt.run(email, title.trim(), message.trim(), type, link ? link.trim() : null);
-                sentCount++;
-            }
-        });
-
-        insertMany(recipientEmails);
+        for (const email of recipientEmails) {
+            await insertStmt.run(email, title.trim(), message.trim(), type, link ? link.trim() : null);
+            sentCount++;
+        }
 
         return res.status(201).json({
             count: sentCount,

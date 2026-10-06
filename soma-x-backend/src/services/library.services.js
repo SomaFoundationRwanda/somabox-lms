@@ -22,7 +22,6 @@ const storage = multer.diskStorage({
         cb(null, LIBRARY_DIR);
     },
     filename: function (req, file, cb) {
-        // We will rename it after we know the next ID
         cb(null, file.originalname);
     }
 });
@@ -126,10 +125,11 @@ async function downloadBook(book) {
 
     // Update database
     const insertBook = serverDb.prepare(`
-        INSERT OR REPLACE INTO books (id, name, category_ids)
+        INSERT INTO books (id, name, category_ids)
         VALUES (?, ?, ?)
+        ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, category_ids = EXCLUDED.category_ids
     `);
-    insertBook.run(book.id, book.book_name, book.categories);
+    await insertBook.run(book.id, book.book_name, book.categories);
 
     return { id: book.id, status: 'downloaded' };
 }
@@ -160,7 +160,6 @@ router.post('/download', async (req, res) => {
     downloading = true;
     downloadStatus = "downloading";
 
-    // Start background download
     (async () => {
         try {
             for (const book of books) {
@@ -186,27 +185,25 @@ router.post('/upload', upload.single('file'), async (req, res) => {
         const ext = path.extname(originalName).toLowerCase();
         const bookName = req.body.bookName || originalName.replace(/\.(epub|pdf)$/i, '').replace(/[-_]/g, ' ');
 
-        // Get the next available ID by querying max id
-        const maxRow = serverDb.prepare('SELECT MAX(id) as maxId FROM books').get();
-        // Assume uploaded books will be assigned IDs starting from 1000000 to avoid collision with cloud
-        const nextId = (maxRow.maxId && maxRow.maxId >= 1000000) ? maxRow.maxId + 1 : 1000000;
+        const maxRow = await serverDb.prepare('SELECT MAX(id) as "maxId" FROM books').get();
+        const maxIdNum = Number(maxRow?.maxId || 0);
+        const nextId = (maxIdNum && maxIdNum >= 1000000) ? maxIdNum + 1 : 1000000;
 
         const newPath = path.join(LIBRARY_DIR, `${nextId}${ext}`);
         fs.renameSync(req.file.path, newPath);
 
-        // Generate cover
         if (ext === '.pdf') {
             await generatePDFCover(newPath, nextId);
         } else {
             await generateBookCover(newPath, nextId);
         }
 
-        // Update database
         const insertBook = serverDb.prepare(`
-            INSERT OR REPLACE INTO books (id, name, category_ids)
+            INSERT INTO books (id, name, category_ids)
             VALUES (?, ?, ?)
+            ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, category_ids = EXCLUDED.category_ids
         `);
-        insertBook.run(nextId, bookName, "Custom Upload");
+        await insertBook.run(nextId, bookName, "Custom Upload");
 
         res.status(201).json({ id: nextId, name: bookName });
     } catch (err) {
@@ -219,11 +216,11 @@ router.get('/download-status', (req, res) => {
     res.json({ status: downloadStatus });
 });
 
-router.get('/books', (req, res) => {
+router.get('/books', async (req, res) => {
     try {
-        const books = serverDb.prepare('SELECT * FROM books').all();
+        const books = await serverDb.prepare('SELECT * FROM books').all();
         const booksWithExt = books.map(book => {
-            let ext = 'epub'; // default
+            let ext = 'epub';
             if (fs.existsSync(path.join(LIBRARY_DIR, `${book.id}.pdf`))) ext = 'pdf';
             else if (fs.existsSync(path.join(LIBRARY_DIR, `${book.id}.epub`))) ext = 'epub';
             return { ...book, ext };
@@ -248,15 +245,17 @@ router.get('/file/:id', (req, res) => {
     }
 });
 
-router.get('/categories', (req, res) => {
+router.get('/categories', async (req, res) => {
     try {
-        const books = serverDb.prepare('SELECT category_ids FROM books').all();
+        const books = await serverDb.prepare('SELECT category_ids FROM books').all();
         const categories = new Set();
         books.forEach(book => {
-            book.category_ids.split(',').forEach(cat => {
-                const trimmed = cat.trim();
-                if (trimmed) categories.add(trimmed.toLowerCase());
-            });
+            if (book.category_ids) {
+                book.category_ids.split(',').forEach(cat => {
+                    const trimmed = cat.trim();
+                    if (trimmed) categories.add(trimmed.toLowerCase());
+                });
+            }
         });
         res.json(Array.from(categories));
     } catch (err) {
@@ -265,24 +264,21 @@ router.get('/categories', (req, res) => {
     }
 });
 
-router.delete('/book/:id', (req, res) => {
+router.delete('/book/:id', async (req, res) => {
     const id = req.params.id;
     const epubPath = path.join(LIBRARY_DIR, `${id}.epub`);
     const pdfPath = path.join(LIBRARY_DIR, `${id}.pdf`);
     const coverPath = path.join(COVERS_DIR, `${id}.avif`);
     
     try {
-        // Delete file if exists
         if (fs.existsSync(epubPath)) fs.unlinkSync(epubPath);
         if (fs.existsSync(pdfPath)) fs.unlinkSync(pdfPath);
 
-        // Delete cover if exists
         if (fs.existsSync(coverPath)) {
             fs.unlinkSync(coverPath);
         }
         
-        // Delete from database
-        serverDb.prepare('DELETE FROM books WHERE id = ?').run(id);
+        await serverDb.prepare('DELETE FROM books WHERE id = ?').run(id);
         
         res.json({ message: 'Book deleted successfully' });
     } catch (err) {

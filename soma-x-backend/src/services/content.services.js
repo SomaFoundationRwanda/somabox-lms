@@ -40,16 +40,16 @@ router.get("/levels/summary", (req, res) => {
     res.json(summaryDataCache);
 });
 
-router.get("/custom-content/summary", (req, res) => {
+router.get("/custom-content/summary", async (req, res) => {
     try {
         const DEFAULT_THUMBNAIL = config.defaults.thumbnail;
         
-        const allCategories = localDb.prepare(`
+        const allCategories = await localDb.prepare(`
             SELECT id, title, subtitle, path_key, parent_id, is_disabled
             FROM categories
             WHERE is_disabled = 0
         `).all();
-        const allContent = localDb.prepare(`
+        const allContent = await localDb.prepare(`
             SELECT id, category_id, title, subtitle, type, url, path_key, size, duration, pages
             FROM content_items
             WHERE is_disabled = 0
@@ -75,7 +75,7 @@ router.get("/custom-content/summary", (req, res) => {
         function buildCategoryJSON(catId) {
             const cat = categoryMap[catId];
             if (!cat) return null;
-            const children = allCategories.filter(c => c.parent_id === catId && c.is_disabled === 0);
+            const children = allCategories.filter(c => c.parent_id === catId && Number(c.is_disabled) === 0);
             const contentItems = contentMap[catId] || [];
             
             return {
@@ -105,17 +105,17 @@ router.get("/custom-content/summary", (req, res) => {
     }
 });
 
-router.get("/content/:slug", (req, res) => {
+router.get("/content/:slug", async (req, res) => {
     const slug = req.params.slug;
 
     // 1. Try Custom Content (localDb)
     if (slug.startsWith(DEFAULT_ROOT + '/')) {
-        let fileRow = localDb.prepare(`
+        let fileRow = await localDb.prepare(`
             SELECT path_key, url FROM content_items WHERE path_key = ?
         `).get(slug);
         
         if (!fileRow) {
-            fileRow = localDb.prepare(`
+            fileRow = await localDb.prepare(`
                 SELECT path_key, url FROM content_items WHERE path_key = ? OR url = ?
             `).get(slug, `/${slug}`);
         }
@@ -128,7 +128,7 @@ router.get("/content/:slug", (req, res) => {
     }
     
     // 2. Try Managed Content (serverDb)
-    const fileRow = serverDb.prepare(`
+    const fileRow = await serverDb.prepare(`
         SELECT path_key FROM content_items WHERE path_key = ?
     `).get(slug);
 
@@ -142,51 +142,52 @@ router.get("/content/:slug", (req, res) => {
 
 // --- Manager APIs (Custom Content) ---
 
-function getCategoryByPath(pathKey) {
-    return localDb.prepare(`
+async function getCategoryByPath(pathKey) {
+    return await localDb.prepare(`
         SELECT id, title, subtitle, path_key, parent_id, is_disabled
         FROM categories WHERE path_key = ?
     `).get(pathKey);
 }
 
-function listChildren(categoryId) {
-    const categories = localDb.prepare(`
+async function listChildren(categoryId) {
+    const categories = await localDb.prepare(`
         SELECT id, title, subtitle, path_key, is_disabled
         FROM categories WHERE parent_id = ? ORDER BY title ASC
     `).all(categoryId);
-    const items = localDb.prepare(`
+    const items = await localDb.prepare(`
         SELECT id, title, type, size, path_key, is_disabled
         FROM content_items WHERE category_id = ? ORDER BY title ASC
     `).all(categoryId);
     return { categories, items };
 }
 
-function breadcrumbsFor(pathKey) {
+async function breadcrumbsFor(pathKey) {
     const parts = pathKey.split("/").filter(Boolean);
     const crumbs = [];
     for (let i = 0; i < parts.length; i++) {
         const sub = parts.slice(0, i + 1).join("/");
-        const row = getCategoryByPath(sub);
+        const row = await getCategoryByPath(sub);
         if (row) crumbs.push({ name: row.title, path: row.path_key });
     }
     return crumbs;
 }
 
-router.get("/manager/list", (req, res) => {
+router.get("/manager/list", async (req, res) => {
     try {
         const pathParam = (req.query.path || DEFAULT_ROOT).toString().replace(/^\/+|\/+$/g, "");
         const fullPath = pathParam.startsWith(DEFAULT_ROOT) ? pathParam : path.posix.join(DEFAULT_ROOT, pathParam);
-        const cat = getCategoryByPath(fullPath);
+        const cat = await getCategoryByPath(fullPath);
         
         if (!cat || !cat.path_key.startsWith(DEFAULT_ROOT)) {
             return res.status(cat ? 400 : 404).json({ error: cat ? "Out of allowed folders" : "Category not found" });
         }
         
-        const data = listChildren(cat.id);
+        const data = await listChildren(cat.id);
+        const crumbs = await breadcrumbsFor(cat.path_key);
         res.json({
             path: cat.path_key,
             title: cat.title,
-            breadcrumbs: breadcrumbsFor(cat.path_key),
+            breadcrumbs: crumbs,
             categories: data.categories,
             items: data.items
         });
@@ -196,7 +197,7 @@ router.get("/manager/list", (req, res) => {
     }
 });
 
-router.post("/manager/create-folder", express.json(), (req, res) => {
+router.post("/manager/create-folder", express.json(), async (req, res) => {
     try {
         const { name, path: parentPath } = req.body || {};
         const safeParent = (parentPath || DEFAULT_ROOT).replace(/^\/+|\/+$/g, "");
@@ -204,15 +205,16 @@ router.post("/manager/create-folder", express.json(), (req, res) => {
         
         if (!name) return res.status(400).json({ error: "Name is required" });
         
-        const parent = getCategoryByPath(fullParentPath);
+        const parent = await getCategoryByPath(fullParentPath);
         if (!parent || !parent.path_key.startsWith(DEFAULT_ROOT)) return res.status(404).json({ error: "Invalid parent" });
         
         const newPathKey = path.posix.join(parent.path_key, name.trim().toLowerCase().replace(/\s+/g, "-"));
-        if (localDb.prepare(`SELECT 1 FROM categories WHERE path_key = ?`).get(newPathKey)) {
+        const exists = await localDb.prepare(`SELECT 1 FROM categories WHERE path_key = ?`).get(newPathKey);
+        if (exists) {
             return res.status(409).json({ error: "Already exists" });
         }
         
-        const info = localDb.prepare(`
+        const info = await localDb.prepare(`
             INSERT INTO categories (title, subtitle, parent_id, path_key, is_main, is_disabled)
             VALUES (?, ?, ?, ?, 0, 0)
         `).run(name, "", parent.id, newPathKey);
@@ -225,12 +227,12 @@ router.post("/manager/create-folder", express.json(), (req, res) => {
     }
 });
 
-router.post("/manager/upload", upload.single("file"), (req, res) => {
+router.post("/manager/upload", upload.single("file"), async (req, res) => {
     try {
         const { path: relPath, type } = req.body;
         const safePath = (relPath || DEFAULT_ROOT).replace(/^\/+|\/+$/g, "");
         const fullPath = safePath.startsWith(DEFAULT_ROOT) ? safePath : path.posix.join(DEFAULT_ROOT, safePath);
-        const parent = getCategoryByPath(fullPath);
+        const parent = await getCategoryByPath(fullPath);
         
         if (!parent || !parent.path_key.startsWith(DEFAULT_ROOT)) return res.status(404).json({ error: "Target not found" });
         if (!req.file) return res.status(400).json({ error: "No file" });
@@ -239,19 +241,19 @@ router.post("/manager/upload", upload.single("file"), (req, res) => {
         const pathKey = path.posix.join(parent.path_key, filename);
         const physicalPath = path.join(CONTENT_DIR, pathKey);
         
-        // Multer might have saved it elsewhere if config was different, but here it's consistent
         if (req.file.path !== physicalPath) {
             fs.mkdirSync(path.dirname(physicalPath), { recursive: true });
             fs.renameSync(req.file.path, physicalPath);
         }
         
-        if (localDb.prepare(`SELECT 1 FROM content_items WHERE path_key = ?`).get(pathKey)) {
+        const exists = await localDb.prepare(`SELECT 1 FROM content_items WHERE path_key = ?`).get(pathKey);
+        if (exists) {
             if (fs.existsSync(physicalPath)) fs.unlinkSync(physicalPath);
             return res.status(409).json({ error: "File exists" });
         }
         
         const stat = fs.statSync(physicalPath);
-        const info = localDb.prepare(`
+        const info = await localDb.prepare(`
             INSERT INTO content_items (category_id, title, subtitle, type, url, path_key, size, duration, pages, is_disabled)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
         `).run(parent.id, filename.replace(/-/g, " "), "", (type || "book").toLowerCase(), `/${pathKey}`, pathKey, stat.size, null, null);
@@ -263,22 +265,22 @@ router.post("/manager/upload", upload.single("file"), (req, res) => {
     }
 });
 
-router.patch("/manager/toggle", express.json(), (req, res) => {
+router.patch("/manager/toggle", express.json(), async (req, res) => {
     try {
         const { target, path_key, id, is_disabled } = req.body || {};
         const flag = is_disabled ? 1 : 0;
         
         if (target === "category") {
             const fullPath = (path_key || "").startsWith(DEFAULT_ROOT) ? path_key : path.posix.join(DEFAULT_ROOT, path_key || "");
-            const cat = getCategoryByPath(fullPath);
+            const cat = await getCategoryByPath(fullPath);
             if (!cat || !cat.path_key.startsWith(DEFAULT_ROOT)) return res.status(404).json({ error: "Not found" });
-            localDb.prepare(`UPDATE categories SET is_disabled = ? WHERE id = ?`).run(flag, cat.id);
+            await localDb.prepare(`UPDATE categories SET is_disabled = ? WHERE id = ?`).run(flag, cat.id);
         } else if (target === "content") {
             const row = id 
-                ? localDb.prepare(`SELECT id FROM content_items WHERE id = ?`).get(id)
-                : localDb.prepare(`SELECT id FROM content_items WHERE path_key = ?`).get(path_key);
+                ? await localDb.prepare(`SELECT id FROM content_items WHERE id = ?`).get(id)
+                : await localDb.prepare(`SELECT id FROM content_items WHERE path_key = ?`).get(path_key);
             if (!row) return res.status(404).json({ error: "Not found" });
-            localDb.prepare(`UPDATE content_items SET is_disabled = ? WHERE id = ?`).run(flag, row.id);
+            await localDb.prepare(`UPDATE content_items SET is_disabled = ? WHERE id = ?`).run(flag, row.id);
         } else {
             return res.status(400).json({ error: "Invalid target" });
         }

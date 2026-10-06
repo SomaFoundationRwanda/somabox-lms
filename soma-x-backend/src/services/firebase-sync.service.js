@@ -28,7 +28,7 @@ export async function runFirebaseSync() {
         if (!db) return;
 
         console.log('--- Syncing Staff (users) ---');
-        const users = serverDb.prepare('SELECT id, email, role, created_at FROM users').all();
+        const users = await serverDb.prepare('SELECT id, email, role, created_at FROM users').all();
         for (const user of users) {
             const docId = `staff_${user.id}_${user.email.replace(/[^a-zA-Z0-9]/g, '_')}`;
             await db.collection(process.env.FIRESTORE_STAFF_COLLECTION || 'staff').doc(docId).set({
@@ -40,21 +40,26 @@ export async function runFirebaseSync() {
             }, { merge: true });
         }
 
-        console.log('--- Syncing Students (portal_users) ---');
-        const students = serverDb.prepare('SELECT id, full_name, contact, school_name, login_code, avatar_url, created_at FROM portal_users').all();
-        for (const student of students) {
-            const docId = `student_${student.login_code}`;
-            await db.collection(process.env.FIRESTORE_STUDENTS_COLLECTION || 'students').doc(docId).set({
-                localId: student.id,
-                fullName: student.full_name,
-                contact: student.contact,
-                schoolName: student.school_name,
-                loginCode: student.login_code,
-                avatarUrl: student.avatar_url,
-                createdAt: student.created_at,
-                syncedAt: admin.firestore.FieldValue.serverTimestamp()
-            }, { merge: true });
+        try {
+            console.log('--- Syncing Students (portal_users) ---');
+            const students = await serverDb.prepare('SELECT id, full_name, contact, school_name, login_code, avatar_url, created_at FROM portal_users').all();
+            for (const student of students) {
+                const docId = `student_${student.login_code}`;
+                await db.collection(process.env.FIRESTORE_STUDENTS_COLLECTION || 'students').doc(docId).set({
+                    localId: student.id,
+                    fullName: student.full_name,
+                    contact: student.contact,
+                    schoolName: student.school_name,
+                    loginCode: student.login_code,
+                    avatarUrl: student.avatar_url,
+                    createdAt: student.created_at,
+                    syncedAt: admin.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+            }
+        } catch (err) {
+            // ignore if portal_users table doesn't exist
         }
+
         console.log('Firebase Sync process completed successfully.');
     } catch (error) {
         console.error('Firebase Sync failed:', error.message);

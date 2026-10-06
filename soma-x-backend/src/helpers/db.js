@@ -5,43 +5,36 @@ import { config } from "../config/index.js";
 
 const CONTENT_DIR = config.paths.rwandanEducation;
 
-// --- category queries ---
-let _insertCategory, _getCategory, _insertContent, _getContent;
-
 function getStatements() {
-  if (!_insertCategory) {
-    _insertCategory = serverDb.prepare(`
+  return {
+    insertCategory: serverDb.prepare(`
       INSERT INTO categories (title, subtitle, parent_id, path_key, is_main, is_disabled)
       VALUES (?, ?, ?, ?, ?, ?)
-    `);
-    _getCategory = serverDb.prepare(`SELECT id FROM categories WHERE path_key = ?`);
-    _insertContent = serverDb.prepare(`
+    `),
+    getCategory: serverDb.prepare(`SELECT id FROM categories WHERE path_key = ?`),
+    insertContent: serverDb.prepare(`
       INSERT INTO content_items
       (category_id, title, subtitle, type, url, path_key, size, duration, pages, is_disabled)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-    _getContent = serverDb.prepare(`SELECT id FROM content_items WHERE path_key = ?`);
-  }
-  return {
-    insertCategory: _insertCategory,
-    getCategory: _getCategory,
-    insertContent: _insertContent,
-    getContent: _getContent,
+    `),
+    getContent: serverDb.prepare(`SELECT id FROM content_items WHERE path_key = ?`),
   };
 }
 
-function ensureCategory(name, parentId = null, relativePath = "", isMain = false, isDisabled = false) {
+async function ensureCategory(name, parentId = null, relativePath = "", isMain = false, isDisabled = false) {
   const { getCategory, insertCategory } = getStatements();
-  const row = getCategory.get(relativePath);
+  const row = await getCategory.get(relativePath);
   if (row) return row.id;
-  return insertCategory.run(
+  const res = await insertCategory.run(
     name.replace(/-/g, " "), "", parentId, relativePath, isMain ? 1 : 0, isDisabled ? 1 : 0
-  ).lastInsertRowid;
+  );
+  return res.lastInsertRowid;
 }
 
-function insertFileContent(file, categoryId, type, relativePath, filePath) {
+async function insertFileContent(file, categoryId, type, relativePath, filePath) {
   const { getContent, insertContent } = getStatements();
-  if (getContent.get(relativePath)) return;
+  const existing = await getContent.get(relativePath);
+  if (existing) return;
   const stat = fs.statSync(filePath);
   
   const ext = path.extname(file).toLowerCase();
@@ -50,13 +43,14 @@ function insertFileContent(file, categoryId, type, relativePath, filePath) {
   else if (['.pdf', '.epub'].includes(ext)) actualType = 'book';
   else if (['.mp3', '.wav', '.ogg'].includes(ext)) actualType = 'audio';
 
-  return insertContent.run(
+  const res = await insertContent.run(
     categoryId, file.replace(/-/g, " ").replace(/^\w/, c => c.toUpperCase()),
     `Description for ${file}`, actualType, `${relativePath}`, relativePath, stat.size, null, null, 0
-  ).lastInsertRowid;
+  );
+  return res.lastInsertRowid;
 }
 
-function scanFolder(dir, parentId = null, base = "") {
+async function scanFolder(dir, parentId = null, base = "") {
   if (!fs.existsSync(dir)) return;
   const entries = fs.readdirSync(dir, { withFileTypes: true });
 
@@ -67,22 +61,21 @@ function scanFolder(dir, parentId = null, base = "") {
     if (entry.isDirectory()) {
       const containsFiles = fs.readdirSync(fullPath).some(f => fs.statSync(path.join(fullPath, f)).isFile());
 
-      const catId = ensureCategory(entry.name, parentId, relativePath);
+      const catId = await ensureCategory(entry.name, parentId, relativePath);
       if (containsFiles) {
         const type = entry.name.toLowerCase();
-        fs.readdirSync(fullPath, { withFileTypes: true })
-          .filter(f => f.isFile())
-          .forEach(f => insertFileContent(f.name, catId, type, path.join('rwandan-education', relativePath, f.name), path.join(fullPath, f.name)));
+        const files = fs.readdirSync(fullPath, { withFileTypes: true }).filter(f => f.isFile());
+        for (const f of files) {
+          await insertFileContent(f.name, catId, type, path.join('rwandan-education', relativePath, f.name), path.join(fullPath, f.name));
+        }
       } else {
-        scanFolder(fullPath, catId, relativePath);
+        await scanFolder(fullPath, catId, relativePath);
       }
     }
   }
 }
 
-function insertMainCategories() {
-    // Current logic uses hardcoded main categories. Keeping it as is but using config if available.
-    // For now, keeping the logic from original src/helpers/db.js to ensure 0 functional change.
+async function insertMainCategories() {
     const mainCategories = [
         {
           title: "Rwandan education",
@@ -111,29 +104,29 @@ function insertMainCategories() {
         .map(entry => entry.name) : [];
 
       for (const mainCat of mainCategories) {
-        const mainCatId = ensureCategory(mainCat.title, null, mainCat.slug, true, false);
+        const mainCatId = await ensureCategory(mainCat.title, null, mainCat.slug, true, false);
         for (const item of mainCat.items) {
           const isDisabled = mainCat.slug === "rwandan-education" && !topLevelFolders.includes(item.slug);
-          ensureCategory(item.title, mainCatId, `${mainCat.slug}/${item.slug}`, false, isDisabled);
+          await ensureCategory(item.title, mainCatId, `${mainCat.slug}/${item.slug}`, false, isDisabled);
         }
       }
 }
 
-export function deleteContentByPath(pathKey) {
+export async function deleteContentByPath(pathKey) {
   const deleteContent = serverDb.prepare(`
     DELETE FROM content_items 
     WHERE path_key = ? OR path_key LIKE ?
   `);
-  deleteContent.run(pathKey, `${pathKey}/%`);
+  await deleteContent.run(pathKey, `${pathKey}/%`);
 
   const deleteCategories = serverDb.prepare(`
     DELETE FROM categories 
     WHERE path_key = ? OR path_key LIKE ?
   `);
-  deleteCategories.run(pathKey, `${pathKey}/%`);
+  await deleteCategories.run(pathKey, `${pathKey}/%`);
 }
 
 export async function loadContentIntoDB() {
-  scanFolder(CONTENT_DIR);
-  insertMainCategories();
+  await scanFolder(CONTENT_DIR);
+  await insertMainCategories();
 }

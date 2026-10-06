@@ -4,17 +4,14 @@ import { localDb } from '../helpers/db-manager.js';
 const router = express.Router();
 
 // 2. Spaced Practice: Get pending spaced reviews (3, 7, 30 days)
-router.get('/spaced/pending', (req, res) => {
+router.get('/spaced/pending', async (req, res) => {
     try {
         const scholarEmail = String(req.query.scholarEmail || '').trim().toLowerCase();
         if (!scholarEmail) {
             return res.status(400).json({ message: 'scholarEmail is required' });
         }
 
-        // Reviews are scheduled for real when a scholar submits a quiz or assignment
-        // (see scheduleSpacedReview in courses.services.js) — nothing to fabricate
-        // here if they have none pending yet.
-        const reviews = localDb.prepare(`
+        const reviews = await localDb.prepare(`
             SELECT id, topic_id, topic_title, interval_days, due_at, status, created_at
             FROM sol_spaced_reviews
             WHERE LOWER(scholar_email) = LOWER(?) AND status = 'pending'
@@ -29,14 +26,14 @@ router.get('/spaced/pending', (req, res) => {
 });
 
 // Complete Spaced Practice Review
-router.post('/spaced/complete', (req, res) => {
+router.post('/spaced/complete', async (req, res) => {
     try {
         const { reviewId, scholarEmail } = req.body;
         if (!reviewId || !scholarEmail) {
             return res.status(400).json({ message: 'reviewId and scholarEmail are required' });
         }
 
-        localDb.prepare(`
+        await localDb.prepare(`
             UPDATE sol_spaced_reviews
             SET status = 'completed', completed_at = CURRENT_TIMESTAMP
             WHERE id = ? AND LOWER(scholar_email) = LOWER(?)
@@ -49,16 +46,15 @@ router.post('/spaced/complete', (req, res) => {
     }
 });
 
-// 4. Interleaving: Mix questions from quizzes the scholar has already submitted,
-// across different courses, instead of a fixed sample set — real content or none at all.
-router.get('/interleaving/session', (req, res) => {
+// 4. Interleaving
+router.get('/interleaving/session', async (req, res) => {
     try {
         const scholarEmail = String(req.query.scholarEmail || '').trim().toLowerCase();
         if (!scholarEmail) {
             return res.status(400).json({ message: 'scholarEmail is required' });
         }
 
-        const rows = localDb.prepare(`
+        const rows = await localDb.prepare(`
             SELECT qq.id AS question_id, qq.prompt, qq.question_type, qq.options,
                    q.id AS quiz_id, q.title AS quiz_title, c.id AS course_id, c.title AS course_title
             FROM quiz_questions qq
@@ -67,30 +63,31 @@ router.get('/interleaving/session', (req, res) => {
             JOIN quiz_submissions qs ON qs.quiz_id = q.id AND LOWER(qs.scholar_email) = LOWER(?)
         `).all(scholarEmail);
 
-        const pool = rows
-            .filter((row) => String(row.prompt || '').trim())
-            .map((row) => {
-                let previousAnswer = null;
-                try {
-                    const submission = localDb.prepare(`
-                        SELECT answers FROM quiz_submissions WHERE quiz_id = ? AND LOWER(scholar_email) = LOWER(?)
-                    `).get(row.quiz_id, scholarEmail);
-                    const answers = JSON.parse(submission?.answers || '{}');
-                    previousAnswer = answers[String(row.question_id)] || null;
-                } catch {
-                    previousAnswer = null;
-                }
-                return {
-                    id: `${row.quiz_id}-${row.question_id}`,
-                    classId: row.course_id,
-                    subject: row.course_title,
-                    topic: row.quiz_title,
-                    question: row.prompt,
-                    previousAnswer,
-                };
-            });
+        const pool = await Promise.all(
+            rows
+                .filter((row) => String(row.prompt || '').trim())
+                .map(async (row) => {
+                    let previousAnswer = null;
+                    try {
+                        const submission = await localDb.prepare(`
+                            SELECT answers FROM quiz_submissions WHERE quiz_id = ? AND LOWER(scholar_email) = LOWER(?)
+                        `).get(row.quiz_id, scholarEmail);
+                        const answers = JSON.parse(submission?.answers || '{}');
+                        previousAnswer = answers[String(row.question_id)] || null;
+                    } catch {
+                        previousAnswer = null;
+                    }
+                    return {
+                        id: `${row.quiz_id}-${row.question_id}`,
+                        classId: row.course_id,
+                        subject: row.course_title,
+                        topic: row.quiz_title,
+                        question: row.prompt,
+                        previousAnswer,
+                    };
+                })
+        );
 
-        // Interleaving means mixing topics, not repeating one — round-robin across courses.
         const byCourse = new Map();
         for (const item of pool) {
             if (!byCourse.has(item.classId)) byCourse.set(item.classId, []);
@@ -134,12 +131,12 @@ router.get('/interleaving/session', (req, res) => {
 });
 
 // 5. Baseline Diagnostic Quiz endpoints
-router.get('/diagnostic/status', (req, res) => {
+router.get('/diagnostic/status', async (req, res) => {
     try {
         const scholarEmail = String(req.query.scholarEmail || '').trim().toLowerCase();
         if (!scholarEmail) return res.status(400).json({ message: 'scholarEmail is required' });
 
-        const result = localDb.prepare(`
+        const result = await localDb.prepare(`
             SELECT * FROM diagnostic_results WHERE LOWER(scholar_email) = LOWER(?)
         `).get(scholarEmail);
 
@@ -153,7 +150,7 @@ router.get('/diagnostic/status', (req, res) => {
     }
 });
 
-router.post('/diagnostic/submit', (req, res) => {
+router.post('/diagnostic/submit', async (req, res) => {
     try {
         const scholarEmail = String(req.body.scholarEmail || '').trim().toLowerCase();
         const overallScore = Number(req.body.overallScore || 0);
@@ -161,16 +158,15 @@ router.post('/diagnostic/submit', (req, res) => {
 
         if (!scholarEmail) return res.status(400).json({ message: 'scholarEmail is required' });
 
-        localDb.prepare(`
+        await localDb.prepare(`
             INSERT INTO diagnostic_results (scholar_email, overall_score, subject_breakdown, completed_at)
             VALUES (?, ?, ?, CURRENT_TIMESTAMP)
             ON CONFLICT(scholar_email) DO UPDATE SET
-                overall_score = excluded.overall_score,
-                subject_breakdown = excluded.subject_breakdown,
+                overall_score = EXCLUDED.overall_score,
+                subject_breakdown = EXCLUDED.subject_breakdown,
                 completed_at = CURRENT_TIMESTAMP
         `).run(scholarEmail, overallScore, subjectBreakdown);
 
-        // Record initial longitudinal metrics
         const subjects = req.body.subjectBreakdown || { Mathematics: overallScore, Science: overallScore, Literacy: overallScore };
         const longStmt = localDb.prepare(`
             INSERT INTO longitudinal_progress (scholar_email, subject, topic, score, total_possible, difficulty_level, attempt_number)
@@ -178,7 +174,7 @@ router.post('/diagnostic/submit', (req, res) => {
         `);
 
         for (const [sub, sc] of Object.entries(subjects)) {
-            longStmt.run(scholarEmail, sub, Number(sc || 0));
+            await longStmt.run(scholarEmail, sub, Number(sc || 0));
         }
 
         return res.json({ message: 'Diagnostic quiz completed successfully' });
@@ -189,4 +185,3 @@ router.post('/diagnostic/submit', (req, res) => {
 });
 
 export default router;
-

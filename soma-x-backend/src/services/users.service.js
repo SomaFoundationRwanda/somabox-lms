@@ -13,10 +13,10 @@ export const hashPassword = async (password) => {
 /**
  * Helper to log admin audit action
  */
-export function logAdminAuditAction({ adminEmail, action, targetUserId = null, targetUserEmail = null, details = null }) {
+export async function logAdminAuditAction({ adminEmail, action, targetUserId = null, targetUserEmail = null, details = null }) {
     try {
         if (!adminEmail) return;
-        serverDb.prepare(`
+        await serverDb.prepare(`
             INSERT INTO admin_audit_logs (admin_email, action, target_user_id, target_user_email, details)
             VALUES (?, ?, ?, ?, ?)
         `).run(adminEmail.trim().toLowerCase(), action, targetUserId, targetUserEmail, details);
@@ -25,7 +25,7 @@ export function logAdminAuditAction({ adminEmail, action, targetUserId = null, t
     }
 }
 
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
     try {
         const search = String(req.query.search || '').trim();
         const roles = String(req.query.role || '').trim(); // e.g. "admin,teacher"
@@ -82,7 +82,8 @@ router.get('/', (req, res) => {
 
         // Count total
         const countStmt = serverDb.prepare(`SELECT COUNT(*) as total FROM users ${whereSql}`);
-        const { total } = countStmt.get(...params);
+        const countRes = await countStmt.get(...params);
+        const total = Number(countRes?.total || 0);
 
         // Query users
         const queryStmt = serverDb.prepare(`
@@ -95,7 +96,7 @@ router.get('/', (req, res) => {
             LIMIT ? OFFSET ?
         `);
         
-        const users = queryStmt.all(...params, limit, offset);
+        const users = await queryStmt.all(...params, limit, offset);
 
         res.json({
             users,
@@ -110,28 +111,29 @@ router.get('/', (req, res) => {
     }
 });
 
-router.get('/me/assignment-summary', (req, res) => {
+router.get('/me/assignment-summary', async (req, res) => {
     try {
         const email = String(req.query.userEmail || '').trim().toLowerCase();
         if (!email) return res.status(400).json({ message: 'userEmail is required' });
 
-        const enrolledCourseIds = localDb.prepare(
+        const enrolledCourseRows = await localDb.prepare(
             "SELECT course_id FROM enrollments WHERE LOWER(user_email) = LOWER(?) AND status = 'active'"
-        ).all(email).map((r) => r.course_id);
+        ).all(email);
+        const enrolledCourseIds = enrolledCourseRows.map((r) => r.course_id);
 
         const outstanding = [];
         let completedCount = 0;
 
         for (const courseId of enrolledCourseIds) {
-            const course = localDb.prepare("SELECT id, title FROM courses WHERE id = ?").get(courseId);
+            const course = await localDb.prepare("SELECT id, title FROM courses WHERE id = ?").get(courseId);
             if (!course) continue;
 
-            const assignments = localDb.prepare(
+            const assignments = await localDb.prepare(
                 "SELECT id, title, due_at FROM assignments WHERE course_id = ? AND published = 1"
             ).all(courseId);
 
             for (const a of assignments) {
-                const submission = localDb.prepare(
+                const submission = await localDb.prepare(
                     "SELECT grade FROM assignment_submissions WHERE assignment_id = ? AND LOWER(scholar_email) = LOWER(?)"
                 ).get(a.id, email);
 
@@ -170,12 +172,12 @@ router.get('/me/assignment-summary', (req, res) => {
     }
 });
 
-router.get('/me/dashboard', (req, res) => {
+router.get('/me/dashboard', async (req, res) => {
     try {
         const email = String(req.query.userEmail || '').trim().toLowerCase();
         if (!email) return res.status(400).json({ message: 'userEmail is required' });
 
-        const enrolledRows = localDb.prepare(`
+        const enrolledRows = await localDb.prepare(`
             SELECT c.*, e.role AS my_role, e.status AS my_status
             FROM courses c
             JOIN enrollments e ON e.course_id = c.id
@@ -183,20 +185,20 @@ router.get('/me/dashboard', (req, res) => {
             ORDER BY c.created_at DESC
         `).all(email);
 
-        const enrolledCourses = enrolledRows.map((course) => {
-            const totalAssignments = Number(
-                localDb.prepare("SELECT COUNT(*) AS c FROM assignments WHERE course_id = ? AND published = 1").get(course.id)?.c || 0
-            );
-            const gradedAssignments = Number(
-                localDb.prepare(`
-                    SELECT COUNT(*) AS c FROM assignment_submissions s
-                    JOIN assignments a ON a.id = s.assignment_id
-                    WHERE a.course_id = ? AND LOWER(s.scholar_email) = LOWER(?) AND s.grade IS NOT NULL
-                `).get(course.id, email)?.c || 0
-            );
-            const studentCount = Number(
-                localDb.prepare("SELECT COUNT(*) AS total FROM enrollments WHERE course_id = ? AND role = 'student' AND status = 'active'").get(course.id)?.total || 0
-            );
+        const enrolledCourses = await Promise.all(enrolledRows.map(async (course) => {
+            const totalRes = await localDb.prepare("SELECT COUNT(*) AS c FROM assignments WHERE course_id = ? AND published = 1").get(course.id);
+            const totalAssignments = Number(totalRes?.c || 0);
+
+            const gradedRes = await localDb.prepare(`
+                SELECT COUNT(*) AS c FROM assignment_submissions s
+                JOIN assignments a ON a.id = s.assignment_id
+                WHERE a.course_id = ? AND LOWER(s.scholar_email) = LOWER(?) AND s.grade IS NOT NULL
+            `).get(course.id, email);
+            const gradedAssignments = Number(gradedRes?.c || 0);
+
+            const studentRes = await localDb.prepare("SELECT COUNT(*) AS total FROM enrollments WHERE course_id = ? AND role = 'student' AND status = 'active'").get(course.id);
+            const studentCount = Number(studentRes?.total || 0);
+
             const progress = totalAssignments > 0 ? Math.round((gradedAssignments / totalAssignments) * 100) : 0;
 
             return {
@@ -205,25 +207,26 @@ router.get('/me/dashboard', (req, res) => {
                 progress,
                 coverImageUrl: course.cover_image ? `/course-covers/${course.cover_image}` : null,
             };
-        });
+        }));
 
-        const publicRows = localDb.prepare(
+        const publicRows = await localDb.prepare(
             "SELECT * FROM courses WHERE visibility = 'public' ORDER BY created_at DESC"
         ).all();
 
         const enrolledIds = new Set(enrolledCourses.map((c) => c.id));
-        const publicCourses = publicRows
-            .filter((course) => !enrolledIds.has(course.id))
-            .map((course) => {
-                const studentCount = Number(
-                    localDb.prepare("SELECT COUNT(*) AS total FROM enrollments WHERE course_id = ? AND role = 'student' AND status = 'active'").get(course.id)?.total || 0
-                );
-                return {
-                    ...course,
-                    studentCount,
-                    coverImageUrl: course.cover_image ? `/course-covers/${course.cover_image}` : null,
-                };
-            });
+        const publicCourses = await Promise.all(
+            publicRows
+                .filter((course) => !enrolledIds.has(course.id))
+                .map(async (course) => {
+                    const studentRes = await localDb.prepare("SELECT COUNT(*) AS total FROM enrollments WHERE course_id = ? AND role = 'student' AND status = 'active'").get(course.id);
+                    const studentCount = Number(studentRes?.total || 0);
+                    return {
+                        ...course,
+                        studentCount,
+                        coverImageUrl: course.cover_image ? `/course-covers/${course.cover_image}` : null,
+                    };
+                })
+        );
 
         return res.json({ enrolled_courses: enrolledCourses, public_courses: publicCourses });
     } catch (error) {
@@ -232,14 +235,18 @@ router.get('/me/dashboard', (req, res) => {
     }
 });
 
-router.get('/:id', (req, res) => {
-    const stmt = serverDb.prepare('SELECT *, COALESCE(is_active, 1) as is_active FROM users WHERE id = ?');
-    const user = stmt.get(req.params.id);
-    if (!user) return res.status(404).json({ message: "User not found" });
-    res.json(user);
+router.get('/:id', async (req, res) => {
+    try {
+        const stmt = serverDb.prepare('SELECT *, COALESCE(is_active, 1) as is_active FROM users WHERE id = ?');
+        const user = await stmt.get(req.params.id);
+        if (!user) return res.status(404).json({ message: "User not found" });
+        res.json(user);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
 });
 
-router.get('/profile/view', (req, res) => {
+router.get('/profile/view', async (req, res) => {
     try {
         const email = String(req.query.email || '').trim().toLowerCase();
         const role = String(req.query.role || '').trim().toLowerCase();
@@ -260,7 +267,7 @@ router.get('/profile/view', (req, res) => {
             params.push(role);
         }
 
-        const user = serverDb.prepare(query).get(...params);
+        const user = await serverDb.prepare(query).get(...params);
 
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
@@ -291,7 +298,7 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ message: 'Email, password, and role are required' });
     }
 
-    const existingUser = serverDb.prepare('SELECT id FROM users WHERE email = ?').get(normalizedEmail);
+    const existingUser = await serverDb.prepare('SELECT id FROM users WHERE LOWER(email) = LOWER(?)').get(normalizedEmail);
     if (existingUser) {
       return res.status(409).json({ message: 'User already exists' });
     }
@@ -306,7 +313,7 @@ router.post('/', async (req, res) => {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
-    insert.run(
+    await insert.run(
       normalizedEmail,
       password_hash,
       role,
@@ -332,8 +339,6 @@ router.post('/', async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
-
-
 
 router.patch('/:id', async (req, res) => {
     try {
@@ -399,7 +404,7 @@ router.patch('/:id', async (req, res) => {
         params.push(userId);
 
         const stmt = serverDb.prepare(query);
-        const info = stmt.run(...params);
+        const info = await stmt.run(...params);
 
         if (info.changes === 0) {
             return res.status(404).json({ message: 'User not found' });
@@ -430,7 +435,7 @@ router.patch('/profile/update', async (req, res) => {
             return res.status(400).json({ message: 'User email is required' });
         }
 
-        const user = serverDb.prepare('SELECT id FROM users WHERE LOWER(email) = LOWER(?)').get(email);
+        const user = await serverDb.prepare('SELECT id FROM users WHERE LOWER(email) = LOWER(?)').get(email);
         if (!user) {
             return res.status(404).json({ message: 'User account not found' });
         }
@@ -457,13 +462,12 @@ router.patch('/profile/update', async (req, res) => {
         query += updates.join(', ') + ' WHERE id = ?';
         params.push(user.id);
 
-        serverDb.prepare(query).run(...params);
+        await serverDb.prepare(query).run(...params);
 
         // Auto-mark any profile completion notifications as read in localDb
         try {
-            const { localDb } = await import('../helpers/db-manager.js');
-            localDb.prepare(`
-                UPDATE user_notifications SET is_read = 1 WHERE user_email = ? AND type = 'profile_reminder'
+            await localDb.prepare(`
+                UPDATE user_notifications SET is_read = 1 WHERE LOWER(user_email) = LOWER(?) AND type = 'profile_reminder'
             `).run(email);
         } catch (e) {
             console.error("Failed to mark profile_reminder notification as read:", e);
@@ -491,7 +495,7 @@ router.patch('/profile/password', async (req, res) => {
             return res.status(400).json({ message: 'New password must be at least 6 characters' });
         }
 
-        const user = serverDb
+        const user = await serverDb
             .prepare('SELECT id, password_hash FROM users WHERE LOWER(email) = LOWER(?) AND LOWER(role) = LOWER(?)')
             .get(currentEmail, currentRole);
 
@@ -505,7 +509,7 @@ router.patch('/profile/password', async (req, res) => {
         }
 
         const passwordHash = await hashPassword(newPassword);
-        serverDb.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(passwordHash, user.id);
+        await serverDb.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(passwordHash, user.id);
 
         return res.json({ message: 'Password updated successfully' });
     } catch (error) {
@@ -518,21 +522,21 @@ router.patch('/profile/password', async (req, res) => {
  * PATCH /users/:id/status
  * Soft deactivate or reactivate user account
  */
-router.patch('/:id/status', (req, res) => {
+router.patch('/:id/status', async (req, res) => {
     try {
         const { id } = req.params;
         const { isActive, adminEmail } = req.body;
 
-        const user = serverDb.prepare('SELECT id, email, full_name, is_active FROM users WHERE id = ?').get(id);
+        const user = await serverDb.prepare('SELECT id, email, full_name, is_active FROM users WHERE id = ?').get(id);
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
 
         const newStatus = isActive ? 1 : 0;
-        serverDb.prepare('UPDATE users SET is_active = ? WHERE id = ?').run(newStatus, id);
+        await serverDb.prepare('UPDATE users SET is_active = ? WHERE id = ?').run(newStatus, id);
 
         const actionName = newStatus === 1 ? 'REACTIVATE_USER' : 'DEACTIVATE_USER';
-        logAdminAuditAction({
+        await logAdminAuditAction({
             adminEmail,
             action: actionName,
             targetUserId: user.id,
@@ -563,15 +567,15 @@ router.patch('/:id/reset-password', async (req, res) => {
             return res.status(400).json({ message: 'New password must be at least 6 characters' });
         }
 
-        const user = serverDb.prepare('SELECT id, email FROM users WHERE id = ?').get(id);
+        const user = await serverDb.prepare('SELECT id, email FROM users WHERE id = ?').get(id);
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
 
         const passwordHash = await hashPassword(newPassword);
-        serverDb.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(passwordHash, id);
+        await serverDb.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(passwordHash, id);
 
-        logAdminAuditAction({
+        await logAdminAuditAction({
             adminEmail,
             action: 'RESET_USER_PASSWORD',
             targetUserId: user.id,
@@ -590,7 +594,7 @@ router.patch('/:id/reset-password', async (req, res) => {
  * POST /users/bulk-action
  * Perform bulk operations (bulk_role, bulk_deactivate, bulk_reactivate, bulk_delete)
  */
-router.post('/bulk-action', (req, res) => {
+router.post('/bulk-action', async (req, res) => {
     try {
         const { userIds, action, newRole, adminEmail } = req.body;
         if (!Array.isArray(userIds) || userIds.length === 0) {
@@ -602,27 +606,27 @@ router.post('/bulk-action', (req, res) => {
 
         if (action === 'bulk_deactivate') {
             const stmt = serverDb.prepare(`UPDATE users SET is_active = 0 WHERE id IN (${placeholders})`);
-            const info = stmt.run(...userIds);
+            const info = await stmt.run(...userIds);
             affected = info.changes;
-            logAdminAuditAction({ adminEmail, action: 'BULK_DEACTIVATE', details: `Deactivated ${affected} users` });
+            await logAdminAuditAction({ adminEmail, action: 'BULK_DEACTIVATE', details: `Deactivated ${affected} users` });
         } else if (action === 'bulk_reactivate') {
             const stmt = serverDb.prepare(`UPDATE users SET is_active = 1 WHERE id IN (${placeholders})`);
-            const info = stmt.run(...userIds);
+            const info = await stmt.run(...userIds);
             affected = info.changes;
-            logAdminAuditAction({ adminEmail, action: 'BULK_REACTIVATE', details: `Reactivated ${affected} users` });
+            await logAdminAuditAction({ adminEmail, action: 'BULK_REACTIVATE', details: `Reactivated ${affected} users` });
         } else if (action === 'bulk_role') {
             if (!newRole || !['admin', 'teacher', 'scholar'].includes(newRole.toLowerCase())) {
                 return res.status(400).json({ message: 'Valid newRole is required' });
             }
             const stmt = serverDb.prepare(`UPDATE users SET role = ? WHERE id IN (${placeholders})`);
-            const info = stmt.run(newRole.toLowerCase(), ...userIds);
+            const info = await stmt.run(newRole.toLowerCase(), ...userIds);
             affected = info.changes;
-            logAdminAuditAction({ adminEmail, action: 'BULK_ROLE_CHANGE', details: `Changed role to ${newRole} for ${affected} users` });
+            await logAdminAuditAction({ adminEmail, action: 'BULK_ROLE_CHANGE', details: `Changed role to ${newRole} for ${affected} users` });
         } else if (action === 'bulk_delete') {
             const stmt = serverDb.prepare(`DELETE FROM users WHERE id IN (${placeholders})`);
-            const info = stmt.run(...userIds);
+            const info = await stmt.run(...userIds);
             affected = info.changes;
-            logAdminAuditAction({ adminEmail, action: 'BULK_DELETE', details: `Deleted ${affected} users` });
+            await logAdminAuditAction({ adminEmail, action: 'BULK_DELETE', details: `Deleted ${affected} users` });
         } else {
             return res.status(400).json({ message: 'Invalid bulk action specified' });
         }
@@ -634,19 +638,19 @@ router.post('/bulk-action', (req, res) => {
     }
 });
 
-router.delete('/:id', (req, res) => {
+router.delete('/:id', async (req, res) => {
     try {
         const { id } = req.params;
         const adminEmail = req.body?.adminEmail || req.query?.adminEmail;
 
-        const user = serverDb.prepare('SELECT id, email FROM users WHERE id = ?').get(id);
+        const user = await serverDb.prepare('SELECT id, email FROM users WHERE id = ?').get(id);
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        serverDb.prepare('DELETE FROM users WHERE id = ?').run(id);
+        await serverDb.prepare('DELETE FROM users WHERE id = ?').run(id);
 
-        logAdminAuditAction({
+        await logAdminAuditAction({
             adminEmail,
             action: 'DELETE_USER',
             targetUserId: user.id,

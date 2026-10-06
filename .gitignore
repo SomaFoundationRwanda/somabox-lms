@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build & Cache
+.next/
+dist/
+build/
+*.log
+logs/
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Database files (SQLite backups if any)
+*.sqlite3
+*.sqlite3-shm
+*.sqlite3-wal

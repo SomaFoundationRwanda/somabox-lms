@@ -4,7 +4,7 @@ import { localDb, serverDb } from '../helpers/db-manager.js';
 const router = express.Router();
 
 // Record longitudinal progress metric
-router.post('/longitudinal', (req, res) => {
+router.post('/longitudinal', async (req, res) => {
     try {
         const scholarEmail = String(req.body.scholarEmail || '').trim().toLowerCase();
         const subject = String(req.body.subject || 'General').trim();
@@ -20,7 +20,7 @@ router.post('/longitudinal', (req, res) => {
             INSERT INTO longitudinal_progress (scholar_email, subject, topic, score, total_possible, difficulty_level, attempt_number)
             VALUES (?, ?, ?, ?, ?, ?, ?)
         `);
-        stmt.run(scholarEmail, subject, topic, score, totalPossible, difficultyLevel, attemptNumber);
+        await stmt.run(scholarEmail, subject, topic, score, totalPossible, difficultyLevel, attemptNumber);
 
         return res.status(201).json({ message: 'Longitudinal record added' });
     } catch (error) {
@@ -30,27 +30,26 @@ router.post('/longitudinal', (req, res) => {
 });
 
 // Get Growth Curves (individual scholar or cohort)
-router.get('/growth-curves', (req, res) => {
+router.get('/growth-curves', async (req, res) => {
     try {
         const scholarEmail = req.query.scholarEmail ? String(req.query.scholarEmail).trim().toLowerCase() : null;
 
         let records;
         if (scholarEmail) {
-            records = localDb.prepare(`
+            records = await localDb.prepare(`
                 SELECT id, scholar_email, subject, topic, score, total_possible, difficulty_level, created_at
                 FROM longitudinal_progress
                 WHERE LOWER(scholar_email) = LOWER(?)
                 ORDER BY created_at ASC
             `).all(scholarEmail);
         } else {
-            records = localDb.prepare(`
+            records = await localDb.prepare(`
                 SELECT id, scholar_email, subject, topic, score, total_possible, difficulty_level, created_at
                 FROM longitudinal_progress
                 ORDER BY created_at ASC
             `).all();
         }
 
-        // If no longitudinal records exist yet, seed demo data for visualization
         if (records.length === 0) {
             records = [
                 { id: 1, scholar_email: scholarEmail || 'scholar@test.com', subject: 'Mathematics', topic: 'Baseline', score: 55, total_possible: 100, created_at: '2026-08-01T08:00:00Z' },
@@ -70,14 +69,14 @@ router.get('/growth-curves', (req, res) => {
 });
 
 // Inclusivity Gap Analysis: Rural vs. Urban performance across Gender lines
-router.get('/inclusivity-gap', (req, res) => {
+router.get('/inclusivity-gap', async (req, res) => {
     try {
-        const users = serverDb.prepare(`
+        const users = await serverDb.prepare(`
             SELECT email, gender, region_province, region_district, is_rural, disability_status
             FROM users WHERE role = 'scholar'
         `).all();
 
-        const progressRecords = localDb.prepare(`
+        const progressRecords = await localDb.prepare(`
             SELECT scholar_email, score, total_possible FROM longitudinal_progress
         `).all();
 
@@ -89,7 +88,6 @@ router.get('/inclusivity-gap', (req, res) => {
             userScoreMap.get(email).push(pct);
         }
 
-        // Aggregate statistics
         let ruralMaleCount = 0, ruralMaleSum = 0;
         let ruralFemaleCount = 0, ruralFemaleSum = 0;
         let urbanMaleCount = 0, urbanMaleSum = 0;
@@ -98,10 +96,10 @@ router.get('/inclusivity-gap', (req, res) => {
 
         for (const user of users) {
             const email = user.email.toLowerCase();
-            const scores = userScoreMap.get(email) || [70]; // default average if no records
+            const scores = userScoreMap.get(email) || [70];
             const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
 
-            const isRural = user.is_rural === 1;
+            const isRural = Number(user.is_rural) === 1;
             const isFemale = user.gender === 'female';
             const hasDisability = user.disability_status && user.disability_status !== 'none';
 
@@ -119,7 +117,6 @@ router.get('/inclusivity-gap', (req, res) => {
             }
         }
 
-        // Return fallback structured data if workspace data set is small
         const report = {
             totalScholars: users.length || 24,
             ruralVsUrban: {
@@ -147,7 +144,7 @@ router.get('/inclusivity-gap', (req, res) => {
 });
 
 // Active Science of Learning (SoL) outcomes tracker per learner
-router.get('/sol-outcomes', (req, res) => {
+router.get('/sol-outcomes', async (req, res) => {
     try {
         const scholarEmail = req.query.scholarEmail ? String(req.query.scholarEmail).trim().toLowerCase() : null;
 
@@ -170,15 +167,16 @@ router.get('/sol-outcomes', (req, res) => {
 });
 
 // Unit Branding endpoints
-router.get('/branding', (req, res) => {
+router.get('/branding', async (req, res) => {
     try {
-        let branding = localDb.prepare(`SELECT * FROM unit_branding WHERE id = 1`).get();
+        let branding = await localDb.prepare(`SELECT * FROM unit_branding WHERE id = 1`).get();
         if (!branding) {
-            localDb.prepare(`
+            await localDb.prepare(`
                 INSERT INTO unit_branding (id, school_name, logo_url, primary_color, secondary_color, me_sync_url)
                 VALUES (1, 'SOMABOX Partner School', '', '#203A3A', '#0D9488', '')
+                ON CONFLICT (id) DO NOTHING
             `).run();
-            branding = localDb.prepare(`SELECT * FROM unit_branding WHERE id = 1`).get();
+            branding = await localDb.prepare(`SELECT * FROM unit_branding WHERE id = 1`).get();
         }
         return res.json(branding);
     } catch (error) {
@@ -187,7 +185,7 @@ router.get('/branding', (req, res) => {
     }
 });
 
-router.post('/branding', (req, res) => {
+router.post('/branding', async (req, res) => {
     try {
         const schoolName = String(req.body.schoolName || 'SOMABOX Partner School').trim();
         const logoUrl = String(req.body.logoUrl || '').trim();
@@ -195,15 +193,15 @@ router.post('/branding', (req, res) => {
         const secondaryColor = String(req.body.secondaryColor || '#0D9488').trim();
         const meSyncUrl = String(req.body.meSyncUrl || '').trim();
 
-        localDb.prepare(`
+        await localDb.prepare(`
             INSERT INTO unit_branding (id, school_name, logo_url, primary_color, secondary_color, me_sync_url, updated_at)
             VALUES (1, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             ON CONFLICT(id) DO UPDATE SET
-                school_name = excluded.school_name,
-                logo_url = excluded.logo_url,
-                primary_color = excluded.primary_color,
-                secondary_color = excluded.secondary_color,
-                me_sync_url = excluded.me_sync_url,
+                school_name = EXCLUDED.school_name,
+                logo_url = EXCLUDED.logo_url,
+                primary_color = EXCLUDED.primary_color,
+                secondary_color = EXCLUDED.secondary_color,
+                me_sync_url = EXCLUDED.me_sync_url,
                 updated_at = CURRENT_TIMESTAMP
         `).run(schoolName, logoUrl, primaryColor, secondaryColor, meSyncUrl);
 
@@ -215,9 +213,9 @@ router.post('/branding', (req, res) => {
 });
 
 // M&E Real-Time Sync endpoint
-router.post('/me-sync', (req, res) => {
+router.post('/me-sync', async (req, res) => {
     try {
-        localDb.prepare(`
+        await localDb.prepare(`
             UPDATE unit_branding SET last_synced_at = CURRENT_TIMESTAMP WHERE id = 1
         `).run();
         return res.json({

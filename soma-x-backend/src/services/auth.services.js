@@ -1,27 +1,20 @@
 import express from 'express';
-import Database from 'better-sqlite3';
-
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { hashPassword } from "./users.service.js"
 import bcrypt from "bcrypt";
 import { runFirebaseSync } from './firebase-sync.service.js';
-
 import { serverDb } from '../helpers/db-manager.js';
 
 const router = express.Router();
 
 router.post('/login', async (req, res) => {
     try {
-        const username = String(req.body.username || '').trim().toLowerCase();
+        const email = String(req.body.email || req.body.username || '').trim().toLowerCase();
         const password = req.body.password;
-        const role = String(req.body.role || '').trim().toLowerCase();
 
-        if (!username || !password) {
-            return res.status(400).json({ message: 'Username and password required' });
+        if (!email || !password) {
+            return res.status(400).json({ message: 'Email and password required' });
         }
         
-        const row = serverDb.prepare('SELECT * FROM users WHERE LOWER(email) = LOWER(?)').get(username);
+        const row = await serverDb.prepare('SELECT * FROM users WHERE LOWER(email) = LOWER(?)').get(email);
         
         if (!row) {
             return res.status(401).json({ message: 'Invalid email or password' });
@@ -34,10 +27,6 @@ router.post('/login', async (req, res) => {
         const match = await bcrypt.compare(password, row.password_hash);
         if (!match) {
             return res.status(401).json({ message: 'Invalid email or password' });
-        }
-
-        if (String(row.role || '').trim().toLowerCase() !== role) {
-            return res.status(401).json({ message: 'Invalid role' });
         }
 
         // Trigger sync-manager in the background asynchronously
@@ -65,8 +54,6 @@ router.post('/login', async (req, res) => {
 
 router.get('/verify-auth', (req, res) => {
     try {
-        // This route was referencing `row` which doesn't exist here.
-        // Keeping the route but returning a fixed structure.
         return res.status(400).json({ message: 'No session mechanism implemented yet' });
     } catch (error) {
         console.error('Authentication error:', error);

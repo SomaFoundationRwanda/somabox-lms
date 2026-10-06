@@ -303,7 +303,7 @@ function recomputeSubmissionGradeFromFeedback(submissionId, teacherEmail) {
 
   const gradedItems = Number(aggregate?.graded_items || 0);
   if (gradedItems <= 0) {
-    localDb.prepare("DELETE FROM lesson_grades WHERE submission_id = ?").run(submissionId);
+    await .prepare("DELETE FROM lesson_grades WHERE submission_id = ?").run(submissionId);
     return null;
   }
 
@@ -348,7 +348,7 @@ function generateUniqueClassCode() {
 }
 
 function classExists(classId) {
-  return localDb.prepare("SELECT * FROM classes WHERE id = ?").get(classId);
+  return await .prepare("SELECT * FROM classes WHERE id = ?").get(classId);
 }
 
 function teacherOwnsClass(classId, teacherEmail) {
@@ -400,11 +400,11 @@ function seedMockScholarsForClass(classId, count = DEFAULT_MOCK_STUDENT_COUNT) {
   }
 
   const passwordHash = bcrypt.hashSync(DEFAULT_MOCK_STUDENT_PASSWORD, 10);
-  const insertUser = serverDb.prepare(`
+  const insertUser = await .prepare(`
     INSERT OR IGNORE INTO users (email, full_name, password_hash, role)
     VALUES (?, ?, ?, 'scholar')
   `);
-  const insertMembership = localDb.prepare(`
+  const insertMembership = await .prepare(`
     INSERT OR IGNORE INTO class_memberships (class_id, scholar_email, joined_via)
     VALUES (?, ?, 'mock_seed')
   `);
@@ -443,10 +443,10 @@ function syncLessonTargetsAndProgress(lessonId, classId, targetType, requestedSc
       ? Array.from(new Set(requestedScholarEmails.map(normalizeEmail).filter(Boolean))).filter((email) => memberSet.has(email))
       : memberEmails;
 
-  localDb.prepare("DELETE FROM class_lesson_targets WHERE lesson_id = ?").run(lessonId);
+  await .prepare("DELETE FROM class_lesson_targets WHERE lesson_id = ?").run(lessonId);
 
   if (targetType === "scholars") {
-    const insertTarget = localDb.prepare(`
+    const insertTarget = await .prepare(`
       INSERT OR IGNORE INTO class_lesson_targets (lesson_id, scholar_email)
       VALUES (?, ?)
     `);
@@ -458,7 +458,7 @@ function syncLessonTargetsAndProgress(lessonId, classId, targetType, requestedSc
 
   const deleteNonTargets = (tableName) => {
     if (resolvedTargetEmails.length === 0) {
-      localDb.prepare(`DELETE FROM ${tableName} WHERE lesson_id = ?`).run(lessonId);
+      await .prepare(`DELETE FROM ${tableName} WHERE lesson_id = ?`).run(lessonId);
       return;
     }
 
@@ -472,7 +472,7 @@ function syncLessonTargetsAndProgress(lessonId, classId, targetType, requestedSc
   deleteNonTargets("class_lesson_question_responses");
 
   if (resolvedTargetEmails.length > 0) {
-    const insertProgress = localDb.prepare(`
+    const insertProgress = await .prepare(`
       INSERT OR IGNORE INTO class_lesson_progress (lesson_id, scholar_email, status, current_step)
       VALUES (?, ?, 'not_started', 1)
     `);
@@ -557,7 +557,7 @@ function assignmentVisibleToScholar(assignmentId, scholarEmail) {
   return Boolean(targeted);
 }
 
-router.get("/mine", (req, res) => {
+router.get("/mine", async (req, res) => {
   try {
     const scholarEmail = normalizeEmail(req.query.scholarEmail);
 
@@ -582,7 +582,7 @@ router.get("/mine", (req, res) => {
   }
 });
 
-router.post("/join", (req, res) => {
+router.post("/join", async (req, res) => {
   try {
     const classCode = String(req.body.classCode || "").trim();
     const scholarEmail = normalizeEmail(req.body.scholarEmail);
@@ -642,7 +642,7 @@ router.post("/join", (req, res) => {
   }
 });
 
-router.get("/assignments/mine", (req, res) => {
+router.get("/assignments/mine", async (req, res) => {
   try {
     const scholarEmail = normalizeEmail(req.query.scholarEmail);
 
@@ -719,7 +719,7 @@ router.get("/assignments/mine", (req, res) => {
   }
 });
 
-router.get("/lessons/mine", (req, res) => {
+router.get("/lessons/mine", async (req, res) => {
   try {
     const scholarEmail = normalizeEmail(req.query.scholarEmail);
 
@@ -850,7 +850,7 @@ router.get("/lessons/mine", (req, res) => {
   }
 });
 
-router.get("/lessons/:lessonId", (req, res) => {
+router.get("/lessons/:lessonId", async (req, res) => {
   try {
     const scholarEmail = normalizeEmail(req.query.scholarEmail);
     const lessonId = Number(req.params.lessonId);
@@ -977,7 +977,7 @@ router.get("/lessons/:lessonId", (req, res) => {
   }
 });
 
-router.patch("/lessons/:lessonId/progress", (req, res) => {
+router.patch("/lessons/:lessonId/progress", async (req, res) => {
   try {
     const lessonId = Number(req.params.lessonId);
     const scholarEmail = normalizeEmail(req.body.scholarEmail);
@@ -1123,7 +1123,7 @@ router.patch("/lessons/:lessonId/progress", (req, res) => {
   }
 });
 
-router.patch("/lessons/:lessonId/responses", (req, res) => {
+router.patch("/lessons/:lessonId/responses", async (req, res) => {
   try {
     const lessonId = Number(req.params.lessonId);
     const scholarEmail = normalizeEmail(req.body.scholarEmail);
@@ -1181,7 +1181,7 @@ router.patch("/lessons/:lessonId/responses", (req, res) => {
       return res.status(400).json({ message: "This question step has no configured questions" });
     }
 
-    const upsertResponse = localDb.prepare(`
+    const upsertResponse = await .prepare(`
       INSERT INTO class_lesson_question_responses (
         lesson_id,
         step_id,
@@ -1199,7 +1199,7 @@ router.patch("/lessons/:lessonId/responses", (req, res) => {
         updated_at = CURRENT_TIMESTAMP
     `);
 
-    const deleteResponse = localDb.prepare(`
+    const deleteResponse = await .prepare(`
       DELETE FROM class_lesson_question_responses
       WHERE lesson_id = ? AND step_id = ? AND scholar_email = ? AND question_index = ?
     `);
@@ -1260,7 +1260,7 @@ router.patch("/lessons/:lessonId/responses", (req, res) => {
   }
 });
 
-router.patch("/lessons/:lessonId/checkpoint-responses", (req, res) => {
+router.patch("/lessons/:lessonId/checkpoint-responses", async (req, res) => {
   try {
     const lessonId = Number(req.params.lessonId);
     const scholarEmail = normalizeEmail(req.body.scholarEmail);
@@ -1319,7 +1319,7 @@ router.patch("/lessons/:lessonId/checkpoint-responses", (req, res) => {
     const checkpoint = videoCheckpoints[checkpointIndex];
     const questions = Array.isArray(checkpoint.questions) ? checkpoint.questions : [];
 
-    const upsert = localDb.prepare(`
+    const upsert = await .prepare(`
       INSERT INTO class_lesson_question_responses (
         lesson_id, step_id, scholar_email, question_index, response_text, selected_option, updated_at
       )
@@ -1352,7 +1352,7 @@ router.patch("/lessons/:lessonId/checkpoint-responses", (req, res) => {
 });
 
 // Check if a lesson submission exists (locked status)
-router.get("/lessons/:lessonId/submission-status", (req, res) => {
+router.get("/lessons/:lessonId/submission-status", async (req, res) => {
   try {
     const lessonId = Number(req.params.lessonId);
     const scholarEmail = normalizeEmail(req.query.scholarEmail);
@@ -1423,7 +1423,7 @@ router.get("/lessons/:lessonId/submission-status", (req, res) => {
   }
 });
 
-router.patch("/assignments/:assignmentId/progress", (req, res) => {
+router.patch("/assignments/:assignmentId/progress", async (req, res) => {
   try {
     const assignmentId = Number(req.params.assignmentId);
     const scholarEmail = normalizeEmail(req.body.scholarEmail);
@@ -1517,7 +1517,7 @@ router.patch("/assignments/:assignmentId/progress", (req, res) => {
   }
 });
 
-router.get("", (req, res) => {
+router.get("", async (req, res) => {
   try {
     const teacherEmail = normalizeEmail(req.query.teacherEmail);
     const scholarEmail = normalizeEmail(req.query.scholarEmail);
@@ -1553,7 +1553,7 @@ router.get("", (req, res) => {
   }
 });
 
-router.get("/:id", (req, res) => {
+router.get("/:id", async (req, res) => {
   try {
     const row = localDb
       .prepare("SELECT * FROM classes WHERE id = ?")
@@ -1567,7 +1567,7 @@ router.get("/:id", (req, res) => {
   }
 });
 
-router.get("/:id/members", (req, res) => {
+router.get("/:id/members", async (req, res) => {
   try {
     const classId = String(req.params.id || "").trim();
     const teacherEmail = normalizeEmail(req.query.teacherEmail);
@@ -1623,7 +1623,7 @@ router.get("/:id/members", (req, res) => {
   }
 });
 
-router.delete("/:id/members/:scholarEmail", (req, res) => {
+router.delete("/:id/members/:scholarEmail", async (req, res) => {
   try {
     const classId = String(req.params.id || "").trim();
     const scholarEmail = normalizeEmail(req.params.scholarEmail);
@@ -1709,7 +1709,7 @@ router.delete("/:id/members/:scholarEmail", (req, res) => {
   }
 });
 
-router.get("/:id/lessons", (req, res) => {
+router.get("/:id/lessons", async (req, res) => {
   try {
     const classId = String(req.params.id || "").trim();
     const teacherEmail = normalizeEmail(req.query.teacherEmail);
@@ -1813,7 +1813,7 @@ router.get("/:id/lessons", (req, res) => {
   }
 });
 
-router.post("/:id/lessons", upload.any(), (req, res) => {
+router.post("/:id/lessons", upload.any(), async (req, res) => {
   try {
     const classId = String(req.params.id || "").trim();
     const teacherEmail = normalizeEmail(req.body.teacherEmail);
@@ -1876,7 +1876,7 @@ router.post("/:id/lessons", upload.any(), (req, res) => {
 
     fs.mkdirSync(path.join(config.paths.content, contentFolder), { recursive: true });
 
-    const insertStep = localDb.prepare(`
+    const insertStep = await .prepare(`
       INSERT INTO class_lesson_steps (lesson_id, step_order, step_type, title, body, metadata)
       VALUES (?, ?, ?, ?, ?, ?)
     `);
@@ -1986,7 +1986,7 @@ router.post("/:id/lessons", upload.any(), (req, res) => {
   }
 });
 
-router.get("/:id/lessons/:lessonId", (req, res) => {
+router.get("/:id/lessons/:lessonId", async (req, res) => {
   try {
     const classId = String(req.params.id || "").trim();
     const lessonId = Number(req.params.lessonId);
@@ -2053,7 +2053,7 @@ router.get("/:id/lessons/:lessonId", (req, res) => {
   }
 });
 
-router.get("/:id/lessons/:lessonId/student-progress", (req, res) => {
+router.get("/:id/lessons/:lessonId/student-progress", async (req, res) => {
   try {
     const classId = String(req.params.id || "").trim();
     const lessonId = Number(req.params.lessonId);
@@ -2108,7 +2108,7 @@ router.get("/:id/lessons/:lessonId/student-progress", (req, res) => {
   }
 });
 
-router.patch("/:id/lessons/:lessonId", upload.any(), (req, res) => {
+router.patch("/:id/lessons/:lessonId", upload.any(), async (req, res) => {
   try {
     const classId = String(req.params.id || "").trim();
     const lessonId = Number(req.params.lessonId);
@@ -2174,9 +2174,9 @@ router.patch("/:id/lessons/:lessonId", upload.any(), (req, res) => {
       `)
       .run(title, description, dueAt, isVisibleToStudents, targetType, lessonId, classId);
 
-    localDb.prepare("DELETE FROM class_lesson_steps WHERE lesson_id = ?").run(lessonId);
+    await .prepare("DELETE FROM class_lesson_steps WHERE lesson_id = ?").run(lessonId);
 
-    const insertStep = localDb.prepare(`
+    const insertStep = await .prepare(`
       INSERT INTO class_lesson_steps (lesson_id, step_order, step_type, title, body, metadata)
       VALUES (?, ?, ?, ?, ?, ?)
     `);
@@ -2284,7 +2284,7 @@ router.patch("/:id/lessons/:lessonId", upload.any(), (req, res) => {
   }
 });
 
-router.delete("/:id/lessons/:lessonId", (req, res) => {
+router.delete("/:id/lessons/:lessonId", async (req, res) => {
   try {
     const classId = String(req.params.id || "").trim();
     const lessonId = Number(req.params.lessonId);
@@ -2311,7 +2311,7 @@ router.delete("/:id/lessons/:lessonId", (req, res) => {
       return res.status(404).json({ message: "Lesson not found" });
     }
 
-    localDb.prepare("DELETE FROM class_lessons WHERE id = ? AND class_id = ?").run(lessonId, classId);
+    await .prepare("DELETE FROM class_lessons WHERE id = ? AND class_id = ?").run(lessonId, classId);
 
     const contentFolder = String(lesson.content_folder || "").trim();
     if (contentFolder) {
@@ -2330,7 +2330,7 @@ router.delete("/:id/lessons/:lessonId", (req, res) => {
   }
 });
 
-router.get("/:id/assignments", (req, res) => {
+router.get("/:id/assignments", async (req, res) => {
   try {
     const classId = String(req.params.id || "").trim();
     const teacherEmail = normalizeEmail(req.query.teacherEmail);
@@ -2356,8 +2356,8 @@ router.get("/:id/assignments", (req, res) => {
     const result = assignmentRows.map((row) => {
       const contentMeta = resolveContentMeta(row.content_path_key);
       const targetCount = row.target_type === "class"
-        ? localDb.prepare("SELECT COUNT(*) AS total FROM class_memberships WHERE class_id = ?").get(classId)?.total || 0
-        : localDb.prepare("SELECT COUNT(*) AS total FROM lesson_assignment_targets WHERE assignment_id = ?").get(row.id)?.total || 0;
+        ? await .prepare("SELECT COUNT(*) AS total FROM class_memberships WHERE class_id = ?").get(classId)?.total || 0
+        : await .prepare("SELECT COUNT(*) AS total FROM lesson_assignment_targets WHERE assignment_id = ?").get(row.id)?.total || 0;
 
       const completionCount = localDb
         .prepare("SELECT COUNT(*) AS total FROM lesson_progress WHERE assignment_id = ? AND status = 'completed'")
@@ -2386,7 +2386,7 @@ router.get("/:id/assignments", (req, res) => {
   }
 });
 
-router.post("/:id/assignments", (req, res) => {
+router.post("/:id/assignments", async (req, res) => {
   try {
     const classId = String(req.params.id || "").trim();
     const teacherEmail = normalizeEmail(req.body.teacherEmail);
@@ -2440,7 +2440,7 @@ router.post("/:id/assignments", (req, res) => {
     const assignmentId = Number(insertInfo.lastInsertRowid);
 
     if (targetType === "scholars") {
-      const targetInsert = localDb.prepare(`
+      const targetInsert = await .prepare(`
         INSERT OR IGNORE INTO lesson_assignment_targets (assignment_id, scholar_email)
         VALUES (?, ?)
       `);
@@ -2468,7 +2468,7 @@ router.post("/:id/assignments", (req, res) => {
   }
 });
 
-router.post("", (req, res) => {
+router.post("", async (req, res) => {
   try {
     const { name, grade, students, schedule, notes, teacherEmail } = req.body;
 
@@ -2478,7 +2478,7 @@ router.post("", (req, res) => {
 
     const classCode = generateUniqueClassCode();
 
-    const stmt = localDb.prepare(`
+    const stmt = await .prepare(`
       INSERT INTO classes (id, name, grade, students, schedule, notes, teacher_email)
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `);
@@ -2506,7 +2506,7 @@ router.post("", (req, res) => {
   }
 });
 
-router.patch("/:id", (req, res) => {
+router.patch("/:id", async (req, res) => {
   try {
     const { name, grade, students, schedule, notes } = req.body;
     const updates = [];
@@ -2541,7 +2541,7 @@ router.patch("/:id", (req, res) => {
     params.push(req.params.id);
 
     const query = `UPDATE classes SET ${updates.join(", ")} WHERE id = ?`;
-    const info = localDb.prepare(query).run(...params);
+    const info = await .prepare(query).run(...params);
 
     if (info.changes === 0) return res.status(404).json({ message: "Class not found" });
 
@@ -2556,9 +2556,9 @@ router.patch("/:id", (req, res) => {
   }
 });
 
-router.delete("/:id", (req, res) => {
+router.delete("/:id", async (req, res) => {
   try {
-    const info = localDb.prepare("DELETE FROM classes WHERE id = ?").run(req.params.id);
+    const info = await .prepare("DELETE FROM classes WHERE id = ?").run(req.params.id);
     if (info.changes === 0) return res.status(404).json({ message: "Class not found" });
     return res.status(204).end();
   } catch (error) {
@@ -2570,7 +2570,7 @@ router.delete("/:id", (req, res) => {
 // ===== GRADING ENDPOINTS =====
 
 // Submit lesson (locks it for editing)
-router.post("/lessons/:lessonId/submit", (req, res) => {
+router.post("/lessons/:lessonId/submit", async (req, res) => {
   try {
     const lessonId = Number(req.params.lessonId);
     const scholarEmail = normalizeEmail(req.body.scholarEmail);
@@ -2646,7 +2646,7 @@ router.post("/lessons/:lessonId/submit", (req, res) => {
 });
 
 // Get all completed submissions for a lesson (teacher view)
-router.get("/lessons/:lessonId/submissions", (req, res) => {
+router.get("/lessons/:lessonId/submissions", async (req, res) => {
   try {
     const lessonId = Number(req.params.lessonId);
     const teacherEmail = normalizeEmail(req.query.teacherEmail);
@@ -2718,7 +2718,7 @@ router.get("/lessons/:lessonId/submissions", (req, res) => {
 });
 
 // Get submission details with responses
-router.get("/submissions/:submissionId/details", (req, res) => {
+router.get("/submissions/:submissionId/details", async (req, res) => {
   try {
     const submissionId = Number(req.params.submissionId);
     const teacherEmail = normalizeEmail(req.query.teacherEmail);
@@ -2817,7 +2817,7 @@ router.get("/submissions/:submissionId/details", (req, res) => {
 });
 
 // Save grades for a submission
-router.post("/submissions/:submissionId/grade", (req, res) => {
+router.post("/submissions/:submissionId/grade", async (req, res) => {
   try {
     const submissionId = Number(req.params.submissionId);
     const teacherEmail = normalizeEmail(req.body.teacherEmail);
@@ -2914,7 +2914,7 @@ router.post("/submissions/:submissionId/grade", (req, res) => {
 });
 
 // Add feedback comment
-router.post("/submissions/:submissionId/feedback", (req, res) => {
+router.post("/submissions/:submissionId/feedback", async (req, res) => {
   try {
     const submissionId = Number(req.params.submissionId);
     const teacherEmail = normalizeEmail(req.body.teacherEmail);
@@ -3036,7 +3036,7 @@ router.post("/submissions/:submissionId/feedback", (req, res) => {
 });
 
 // Delete feedback comment
-router.delete("/feedback/:feedbackId", (req, res) => {
+router.delete("/feedback/:feedbackId", async (req, res) => {
   try {
     const feedbackId = Number(req.params.feedbackId);
     const teacherEmail = normalizeEmail(req.query.teacherEmail);
@@ -3062,7 +3062,7 @@ router.delete("/feedback/:feedbackId", (req, res) => {
       return res.status(403).json({ message: "Not authorized to delete this feedback" });
     }
 
-    localDb.prepare("DELETE FROM lesson_feedback_comments WHERE id = ?").run(feedbackId);
+    await .prepare("DELETE FROM lesson_feedback_comments WHERE id = ?").run(feedbackId);
     recomputeSubmissionGradeFromFeedback(feedback.submission_id, teacherEmail);
 
     return res.status(204).end();
@@ -3072,7 +3072,7 @@ router.delete("/feedback/:feedbackId", (req, res) => {
   }
 });
 
-router.patch("/:id/lessons/:lessonId/visibility", (req, res) => {
+router.patch("/:id/lessons/:lessonId/visibility", async (req, res) => {
   try {
     const classId = String(req.params.id || "").trim();
     const lessonId = Number(req.params.lessonId);
@@ -3096,7 +3096,7 @@ router.patch("/:id/lessons/:lessonId/visibility", (req, res) => {
   }
 });
 
-router.delete("/:id/lessons/:lessonId/targets/:scholarEmail", (req, res) => {
+router.delete("/:id/lessons/:lessonId/targets/:scholarEmail", async (req, res) => {
   try {
     const classId = String(req.params.id || "").trim();
     const lessonId = Number(req.params.lessonId);
@@ -3123,9 +3123,9 @@ router.delete("/:id/lessons/:lessonId/targets/:scholarEmail", (req, res) => {
         .map((r) => r.scholar_email)
         .filter((e) => e.toLowerCase() !== scholarEmail.toLowerCase());
 
-      localDb.prepare("UPDATE class_lessons SET target_type = 'scholars', updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(lessonId);
-      localDb.prepare("DELETE FROM class_lesson_targets WHERE lesson_id = ?").run(lessonId);
-      const insertTarget = localDb.prepare("INSERT OR IGNORE INTO class_lesson_targets (lesson_id, scholar_email) VALUES (?, ?)");
+      await .prepare("UPDATE class_lessons SET target_type = 'scholars', updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(lessonId);
+      await .prepare("DELETE FROM class_lesson_targets WHERE lesson_id = ?").run(lessonId);
+      const insertTarget = await .prepare("INSERT OR IGNORE INTO class_lesson_targets (lesson_id, scholar_email) VALUES (?, ?)");
       for (const email of allMembers) insertTarget.run(lessonId, email);
     } else {
       localDb
@@ -3180,7 +3180,7 @@ router.post("/:id/image", upload.single("image"), async (req, res) => {
   }
 });
 
-router.post("/:id/members", (req, res) => {
+router.post("/:id/members", async (req, res) => {
   try {
     const classId = String(req.params.id || "").trim();
     const teacherEmail = normalizeEmail(req.body.teacherEmail);

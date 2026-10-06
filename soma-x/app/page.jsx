@@ -2,7 +2,7 @@
 import DataContext from "@/context/DataContext";
 import { useContext, useState } from "react";
 import { useLanguage } from '@/context/LanguageContext';
-import { BookOpen, ChevronDown, Eye, EyeOff, Globe, GraduationCap, Loader2, ShieldCheck, Users, Wifi } from "lucide-react";
+import { ChevronDown, Eye, EyeOff, Globe, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import Image from "next/image";
@@ -18,7 +18,7 @@ const AuthComp = () => {
     const { shiftString } = useContext(DataContext);
     const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL;
 
-    const [formData, setFormData] = useState({ username: '', password: '', role: 'scholar' });
+    const [formData, setFormData] = useState({ email: '', password: '' });
     const [loginError, setLoginError] = useState('');
     const [loading, setLoading] = useState(false);
 
@@ -30,26 +30,25 @@ const AuthComp = () => {
             const response = await fetch(`${SERVER_URL}/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData),
+                body: JSON.stringify({ email: formData.email, password: formData.password }),
             });
             const data = await response.json();
             if (!response.ok) {
                 const msg = data.message || 'Invalid credentials. Please try again.';
-                const friendly = msg === 'Invalid role'
-                    ? `Wrong role selected. Make sure you pick "${formData.role.charAt(0).toUpperCase() + formData.role.slice(1)}" — your account's actual role may differ.`
-                    : msg;
-                throw new Error(friendly);
+                throw new Error(msg);
             }
 
-            localStorage.setItem('al', shiftString(formData.username));
-            localStorage.setItem('un', shiftString(data.user.full_name || ''));
-            localStorage.setItem('gh', shiftString(formData.role));
+            const userRole = String(data.user?.role || 'scholar').toLowerCase();
 
-            showToast(`Welcome back, ${data.user.full_name || 'User'}! Login successful.`, 'success');
+            localStorage.setItem('al', shiftString(formData.email));
+            localStorage.setItem('un', shiftString(data.user?.full_name || ''));
+            localStorage.setItem('gh', shiftString(userRole));
+
+            showToast(`Welcome back, ${data.user?.full_name || 'User'}! Login successful.`, 'success');
 
             setTimeout(() => {
-                if (formData.role === 'teacher') window.location.href = '/manage/teacher';
-                else if (formData.role === 'admin') window.location.href = '/manage/admin';
+                if (userRole === 'teacher') window.location.href = '/manage/teacher';
+                else if (userRole === 'admin') window.location.href = '/manage/admin';
                 else window.location.href = '/manage/scholar-dashboard';
             }, 600);
         } catch (err) {
@@ -60,12 +59,6 @@ const AuthComp = () => {
             setLoading(false);
         }
     };
-
-    const roles = [
-        { value: 'scholar', label: t("auth.authScholar") || 'Scholar', Icon: GraduationCap },
-        { value: 'teacher', label: t("auth.authTeacher") || 'Teacher', Icon: BookOpen      },
-        { value: 'admin',   label: t("auth.authAdmin")   || 'Admin',   Icon: ShieldCheck   },
-    ];
 
     return (
         <div className="min-h-screen w-full flex flex-col md:flex-row">
@@ -87,12 +80,9 @@ const AuthComp = () => {
                 <div className="absolute -bottom-40 -right-24 w-[28rem] h-[28rem] bg-white/5 rounded-full blur-3xl pointer-events-none" />
                 <div className="absolute top-1/3 right-0 w-48 h-48 bg-white/[0.04] rounded-full pointer-events-none" />
 
-                <div className="relative z-10 flex flex-col items-center text-center gap-4 md:gap-8 max-w-sm w-full">
+                <div className="relative z-10 flex flex-col items-center text-center gap-4 md:gap-6 max-w-sm w-full">
 
-                    {/* Logo — same wordmark used in the dashboard sidebar, no background card.
-                        Forced to solid white via filter: the source file has dark gray text
-                        meant for light backgrounds, which would be unreadable directly on this
-                        dark teal panel otherwise. */}
+                    {/* Logo */}
                     <Image
                         src="/schoolLogo/somabox.png"
                         alt="SomaBox"
@@ -104,30 +94,13 @@ const AuthComp = () => {
                     />
 
                     {/* Headline */}
-                    <div className="space-y-2 md:space-y-3">
-                        <h1 className="text-white font-black text-2xl md:text-[3.25rem] leading-tight tracking-tight">
-                            {t("auth.authTitle")}
+                    <div className="space-y-1.5 md:space-y-2">
+                        <h1 className="text-white font-bold text-xl md:text-3xl leading-tight tracking-tight whitespace-nowrap">
+                            {t("auth.authTitle") || "Welcome Back"}
                         </h1>
-                        <p className="text-white/65 text-sm md:text-lg font-medium leading-relaxed max-w-xs mx-auto">
-                            {t("auth.authSubtitle")}
+                        <p className="text-white/70 text-sm md:text-base font-medium leading-relaxed max-w-xs mx-auto">
+                            {t("auth.authSubtitle") || "Login to manage your account"}
                         </p>
-                    </div>
-
-                    {/* Feature pills — hidden on mobile to save space */}
-                    <div className="hidden md:flex flex-wrap justify-center gap-2">
-                        {[
-                            { icon: Users,    label: "12,450+ Scholars" },
-                            { icon: Wifi,     label: "Offline Ready"    },
-                            { icon: BookOpen, label: "5 Languages"      },
-                        ].map(({ icon: Icon, label }) => (
-                            <div
-                                key={label}
-                                className="flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-4 py-2 backdrop-blur-sm"
-                            >
-                                <Icon className="w-3.5 h-3.5 text-white/80 shrink-0" />
-                                <span className="text-white/90 text-xs font-semibold">{label}</span>
-                            </div>
-                        ))}
                     </div>
                 </div>
             </div>
@@ -173,12 +146,12 @@ const AuthComp = () => {
                 <form onSubmit={handleSubmit} className="w-full max-w-[400px] space-y-4">
 
                     {/* Form header */}
-                    <div className="mb-7">
-                        <h2 className="text-[28px] font-black text-slate-900 tracking-tight leading-tight">
+                    <div className="mb-6">
+                        <h2 className="text-2xl font-bold text-slate-900 tracking-tight leading-tight">
                             Welcome Back!
                         </h2>
                         <p className="text-slate-600 text-[14px] font-medium mt-1">
-                            Please enter your credentials to continue
+                            Login to manage your account
                         </p>
                     </div>
 
@@ -192,7 +165,8 @@ const AuthComp = () => {
                             id="auth-email"
                             placeholder="you@example.com"
                             required
-                            onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                            value={formData.email}
+                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                             className="w-full h-11 rounded-lg bg-white border-2 border-slate-300 hover:border-slate-400 focus:border-accent-dark px-3.5 text-[14px] text-slate-900 font-semibold placeholder:text-slate-500 shadow-sm outline-none transition-colors"
                         />
                     </div>
@@ -208,6 +182,7 @@ const AuthComp = () => {
                                 id="auth-password"
                                 placeholder="••••••••"
                                 required
+                                value={formData.password}
                                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                                 className="w-full h-11 rounded-lg bg-white border-2 border-slate-300 hover:border-slate-400 focus:border-accent-dark px-3.5 pr-11 text-[14px] text-slate-900 font-semibold placeholder:text-slate-500 shadow-sm outline-none transition-colors"
                             />
@@ -219,33 +194,6 @@ const AuthComp = () => {
                             >
                                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                             </button>
-                        </div>
-                    </div>
-
-                    {/* Role segmented control */}
-                    <div className="space-y-1.5 pt-1">
-                        <label className="block text-[12px] font-bold text-slate-800 uppercase tracking-wider">
-                            Sign in as
-                        </label>
-                        <div className="flex gap-2">
-                            {roles.map(({ value, label, Icon }) => {
-                                const active = formData.role === value;
-                                return (
-                                    <button
-                                        key={value}
-                                        type="button"
-                                        onClick={() => setFormData({ ...formData, role: value })}
-                                        className={`flex-1 flex flex-col items-center gap-1.5 py-3 rounded-lg border-2 text-[12px] font-bold transition-all duration-150 cursor-pointer shadow-sm ${
-                                            active
-                                                ? 'bg-accent-dark text-white border-accent-dark'
-                                                : 'bg-white text-slate-700 border-slate-300 hover:border-slate-400 hover:text-slate-900'
-                                        }`}
-                                    >
-                                        <Icon size={16} strokeWidth={2.5} />
-                                        {label}
-                                    </button>
-                                );
-                            })}
                         </div>
                     </div>
 
