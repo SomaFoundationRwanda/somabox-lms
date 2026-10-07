@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
-import CourseSetupWizard from "@/components/teacher/CourseSetupWizard";
+import SetupChecklist, { setupNeedsAttention } from "@/components/teacher/SetupChecklist";
 import { moduleWeekLabel, courseLifecycleLabel } from "@/lib/moduleLabels";
 import { formatRange } from "@/lib/dates";
 
@@ -48,21 +48,7 @@ export default function CourseHomePage() {
     loadHomeData();
   }, [SERVER_URL, courseId, userEmail]);
 
-  // If teacher and course is not opened yet, show Course Setup Wizard
-  if (isTeacher && setupStatus && !setupStatus.isOpened) {
-    return (
-      <CourseSetupWizard
-        SERVER_URL={SERVER_URL}
-        courseId={courseId}
-        userEmail={userEmail}
-        course={course}
-        onCompleted={() => {
-          refresh();
-          loadHomeData();
-        }}
-      />
-    );
-  }
+  const showSetupCard = isTeacher && setupNeedsAttention(setupStatus);
 
   const beatInfo = homeLoop || {};
   const currentBeat = beatInfo.currentBeat || "prepare";
@@ -96,20 +82,22 @@ export default function CourseHomePage() {
 
       <div className="p-4 md:p-6 space-y-6 max-w-5xl">
         {!course?.coverImageUrl && (
-          <div className="flex items-center justify-between">
-            <div>
-              <span className="text-xs font-bold uppercase tracking-wider text-[#0D9488]">Course Dashboard</span>
-              <h1 className="text-2xl font-black text-slate-900 mt-0.5">{course?.title || "Course"}</h1>
-            </div>
-            {isTeacher && (
-              <button
-                onClick={() => setSetupStatus((p) => ({ ...p, isOpened: false }))}
-                className="text-xs font-semibold text-[#0D9488] bg-teal-50 border border-teal-200 px-3 py-1.5 rounded-xl hover:bg-teal-100 transition-colors"
-              >
-                Re-open Setup Wizard
-              </button>
-            )}
+          <div>
+            <span className="text-xs font-bold uppercase tracking-wider text-[#0D9488]">Course Dashboard</span>
+            <h1 className="text-2xl font-black text-slate-900 mt-0.5">{course?.title || "Course"}</h1>
           </div>
+        )}
+
+        {showSetupCard && (
+          <SetupChecklist
+            courseId={courseId}
+            SERVER_URL={SERVER_URL}
+            status={setupStatus}
+            onChanged={() => {
+              refresh();
+              loadHomeData();
+            }}
+          />
         )}
 
         {/* 1. NOW BEAT CARD */}

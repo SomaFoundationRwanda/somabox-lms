@@ -5,11 +5,13 @@ import { CheckCircle2, ChevronRight, Sparkles, Plus, Trash2, ArrowRight, Target,
 import { moduleWeekLabel } from "@/lib/moduleLabels";
 import { isDateString, todayIn } from "@somabox/timeline";
 import { formatDate, toDateInput } from "@/lib/dates";
+import BaselinePanel from "./BaselinePanel";
 
 export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, course, onCompleted }) {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [openErrors, setOpenErrors] = useState([]);
 
   // Step 1 State: Setup
   const [setupForm, setSetupForm] = useState({
@@ -24,9 +26,6 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
   const [newOutcomeTitle, setNewOutcomeTitle] = useState("");
   const [aiTopic, setAiTopic] = useState("");
 
-  // Step 3 State: Baseline
-  const [baselineData, setBaselineData] = useState(null);
-
   // Step 4 State: Modules
   const [modules, setModules] = useState([]);
 
@@ -35,14 +34,12 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
     if (!SERVER_URL || !courseId) return;
     try {
       setLoading(true);
-      const [outRes, modRes, baseRes] = await Promise.all([
+      const [outRes, modRes] = await Promise.all([
         fetch(`${SERVER_URL}/courses/${courseId}/outcomes`),
         fetch(`${SERVER_URL}/courses/${courseId}/modules`),
-        fetch(`${SERVER_URL}/courses/${courseId}/baseline`),
       ]);
       if (outRes.ok) setOutcomes(await outRes.json());
       if (modRes.ok) setModules(await modRes.json());
-      if (baseRes.ok) setBaselineData(await baseRes.json());
     } catch (err) {
       console.error(err);
     } finally {
@@ -178,6 +175,8 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
   // Step 5: Open Course
   const openCourseFinal = async () => {
     setLoading(true);
+    setError("");
+    setOpenErrors([]);
     try {
       const res = await fetch(`${SERVER_URL}/courses/${courseId}/open-course`, {
         method: "POST",
@@ -188,7 +187,9 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
         onCompleted?.();
       } else {
         const data = await res.json().catch(() => ({}));
+        const blocking = Array.isArray(data.blocking) ? data.blocking.map((b) => b.message).filter(Boolean) : [];
         setError(data.message || "This course can't open yet.");
+        setOpenErrors(blocking);
       }
     } catch (err) {
       setError("Failed to open course");
@@ -206,13 +207,13 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
   ];
 
   return (
-    <div className="bg-slate-50 min-h-screen p-4 md:p-8">
+    <div className="bg-slate-50 rounded-2xl p-3 md:p-6">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
-              <span className="text-xs font-bold uppercase tracking-wider text-[#0D9488]">Week 0 Setup Wizard</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-[#0D9488]">Guided Setup</span>
               <h1 className="text-2xl font-black text-slate-900 mt-1">Setup Your Course Timeline</h1>
             </div>
             <span className="text-xs font-semibold bg-teal-50 text-[#0D9488] border border-teal-200 px-3 py-1.5 rounded-full">
@@ -221,12 +222,14 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
           </div>
 
           {/* Stepper progress */}
-          <div className="grid grid-cols-5 gap-2 mt-6">
+          <div className="grid grid-cols-5 gap-2 mt-6 overflow-x-auto">
             {STEPS.map((s) => (
               <button
                 key={s.num}
+                type="button"
                 onClick={() => setStep(s.num)}
-                className={`flex flex-col items-start p-2.5 rounded-xl border text-left transition-all ${
+                aria-current={step === s.num ? "step" : undefined}
+                className={`flex flex-col items-start p-2.5 min-w-[5.5rem] rounded-xl border text-left transition-all ${
                   step === s.num
                     ? "bg-[#203A3A] text-white border-[#203A3A] shadow-sm"
                     : s.num < step
@@ -244,7 +247,14 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
         </div>
 
         {error ? (
-          <div className="p-4 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl">{error}</div>
+          <div role="alert" className="p-4 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl">
+            <p>{error}</p>
+            {openErrors.length > 0 && (
+              <ul className="list-disc list-inside mt-1 space-y-0.5">
+                {openErrors.map((m, i) => <li key={i}>{m}</li>)}
+              </ul>
+            )}
+          </div>
         ) : null}
 
         {/* STEP 1: Course Setup */}
@@ -390,20 +400,18 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
               <BookOpen className="w-5 h-5 text-[#0D9488]" /> Step 3: Week 0 Baseline Diagnostic Assessment
             </h2>
             <p className="text-xs text-slate-600">
-              Week 0 is reserved for diagnostic baseline assessment. Students take this quiz upon joining to establish initial outcome baselines.
+              A short, ungraded check before Week 1. Each question is tagged with an outcome, and each learner&apos;s
+              starting point per outcome is calculated from their answers. Build it from outcome-tagged quiz questions,
+              then approve it, or skip it with a recorded reason.
             </p>
 
-            <div className="p-4 bg-teal-50 border border-teal-200 rounded-2xl space-y-2">
-              <h3 className="text-sm font-bold text-teal-900">Baseline Assessment Configuration</h3>
-              <p className="text-xs text-teal-700">
-                Covers all {outcomes.length} defined course learning outcome(s).
-              </p>
-              <div className="flex items-center gap-2 pt-2">
-                <span className="text-xs font-semibold text-[#0D9488] bg-white px-3 py-1 rounded-full border border-teal-200">
-                  Week 0 Diagnostic Quiz Ready
-                </span>
-              </div>
-            </div>
+            <BaselinePanel
+              SERVER_URL={SERVER_URL}
+              courseId={courseId}
+              isDraft={!course?.lifecycle || course.lifecycle === "draft"}
+              onChanged={loadWizardData}
+              compact
+            />
 
             <div className="pt-4 flex justify-between">
               <button onClick={() => setStep(2)} className="px-4 py-2 text-xs font-semibold text-slate-600">Back</button>

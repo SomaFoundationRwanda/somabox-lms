@@ -196,3 +196,9 @@ test("dates become calendar dates and set due dates become offsets", async () =>
   const nav = await one(`SELECT pg_get_constraintdef(oid) AS def FROM pg_constraint WHERE conname = 'course_nav_items_nav_key_check'`);
   assert.match(nav.def, /calendar/);
 });
+
+test("already-open courses aren't blocked by the new baseline step", async () => {
+  const c1 = await one(`SELECT baseline_status, baseline_skip_reason FROM courses WHERE id = 'C1'`);
+  assert.equal(c1.baseline_status, "skipped");
+  assert.match(c1.baseline_skip_reason, /before baseline decisions/);
+});

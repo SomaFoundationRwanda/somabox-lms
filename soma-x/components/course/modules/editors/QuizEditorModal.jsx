@@ -1,19 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { X, Plus, Trash2, Check, Sparkles } from "lucide-react";
 import InfoTooltip from "@/components/ui/InfoTooltip";
+import { useCourse } from "@/context/CourseContext";
 import ScheduleFields, { initialScheduleValues, scheduleError, schedulePayload } from "./ScheduleFields";
 
-function QuestionBuilder({ question, index, onChange, onRemove }) {
+function QuestionBuilder({ question, index, onChange, onRemove, outcomes }) {
   const updateField = (field, value) => onChange(index, { ...question, [field]: value });
+  // Several fields at once: separate updateField calls would each start from the same stale
+  // question and the last one would overwrite the others.
+  const updateFields = (fields) => onChange(index, { ...question, ...fields });
   const options = Array.isArray(question.options) ? question.options : [];
 
   const addOption = () => updateField("options", [...options, { text: "", id: `opt_${Date.now()}` }]);
   const removeOption = (optIdx) => {
     const next = options.filter((_, i) => i !== optIdx);
-    updateField("options", next);
-    if (question.correctOption === options[optIdx]?.id) updateField("correctOption", null);
+    const clearsCorrect = question.correctOption === options[optIdx]?.id;
+    updateFields(clearsCorrect ? { options: next, correctOption: null } : { options: next });
   };
   const updateOptionText = (optIdx, text) => {
     const next = options.map((o, i) => i === optIdx ? { ...o, text } : o);
@@ -29,8 +33,7 @@ function QuestionBuilder({ question, index, onChange, onRemove }) {
       { text: `Plausible Distractor B (${baseText})`, id: `opt_dist2_${Date.now()}` },
       { text: `Common Misconception (${baseText})`, id: `opt_dist3_${Date.now()}` },
     ];
-    updateField("options", newOpts);
-    updateField("correctOption", newOpts[0].id);
+    updateFields({ options: newOpts, correctOption: newOpts[0].id });
   };
 
   return (
@@ -58,8 +61,9 @@ function QuestionBuilder({ question, index, onChange, onRemove }) {
         className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[#0D9488] bg-white"
       />
 
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <select
+          aria-label={`Question ${index + 1} type`}
           value={question.questionType || "multiple_choice"}
           onChange={(e) => updateField("questionType", e.target.value)}
           className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 bg-white"
@@ -68,14 +72,31 @@ function QuestionBuilder({ question, index, onChange, onRemove }) {
           <option value="open">Open Ended</option>
         </select>
         <div className="flex items-center gap-1.5">
-          <label className="text-xs text-slate-500">Points:</label>
+          <label htmlFor={`q-${index}-points`} className="text-xs text-slate-500">Points:</label>
           <input
+            id={`q-${index}-points`}
             type="number"
             min="1"
             value={question.points || 1}
             onChange={(e) => updateField("points", Number(e.target.value) || 1)}
             className="w-16 text-xs border border-slate-200 rounded-lg px-2 py-1.5 bg-white outline-none"
           />
+        </div>
+        <div className="flex items-center gap-1.5 min-w-0 flex-1 basis-48">
+          <label htmlFor={`q-${index}-outcome`} className="text-xs text-slate-500 shrink-0">Outcome:</label>
+          <select
+            id={`q-${index}-outcome`}
+            value={question.outcomeId ? String(question.outcomeId) : ""}
+            onChange={(e) => updateField("outcomeId", outcomes.find((o) => String(o.id) === e.target.value)?.id ?? null)}
+            className="min-w-0 flex-1 text-xs border border-slate-200 rounded-lg px-2 py-1.5 bg-white"
+          >
+            <option value="">No outcome</option>
+            {outcomes.map((o) => (
+              <option key={o.id} value={String(o.id)}>
+                {o.code ? `${o.code}: ` : ""}{o.title}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -126,7 +147,22 @@ function QuestionBuilder({ question, index, onChange, onRemove }) {
 // initialDays: the module item's { release_day, due_day, close_day } when editing.
 // moduleStartDate: the module's first day ('YYYY-MM-DD'), for previewing dates.
 export default function QuizEditorModal({ open, onClose, onSave, initialData, initialDays, moduleStartDate }) {
+  const { SERVER_URL, courseId } = useCourse();
   const isEdit = Boolean(initialData?.id);
+  const [outcomes, setOutcomes] = useState([]);
+
+  useEffect(() => {
+    if (!open || !SERVER_URL || !courseId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${SERVER_URL}/courses/${courseId}/outcomes`);
+        const payload = await res.json().catch(() => []);
+        if (!cancelled && res.ok && Array.isArray(payload)) setOutcomes(payload);
+      } catch { /* the select just offers "No outcome" */ }
+    })();
+    return () => { cancelled = true; };
+  }, [open, SERVER_URL, courseId]);
   const [title, setTitle] = useState(initialData?.title || "");
   const [description, setDescription] = useState(initialData?.description || "");
   const [schedule, setSchedule] = useState(() => initialScheduleValues(initialDays));
@@ -144,6 +180,7 @@ export default function QuizEditorModal({ open, onClose, onSave, initialData, in
           options: typeof q.options === "string" ? JSON.parse(q.options || "[]") : (q.options || []),
           correctOption: q.correct_option || q.correctOption || null,
           points: q.points || 1,
+          outcomeId: q.outcome_id ?? q.outcomeId ?? null,
         }))
       : []
   );
@@ -151,7 +188,7 @@ export default function QuizEditorModal({ open, onClose, onSave, initialData, in
 
   const addQuestion = () => setQuestions((prev) => [
     ...prev,
-    { prompt: "", questionType: "multiple_choice", options: [{ text: "", id: `opt_${Date.now()}_a` }, { text: "", id: `opt_${Date.now()}_b` }], correctOption: null, points: 1 },
+    { prompt: "", questionType: "multiple_choice", options: [{ text: "", id: `opt_${Date.now()}_a` }, { text: "", id: `opt_${Date.now()}_b` }], correctOption: null, points: 1, outcomeId: null },
   ]);
 
   const updateQuestion = (index, updated) => setQuestions((prev) => prev.map((q, i) => i === index ? updated : q));
@@ -226,9 +263,11 @@ export default function QuizEditorModal({ open, onClose, onSave, initialData, in
                 <option value="practice">Practice</option>
                 <option value="baseline">Baseline</option>
               </select>
-              {kind !== "practice" && (
+              {kind === "baseline" ? (
+                <span className="block text-[10px] text-amber-700">Baseline questions must be multiple choice with a correct answer and an outcome.</span>
+              ) : kind !== "practice" ? (
                 <span className="text-[10px] text-slate-400">Needs an outcome tag before it can be published.</span>
-              )}
+              ) : null}
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1.5">Attempts Allowed</label>
@@ -256,7 +295,7 @@ export default function QuizEditorModal({ open, onClose, onSave, initialData, in
             </div>
             <div className="space-y-3">
               {questions.map((q, idx) => (
-                <QuestionBuilder key={idx} question={q} index={idx} onChange={updateQuestion} onRemove={removeQuestion} />
+                <QuestionBuilder key={idx} question={q} index={idx} onChange={updateQuestion} onRemove={removeQuestion} outcomes={outcomes} />
               ))}
               {questions.length === 0 && (
                 <p className="text-xs text-slate-400 text-center py-6">No questions yet. Click "Add Question" to start building your quiz.</p>

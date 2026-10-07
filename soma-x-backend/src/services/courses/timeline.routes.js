@@ -3,6 +3,7 @@ import express from "express";
 import { addDays, resolveTimeline, shiftModuleOffsets } from "@somabox/timeline";
 import { localDb } from "../../helpers/db-manager.js";
 import { loadCourseTimeline, refreshDueDates } from "./schedule.js";
+import { getSetupReport } from "./setup.js";
 import {
   isTeacherRole,
   requireTeacher,
@@ -89,41 +90,29 @@ router.patch("/:id/shift-timeline", async (req, res) => {
   }
 });
 
-// Setup status & Course Opening
-// TODO(phase 4): add the full blocking list (baseline, graded items tagged, start date, no orphans).
-async function getSetupRequirements(courseId) {
-  const outcomesCount = Number((await localDb.prepare("SELECT COUNT(*) AS c FROM outcomes WHERE course_id = ?").get(courseId))?.c || 0);
-  const modulesCount = Number((await localDb.prepare("SELECT COUNT(*) AS c FROM modules WHERE course_id = ? AND kind <> 'unassigned'").get(courseId))?.c || 0);
-  const itemsCount = Number((await localDb.prepare("SELECT COUNT(*) AS c FROM module_items mi JOIN modules m ON m.id = mi.module_id WHERE m.course_id = ? AND m.kind <> 'unassigned'").get(courseId))?.c || 0);
-  const unassignedCount = Number((await localDb.prepare("SELECT COUNT(*) AS c FROM module_items mi JOIN modules m ON m.id = mi.module_id WHERE m.course_id = ? AND m.kind = 'unassigned'").get(courseId))?.c || 0);
-
-  const missingRequirements = [];
-  if (outcomesCount === 0) missingRequirements.push("Define course learning outcomes");
-  if (modulesCount === 0) missingRequirements.push("Add at least one module");
-  if (itemsCount === 0) missingRequirements.push("Add items to modules");
-  if (unassignedCount > 0) missingRequirements.push(`Move the ${unassignedCount} item${unassignedCount === 1 ? "" : "s"} in "Unassigned (fix me)" into a module`);
-
-  return { outcomesCount, modulesCount, itemsCount, missingRequirements };
-}
-
+// ===== Setup status & opening =====
 router.get("/:id/setup-status", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
     const course = await courseExists(courseId);
     if (!course) return res.status(404).json({ message: "Course not found" });
-    if (!await requireEnrolled(req, res, courseId)) return;
+    const auth = await requireEnrolled(req, res, courseId);
+    if (!auth) return;
+    // Learners only need to know whether the course is open.
+    if (!isTeacherRole(auth.enrollment.role)) {
+      return res.json({ lifecycle: course.lifecycle, isOpened: course.lifecycle !== "draft" });
+    }
 
-    const setup = await getSetupRequirements(courseId);
-
+    const report = await getSetupReport(courseId);
     return res.json({
-      lifecycle: course.lifecycle,
+      ...report,
       isOpened: course.lifecycle !== "draft",
       setupStep: Number(course.setup_step) || 1,
-      outcomesCount: setup.outcomesCount,
-      modulesCount: setup.modulesCount,
-      itemsCount: setup.itemsCount,
-      canOpen: setup.missingRequirements.length === 0,
-      missingRequirements: setup.missingRequirements
+      outcomesCount: report.counts.outcomes,
+      modulesCount: report.counts.modules,
+      itemsCount: report.counts.items,
+      // Kept for older screens: the blocking messages as plain strings.
+      missingRequirements: report.blocking.map((b) => b.message),
     });
   } catch (error) {
     return res.status(500).json({ message: error.message });
@@ -137,16 +126,16 @@ router.post("/:id/open-course", async (req, res) => {
     if (!course) return res.status(404).json({ message: "Course not found" });
     if (!await requireTeacher(req, res, courseId)) return;
 
-    const setup = await getSetupRequirements(courseId);
-    if (setup.missingRequirements.length > 0) {
-      return res.status(400).json({
-        message: `This course can't open yet: ${setup.missingRequirements.join("; ")}`,
-        missingRequirements: setup.missingRequirements
-      });
-    }
-
     if (course.lifecycle !== "draft") {
       return res.status(400).json({ message: `This course is already ${course.lifecycle}` });
+    }
+    const report = await getSetupReport(courseId);
+    if (!report.canOpen) {
+      return res.status(400).json({
+        message: `This course can't open yet: ${report.blocking.map((b) => b.message).join("; ")}`,
+        blocking: report.blocking,
+        missingRequirements: report.blocking.map((b) => b.message),
+      });
     }
     await localDb.prepare("UPDATE courses SET lifecycle = 'open', updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(courseId);
     return res.json({ message: "Course successfully opened!", course: await courseExists(courseId) });

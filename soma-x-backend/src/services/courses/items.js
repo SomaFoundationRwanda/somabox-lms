@@ -4,6 +4,7 @@
 import { localDb } from "../../helpers/db-manager.js";
 import { calculateEstimatedReadMinutes, syncPageFileReferences } from "./shared.js";
 import { ScheduleError, parseItemDays, refreshDueDates } from "./schedule.js";
+import { baselineQuestionsChanged } from "./setup.js";
 
 export const CONTENT_TABLES = {
   page: "course_pages",
@@ -45,6 +46,7 @@ async function nextItemPosition(moduleId) {
 }
 
 export async function replaceQuizQuestions(quizId, questions, courseId) {
+  await baselineQuestionsChanged(courseId, quizId);
   await localDb.prepare("DELETE FROM quiz_questions WHERE quiz_id = ?").run(quizId);
   for (const [idx, q] of questions.entries()) {
     const outcomeId = q?.outcomeId ? Number(q.outcomeId) : null;
@@ -65,6 +67,12 @@ export async function replaceQuizQuestions(quizId, questions, courseId) {
       outcomeId
     );
   }
+  // A quiz assesses every outcome its questions are tagged with.
+  await localDb.prepare(`
+    INSERT INTO item_outcomes (course_id, item_type, item_id, outcome_id)
+    SELECT DISTINCT ?, 'quiz', quiz_id, outcome_id FROM quiz_questions WHERE quiz_id = ? AND outcome_id IS NOT NULL
+    ON CONFLICT (item_type, item_id, outcome_id) DO NOTHING
+  `).run(courseId, quizId);
 }
 
 async function setItemOutcomes(courseId, itemType, contentId, outcomeIds) {

@@ -11,6 +11,7 @@ import {
   scheduleSpacedReview,
   userFullName,
 } from "./shared.js";
+import { recordBaselineResults } from "./setup.js";
 import {
   OUTCOME_REQUIRED_MESSAGE,
   deleteContent,
@@ -381,10 +382,15 @@ router.post("/:id/quizzes/:quizId/submit", async (req, res) => {
       const used = await localDb.prepare("SELECT COALESCE(MAX(attempt_number), 0) AS n FROM quiz_attempts WHERE quiz_id = ? AND user_id = ?").get(quiz.id, req.user.id);
       const attemptNumber = Number(used?.n || 0) + 1;
       if (quiz.attempts_allowed != null && attemptNumber > Number(quiz.attempts_allowed)) return null;
-      await localDb.prepare(`
+      const saved = await localDb.prepare(`
         INSERT INTO quiz_attempts (quiz_id, user_id, attempt_number, answers, started_at, submitted_at, score_points, score_pct)
         VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?, ?)
-      `).run(quiz.id, req.user.id, attemptNumber, JSON.stringify(answers), score, scorePct);
+        RETURNING id
+      `).get(quiz.id, req.user.id, attemptNumber, JSON.stringify(answers), score, scorePct);
+      // A learner's first baseline attempt sets their per-outcome starting point.
+      if (quiz.kind === "baseline" && attemptNumber === 1 && auth.enrollment.role === "student") {
+        await recordBaselineResults({ courseId, quizId: quiz.id, userId: req.user.id, email: auth.email, attemptId: saved.id, answers });
+      }
       return attemptNumber;
     })();
     if (attempt === null) {

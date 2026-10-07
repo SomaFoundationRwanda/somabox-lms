@@ -12,6 +12,7 @@ import outcomeRoutes from "./courses/outcomes.routes.js";
 import timelineRoutes from "./courses/timeline.routes.js";
 import aiRoutes from "./courses/ai.routes.js";
 import calendarRoutes from "./courses/calendar.routes.js";
+import baselineRoutes from "./courses/baseline.routes.js";
 
 const router = express.Router();
 
@@ -25,6 +26,7 @@ for (const domain of [
   gradeRoutes,
   contentRoutes,
   outcomeRoutes,
+  baselineRoutes,
   timelineRoutes,
   calendarRoutes,
   aiRoutes,

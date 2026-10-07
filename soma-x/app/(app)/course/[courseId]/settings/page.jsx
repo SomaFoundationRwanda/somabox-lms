@@ -1,13 +1,103 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ArrowRight, ChevronDown, ChevronUp, Eye, EyeOff } from "lucide-react";
+import { ArrowRight, ChevronDown, ChevronUp, Eye, EyeOff, ListChecks, X } from "lucide-react";
 import { compareDates, isDateString } from "@somabox/timeline";
 import { useCourse } from "@/context/CourseContext";
 import { useToast } from "@/context/ToastContext";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
 import { formatDate, toDateInput } from "@/lib/dates";
 import { moduleWeekLabel } from "@/lib/moduleLabels";
+import SetupChecklist from "@/components/teacher/SetupChecklist";
+import BaselinePanel from "@/components/teacher/BaselinePanel";
+import CourseSetupWizard from "@/components/teacher/CourseSetupWizard";
+
+// Settings > Course setup (teachers): the setup checklist, the Week 0 baseline and the guided wizard.
+function CourseSetupSection({ SERVER_URL, courseId, course, userEmail, onCourseChanged }) {
+  const [status, setStatus] = useState(null);
+  const [statusError, setStatusError] = useState("");
+  const [showWizard, setShowWizard] = useState(false);
+  const [baselineKey, setBaselineKey] = useState(0); // remounts the baseline panel after the wizard changes things
+
+  const loadStatus = useCallback(async () => {
+    if (!SERVER_URL || !courseId) return;
+    try {
+      const res = await fetch(`${SERVER_URL}/courses/${courseId}/setup-status`);
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(payload?.message || "Could not load the setup status");
+      setStatus(payload);
+      setStatusError("");
+    } catch (err) {
+      setStatusError(err.message || "Could not load the setup status");
+    }
+  }, [SERVER_URL, courseId]);
+
+  useEffect(() => { loadStatus(); }, [loadStatus]);
+
+  const isDraft = status ? !status.isOpened : (!course?.lifecycle || course.lifecycle === "draft");
+
+  return (
+    <section id="course-setup" aria-labelledby="course-setup-title" className="space-y-4 scroll-mt-4">
+      <h2 id="course-setup-title" className="sr-only">Course setup</h2>
+      {statusError && <p className="text-xs text-rose-600" role="alert">{statusError}</p>}
+      {status && (
+        <SetupChecklist
+          courseId={courseId}
+          SERVER_URL={SERVER_URL}
+          status={status}
+          showSettingsLink={false}
+          onChanged={() => { loadStatus(); onCourseChanged(); }}
+        />
+      )}
+
+      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-3">
+        <h3 className="text-base font-bold text-slate-900">Baseline (Week 0)</h3>
+        <BaselinePanel
+          key={baselineKey}
+          SERVER_URL={SERVER_URL}
+          courseId={courseId}
+          isDraft={isDraft}
+          onChanged={loadStatus}
+        />
+      </div>
+
+      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h3 className="text-base font-bold text-slate-900">Guided setup</h3>
+            <p className="text-xs text-slate-500 mt-0.5">Prefer step by step? Walk through dates, outcomes, baseline and weeks in order.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              if (showWizard) { setBaselineKey((k) => k + 1); loadStatus(); onCourseChanged(); }
+              setShowWizard(!showWizard);
+            }}
+            aria-expanded={showWizard}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0D9488] bg-teal-50 border border-teal-200 px-3 py-2 rounded-xl hover:bg-teal-100 transition-colors"
+          >
+            {showWizard ? <><X className="w-3.5 h-3.5" aria-hidden="true" /> Close guided setup</> : <><ListChecks className="w-3.5 h-3.5" aria-hidden="true" /> Guided setup</>}
+          </button>
+        </div>
+      </div>
+
+      {showWizard && (
+        <CourseSetupWizard
+          SERVER_URL={SERVER_URL}
+          courseId={courseId}
+          userEmail={userEmail}
+          course={course}
+          onCompleted={() => {
+            setShowWizard(false);
+            setBaselineKey((k) => k + 1);
+            loadStatus();
+            onCourseChanged();
+          }}
+        />
+      )}
+    </section>
+  );
+}
 
 // "Shift timeline": preview moving dates by N days (whole course or from one module on),
 // then apply exactly what was previewed.
@@ -182,7 +272,7 @@ function ShiftTimelinePanel({ SERVER_URL, courseId, startDate, onApplied }) {
 }
 
 export default function CourseSettingsPage() {
-  const { SERVER_URL, courseId, course, nav, refresh } = useCourse();
+  const { SERVER_URL, courseId, course, nav, refresh, isTeacher, userEmail } = useCourse();
   const { showToast } = useToast();
   const [detailsError, setDetailsError] = useState("");
   const [tab, setTab] = useState("details");
@@ -208,6 +298,20 @@ export default function CourseSettingsPage() {
   useEffect(() => {
     setNavItems(nav.map((item) => ({ ...item })));
   }, [nav]);
+
+  // "#course-setup" links (from the Home checklist and setup-status hrefs) open the Course setup tab.
+  useEffect(() => {
+    if (!isTeacher) return;
+    const syncFromHash = () => {
+      if (window.location.hash === "#course-setup") {
+        setTab("setup");
+        requestAnimationFrame(() => document.getElementById("course-setup")?.scrollIntoView({ block: "start" }));
+      }
+    };
+    syncFromHash();
+    window.addEventListener("hashchange", syncFromHash);
+    return () => window.removeEventListener("hashchange", syncFromHash);
+  }, [isTeacher]);
 
   const saveDetails = async () => {
     setDetailsError("");
@@ -307,9 +411,20 @@ export default function CourseSettingsPage() {
         <div className="flex items-center gap-1.5 border-b border-slate-200">
           <button onClick={() => setTab("details")} className={`text-sm font-semibold px-3 py-2 border-b-2 ${tab === "details" ? "border-[#203A3A] text-[#203A3A]" : "border-transparent text-slate-500"}`}>Course Details</button>
           <button onClick={() => setTab("navigation")} className={`text-sm font-semibold px-3 py-2 border-b-2 ${tab === "navigation" ? "border-[#203A3A] text-[#203A3A]" : "border-transparent text-slate-500"}`}>Navigation</button>
+          {isTeacher && (
+            <button onClick={() => setTab("setup")} className={`text-sm font-semibold px-3 py-2 border-b-2 ${tab === "setup" ? "border-[#203A3A] text-[#203A3A]" : "border-transparent text-slate-500"}`}>Course setup</button>
+          )}
         </div>
 
-        {tab === "details" ? (
+        {tab === "setup" && isTeacher ? (
+          <CourseSetupSection
+            SERVER_URL={SERVER_URL}
+            courseId={courseId}
+            course={course}
+            userEmail={userEmail}
+            onCourseChanged={refresh}
+          />
+        ) : tab === "details" ? (
           <div className="space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>

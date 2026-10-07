@@ -93,23 +93,13 @@ test("outcome-mastery normalizes graded work to percent", async () => {
   assert.equal(o.delta, null);
 });
 
-test("baseline/submit never invents scores", async () => {
+test("client-sent baseline scores are no longer accepted", async () => {
+  // Baselines are computed from baseline quiz answers (see test/setup.test.js).
   const courseId = await createCourse();
-  const outcome = await db.prepare("INSERT INTO outcomes (course_id, title) VALUES (?, 'Fractions') RETURNING id").get(courseId);
-
-  const empty = await asStudent("POST", `/courses/${courseId}/baseline/submit`, { answers: {} });
-  assert.equal(empty.status, 400);
-  const invalid = await asStudent("POST", `/courses/${courseId}/baseline/submit`, { answers: { [outcome.id]: 150 } });
-  assert.equal(invalid.status, 400);
-
+  const res = await asStudent("POST", `/courses/${courseId}/baseline/submit`, { answers: { 1: 100 } });
+  assert.equal(res.status, 404);
   const rows = await db.prepare("SELECT * FROM student_outcome_baselines WHERE course_id = ?").all(courseId);
   assert.equal(rows.length, 0);
-
-  const ok = await asStudent("POST", `/courses/${courseId}/baseline/submit`, { answers: { [outcome.id]: 45 } });
-  assert.equal(ok.status, 200);
-  const stored = await db.prepare("SELECT baseline_score FROM student_outcome_baselines WHERE course_id = ?").all(courseId);
-  assert.equal(stored.length, 1);
-  assert.equal(Number(stored[0].baseline_score), 45);
 });
 
 // ---------- P0-3: read endpoints require enrollment ----------
@@ -165,8 +155,10 @@ test("a new course starts unopened and cannot open with missing requirements", a
 test("a course with outcomes, a module, and an item can open", async () => {
   const courseId = await createCourse("To open", { lifecycle: "draft" });
   await db.prepare("INSERT INTO outcomes (course_id, title) VALUES (?, 'O1')").run(courseId);
-  const mod = await db.prepare("INSERT INTO modules (course_id, title, week_offset) VALUES (?, 'Week 1', 1) RETURNING id").get(courseId);
-  await db.prepare("INSERT INTO module_items (module_id, item_type, title, position) VALUES (?, 'sub_header', 'Intro', 0)").run(mod.id);
+  const mod = await asTeacher("POST", `/courses/${courseId}/modules`, { title: "Week 1" });
+  await asTeacher("POST", `/courses/${courseId}/modules/${mod.body.id}/items`, { itemType: "page", title: "Intro" });
+  await asTeacher("PATCH", `/courses/${courseId}`, { startDate: "2026-01-05" });
+  await asTeacher("POST", `/courses/${courseId}/baseline/skip`, { reason: "Small pilot class, no pre-test" });
 
   const open = await asTeacher("POST", `/courses/${courseId}/open-course`, {});
   assert.equal(open.status, 200, JSON.stringify(open.body));
