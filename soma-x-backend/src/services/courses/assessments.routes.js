@@ -12,6 +12,8 @@ import {
   userFullName,
 } from "./shared.js";
 import { recordBaselineResults } from "./setup.js";
+import { recordQuizAttemptResults, recordSubmissionResults, rubricGrade } from "./results.js";
+import { contentDeadlines } from "./schedule.js";
 import {
   OUTCOME_REQUIRED_MESSAGE,
   deleteContent,
@@ -81,13 +83,25 @@ router.get("/:id/assignments/:assignmentId", async (req, res) => {
 
     if (isTeacherRole(auth.enrollment.role)) {
       const rawSubs = await localDb.prepare("SELECT * FROM assignment_submissions WHERE assignment_id = ?").all(assignment.id);
-      const submissions = await Promise.all(rawSubs.map(async (s) => ({ ...s, fullName: await userFullName(s.scholar_email) })));
+      const submissions = await Promise.all(rawSubs.map(async (s) => ({
+        ...s,
+        fullName: await userFullName(s.scholar_email),
+        rubricScores: await localDb.prepare("SELECT criterion_id, points, level, source FROM submission_scores WHERE submission_id = ?").all(s.id),
+      })));
       return res.json({ ...assignment, submissions });
     }
 
     if (Number(row.published) !== 1) return res.status(404).json({ message: "Assignment not found" });
     const mySubmission = await localDb.prepare("SELECT * FROM assignment_submissions WHERE assignment_id = ? AND LOWER(scholar_email) = LOWER(?)").get(assignment.id, auth.email);
-    return res.json({ ...assignment, mySubmission: mySubmission || null });
+    const rubricScores = mySubmission
+      ? await localDb.prepare("SELECT criterion_id, points, level FROM submission_scores WHERE submission_id = ?").all(mySubmission.id)
+      : [];
+    const deadlines = await contentDeadlines(courseId, "assignment", assignment.id);
+    return res.json({
+      ...assignment,
+      mySubmission: mySubmission ? { ...mySubmission, rubricScores } : null,
+      deadlines: { releaseDate: deadlines.releaseDate, dueDate: deadlines.dueDate, closeDate: deadlines.closeDate, isLate: deadlines.isLate, isClosed: deadlines.isClosed, notOpenYet: deadlines.notOpenYet },
+    });
   } catch (error) {
     console.error("Error fetching assignment:", error);
     return res.status(500).json({ message: error.message });
@@ -161,42 +175,93 @@ router.post("/:id/assignments/:assignmentId/submit", async (req, res) => {
 
     const assignment = await localDb.prepare("SELECT * FROM assignments WHERE id = ? AND course_id = ?").get(req.params.assignmentId, courseId);
     if (!assignment) return res.status(404).json({ message: "Assignment not found" });
-    if (!isTeacherRole(auth.enrollment.role) && Number(assignment.published) !== 1) {
+    const isLearner = !isTeacherRole(auth.enrollment.role);
+    if (isLearner && Number(assignment.published) !== 1) {
       return res.status(404).json({ message: "Assignment not found" });
     }
+    const deadlines = await contentDeadlines(courseId, "assignment", assignment.id);
+    if (isLearner && deadlines.notOpenYet) return res.status(409).json({ message: `This assignment opens on ${deadlines.releaseDate}`, code: "NOT_OPEN_YET" });
+    if (isLearner && deadlines.isClosed) return res.status(409).json({ message: `This assignment closed on ${deadlines.closeDate}`, code: "CLOSED" });
 
     const alreadySubmitted = await localDb.prepare("SELECT 1 FROM assignment_submissions WHERE assignment_id = ? AND LOWER(scholar_email) = LOWER(?)").get(assignment.id, auth.email);
 
     await localDb.prepare(`
-      INSERT INTO assignment_submissions (assignment_id, scholar_email, body, submitted_at)
-      VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-      ON CONFLICT(assignment_id, scholar_email) DO UPDATE SET body = excluded.body, submitted_at = CURRENT_TIMESTAMP
-    `).run(assignment.id, auth.email, req.body.body || "");
+      INSERT INTO assignment_submissions (assignment_id, scholar_email, body, submitted_at, is_late)
+      VALUES (?, ?, ?, CURRENT_TIMESTAMP, ?)
+      ON CONFLICT(assignment_id, scholar_email) DO UPDATE SET body = excluded.body, submitted_at = CURRENT_TIMESTAMP, is_late = excluded.is_late
+    `).run(assignment.id, auth.email, req.body.body || "", deadlines.isLate);
 
     if (!alreadySubmitted) {
       await scheduleSpacedReview(auth.email, `assignment_${assignment.id}`, assignment.title);
     }
 
-    return res.status(201).json({ message: "Submitted" });
+    return res.status(201).json({ message: deadlines.isLate ? "Submitted late" : "Submitted", late: deadlines.isLate });
   } catch (error) {
     console.error("Error submitting assignment:", error);
     return res.status(500).json({ message: error.message });
   }
 });
 
+// Teachers grade their course; admins may override any grade but must give a reason.
+async function requireGrader(req, res, courseId) {
+  if (req.user?.role === "admin") {
+    const reason = String(req.body?.reason || "").trim();
+    if (reason.length < 5) {
+      res.status(400).json({ message: "Admins must give a reason for changing a grade" });
+      return null;
+    }
+    return { email: req.user.email, role: "admin", kind: "override", reason };
+  }
+  const auth = await requireTeacher(req, res, courseId);
+  if (!auth) return null;
+  return { email: auth.email, role: auth.enrollment.role, kind: "grade", reason: req.body?.reason || null };
+}
+
+async function gradeTarget(res, courseId, assignmentId, scholarEmailParam) {
+  const assignment = await localDb.prepare("SELECT id, points_possible FROM assignments WHERE id = ? AND course_id = ?").get(assignmentId, courseId);
+  if (!assignment) { res.status(404).json({ message: "Assignment not found" }); return null; }
+  const scholarEmail = normalizeEmail(scholarEmailParam);
+  const learner = await localDb.prepare("SELECT role FROM enrollments WHERE course_id = ? AND LOWER(user_email) = LOWER(?)").get(courseId, scholarEmail);
+  if (!learner || learner.role !== "student") { res.status(404).json({ message: "That learner isn't in this course" }); return null; }
+  return { assignment, scholarEmail };
+}
+
+async function saveGrade({ courseId, assignment, scholarEmail, grade, feedback, grader, changeKind }) {
+  return await localDb.transaction(async () => {
+    const previous = await localDb.prepare("SELECT id, grade FROM assignment_submissions WHERE assignment_id = ? AND LOWER(scholar_email) = LOWER(?)").get(assignment.id, scholarEmail);
+    const saved = await localDb.prepare(`
+      INSERT INTO assignment_submissions (assignment_id, scholar_email, grade, graded_at, graded_by_teacher_email, feedback)
+      VALUES (?, ?, ?, CURRENT_TIMESTAMP, ?, ?)
+      ON CONFLICT(assignment_id, scholar_email) DO UPDATE SET
+        grade = excluded.grade, graded_at = CURRENT_TIMESTAMP, graded_by_teacher_email = excluded.graded_by_teacher_email,
+        feedback = COALESCE(?, assignment_submissions.feedback)
+      RETURNING id
+    `).get(assignment.id, scholarEmail, grade, grader.email, feedback ?? "", feedback ?? null);
+    // Every grade change is recorded (who, in what role, how, from what, to what, why).
+    await localDb.prepare(`
+      INSERT INTO grade_audit_log (submission_id, assignment_id, scholar_email, old_grade, new_grade, changed_by, reason, change_kind, actor_role)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(saved.id, assignment.id, scholarEmail, previous?.grade ?? null, grade, grader.email, grader.reason, changeKind, grader.role);
+    await recordSubmissionResults({ courseId, assignmentId: assignment.id, submissionId: saved.id });
+    return saved.id;
+  })();
+}
+
 router.patch("/:id/assignments/:assignmentId/grade/:scholarEmail", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
     if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
-    const auth = await requireTeacher(req, res, courseId);
-    if (!auth) return;
+    const grader = await requireGrader(req, res, courseId);
+    if (!grader) return;
+    const target = await gradeTarget(res, courseId, req.params.assignmentId, req.params.scholarEmail);
+    if (!target) return;
+    const { assignment, scholarEmail } = target;
 
-    const assignment = await localDb.prepare("SELECT id, points_possible FROM assignments WHERE id = ? AND course_id = ?").get(req.params.assignmentId, courseId);
-    if (!assignment) return res.status(404).json({ message: "Assignment not found" });
-
-    const scholarEmail = normalizeEmail(req.params.scholarEmail);
-    const learner = await localDb.prepare("SELECT role FROM enrollments WHERE course_id = ? AND LOWER(user_email) = LOWER(?)").get(courseId, scholarEmail);
-    if (!learner || learner.role !== "student") return res.status(404).json({ message: "That learner isn't in this course" });
+    // With a rubric, teachers grade criterion by criterion; only an admin override sets a total.
+    const rubric = await localDb.prepare("SELECT id FROM rubrics WHERE assignment_id = ?").get(assignment.id);
+    if (rubric && grader.kind !== "override") {
+      return res.status(409).json({ message: "This assignment has a rubric: score each criterion instead", code: "RUBRIC_REQUIRED" });
+    }
 
     const grade = Number(req.body.grade);
     const possible = Number(assignment.points_possible);
@@ -205,25 +270,64 @@ router.patch("/:id/assignments/:assignmentId/grade/:scholarEmail", async (req, r
       return res.status(400).json({ message: `grade must be between 0 and ${possible}` });
     }
 
-    await localDb.transaction(async () => {
-      const previous = await localDb.prepare("SELECT id, grade FROM assignment_submissions WHERE assignment_id = ? AND LOWER(scholar_email) = LOWER(?)").get(assignment.id, scholarEmail);
-      const saved = await localDb.prepare(`
-        INSERT INTO assignment_submissions (assignment_id, scholar_email, grade, graded_at, graded_by_teacher_email, feedback)
-        VALUES (?, ?, ?, CURRENT_TIMESTAMP, ?, ?)
-        ON CONFLICT(assignment_id, scholar_email) DO UPDATE SET
-          grade = excluded.grade, graded_at = CURRENT_TIMESTAMP, graded_by_teacher_email = excluded.graded_by_teacher_email, feedback = excluded.feedback
-        RETURNING id
-      `).get(assignment.id, scholarEmail, grade, auth.email, req.body.feedback || "");
-      // Every grade change is recorded (who, from what, to what).
-      await localDb.prepare(`
-        INSERT INTO grade_audit_log (submission_id, assignment_id, scholar_email, old_grade, new_grade, changed_by, reason)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-      `).run(saved.id, assignment.id, scholarEmail, previous?.grade ?? null, grade, auth.email, req.body.reason || null);
-    })();
-
-    return res.json({ message: "Graded", grade });
+    await saveGrade({ courseId, assignment, scholarEmail, grade, feedback: req.body.feedback, grader, changeKind: grader.kind });
+    return res.json({ message: grader.kind === "override" ? "Grade overridden" : "Graded", grade });
   } catch (error) {
     console.error("Error grading assignment:", error);
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+// Rubric grading: { scores: [{ criterionId, points, level? }], feedback?, reason?, source? }.
+// The grade is computed from the criteria (weighted, scaled to the assignment's points).
+router.put("/:id/assignments/:assignmentId/grade/:scholarEmail/rubric", async (req, res) => {
+  try {
+    const courseId = String(req.params.id || "").trim();
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    const grader = await requireGrader(req, res, courseId);
+    if (!grader) return;
+    const target = await gradeTarget(res, courseId, req.params.assignmentId, req.params.scholarEmail);
+    if (!target) return;
+    const { assignment, scholarEmail } = target;
+
+    const rubric = await localDb.prepare("SELECT id FROM rubrics WHERE assignment_id = ?").get(assignment.id);
+    if (!rubric) return res.status(404).json({ message: "This assignment has no rubric" });
+    const criteria = await localDb.prepare("SELECT * FROM rubric_criteria WHERE rubric_id = ? ORDER BY position").all(rubric.id);
+    const byId = new Map(criteria.map((c) => [Number(c.id), c]));
+    const scores = Array.isArray(req.body.scores) ? req.body.scores : [];
+    const source = req.body.source === "ai_suggested_accepted" ? "ai_suggested_accepted" : "teacher";
+
+    const parsed = new Map();
+    for (const sc of scores) {
+      const c = byId.get(Number(sc?.criterionId));
+      if (!c) return res.status(400).json({ message: "A score refers to a criterion that isn't on this rubric" });
+      const pts = Number(sc.points);
+      if (sc.points === "" || sc.points == null || !Number.isFinite(pts) || pts < 0 || pts > Number(c.points)) {
+        return res.status(400).json({ message: `"${c.title}" must be scored between 0 and ${Number(c.points)}` });
+      }
+      parsed.set(Number(c.id), { points: pts, level: sc.level ? String(sc.level).slice(0, 100) : null });
+    }
+    const missing = criteria.filter((c) => !parsed.has(Number(c.id)));
+    if (missing.length) return res.status(400).json({ message: `Score every criterion (missing: ${missing.map((c) => c.title).join(", ")})` });
+
+    const grade = rubricGrade(criteria, new Map([...parsed].map(([id, v]) => [id, v.points])), assignment.points_possible);
+    await localDb.transaction(async () => {
+      const submissionId = await saveGrade({ courseId, assignment, scholarEmail, grade, feedback: req.body.feedback, grader, changeKind: grader.kind === "override" ? "override" : "rubric" });
+      for (const [criterionId, v] of parsed) {
+        await localDb.prepare(`
+          INSERT INTO submission_scores (submission_id, criterion_id, level, points, graded_by, source)
+          VALUES (?, ?, ?, ?, ?, ?)
+          ON CONFLICT (submission_id, criterion_id) DO UPDATE SET level = excluded.level, points = excluded.points,
+            graded_by = excluded.graded_by, source = excluded.source, created_at = CURRENT_TIMESTAMP
+        `).run(submissionId, criterionId, v.level, v.points, grader.email, source);
+      }
+      // Recompute now that the per-criterion scores exist (outcome results use them).
+      await recordSubmissionResults({ courseId, assignmentId: assignment.id, submissionId });
+    })();
+
+    return res.json({ message: "Graded with rubric", grade });
+  } catch (error) {
+    console.error("Error grading with rubric:", error);
     return res.status(500).json({ message: error.message });
   }
 });
@@ -285,7 +389,8 @@ router.get("/:id/quizzes/:quizId", async (req, res) => {
 
     const mySubmission = await localDb.prepare("SELECT * FROM quiz_submissions WHERE quiz_id = ? AND LOWER(scholar_email) = LOWER(?)").get(quiz.id, auth.email);
     const attemptsUsed = Number((await localDb.prepare("SELECT COUNT(*) AS c FROM quiz_attempts WHERE quiz_id = ? AND user_id = ? AND submitted_at IS NOT NULL").get(quiz.id, req.user.id))?.c || 0);
-    const attemptsRemaining = quiz.attempts_allowed == null ? null : Math.max(0, Number(quiz.attempts_allowed) - attemptsUsed);
+    const allowed = await attemptLimit(quiz, req.user.id);
+    const attemptsRemaining = allowed == null ? null : Math.max(0, allowed - attemptsUsed);
     return res.json({ ...quiz, questions, mySubmission: mySubmission || null, attemptsUsed, attemptsRemaining });
   } catch (error) {
     console.error("Error fetching quiz:", error);
@@ -359,9 +464,14 @@ router.post("/:id/quizzes/:quizId/submit", async (req, res) => {
 
     const quiz = await localDb.prepare("SELECT * FROM quizzes WHERE id = ? AND course_id = ?").get(req.params.quizId, courseId);
     if (!quiz) return res.status(404).json({ message: "Quiz not found" });
-    if (!isTeacherRole(auth.enrollment.role) && Number(quiz.published) !== 1) {
+    const isLearner = !isTeacherRole(auth.enrollment.role);
+    if (isLearner && Number(quiz.published) !== 1) {
       return res.status(404).json({ message: "Quiz not found" });
     }
+    const deadlines = await contentDeadlines(courseId, "quiz", quiz.id);
+    if (isLearner && deadlines.notOpenYet) return res.status(409).json({ message: `This quiz opens on ${deadlines.releaseDate}`, code: "NOT_OPEN_YET" });
+    if (isLearner && deadlines.isClosed) return res.status(409).json({ message: `This quiz closed on ${deadlines.closeDate}`, code: "CLOSED" });
+    const allowed = await attemptLimit(quiz, req.user.id);
 
     const answers = req.body.answers && typeof req.body.answers === "object" ? req.body.answers : {};
     const questions = await localDb.prepare("SELECT * FROM quiz_questions WHERE quiz_id = ?").all(quiz.id);
@@ -381,15 +491,19 @@ router.post("/:id/quizzes/:quizId/submit", async (req, res) => {
     const attempt = await localDb.transaction(async () => {
       const used = await localDb.prepare("SELECT COALESCE(MAX(attempt_number), 0) AS n FROM quiz_attempts WHERE quiz_id = ? AND user_id = ?").get(quiz.id, req.user.id);
       const attemptNumber = Number(used?.n || 0) + 1;
-      if (quiz.attempts_allowed != null && attemptNumber > Number(quiz.attempts_allowed)) return null;
+      if (allowed != null && attemptNumber > allowed) return null;
       const saved = await localDb.prepare(`
-        INSERT INTO quiz_attempts (quiz_id, user_id, attempt_number, answers, started_at, submitted_at, score_points, score_pct)
-        VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?, ?)
+        INSERT INTO quiz_attempts (quiz_id, user_id, attempt_number, answers, started_at, submitted_at, score_points, score_pct, is_late)
+        VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?, ?, ?)
         RETURNING id
-      `).get(quiz.id, req.user.id, attemptNumber, JSON.stringify(answers), score, scorePct);
+      `).get(quiz.id, req.user.id, attemptNumber, JSON.stringify(answers), score, scorePct, deadlines.isLate);
       // A learner's first baseline attempt sets their per-outcome starting point.
       if (quiz.kind === "baseline" && attemptNumber === 1 && auth.enrollment.role === "student") {
         await recordBaselineResults({ courseId, quizId: quiz.id, userId: req.user.id, email: auth.email, attemptId: saved.id, answers });
+      }
+      // Graded quizzes feed outcome mastery (practice quizzes don't count; baselines are separate).
+      if (quiz.kind === "graded" && auth.enrollment.role === "student") {
+        await recordQuizAttemptResults({ courseId, quizId: quiz.id, userId: req.user.id, attemptId: saved.id, answers });
       }
       return attemptNumber;
     })();
@@ -401,14 +515,54 @@ router.post("/:id/quizzes/:quizId/submit", async (req, res) => {
       await scheduleSpacedReview(auth.email, `quiz_${quiz.id}`, quiz.title);
     }
 
-    const attemptsRemaining = quiz.attempts_allowed == null ? null : Math.max(0, Number(quiz.attempts_allowed) - attempt);
-    return res.status(201).json({ message: "Submitted", score, scorePct, attemptNumber: attempt, attemptsRemaining });
+    const attemptsRemaining = allowed == null ? null : Math.max(0, allowed - attempt);
+    return res.status(201).json({ message: deadlines.isLate ? "Submitted late" : "Submitted", score, scorePct, attemptNumber: attempt, attemptsRemaining, late: deadlines.isLate });
   } catch (error) {
     console.error("Error submitting quiz:", error);
     return res.status(500).json({ message: error.message });
   }
 });
 
+
+// Attempts a learner may make: the quiz's limit plus any extra attempts their teacher granted.
+async function attemptLimit(quiz, userId) {
+  if (quiz.attempts_allowed == null) return null;
+  const granted = await localDb.prepare("SELECT COALESCE(SUM(extra_attempts), 0) AS n FROM quiz_attempt_grants WHERE quiz_id = ? AND user_id = ?").get(quiz.id, userId);
+  return Number(quiz.attempts_allowed) + Number(granted?.n || 0);
+}
+
+// A teacher lets one learner retake a limited quiz: { scholarEmail, extra?: 1-5, reason? }.
+router.post("/:id/quizzes/:quizId/grant-attempt", async (req, res) => {
+  try {
+    const courseId = String(req.params.id || "").trim();
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    const auth = await requireTeacher(req, res, courseId);
+    if (!auth) return;
+    const quiz = await localDb.prepare("SELECT * FROM quizzes WHERE id = ? AND course_id = ?").get(req.params.quizId, courseId);
+    if (!quiz) return res.status(404).json({ message: "Quiz not found" });
+    if (quiz.kind === "baseline") return res.status(400).json({ message: "The baseline is taken once, before teaching, so it can't be retaken" });
+    if (quiz.attempts_allowed == null) return res.status(400).json({ message: "This quiz already allows unlimited attempts" });
+
+    const scholarEmail = normalizeEmail(req.body.scholarEmail);
+    const learner = await localDb.prepare(`
+      SELECT u.id FROM enrollments e JOIN users u ON LOWER(u.email) = LOWER(e.user_email)
+      WHERE e.course_id = ? AND LOWER(e.user_email) = LOWER(?) AND e.role = 'student'
+    `).get(courseId, scholarEmail);
+    if (!learner) return res.status(404).json({ message: "That learner isn't in this course" });
+    const extra = Number(req.body.extra ?? 1);
+    if (!Number.isInteger(extra) || extra < 1 || extra > 5) return res.status(400).json({ message: "extra must be 1 to 5 attempts" });
+
+    await localDb.prepare(`
+      INSERT INTO quiz_attempt_grants (quiz_id, user_id, extra_attempts, granted_by, reason) VALUES (?, ?, ?, ?, ?)
+    `).run(quiz.id, learner.id, extra, auth.email, req.body.reason || null);
+    const used = Number((await localDb.prepare("SELECT COUNT(*) AS c FROM quiz_attempts WHERE quiz_id = ? AND user_id = ?").get(quiz.id, learner.id))?.c || 0);
+    const allowed = await attemptLimit(quiz, learner.id);
+    return res.json({ message: `Granted ${extra} more attempt${extra === 1 ? "" : "s"}`, attemptsAllowed: allowed, attemptsUsed: used, attemptsRemaining: Math.max(0, allowed - used) });
+  } catch (error) {
+    console.error("Error granting attempt:", error);
+    return res.status(500).json({ message: error.message });
+  }
+});
 
 // ===== Rubrics =====
 // A rubric belongs to exactly one assignment. Criteria are rows that can each point at an

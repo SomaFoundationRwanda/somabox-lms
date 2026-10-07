@@ -8,6 +8,7 @@ import {
 import { useCourse } from "@/context/CourseContext";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
 import { PageHeader, Section, List, ListRow } from "@/components/layout";
+import MasterySummary from "@/components/course/outcomes/MasterySummary";
 import SetupChecklist, { setupNeedsAttention } from "@/components/teacher/SetupChecklist";
 import { moduleWeekLabel, courseLifecycleLabel } from "@/lib/moduleLabels";
 import { formatRange } from "@/lib/dates";
@@ -188,7 +189,7 @@ export default function CourseHomePage() {
                     <div className="bg-slate-300 h-full" style={{ width: `${o.baselineScore ?? 0}%` }} title="Baseline" />
                     <div className="bg-[#0D9488] h-full" style={{ width: `${o.currentMastery === null ? 0 : Math.max(0, o.currentMastery - (o.baselineScore ?? 0))}%` }} title="Progress" />
                   </div>
-                  <p className="text-[11px] text-slate-500">Baseline: {o.baselineScore !== null ? `${o.baselineScore}%` : "none"}</p>
+                  <MasterySummary outcome={o} isTeacher={isTeacher} size="text-[11px]" />
                 </div>
               ))}
             </div>

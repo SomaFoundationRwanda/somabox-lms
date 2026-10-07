@@ -184,3 +184,26 @@ export function icsEvents(events) {
     description: e.moduleTitle ? `Module: ${e.moduleTitle}` : undefined,
   }));
 }
+
+/**
+ * Release/due/close dates of one piece of content (a graded discussion's assignment uses its
+ * discussion's dates), plus today in the school's time zone.
+ */
+export async function contentDeadlines(courseId, itemType, contentId) {
+  const tl = await loadCourseTimeline(courseId);
+  let listing = tl.items.find((i) => i.item_type === itemType && Number(i.content_id) === Number(contentId));
+  if (!listing && itemType === "assignment") {
+    const discussion = await localDb.prepare("SELECT id FROM discussions WHERE linked_assignment_id = ?").get(contentId);
+    if (discussion) listing = tl.items.find((i) => i.item_type === "discussion" && Number(i.content_id) === Number(discussion.id));
+  }
+  const releaseDate = listing?.releaseDate ?? null;
+  const dueDate = listing?.dueDate ?? null;
+  const closeDate = listing?.closeDate ?? null;
+  const today = tl.today;
+  return {
+    today, releaseDate, dueDate, closeDate,
+    notOpenYet: !!releaseDate && today < releaseDate,
+    isLate: !!dueDate && today > dueDate,
+    isClosed: !!closeDate && today > closeDate,
+  };
+}

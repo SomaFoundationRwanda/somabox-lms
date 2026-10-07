@@ -2,17 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { Pencil, Target, CheckCircle2, Award, Calendar, Layers, Clock } from "lucide-react";
+import { Pencil, Target, Clock, Lock, CalendarClock } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
-import { PageHeader, Section, List, DataTable, EmptyState } from "@/components/layout";
-
-const RUBRIC_LEVELS = [
-  { level: "Exceeds Mastery", points: "4 pts", description: "Flawless solution with multi-step logical reasoning." },
-  { level: "Meets Mastery", points: "3 pts", description: "Accurate execution with minor minor calculation errors." },
-  { level: "Approaching", points: "2 pts", description: "Partial understanding; needs additional scaffolding." },
-  { level: "Below Mastery", points: "1 pt", description: "Struggling with core concepts; requires reteaching." },
-];
+import { PageHeader, Section, List, EmptyState } from "@/components/layout";
+import { useToast } from "@/context/ToastContext";
+import RubricSection, { RubricTable } from "@/components/course/grading/RubricSection";
+import SubmissionGrader, { LateBadge } from "@/components/course/grading/SubmissionGrader";
+import { fmtPoints, pctOf } from "@/lib/rubric";
 import PrevNextNav from "@/components/course/navigation/PrevNextNav";
 import { moduleWeekLabel } from "@/lib/moduleLabels";
 import { formatDate } from "@/lib/dates";
@@ -29,8 +26,13 @@ export default function AssignmentDetailPage() {
   const [itemOutcomes, setItemOutcomes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submissionBody, setSubmissionBody] = useState("");
-  const [grading, setGrading] = useState({});
-  const [feedback, setFeedback] = useState({});
+  const [rubric, setRubric] = useState(null);
+  const [people, setPeople] = useState([]);
+  const [extraLearner, setExtraLearner] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const [submitResult, setSubmitResult] = useState(null);
+  const { showToast } = useToast();
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -40,14 +42,16 @@ export default function AssignmentDetailPage() {
     if (!SERVER_URL || !courseId || !assignmentId) return;
     try {
       setLoading(true);
-      const [assignRes, modRes, outRes, itemOutRes] = await Promise.all([
+      const [assignRes, modRes, outRes, itemOutRes, rubricRes] = await Promise.all([
         fetch(`${SERVER_URL}/courses/${courseId}/assignments/${assignmentId}`),
         fetch(`${SERVER_URL}/courses/${courseId}/modules`),
         fetch(`${SERVER_URL}/courses/${courseId}/outcomes`),
         fetch(`${SERVER_URL}/courses/${courseId}/item-outcomes`),
+        fetch(`${SERVER_URL}/courses/${courseId}/assignments/${assignmentId}/rubric`),
       ]);
 
       if (assignRes.ok) setAssignment(await assignRes.json());
+      if (rubricRes.ok) setRubric(await rubricRes.json().catch(() => null));
       if (modRes.ok) setModules(await modRes.json());
       if (outRes.ok) setOutcomes(await outRes.json());
       if (itemOutRes.ok) {
@@ -66,25 +70,42 @@ export default function AssignmentDetailPage() {
     loadData();
   }, [SERVER_URL, courseId, assignmentId, userEmail]);
 
-  const submitAssignment = async () => {
-    await fetch(`${SERVER_URL}/courses/${courseId}/assignments/${assignmentId}/submit`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ body: submissionBody }),
-    });
-    loadData();
-  };
+  // Teachers can grade a learner who has no submission (e.g. oral work).
+  useEffect(() => {
+    if (!isTeacher || !SERVER_URL || !courseId) return;
+    let cancelled = false;
+    fetch(`${SERVER_URL}/courses/${courseId}/people`)
+      .then((res) => (res.ok ? res.json() : []))
+      .then((list) => { if (!cancelled) setPeople(Array.isArray(list) ? list : []); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [isTeacher, SERVER_URL, courseId]);
 
-  const gradeSubmission = async (scholarEmail) => {
-    const gradeVal = grading[scholarEmail];
-    const fbVal = feedback[scholarEmail] || "";
-    if (gradeVal === undefined || gradeVal === "") return;
-    await fetch(`${SERVER_URL}/courses/${courseId}/assignments/${assignmentId}/grade/${encodeURIComponent(scholarEmail)}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ grade: Number(gradeVal), feedback: fbVal }),
-    });
-    loadData();
+  const submitAssignment = async () => {
+    setSubmitError("");
+    setSubmitResult(null);
+    setSubmitting(true);
+    try {
+      const res = await fetch(`${SERVER_URL}/courses/${courseId}/assignments/${assignmentId}/submit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body: submissionBody }),
+      });
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const fallback = { CLOSED: "This assignment is closed.", NOT_OPEN_YET: "This assignment is not open yet." }[payload.code];
+        setSubmitError(payload.message || fallback || "Could not submit the assignment.");
+      } else {
+        setSubmitResult(payload);
+        setSubmissionBody("");
+        showToast(payload.late ? "Submitted late" : "Submitted", payload.late ? "warning" : "success");
+      }
+      loadData();
+    } catch (err) {
+      setSubmitError(err.message || "Could not submit the assignment.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   // The assignment's module listing carries its day offsets and resolved dates.
@@ -101,7 +122,6 @@ export default function AssignmentDetailPage() {
       pointsPossible: assignment.points_possible ?? 100,
       published: !!assignment.published,
       selectedOutcomeIds: itemOutcomes.map(o => o.outcome_id),
-      rubricDraft: assignment.rubric_draft || `Rubric (Instantiated from Outcomes):\n- Exceeds Mastery (4 pts): Complete accuracy and clear reasoning.\n- Meets Mastery (3 pts): Correct application with minor errors.\n- Approaching Mastery (2 pts): Partial understanding.\n- Below Mastery (1 pt): Needs targeted reteaching.`
     });
     setSaveError("");
     setEditing(true);
@@ -144,7 +164,6 @@ export default function AssignmentDetailPage() {
             ...schedulePayload(editForm.schedule),
             pointsPossible: Number(editForm.pointsPossible) || 100,
             published: editForm.published,
-            rubricDraft: editForm.rubricDraft
           }),
         });
         if (!res.ok) {
@@ -183,6 +202,15 @@ export default function AssignmentDetailPage() {
       : assignment.due_at
         ? `Due ${new Date(assignment.due_at).toLocaleDateString()}`
         : "No due date";
+  const submissions = Array.isArray(assignment.submissions) ? assignment.submissions : [];
+  const rubricSignature = rubric ? `${rubric.id}:${(rubric.criteria || []).map((c) => c.id).join(",")}` : "none";
+  const submittedEmails = new Set(submissions.map((x) => String(x.scholar_email).toLowerCase()));
+  const learnersWithout = people.filter((p) => p.role === "student" && p.status === "active" && !submittedEmails.has(String(p.email).toLowerCase()));
+  const extraPerson = extraLearner ? learnersWithout.find((p) => p.email === extraLearner) : null;
+  const extraRow = extraPerson ? { scholar_email: extraPerson.email, fullName: extraPerson.fullName, grade: null, feedback: "", rubricScores: [] } : null;
+  const mine = assignment.mySubmission || null;
+  const myScores = Object.fromEntries((mine?.rubricScores || []).map((r) => [r.criterion_id, r]));
+  const deadlines = assignment.deadlines || {};
   const editModuleStart = editForm ? modules.find((m) => Number(m.id) === Number(editForm.moduleId))?.startDate || null : null;
 
   return (
@@ -305,18 +333,6 @@ export default function AssignmentDetailPage() {
                 />
               </div>
 
-              {/* Rubric Draft */}
-              <div>
-                <label htmlFor="assignment-rubric" className="block text-xs font-bold text-slate-700 mb-1">Assignment Rubric Criteria</label>
-                <textarea
-                  id="assignment-rubric"
-                  value={editForm.rubricDraft}
-                  onChange={(e) => setEditForm((p) => ({ ...p, rubricDraft: e.target.value }))}
-                  rows={4}
-                  className="w-full text-xs font-mono border border-slate-200 rounded-lg px-3 py-2 outline-none"
-                />
-              </div>
-
               {saveError && (
                 <p className="text-xs font-semibold text-rose-600">{saveError}</p>
               )}
@@ -336,103 +352,157 @@ export default function AssignmentDetailPage() {
               <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap">{assignment.description || "Complete the problem set and submit your response below."}</p>
             </Section>
 
-            {/* INSTANTIATED RUBRIC BREAKDOWN (STUDENT & TEACHER VISIBLE) */}
-            <Section
-              divided
-              title={<span className="flex items-center gap-2"><Award className="w-4 h-4 text-[#0D9488]" /> Instantiated outcome rubric ({assignment.points_possible} pts)</span>}
-              description="Your work will be evaluated against these 4 mastery levels:"
-            >
-              <DataTable
-                caption="Mastery levels"
-                rowKey={(r) => r.level}
-                rows={RUBRIC_LEVELS}
-                columns={[
-                  { key: "level", header: "Level", className: "font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap" },
-                  { key: "points", header: "Points", className: "whitespace-nowrap text-[#0D9488] font-semibold" },
-                  { key: "description", header: "What it looks like", className: "text-slate-600 dark:text-slate-400" },
-                ]}
-              />
-            </Section>
-
-            {/* TEACHER SUBMISSIONS VIEW WITH AI GRADING ASSIST */}
             {isTeacher ? (
-              <Section divided title="Student submissions & rubric scoring">
-                {(assignment.submissions || []).length === 0 ? (
-                  <EmptyState compact title="No student submissions received yet." />
-                ) : (
-                  <List label="Student submissions">
-                    {assignment.submissions.map((s) => (
-                      <li key={s.scholar_email} className="p-4 space-y-3">
-                        <div>
-                          <p className="text-sm font-bold text-slate-900 dark:text-white">{s.fullName}</p>
-                          <p className="text-xs text-slate-500">Submitted: {new Date(s.submitted_at).toLocaleString()}</p>
-                        </div>
+              <>
+                <RubricSection
+                  SERVER_URL={SERVER_URL}
+                  courseId={courseId}
+                  assignmentId={assignmentId}
+                  rubric={rubric}
+                  outcomes={outcomes}
+                  taggedOutcomes={itemOutcomes}
+                  pointsPossible={assignment.points_possible}
+                  onChange={(next) => { setRubric(next); loadData(); }}
+                />
 
-                        <p className="text-xs text-slate-700 dark:text-slate-300 font-mono whitespace-pre-wrap border-l-2 border-slate-200 dark:border-slate-700 pl-3">
-                          {s.body || "(No submission body)"}
-                        </p>
+                <Section
+                  divided
+                  title="Submissions"
+                  description={rubric ? "Open a submission to score it against the rubric." : "Open a submission to enter a grade."}
+                >
+                  {submissions.length === 0 && !extraRow ? (
+                    <EmptyState compact title="No submissions yet." />
+                  ) : (
+                    <List label="Submissions">
+                      {extraRow ? (
+                        <SubmissionGrader
+                          key={`extra-${extraRow.scholar_email}-${rubricSignature}`}
+                          SERVER_URL={SERVER_URL}
+                          courseId={courseId}
+                          assignmentId={assignmentId}
+                          submission={extraRow}
+                          rubric={rubric}
+                          pointsPossible={assignment.points_possible}
+                          defaultOpen
+                          onSaved={() => { setExtraLearner(""); loadData(); }}
+                        />
+                      ) : null}
+                      {submissions.map((s) => (
+                        <SubmissionGrader
+                          key={`${s.scholar_email}-${s.graded_at || ""}-${s.grade ?? ""}-${rubricSignature}`}
+                          SERVER_URL={SERVER_URL}
+                          courseId={courseId}
+                          assignmentId={assignmentId}
+                          submission={s}
+                          rubric={rubric}
+                          pointsPossible={assignment.points_possible}
+                          onSaved={loadData}
+                        />
+                      ))}
+                    </List>
+                  )}
 
-                        <div className="flex flex-wrap items-center gap-2 sm:gap-3 pt-1">
-                          <input
-                            type="number"
-                            placeholder="Grade"
-                            aria-label={`Grade for ${s.fullName}`}
-                            value={grading[s.scholar_email] ?? (s.grade ?? "")}
-                            onChange={(e) => setGrading((p) => ({ ...p, [s.scholar_email]: e.target.value }))}
-                            className="w-24 text-xs border border-slate-200 rounded-lg px-3 py-2"
-                          />
-                          <input
-                            type="text"
-                            placeholder="Qualitative feedback suggestion..."
-                            aria-label={`Feedback for ${s.fullName}`}
-                            value={feedback[s.scholar_email] ?? (s.feedback ?? "")}
-                            onChange={(e) => setFeedback((p) => ({ ...p, [s.scholar_email]: e.target.value }))}
-                            className="flex-1 min-w-[10rem] text-xs border border-slate-200 rounded-lg px-3 py-2"
-                          />
-                          <button onClick={() => gradeSubmission(s.scholar_email)} className="text-xs font-bold text-white bg-[#0D9488] px-4 py-2 rounded-lg">
-                            Save Grade
-                          </button>
-                        </div>
-                      </li>
-                    ))}
-                  </List>
-                )}
-              </Section>
-            ) : (
-              /* STUDENT SUBMISSION SECTION */
-              <Section divided title="Your submission">
-                <div className="space-y-4">
-                  {assignment.mySubmission ? (
-                    <div className="p-4 bg-teal-50 border border-teal-200 rounded-xl space-y-1">
-                      <p className="text-xs font-bold text-teal-900">Submitted: {new Date(assignment.mySubmission.submitted_at).toLocaleString()}</p>
-                      {assignment.mySubmission.grade != null ? (
-                        <p className="text-sm font-bold text-teal-800">Grade: {assignment.mySubmission.grade} / {assignment.points_possible} pts</p>
-                      ) : (
-                        <p className="text-xs text-teal-700">Status: Ungraded (Pending Teacher Rubric Review)</p>
-                      )}
-                      {assignment.mySubmission.feedback && (
-                        <p className="text-xs text-teal-800 pt-1">Teacher Feedback: &quot;{assignment.mySubmission.feedback}&quot;</p>
-                      )}
+                  {learnersWithout.length > 0 ? (
+                    <div className="mt-3 flex flex-wrap items-end gap-2">
+                      <div>
+                        <label htmlFor="grade-without-submission" className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                          Grade a learner without a submission
+                        </label>
+                        <select
+                          id="grade-without-submission"
+                          value={extraLearner}
+                          onChange={(e) => setExtraLearner(e.target.value)}
+                          className="text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-lg px-2.5 py-1.5 max-w-full"
+                        >
+                          <option value="">Choose a learner…</option>
+                          {learnersWithout.map((p) => (
+                            <option key={p.email} value={p.email}>{p.fullName || p.email}</option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
                   ) : null}
+                </Section>
+              </>
+            ) : (
+              <>
+                {rubric ? (
+                  <Section divided title="Rubric" description={`Your work is scored on these criteria and converted to a grade out of ${fmtPoints(assignment.points_possible)}.`}>
+                    <RubricTable rubric={rubric} scores={mine?.grade != null ? myScores : undefined} />
+                  </Section>
+                ) : null}
 
-                  <textarea
-                    value={submissionBody}
-                    onChange={(e) => setSubmissionBody(e.target.value)}
-                    rows={6}
-                    placeholder="Write your detailed assignment response here..."
-                    aria-label="Your assignment response"
-                    className="w-full text-sm border border-slate-200 rounded-lg p-4 outline-none focus:border-[#0D9488]"
-                  />
+                <Section divided title="Your submission">
+                  <div className="space-y-4">
+                    <dl className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-slate-600 dark:text-slate-400">
+                      {deadlines.releaseDate ? <div className="flex gap-1"><dt className="font-semibold">Opens</dt><dd>{formatDate(deadlines.releaseDate)}</dd></div> : null}
+                      {deadlines.dueDate ? <div className="flex gap-1"><dt className="font-semibold">Due</dt><dd>{formatDate(deadlines.dueDate)}</dd></div> : null}
+                      {deadlines.closeDate ? <div className="flex gap-1"><dt className="font-semibold">Closes</dt><dd>{formatDate(deadlines.closeDate)}</dd></div> : null}
+                      {!deadlines.releaseDate && !deadlines.dueDate && !deadlines.closeDate ? <div>No deadlines set.</div> : null}
+                    </dl>
 
-                  <button
-                    onClick={submitAssignment}
-                    className="px-6 py-2.5 bg-[#0D9488] hover:bg-teal-700 text-white font-bold text-xs rounded-lg transition-colors"
-                  >
-                    {assignment.mySubmission ? "Resubmit Assignment" : "Submit Assignment"}
-                  </button>
-                </div>
-              </Section>
+                    {mine ? (
+                      <div className="border-l-4 border-teal-500 pl-3 py-1 space-y-1">
+                        <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex flex-wrap items-center gap-2">
+                          {mine.submitted_at ? `Submitted ${new Date(mine.submitted_at).toLocaleString()}` : "Graded without a submission"}
+                          {mine.is_late ? <LateBadge /> : null}
+                        </p>
+                        {mine.grade != null ? (
+                          <p className="text-sm font-bold text-slate-900 dark:text-white">
+                            Grade: {fmtPoints(mine.grade)} / {fmtPoints(assignment.points_possible)}
+                            {pctOf(mine.grade, assignment.points_possible) != null ? ` (${fmtPoints(pctOf(mine.grade, assignment.points_possible))}%)` : ""}
+                          </p>
+                        ) : (
+                          <p className="text-xs text-slate-500">Not graded yet.</p>
+                        )}
+                        {mine.feedback ? (
+                          <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap"><span className="font-semibold">Feedback:</span> {mine.feedback}</p>
+                        ) : null}
+                      </div>
+                    ) : null}
+
+                    {submitResult?.late ? (
+                      <p role="status" className="text-xs font-semibold text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5" /> Submitted after the due date: it is marked late.
+                      </p>
+                    ) : null}
+
+                    {deadlines.notOpenYet ? (
+                      <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                        <CalendarClock className="w-4 h-4 text-slate-400" /> Opens on {formatDate(deadlines.releaseDate) || deadlines.releaseDate}.
+                      </p>
+                    ) : deadlines.isClosed ? (
+                      <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                        <Lock className="w-4 h-4 text-slate-400" /> This assignment is closed.
+                      </p>
+                    ) : (
+                      <>
+                        {deadlines.isLate ? (
+                          <p className="text-xs font-semibold text-amber-800">The due date has passed. You can still submit, but it will be marked late.</p>
+                        ) : null}
+                        <textarea
+                          value={submissionBody}
+                          onChange={(e) => setSubmissionBody(e.target.value)}
+                          rows={6}
+                          placeholder="Write your response here..."
+                          aria-label="Your assignment response"
+                          className="w-full text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-lg p-4 outline-none focus:border-[#0D9488]"
+                        />
+                      </>
+                    )}
+
+                    {submitError ? <p role="alert" className="text-xs font-semibold text-rose-600">{submitError}</p> : null}
+
+                    <button
+                      onClick={submitAssignment}
+                      disabled={submitting || deadlines.notOpenYet || deadlines.isClosed}
+                      className="px-6 py-2.5 bg-[#0D9488] hover:bg-teal-700 disabled:opacity-50 disabled:hover:bg-[#0D9488] text-white font-bold text-xs rounded-lg transition-colors"
+                    >
+                      {submitting ? "Submitting..." : mine?.submitted_at ? "Resubmit assignment" : "Submit assignment"}
+                    </button>
+                  </div>
+                </Section>
+              </>
             )}
           </>
         )}

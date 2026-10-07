@@ -79,11 +79,11 @@ test("outcome-mastery returns null baseline and mastery when nothing was assesse
 
 test("outcome-mastery normalizes graded work to percent", async () => {
   const courseId = await createCourse();
-  const outcome = await db.prepare("INSERT INTO outcomes (course_id, title) VALUES (?, 'Graphing') RETURNING id").get(courseId);
-  const mod = await db.prepare("INSERT INTO modules (course_id, title, week_offset) VALUES (?, 'Week 1', 1) RETURNING id").get(courseId);
-  const assignment = await db.prepare("INSERT INTO assignments (course_id, module_id, title, points_possible, published) VALUES (?, ?, 'HW', 50, 1) RETURNING id").get(courseId, mod.id);
-  await db.prepare("INSERT INTO item_outcomes (course_id, item_type, item_id, outcome_id) VALUES (?, 'assignment', ?, ?)").run(courseId, assignment.id, outcome.id);
-  await db.prepare("INSERT INTO assignment_submissions (assignment_id, scholar_email, grade) VALUES (?, ?, 40)").run(assignment.id, STUDENT);
+  const outcome = await asTeacher("POST", `/courses/${courseId}/outcomes`, { title: "Graphing" });
+  const mod = await asTeacher("POST", `/courses/${courseId}/modules`, { title: "Week 1" });
+  const item = await asTeacher("POST", `/courses/${courseId}/modules/${mod.body.id}/items`, { itemType: "assignment", title: "HW", pointsPossible: 50, outcomeIds: [outcome.body.id] });
+  const graded = await asTeacher("PATCH", `/courses/${courseId}/assignments/${item.body.content_id}/grade/${encodeURIComponent(STUDENT)}`, { grade: 40 });
+  assert.equal(graded.status, 200, JSON.stringify(graded.body));
 
   const res = await asStudent("GET", `/courses/${courseId}/outcome-mastery`);
   assert.equal(res.status, 200);

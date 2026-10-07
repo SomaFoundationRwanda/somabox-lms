@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { HelpCircle, Target, Sparkles, CheckCircle2, Clock } from "lucide-react";
+import { Target, CheckCircle2, Clock, RotateCcw } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
-import { PageHeader, Section } from "@/components/layout";
+import { PageHeader, Section, DataTable, EmptyState } from "@/components/layout";
+import { useToast } from "@/context/ToastContext";
 import PrevNextNav from "@/components/course/navigation/PrevNextNav";
 import { moduleWeekLabel } from "@/lib/moduleLabels";
 
@@ -32,6 +33,8 @@ export default function QuizDetailPage() {
   const [submitted, setSubmitted] = useState(null);
   const [submitError, setSubmitError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [granting, setGranting] = useState(null);
+  const { showToast } = useToast();
 
   const load = async () => {
     if (!SERVER_URL || !courseId || !quizId) return;
@@ -72,13 +75,43 @@ export default function QuizDetailPage() {
       });
       const payload = await res.json().catch(() => ({}));
       if (res.ok) {
-        setSubmitted(payload.score);
+        setSubmitted(payload);
       } else {
-        setSubmitError(payload.message || "Failed to submit quiz.");
+        // 409 codes: NO_ATTEMPTS_LEFT, CLOSED, NOT_OPEN_YET each come with a readable message.
+        const fallback = {
+          NO_ATTEMPTS_LEFT: "You have used all your attempts for this quiz.",
+          CLOSED: "This quiz is closed.",
+          NOT_OPEN_YET: "This quiz is not open yet.",
+        }[payload.code];
+        setSubmitError(payload.message || fallback || "Failed to submit quiz.");
       }
       load();
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const grantAttempt = async (sub) => {
+    const reason = window.prompt(`Allow ${sub.fullName || sub.scholar_email} another attempt? Optional reason:`, "");
+    if (reason === null) return;
+    setGranting(sub.scholar_email);
+    try {
+      const res = await fetch(`${SERVER_URL}/courses/${courseId}/quizzes/${quizId}/grant-attempt`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scholarEmail: sub.scholar_email, extra: 1, ...(reason.trim() ? { reason: reason.trim() } : {}) }),
+      });
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        showToast(payload.message || "Could not grant another attempt.", "error");
+        return;
+      }
+      showToast(payload.message || "Extra attempt granted.", "success");
+      load();
+    } catch (err) {
+      showToast(err.message || "Could not grant another attempt.", "error");
+    } finally {
+      setGranting(null);
     }
   };
 
@@ -89,6 +122,8 @@ export default function QuizDetailPage() {
   const attemptsAllowed = quiz.attempts_allowed ?? null;
   const attemptsUsed = Number(quiz.attemptsUsed || 0);
   const noAttemptsLeft = quiz.attemptsRemaining === 0;
+  const canGrant = attemptsAllowed != null && quiz.kind !== "baseline";
+  const results = Array.isArray(quiz.submissions) ? quiz.submissions : [];
 
   return (
     <div>
@@ -131,9 +166,74 @@ export default function QuizDetailPage() {
         </PageHeader>
 
         {submitted !== null ? (
-          <div role="status" className="rounded-xl border border-teal-200 bg-teal-50 p-4 text-sm font-bold text-teal-900 flex items-center gap-2">
-            <CheckCircle2 className="w-5 h-5 text-[#0D9488]" /> Quiz Submitted Successfully! Score: {submitted} Points
+          <div role="status" className="rounded-xl border border-teal-200 bg-teal-50 p-4 text-sm text-teal-900 space-y-1">
+            <p className="font-bold flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-[#0D9488]" />
+              Quiz submitted. Score: {submitted.score} points{submitted.scorePct != null ? ` (${submitted.scorePct}%)` : ""}
+            </p>
+            <p className="text-xs">
+              Attempt {submitted.attemptNumber}
+              {submitted.attemptsRemaining != null ? ` · ${submitted.attemptsRemaining} attempt(s) left` : ""}
+            </p>
+            {submitted.late ? (
+              <p className="text-xs font-semibold text-amber-700 flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> Submitted late</p>
+            ) : null}
           </div>
+        ) : null}
+
+        {isTeacher ? (
+          <Section
+            title="Results"
+            description={attemptsAllowed == null
+              ? "Each learner's latest attempt. Unlimited attempts."
+              : `Each learner's latest attempt. ${attemptsAllowed} attempt(s) allowed.`}
+          >
+            {results.length === 0 ? (
+              <EmptyState compact title="No attempts yet." />
+            ) : (
+              <DataTable
+                caption="Latest quiz attempts"
+                rows={results}
+                rowKey={(r) => r.scholar_email}
+                columns={[
+                  { key: "fullName", header: "Learner", className: "font-medium text-slate-800 dark:text-slate-100", render: (r) => r.fullName || r.scholar_email },
+                  {
+                    key: "score",
+                    header: "Score",
+                    align: "right",
+                    className: "whitespace-nowrap",
+                    render: (r) => (
+                      <span className="font-semibold">{r.score_pct != null ? `${r.score_pct}%` : r.score != null ? `${r.score} pts` : "—"}</span>
+                    ),
+                  },
+                  { key: "attempt", header: "Attempt", align: "center", render: (r) => r.attempt_number ?? "—" },
+                  {
+                    key: "date",
+                    header: "Submitted",
+                    hideOnMobile: true,
+                    className: "whitespace-nowrap text-slate-500",
+                    render: (r) => (r.submitted_at ? new Date(r.submitted_at).toLocaleString() : "—"),
+                  },
+                  ...(canGrant ? [{
+                    key: "actions",
+                    header: <span className="sr-only">Actions</span>,
+                    align: "right",
+                    render: (r) => (
+                      <button
+                        type="button"
+                        onClick={() => grantAttempt(r)}
+                        disabled={granting === r.scholar_email}
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-[#0D9488] hover:underline disabled:opacity-50 whitespace-nowrap"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" aria-hidden="true" />
+                        {granting === r.scholar_email ? "Granting..." : "Allow another attempt"}
+                      </button>
+                    ),
+                  }] : []),
+                ]}
+              />
+            )}
+          </Section>
         ) : null}
 
         {/* QUESTIONS LIST (FOR STUDENT TAKING OR TEACHER PREVIEW) */}
@@ -197,7 +297,7 @@ export default function QuizDetailPage() {
                   You&apos;ve used all your attempts for this quiz.
                 </p>
               )}
-              {submitError && <p className="text-xs font-semibold text-rose-600">{submitError}</p>}
+              {submitError && <p role="alert" className="text-xs font-semibold text-rose-600">{submitError}</p>}
               <button
                 onClick={submitQuiz}
                 disabled={noAttemptsLeft || submitting}

@@ -74,6 +74,12 @@ before(async () => {
   await q(`UPDATE courses SET start_date = '2026-01-05T00:00:00+02:00' WHERE id = 'C1'`);
   await q(`UPDATE assignments SET due_at = '2026-01-08T21:59:59Z' WHERE id = $1`, [ids.a1]);
 
+  // Phase 6 inputs: a graded, outcome-tagged submission and a legacy (possibly fake) baseline row.
+  ids.legacyOutcome = (await one(`INSERT INTO outcomes (course_id, title) VALUES ('C1', 'Legacy') RETURNING id`)).id;
+  await q(`INSERT INTO item_outcomes (course_id, item_type, item_id, outcome_id) VALUES ('C1', 'assignment', $1, $2)`, [ids.a1, ids.legacyOutcome]);
+  await q(`INSERT INTO assignment_submissions (assignment_id, scholar_email, grade) VALUES ($1, 's@x', 50)`, [ids.a1]);
+  await q(`INSERT INTO student_outcome_baselines (course_id, scholar_email, outcome_id, baseline_score) VALUES ('C1', 's@x', $1, 63)`, [ids.legacyOutcome]);
+
   await runMigrations(pool);
 });
 
@@ -201,4 +207,11 @@ test("already-open courses aren't blocked by the new baseline step", async () =>
   const c1 = await one(`SELECT baseline_status, baseline_skip_reason FROM courses WHERE id = 'C1'`);
   assert.equal(c1.baseline_status, "skipped");
   assert.match(c1.baseline_skip_reason, /before baseline decisions/);
+});
+
+test("existing grades become outcome results; legacy baselines are not trusted", async () => {
+  const rows = await q(`SELECT source_type, pct FROM outcome_results WHERE outcome_id = $1`, [ids.legacyOutcome]);
+  assert.deepEqual(rows.map((r) => [r.source_type, Number(r.pct)]), [["assignment_submission", 50]]);
+  const report = await one(`SELECT details FROM migration_report WHERE migration_id = '0010_grading_results'`);
+  assert.match(report.details, /1 legacy student_outcome_baselines rows not used/);
 });

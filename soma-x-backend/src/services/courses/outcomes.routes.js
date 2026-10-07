@@ -8,6 +8,7 @@ import {
   courseExists,
 } from "./shared.js";
 import { CONTENT_TABLES, GRADED_TYPES, sendItemError, setItemOutcomes } from "./items.js";
+import { computeMastery } from "./results.js";
 
 const router = express.Router();
 
@@ -136,78 +137,16 @@ router.get("/:id/outcome-mastery", async (req, res) => {
     const auth = await requireEnrolled(req, res, courseId);
     if (!auth) return;
 
-    const outcomes = await localDb.prepare("SELECT * FROM outcomes WHERE course_id = ? ORDER BY id ASC").all(courseId);
-    const students = await localDb.prepare("SELECT user_email FROM enrollments WHERE course_id = ? AND role = 'student' AND status = 'active'").all(courseId);
-
-    const isStudent = auth.enrollment.role === 'student';
-
-    // Only real results are reported. Missing baselines or graded work yield null
-    // ("No data yet"), never a synthesized number. Scores are normalized to percent.
-    const masteryList = await Promise.all(outcomes.map(async (o) => {
-      let baselineScore = null;
-      if (isStudent) {
-        const myBase = await localDb.prepare("SELECT baseline_score FROM student_outcome_baselines WHERE course_id = ? AND outcome_id = ? AND LOWER(scholar_email) = LOWER(?)").get(courseId, o.id, auth.email);
-        if (myBase && myBase.baseline_score !== null) baselineScore = Math.round(Number(myBase.baseline_score));
-      } else {
-        const baseRow = await localDb.prepare("SELECT AVG(baseline_score) AS avg_base FROM student_outcome_baselines WHERE course_id = ? AND outcome_id = ?").get(courseId, o.id);
-        if (baseRow && baseRow.avg_base !== null) baselineScore = Math.round(Number(baseRow.avg_base));
-      }
-
-      const taggedItems = await localDb.prepare("SELECT item_type, item_id FROM item_outcomes WHERE course_id = ? AND outcome_id = ?").all(courseId, o.id);
-
-      const percents = [];
-      for (const item of taggedItems) {
-        if (item.item_type === 'assignment') {
-          const assignment = await localDb.prepare("SELECT points_possible FROM assignments WHERE id = ?").get(item.item_id);
-          const possible = Number(assignment?.points_possible) || 0;
-          if (possible <= 0) continue;
-          const rows = isStudent
-            ? await localDb.prepare("SELECT grade FROM assignment_submissions WHERE assignment_id = ? AND LOWER(scholar_email) = LOWER(?) AND grade IS NOT NULL").all(item.item_id, auth.email)
-            : await localDb.prepare("SELECT grade FROM assignment_submissions WHERE assignment_id = ? AND grade IS NOT NULL").all(item.item_id);
-          for (const r of rows) percents.push((Number(r.grade) / possible) * 100);
-        } else if (item.item_type === 'quiz') {
-          const totalRow = await localDb.prepare("SELECT COALESCE(SUM(points), 0) AS total FROM quiz_questions WHERE quiz_id = ?").get(item.item_id);
-          const possible = Number(totalRow?.total) || 0;
-          if (possible <= 0) continue;
-          const rows = isStudent
-            ? await localDb.prepare("SELECT score FROM quiz_submissions WHERE quiz_id = ? AND LOWER(scholar_email) = LOWER(?) AND score IS NOT NULL").all(item.item_id, auth.email)
-            : await localDb.prepare("SELECT score FROM quiz_submissions WHERE quiz_id = ? AND score IS NOT NULL").all(item.item_id);
-          for (const r of rows) percents.push((Number(r.score) / possible) * 100);
-        }
-      }
-
-      const currentMastery = percents.length > 0
-        ? Math.round(percents.reduce((sum, p) => sum + p, 0) / percents.length)
-        : null;
-
-      let delta = null;
-      if (currentMastery !== null && baselineScore !== null) {
-        const deltaNum = currentMastery - baselineScore;
-        delta = deltaNum >= 0 ? `+${deltaNum}%` : `${deltaNum}%`;
-      }
-
-      let status = null;
-      if (currentMastery !== null) {
-        status = "On Track";
-        if (currentMastery < 60) status = "Needs Reteach";
-        else if (currentMastery >= 85) status = "Mastery Achieved";
-      }
-
-      return {
-        id: o.id,
-        code: o.code || `OUT-${o.id}`,
-        title: o.title,
-        description: o.description,
-        baselineScore,
-        currentMastery,
-        delta,
-        status,
-        resultsCount: percents.length,
-        taggedItemsCount: taggedItems.length
-      };
-    }));
-
-    return res.json({ outcomes: masteryList, totalStudents: students.length });
+    // From outcome_results only (percentages). Learners see their own; staff see the class.
+    const isStudent = auth.enrollment.role === "student";
+    const outcomes = await computeMastery(courseId, { userId: isStudent ? req.user.id : null });
+    const tagged = await localDb.prepare("SELECT outcome_id, COUNT(*) AS c FROM item_outcomes WHERE course_id = ? GROUP BY outcome_id").all(courseId);
+    const taggedBy = new Map(tagged.map((t) => [Number(t.outcome_id), Number(t.c)]));
+    const students = await localDb.prepare("SELECT COUNT(*) AS c FROM enrollments WHERE course_id = ? AND role = 'student' AND status = 'active'").get(courseId);
+    return res.json({
+      outcomes: outcomes.map((o) => ({ ...o, taggedItemsCount: taggedBy.get(Number(o.id)) || 0 })),
+      totalStudents: Number(students?.c || 0),
+    });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }

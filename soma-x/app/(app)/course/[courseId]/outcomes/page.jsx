@@ -5,6 +5,7 @@ import { Plus, Trash2, Sparkles, TrendingUp, CheckCircle2 } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
 import { PageHeader, Section, List, DataTable, EmptyState } from "@/components/layout";
+import MasterySummary from "@/components/course/outcomes/MasterySummary";
 
 const MASTERY_LEVELS = [
   { points: "4 pts", level: "Exceeds Mastery" },
@@ -215,13 +216,7 @@ export default function OutcomesPage() {
                   </div>
 
                   <div className="space-y-1">
-                    <div className="flex flex-wrap justify-between gap-x-3 text-xs text-slate-600 dark:text-slate-400 font-medium">
-                      <span>Baseline (Week 0): <strong>{m.baselineScore !== null ? `${m.baselineScore}%` : "No data yet"}</strong></span>
-                      <span>
-                        Current Mastery: <strong>{m.currentMastery !== null ? `${m.currentMastery}%` : "No data yet"}</strong>
-                        {m.delta && ` (${m.delta})`}
-                      </span>
-                    </div>
+                    <MasterySummary outcome={m} isTeacher={isTeacher} />
 
                     <div className="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden flex">
                       <div className="bg-slate-400 h-full" style={{ width: `${m.baselineScore ?? 0}%` }} title="Week 0 Baseline" />
