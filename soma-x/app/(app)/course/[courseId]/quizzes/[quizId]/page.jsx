@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { HelpCircle, Target, Sparkles, CheckCircle2, Clock } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
+import { PageHeader, Section } from "@/components/layout";
 import PrevNextNav from "@/components/course/navigation/PrevNextNav";
 import { moduleWeekLabel } from "@/lib/moduleLabels";
 
@@ -93,23 +94,23 @@ export default function QuizDetailPage() {
     <div>
       <Breadcrumbs sectionKey="quizzes" itemName={quiz.title} />
       <div className="p-4 md:p-6 space-y-6 max-w-4xl">
-        
-        {/* Header Summary Card */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-3">
-          <div className="flex items-center gap-2">
+        {/* Header: flat band, not a card */}
+        <PageHeader
+          title={quiz.title}
+          description={quiz.description || undefined}
+          meta={
+            <>
             <span className="text-xs font-bold text-[#0D9488] bg-teal-50 border border-teal-200 px-2.5 py-1 rounded-full">
               Module: {currentModule ? `${moduleWeekLabel(currentModule)} - ${currentModule.title}` : "Not in a module"}
             </span>
             <span className="text-xs font-semibold text-slate-500 flex items-center gap-1">
               <Clock className="w-3.5 h-3.5 text-slate-400" /> {quiz.due_at ? `Due ${new Date(quiz.due_at).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}` : "No due date"}
             </span>
-          </div>
-
-          <h1 className="text-2xl font-black text-slate-900">{quiz.title}</h1>
-          {quiz.description && <p className="text-xs text-slate-600">{quiz.description}</p>}
-
+            </>
+          }
+        >
           {/* Outcome Tags */}
-          <div className="flex items-center gap-2 flex-wrap pt-1">
+          <div className="flex items-center gap-2 flex-wrap pt-2">
             <span className="text-xs font-bold text-slate-500 flex items-center gap-1">
               <Target className="w-3.5 h-3.5 text-[#0D9488]" /> Target Outcomes Assessed:
             </span>
@@ -127,35 +128,36 @@ export default function QuizDetailPage() {
               ))
             )}
           </div>
-        </div>
+        </PageHeader>
 
         {submitted !== null ? (
-          <div className="rounded-2xl border border-teal-200 bg-teal-50 p-4 text-sm font-bold text-teal-900 flex items-center gap-2">
+          <div role="status" className="rounded-xl border border-teal-200 bg-teal-50 p-4 text-sm font-bold text-teal-900 flex items-center gap-2">
             <CheckCircle2 className="w-5 h-5 text-[#0D9488]" /> Quiz Submitted Successfully! Score: {submitted} Points
           </div>
         ) : null}
 
         {/* QUESTIONS LIST (FOR STUDENT TAKING OR TEACHER PREVIEW) */}
-        <div className="space-y-4">
+        <Section title={`Questions (${(quiz.questions || []).length})`}>
+          <ol className="divide-y divide-slate-100 dark:divide-slate-800 rounded-xl border border-slate-200 dark:border-slate-800">
           {(quiz.questions || []).map((q, idx) => (
-            <div key={q.id || idx} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-3">
-              <div className="flex items-start justify-between">
-                <h3 className="text-sm font-bold text-slate-900">
+            <li key={q.id || idx} className="p-4 space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
                   Question {idx + 1}: {q.prompt}
                 </h3>
-                <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full">
+                <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full shrink-0">
                   {q.points} pts
                 </span>
               </div>
 
               {q.question_type === "multiple_choice" ? (
-                <div className="space-y-2 pt-1">
+                <div className="space-y-1" role="radiogroup" aria-label={`Question ${idx + 1} options`}>
                   {(Array.isArray(q.options) ? q.options : []).map((opt, i) => {
                     const text = getOptionText(opt);
                     const id = getOptionId(opt, i);
                     const isChecked = answers[q.id] === id || answers[q.id] === text;
                     return (
-                      <label key={i} className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 cursor-pointer hover:bg-slate-100 transition-colors">
+                      <label key={i} className="flex items-center gap-3 px-2 py-2 rounded-lg text-sm font-medium text-slate-800 dark:text-slate-200 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900/40 transition-colors">
                         <input
                           type="radio"
                           name={`q-${q.id}`}
@@ -173,14 +175,16 @@ export default function QuizDetailPage() {
                   onChange={(e) => setAnswers((p) => ({ ...p, [q.id]: e.target.value }))}
                   rows={3}
                   placeholder="Write your open answer..."
-                  className="w-full text-xs border border-slate-200 rounded-xl p-3 outline-none focus:border-[#0D9488]"
+                  aria-label={`Answer to question ${idx + 1}`}
+                  className="w-full text-sm border border-slate-200 rounded-lg p-3 outline-none focus:border-[#0D9488]"
                 />
               )}
-            </div>
+            </li>
           ))}
+          </ol>
 
           {!isTeacher && (
-            <div className="pt-2 flex flex-col items-end gap-2">
+            <div className="pt-4 flex flex-col items-end gap-2">
               <span className="text-xs font-semibold text-slate-500">
                 {attemptsAllowed == null
                   ? "Unlimited attempts"
@@ -197,13 +201,13 @@ export default function QuizDetailPage() {
               <button
                 onClick={submitQuiz}
                 disabled={noAttemptsLeft || submitting}
-                className="px-6 py-2.5 bg-[#0D9488] hover:bg-teal-700 disabled:opacity-50 disabled:hover:bg-[#0D9488] text-white font-bold text-xs rounded-xl shadow-sm transition-colors"
+                className="px-6 py-2.5 bg-[#0D9488] hover:bg-teal-700 disabled:opacity-50 disabled:hover:bg-[#0D9488] text-white font-bold text-xs rounded-lg transition-colors"
               >
                 {submitting ? "Submitting..." : "Submit Quiz Answers"}
               </button>
             </div>
           )}
-        </div>
+        </Section>
 
         <PrevNextNav courseId={courseId} itemType="quiz" contentId={quizId} />
       </div>

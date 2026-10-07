@@ -6,6 +6,7 @@ import { compareDates, isDateString } from "@somabox/timeline";
 import { useCourse } from "@/context/CourseContext";
 import { useToast } from "@/context/ToastContext";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
+import { PageHeader, Section } from "@/components/layout";
 import { formatDate, toDateInput } from "@/lib/dates";
 import { moduleWeekLabel } from "@/lib/moduleLabels";
 import SetupChecklist from "@/components/teacher/SetupChecklist";
@@ -37,7 +38,7 @@ function CourseSetupSection({ SERVER_URL, courseId, course, userEmail, onCourseC
   const isDraft = status ? !status.isOpened : (!course?.lifecycle || course.lifecycle === "draft");
 
   return (
-    <section id="course-setup" aria-labelledby="course-setup-title" className="space-y-4 scroll-mt-4">
+    <section id="course-setup" aria-labelledby="course-setup-title" className="space-y-6 scroll-mt-4">
       <h2 id="course-setup-title" className="sr-only">Course setup</h2>
       {statusError && <p className="text-xs text-rose-600" role="alert">{statusError}</p>}
       {status && (
@@ -50,8 +51,7 @@ function CourseSetupSection({ SERVER_URL, courseId, course, userEmail, onCourseC
         />
       )}
 
-      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-3">
-        <h3 className="text-base font-bold text-slate-900">Baseline (Week 0)</h3>
+      <Section divided title="Baseline (Week 0)">
         <BaselinePanel
           key={baselineKey}
           SERVER_URL={SERVER_URL}
@@ -59,14 +59,13 @@ function CourseSetupSection({ SERVER_URL, courseId, course, userEmail, onCourseC
           isDraft={isDraft}
           onChanged={loadStatus}
         />
-      </div>
+      </Section>
 
-      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h3 className="text-base font-bold text-slate-900">Guided setup</h3>
-            <p className="text-xs text-slate-500 mt-0.5">Prefer step by step? Walk through dates, outcomes, baseline and weeks in order.</p>
-          </div>
+      <Section
+        divided
+        title="Guided setup"
+        description="Prefer step by step? Walk through dates, outcomes, baseline and weeks in order."
+        actions={
           <button
             type="button"
             onClick={() => {
@@ -74,12 +73,12 @@ function CourseSetupSection({ SERVER_URL, courseId, course, userEmail, onCourseC
               setShowWizard(!showWizard);
             }}
             aria-expanded={showWizard}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0D9488] bg-teal-50 border border-teal-200 px-3 py-2 rounded-xl hover:bg-teal-100 transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0D9488] bg-teal-50 border border-teal-200 px-3 py-2 rounded-lg hover:bg-teal-100 transition-colors"
           >
             {showWizard ? <><X className="w-3.5 h-3.5" aria-hidden="true" /> Close guided setup</> : <><ListChecks className="w-3.5 h-3.5" aria-hidden="true" /> Guided setup</>}
           </button>
-        </div>
-      </div>
+        }
+      />
 
       {showWizard && (
         <CourseSetupWizard
@@ -168,8 +167,8 @@ function ShiftTimelinePanel({ SERVER_URL, courseId, startDate, onApplied }) {
   const movedItems = Array.isArray(result?.items) ? result.items : [];
 
   return (
-    <fieldset className="rounded-xl border border-slate-200 p-3 space-y-3">
-      <legend className="text-xs font-semibold text-slate-600 px-1">Shift timeline (&ldquo;We lost days&rdquo;)</legend>
+    <fieldset className="space-y-3">
+      <legend className="text-sm font-bold text-slate-900 dark:text-white mb-1">Shift timeline (&ldquo;We lost days&rdquo;)</legend>
       {!hasStartDate ? (
         <p className="text-[11px] text-slate-500">Set and save a start date first.</p>
       ) : (
@@ -405,10 +404,10 @@ export default function CourseSettingsPage() {
   return (
     <div>
       <Breadcrumbs sectionKey="settings" />
-      <div className="p-4 md:p-6 space-y-4 max-w-2xl">
-        <h1 className="text-lg font-bold text-slate-900">Settings</h1>
+      <div className="p-4 md:p-6 space-y-6 max-w-2xl">
+        <PageHeader title="Settings" />
 
-        <div className="flex items-center gap-1.5 border-b border-slate-200">
+        <div className="flex items-center gap-1.5 border-b border-slate-200 overflow-x-auto">
           <button onClick={() => setTab("details")} className={`text-sm font-semibold px-3 py-2 border-b-2 ${tab === "details" ? "border-[#203A3A] text-[#203A3A]" : "border-transparent text-slate-500"}`}>Course Details</button>
           <button onClick={() => setTab("navigation")} className={`text-sm font-semibold px-3 py-2 border-b-2 ${tab === "navigation" ? "border-[#203A3A] text-[#203A3A]" : "border-transparent text-slate-500"}`}>Navigation</button>
           {isTeacher && (
@@ -425,7 +424,9 @@ export default function CourseSettingsPage() {
             onCourseChanged={refresh}
           />
         ) : tab === "details" ? (
-          <div className="space-y-3">
+          <div className="space-y-8">
+            <Section title="Dates" description="Every module and due date is worked out from the start date, so changing it moves all of them.">
+            <div className="space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label htmlFor="course-start-date" className="text-xs font-semibold text-slate-600 mb-1 block">Start date (first day of Week 1)</label>
@@ -435,33 +436,41 @@ export default function CourseSettingsPage() {
                 <label htmlFor="course-end-date" className="text-xs font-semibold text-slate-600 mb-1 block">End date (optional)</label>
                 <input id="course-end-date" type="date" value={form.endDate || ""} min={form.startDate || undefined} onChange={(e) => setForm((p) => ({ ...p, endDate: e.target.value }))} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none" />
               </div>
-              <p className="sm:col-span-2 text-[11px] text-slate-500 -mt-1">Every module and due date is worked out from the start date, so changing it moves all of them.</p>
             </div>
             <div>
               <label htmlFor="course-length" className="text-xs font-semibold text-slate-600 mb-1 block">Duration (Weeks)</label>
               <input id="course-length" type="number" min={1} max={52} value={form.lengthWeeks} onChange={(e) => setForm((p) => ({ ...p, lengthWeeks: Number(e.target.value) }))} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none" />
             </div>
+            </div>
+            </Section>
+
+            <Section divided>
             <ShiftTimelinePanel
               SERVER_URL={SERVER_URL}
               courseId={courseId}
               startDate={toDateInput(course?.start_date)}
               onApplied={refresh}
             />
+            </Section>
+
+            <Section divided title="About this course">
+            <div className="space-y-3">
             <div>
-              <label className="text-xs font-semibold text-slate-600 mb-1 block">Grade/Level</label>
-              <input value={form.grade} onChange={(e) => setForm((p) => ({ ...p, grade: e.target.value }))} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none" />
+              <label htmlFor="course-grade" className="text-xs font-semibold text-slate-600 mb-1 block">Grade/Level</label>
+              <input id="course-grade" value={form.grade} onChange={(e) => setForm((p) => ({ ...p, grade: e.target.value }))} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none" />
             </div>
             <div>
-              <label className="text-xs font-semibold text-slate-600 mb-1 block">Description</label>
-              <textarea value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} rows={4} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none" />
+              <label htmlFor="course-description" className="text-xs font-semibold text-slate-600 mb-1 block">Description</label>
+              <textarea id="course-description" value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} rows={4} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none" />
             </div>
             <div>
-              <label className="text-xs font-semibold text-slate-600 mb-1 block">Banner Image</label>
-              <input type="file" accept="image/*" onChange={(e) => setCoverFile(e.target.files?.[0] || null)} className="text-sm" />
+              <label htmlFor="course-banner" className="text-xs font-semibold text-slate-600 mb-1 block">Banner Image</label>
+              <input id="course-banner" type="file" accept="image/*" onChange={(e) => setCoverFile(e.target.files?.[0] || null)} className="text-sm" />
             </div>
             <div>
-              <label className="text-xs font-semibold text-slate-600 mb-1 block">Visibility</label>
+              <label htmlFor="course-visibility" className="text-xs font-semibold text-slate-600 mb-1 block">Visibility</label>
               <select
+                id="course-visibility"
                 value={form.visibility}
                 onChange={(e) => setForm((p) => ({ ...p, visibility: e.target.value }))}
                 className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none bg-white"
@@ -473,46 +482,46 @@ export default function CourseSettingsPage() {
                 Public courses appear in the platform's course catalog and can be joined by any user without an invite.
               </p>
             </div>
+            </div>
+            </Section>
             {detailsError && <p className="text-xs text-rose-600" role="alert">{detailsError}</p>}
             <button onClick={saveDetails} disabled={saving} className="text-xs font-semibold text-white bg-[#203A3A] rounded-lg px-4 py-2 disabled:opacity-50">
               {saving ? "Saving..." : "Save Changes"}
             </button>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-6">
             <p className="text-xs text-slate-500">Enabled items appear in the sidebar for everyone. Hidden items stay visible to you (grayed out) but not to students.</p>
 
-            <div>
-              <h2 className="text-xs font-bold uppercase text-slate-500 mb-2">Enabled</h2>
-              <div className="border border-slate-200 rounded-xl divide-y divide-slate-100">
+            <Section title="Enabled">
+              <ul aria-label="Enabled navigation items" className="border border-slate-200 dark:border-slate-800 rounded-xl divide-y divide-slate-100 dark:divide-slate-800">
                 {enabled.map((item, idx) => (
-                  <div key={item.navKey} className="flex items-center justify-between gap-2 px-3 py-2">
+                  <li key={item.navKey} className="flex items-center justify-between gap-2 px-3 py-2">
                     <span className="text-sm text-slate-700">{item.label}</span>
                     <div className="flex items-center gap-1">
-                      <button onClick={() => moveEnabled(item.navKey, -1)} disabled={idx === 0} className="p-1 rounded hover:bg-slate-100 disabled:opacity-30"><ChevronUp className="w-3.5 h-3.5" /></button>
-                      <button onClick={() => moveEnabled(item.navKey, 1)} disabled={idx === enabled.length - 1} className="p-1 rounded hover:bg-slate-100 disabled:opacity-30"><ChevronDown className="w-3.5 h-3.5" /></button>
-                      <button onClick={() => toggleVisibility(item.navKey)} className="p-1 rounded hover:bg-slate-100 text-slate-500" title="Hide from students"><Eye className="w-3.5 h-3.5 text-emerald-600" /></button>
+                      <button onClick={() => moveEnabled(item.navKey, -1)} disabled={idx === 0} aria-label={`Move ${item.label} up`} className="p-1 rounded hover:bg-slate-100 disabled:opacity-30"><ChevronUp className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => moveEnabled(item.navKey, 1)} disabled={idx === enabled.length - 1} aria-label={`Move ${item.label} down`} className="p-1 rounded hover:bg-slate-100 disabled:opacity-30"><ChevronDown className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => toggleVisibility(item.navKey)} className="p-1 rounded hover:bg-slate-100 text-slate-500" title="Hide from students" aria-label={`Hide ${item.label} from students`}><Eye className="w-3.5 h-3.5 text-emerald-600" /></button>
                     </div>
-                  </div>
+                  </li>
                 ))}
-              </div>
-            </div>
+              </ul>
+            </Section>
 
-            <div>
-              <h2 className="text-xs font-bold uppercase text-slate-500 mb-2">Hidden from students</h2>
-              <div className="border border-slate-200 rounded-xl divide-y divide-slate-100">
+            <Section title="Hidden from students">
+              <ul aria-label="Hidden navigation items" className="border border-slate-200 dark:border-slate-800 rounded-xl divide-y divide-slate-100 dark:divide-slate-800">
                 {hidden.map((item, idx) => (
-                  <div key={item.navKey} className="flex items-center justify-between gap-2 px-3 py-2 bg-slate-50">
+                  <li key={item.navKey} className="flex items-center justify-between gap-2 px-3 py-2 bg-slate-50 dark:bg-slate-900/40">
                     <span className="text-sm text-slate-400">{item.label}</span>
                     <div className="flex items-center gap-1">
-                      <button onClick={() => moveHidden(item.navKey, -1)} disabled={idx === 0} className="p-1 rounded hover:bg-white disabled:opacity-30"><ChevronUp className="w-3.5 h-3.5" /></button>
-                      <button onClick={() => moveHidden(item.navKey, 1)} disabled={idx === hidden.length - 1} className="p-1 rounded hover:bg-white disabled:opacity-30"><ChevronDown className="w-3.5 h-3.5" /></button>
-                      <button onClick={() => toggleVisibility(item.navKey)} className="p-1 rounded hover:bg-white text-slate-400" title="Show to students"><EyeOff className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => moveHidden(item.navKey, -1)} disabled={idx === 0} aria-label={`Move ${item.label} up`} className="p-1 rounded hover:bg-white disabled:opacity-30"><ChevronUp className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => moveHidden(item.navKey, 1)} disabled={idx === hidden.length - 1} aria-label={`Move ${item.label} down`} className="p-1 rounded hover:bg-white disabled:opacity-30"><ChevronDown className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => toggleVisibility(item.navKey)} className="p-1 rounded hover:bg-white text-slate-400" title="Show to students" aria-label={`Show ${item.label} to students`}><EyeOff className="w-3.5 h-3.5" /></button>
                     </div>
-                  </div>
+                  </li>
                 ))}
-              </div>
-            </div>
+              </ul>
+            </Section>
 
             <button onClick={saveNav} disabled={saving} className="text-xs font-semibold text-white bg-[#203A3A] rounded-lg px-4 py-2 disabled:opacity-50">
               {saving ? "Saving..." : "Save Navigation"}

@@ -4,6 +4,7 @@ import Unauthorized from "@/components/sections/Unauthorized";
 import DataContext from "@/context/DataContext";
 import { useContext, useEffect, useState } from "react";
 import ManageTitle from "@/components/manage/ManageTitle";
+import { Section, EmptyState } from "@/components/layout";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, CheckCircle2, ChevronDown, ChevronRight, File, FolderClosed, FolderOpen, Loader2, X } from "lucide-react";
@@ -56,7 +57,7 @@ const TreeNode = ({ node, onCheck, checked }) => {
     if (node.type === "folder") {
         return (
             <div>
-                <div className="flex items-center gap-2 px-3 py-2 rounded-[5px] hover:bg-slate-50 transition-colors">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-[5px] hover:bg-slate-50 dark:hover:bg-slate-900/40 transition-colors">
                     <Checkbox
                         checked={!!checked[node.path]}
                         onCheckedChange={(v) => onCheck(node, v === true)}
@@ -69,7 +70,7 @@ const TreeNode = ({ node, onCheck, checked }) => {
                             ? <FolderClosed className="w-4 h-4 text-amber-500 shrink-0" />
                             : <FolderOpen    className="w-4 h-4 text-amber-500 shrink-0" />
                         }
-                        <span className="text-[12px] font-semibold text-slate-700">{node.name}</span>
+                        <span className="text-[12px] font-semibold text-slate-700 dark:text-slate-200">{node.name}</span>
                         {node.isDownloaded && (
                             <span className="text-[9px] bg-green-50 text-green-600 px-2 py-0.5 rounded-full font-bold">
                                 Downloaded
@@ -81,7 +82,7 @@ const TreeNode = ({ node, onCheck, checked }) => {
                     </button>
                 </div>
                 {!collapsed && node.children && (
-                    <div className="ml-6 border-l border-slate-100 pl-2 mt-0.5 space-y-0.5">
+                    <div className="ml-6 border-l border-slate-100 dark:border-slate-800 pl-2 mt-0.5 space-y-0.5">
                         {node.children.map((child, i) => (
                             <TreeNode key={i} node={child} onCheck={onCheck} checked={checked} />
                         ))}
@@ -268,58 +269,62 @@ const ManageSync = () => {
 
     return (
         <div className="min-h-screen pb-24 md:pb-8">
-            <ManageTitle title="Sync Content" />
-
             <div className="px-4 md:px-4">
-                <div className="bg-white rounded-[5px] border border-slate-100">
+                <ManageTitle
+                    title="Sync Content"
+                    description="Choose folders and files from the cloud to download to this device, or remove downloaded content."
+                />
+            </div>
 
-                    {/* Card body — tree */}
-                    <div className="p-4 space-y-0.5 min-h-[200px]">
-                        {fetching ? (
-                            <div className="flex flex-col gap-2 py-4">
-                                {[1,2,3].map(i => (
-                                    <div key={i} className="h-9 bg-slate-100 rounded-[5px] animate-pulse" />
-                                ))}
-                            </div>
-                        ) : cloudUnavailable ? (
-                            <div className="flex flex-col items-center justify-center py-12 gap-2">
-                                <AlertCircle className="w-8 h-8 text-red-300" />
-                                <p className="text-[12px] font-semibold text-slate-600">Remote server is not available</p>
-                            </div>
-                        ) : contentTree.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-12 gap-2">
-                                <FolderClosed className="w-8 h-8 text-slate-200" />
-                                <p className="text-[12px] font-semibold text-slate-600">No content available</p>
-                            </div>
-                        ) : (
-                            contentTree.map((node, i) => (
-                                <TreeNode key={i} node={node} onCheck={handleCheck} checked={checked} />
-                            ))
+            <div className="px-4 md:px-4 space-y-4">
+                {/* Feedback banners */}
+                {(banner || confirm) && (
+                    <div className="space-y-2">
+                        {banner && (
+                            <Banner
+                                type={banner.type}
+                                message={banner.message}
+                                onDismiss={() => setBanner(null)}
+                            />
+                        )}
+                        {confirm && (
+                            <ConfirmBanner
+                                message={confirm.message}
+                                onConfirm={confirm.onConfirm}
+                                onCancel={() => setConfirm(null)}
+                            />
                         )}
                     </div>
+                )}
 
-                    {/* Feedback banners */}
-                    {(banner || confirm) && (
-                        <div className="px-4 space-y-2">
-                            {banner && (
-                                <Banner
-                                    type={banner.type}
-                                    message={banner.message}
-                                    onDismiss={() => setBanner(null)}
-                                />
-                            )}
-                            {confirm && (
-                                <ConfirmBanner
-                                    message={confirm.message}
-                                    onConfirm={confirm.onConfirm}
-                                    onCancel={() => setConfirm(null)}
-                                />
-                            )}
+                <Section title="Cloud content">
+                    {/* Tree */}
+                    {fetching ? (
+                        <div className="flex flex-col gap-2 py-4">
+                            {[1,2,3].map(i => (
+                                <div key={i} className="h-9 bg-slate-100 dark:bg-slate-800 rounded-[5px] animate-pulse" />
+                            ))}
+                        </div>
+                    ) : cloudUnavailable ? (
+                        <EmptyState
+                            icon={<AlertCircle className="w-8 h-8 text-red-300" />}
+                            title="Remote server is not available"
+                        />
+                    ) : contentTree.length === 0 ? (
+                        <EmptyState
+                            icon={<FolderClosed className="w-8 h-8" />}
+                            title="No content available"
+                        />
+                    ) : (
+                        <div className="rounded-xl border border-slate-200 dark:border-slate-800 p-2 space-y-0.5 overflow-x-auto">
+                            {contentTree.map((node, i) => (
+                                <TreeNode key={i} node={node} onCheck={handleCheck} checked={checked} />
+                            ))}
                         </div>
                     )}
 
-                    {/* Card footer — action bar */}
-                    <div className="flex items-center justify-between gap-3 px-4 py-3 border-t border-slate-100 mt-2">
+                    {/* Action bar */}
+                    <div className="flex flex-wrap items-center justify-between gap-3 pt-3">
                         {/* Left: status + selection count */}
                         <div className="flex items-center gap-3 flex-wrap">
                             {selectedCount > 0 && (
@@ -373,7 +378,7 @@ const ManageSync = () => {
                             )}
                         </div>
                     </div>
-                </div>
+                </Section>
             </div>
         </div>
     );

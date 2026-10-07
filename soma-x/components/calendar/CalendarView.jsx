@@ -274,7 +274,7 @@ export default function CalendarView({ events, today, loading, onEventMove, onRa
       {/* Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
-          {title && <h1 className="text-lg font-bold text-slate-900 truncate">{title}</h1>}
+          {title && <h1 className="text-lg font-bold text-slate-900 dark:text-white truncate">{title}</h1>}
           {loading && (
             <span className="w-4 h-4 rounded-full border-2 border-slate-200 border-t-[#203A3A] animate-spin" role="status" aria-label="Loading" />
           )}
@@ -424,19 +424,21 @@ export default function CalendarView({ events, today, loading, onEventMove, onRa
             <p className="text-sm text-slate-500 py-6 text-center">Nothing scheduled{showEarlier ? " in this period" : " from today on"}.</p>
           )}
 
-          <ol className="space-y-3">
+          {/* One list: a row per day (date heading + that day's events). Not a box per day. */}
+          {agendaGroups.length > 0 && (
+          <ol className="divide-y divide-slate-100 dark:divide-slate-800 rounded-xl border border-slate-200 dark:border-slate-800">
             {agendaGroups.map(({ date, events: dayEvents }) => {
               const rel = relativeLabel(date);
               const past = compareDates(date, effectiveToday) < 0;
               return (
-                <li key={date} className={`rounded-xl border overflow-hidden ${date === effectiveToday ? "border-[#0D9488]/40" : "border-slate-200"} ${past ? "opacity-75" : ""}`}>
-                  <h3 className="flex items-center gap-2 px-3 py-2 bg-slate-50 border-b border-slate-100 text-xs font-bold text-slate-700">
+                <li key={date} className={`px-3 py-2.5 sm:flex sm:items-start sm:gap-4 ${date === effectiveToday ? "bg-teal-50/40 dark:bg-teal-950/20" : ""} ${past ? "opacity-75" : ""}`}>
+                  <h3 className="flex items-center gap-2 sm:w-52 sm:shrink-0 sm:pt-1 text-xs font-bold text-slate-700 dark:text-slate-200">
                     {formatDate(date, { weekday: "long", day: "numeric", month: "long" })}
                     {rel && (
                       <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${rel === "Today" ? "bg-[#0D9488] text-white" : "bg-slate-200 text-slate-600"}`}>{rel}</span>
                     )}
                   </h3>
-                  <ul className="p-2 space-y-1.5">
+                  <ul className="mt-1.5 sm:mt-0 flex-1 min-w-0 space-y-1.5">
                     {dayEvents.map((e) => (
                       <li key={eventKey(e)}>
                         <EventChip
@@ -452,6 +454,7 @@ export default function CalendarView({ events, today, loading, onEventMove, onRa
               );
             })}
           </ol>
+          )}
 
           <button type="button" onClick={() => setAgendaTo((d) => addDays(d, AGENDA_AHEAD))} className="text-xs font-semibold text-[#0D9488] hover:underline">
             Show later dates

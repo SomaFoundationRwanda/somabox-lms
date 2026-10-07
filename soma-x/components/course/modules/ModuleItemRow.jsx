@@ -18,7 +18,7 @@ const ITEM_STATUS_HINTS = {
 const SHORT_DATE = { weekday: "short", day: "numeric", month: "short" };
 
 // "Opens Tue 13 Jan · Due Fri 16 Jan · Closes Sun 18 Jan" (only the parts that exist);
-// "Opens Day 0 · Due Day 4" when the course has no start date yet.
+// "Opens Day 0 · Due Day 4" when the course has no start date yet; "No dates yet" otherwise.
 function itemScheduleText(item) {
   const parts = [];
   const isPlain = item.item_type === "page" || item.item_type === "file";
@@ -32,10 +32,11 @@ function itemScheduleText(item) {
   const release = day(item.release_day);
   const due = isPlain ? null : day(item.due_day);
   const close = isPlain ? null : day(item.close_day);
-  if (release !== null && (release > 0 || due !== null)) parts.push(`Opens Day ${release}`);
+  if (release !== null) parts.push(`Opens Day ${release}`);
   if (due !== null) parts.push(`Due Day ${due}`);
   if (close !== null) parts.push(`Closes Day ${close}`);
-  return parts.join(" · ");
+  // Every row shows a date: fall back to an honest "No dates yet".
+  return parts.length > 0 ? parts.join(" · ") : "No dates yet";
 }
 
 const ITEM_ICONS = {
@@ -80,10 +81,10 @@ export default function ModuleItemRow({ item, courseId, isTeacher, onTogglePubli
   // Sub-header rendering
   if (isSubHeader) {
     return (
-      <div
+      <li
         ref={setNodeRef}
         style={style}
-        className={`flex items-center justify-between gap-2 pr-3 py-2 ${isDragging ? "opacity-40 bg-amber-50" : "bg-slate-50/60"}`}
+        className={`flex items-center justify-between gap-2 pr-3 py-2 ${isDragging ? "opacity-40 bg-amber-50" : "bg-slate-50/60 dark:bg-slate-900/40"}`}
         {...attributes}
       >
         <div className="flex items-center gap-2 min-w-0">
@@ -106,7 +107,7 @@ export default function ModuleItemRow({ item, courseId, isTeacher, onTogglePubli
             </button>
           </div>
         )}
-      </div>
+      </li>
     );
   }
 
@@ -120,7 +121,7 @@ export default function ModuleItemRow({ item, courseId, isTeacher, onTogglePubli
   const TitleContent = (
     <div className="flex items-center gap-2 min-w-0 flex-1 flex-wrap sm:flex-nowrap">
       <Icon className={`w-4 h-4 shrink-0 ${item.published ? "text-[#0D9488]" : "text-slate-300"}`} />
-      <span className={`text-sm truncate font-medium ${item.published ? "text-slate-800" : "text-slate-400 italic"}`}>
+      <span className={`text-sm truncate font-medium ${item.published ? "text-slate-800 dark:text-slate-100" : "text-slate-400 italic"}`}>
         {item.title}
       </span>
 
@@ -153,15 +154,15 @@ export default function ModuleItemRow({ item, courseId, isTeacher, onTogglePubli
   );
 
   return (
-    <div
+    <li
       ref={setNodeRef}
       style={style}
-      className={`flex items-center justify-between gap-2 pr-3 py-2 group ${isDragging ? "opacity-40 bg-blue-50" : "hover:bg-slate-50/80"}`}
+      className={`flex items-center justify-between gap-2 pr-3 py-2.5 group ${isDragging ? "opacity-40 bg-blue-50" : "hover:bg-slate-50/80 dark:hover:bg-slate-900/40"}`}
       {...attributes}
     >
       <div className="flex items-center gap-1.5 min-w-0 flex-1">
         {isTeacher && (
-          <button {...listeners} className="cursor-grab active:cursor-grabbing p-0.5 text-slate-200 hover:text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+          <button {...listeners} className="cursor-grab active:cursor-grabbing p-0.5 text-slate-200 hover:text-slate-400 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity shrink-0" aria-label="Drag to reorder item">
             <GripVertical className="w-3.5 h-3.5" />
           </button>
         )}
@@ -175,7 +176,7 @@ export default function ModuleItemRow({ item, courseId, isTeacher, onTogglePubli
       </div>
 
       {isTeacher && (
-        <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-0.5 shrink-0 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100 transition-opacity">
           <button onClick={onTogglePublish} className="p-1 rounded hover:bg-white" title={item.published ? "Unpublish" : "Publish"}>
             {item.published ? <Eye className="w-3.5 h-3.5 text-emerald-600" /> : <EyeOff className="w-3.5 h-3.5 text-slate-400" />}
           </button>
@@ -187,6 +188,6 @@ export default function ModuleItemRow({ item, courseId, isTeacher, onTogglePubli
           </button>
         </div>
       )}
-    </div>
+    </li>
   );
 }

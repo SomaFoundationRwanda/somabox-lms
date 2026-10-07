@@ -83,6 +83,7 @@ const POLICY = {
   "POST /courses": "staff",
   "GET /courses/mine": "any",
   "GET /courses/public": "any",
+  "GET /courses/all": "admin",
   "POST /courses/:id/join": "any",
   "POST /courses/:id/enroll": "any",
   "POST /courses/:id/accept-invite": "any",

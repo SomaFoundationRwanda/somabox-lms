@@ -594,11 +594,11 @@ const FileManager = () => {
     return (
         <div className="px-4 md:px-4 pb-24 md:pb-8">
 
-            {/* ── Toolbar card ── */}
-            <div className="bg-white rounded-[5px] border border-slate-100 mb-3">
+            {/* ── Toolbar (flat, no card) ── */}
+            <div className="mb-3">
 
                 {/* Top row */}
-                <div className="flex items-center gap-2 px-3 py-2.5 border-b border-slate-100 flex-wrap">
+                <div className="flex items-center gap-2 py-2 flex-wrap">
                     {/* Search */}
                     <div className="flex items-center gap-2 px-3 h-8 rounded-[5px] border border-slate-200 bg-slate-50 focus-within:bg-white focus-within:border-slate-400 transition-all flex-1 min-w-[180px] max-w-[280px]">
                         <Search className="w-3.5 h-3.5 text-slate-600 shrink-0" />
@@ -650,8 +650,8 @@ const FileManager = () => {
                 </div>
 
                 {/* Bottom row: breadcrumb + count */}
-                <div className="flex items-center justify-between px-3 py-2">
-                    <div className="flex items-center gap-1 text-[11px] flex-wrap">
+                <div className="flex items-center justify-between gap-2 py-2">
+                    <div className="flex items-center gap-1 text-[11px] flex-wrap min-w-0">
                         {breadcrumbs.length > 0 ? (
                             breadcrumbs.map((b, idx) => {
                                 const isLast = idx === breadcrumbs.length - 1;

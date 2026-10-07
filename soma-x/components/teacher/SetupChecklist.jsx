@@ -13,7 +13,7 @@ export function setupNeedsAttention(status) {
 }
 
 /**
- * Teacher "Course setup" card: checklist, warnings and (for drafts) the Open course button.
+ * Teacher "Course setup" section (flat, not a card): checklist, warnings and (for drafts) the Open course button.
  * status: the teacher shape of GET /courses/:id/setup-status. onChanged: called after the course opens.
  */
 export default function SetupChecklist({ courseId, SERVER_URL, status, onChanged, showSettingsLink = true }) {
@@ -53,10 +53,10 @@ export default function SetupChecklist({ courseId, SERVER_URL, status, onChanged
   };
 
   return (
-    <section aria-labelledby="setup-checklist-title" className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4">
+    <section aria-labelledby="setup-checklist-title" className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <h2 id="setup-checklist-title" className="text-base font-bold text-slate-900">Course setup</h2>
+          <h2 id="setup-checklist-title" className="text-sm font-bold text-slate-900 dark:text-white">Course setup</h2>
           <p className="text-xs text-slate-500 mt-0.5">
             {isDraft
               ? "This course is a draft. Learners can't see it until you open it."
@@ -69,7 +69,7 @@ export default function SetupChecklist({ courseId, SERVER_URL, status, onChanged
         )}
       </div>
 
-      <ul className="divide-y divide-slate-100 border border-slate-200 rounded-xl">
+      <ul aria-label="Setup checklist" className="divide-y divide-slate-100 dark:divide-slate-800 border border-slate-200 dark:border-slate-800 rounded-xl">
         {checklist.map((item) => (
           <li key={item.id}>
             <Link
@@ -99,9 +99,9 @@ export default function SetupChecklist({ courseId, SERVER_URL, status, onChanged
           <h3 className="text-xs font-bold uppercase text-amber-700 flex items-center gap-1.5">
             <AlertTriangle className="w-3.5 h-3.5" aria-hidden="true" /> Worth checking
           </h3>
-          <ul className="space-y-2">
+          <ul className="divide-y divide-amber-200 border border-amber-200 rounded-xl overflow-hidden">
             {warnings.map((w) => (
-              <li key={w.id} className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex flex-wrap items-center justify-between gap-2">
+              <li key={w.id} className="px-3 py-2.5 bg-amber-50/60 flex flex-wrap items-center justify-between gap-2">
                 <p className="text-xs font-medium text-amber-900 flex-1 min-w-[12rem]">{w.message}</p>
                 {w.href && (
                   <Link href={w.href} className="text-xs font-bold text-amber-700 hover:underline shrink-0">

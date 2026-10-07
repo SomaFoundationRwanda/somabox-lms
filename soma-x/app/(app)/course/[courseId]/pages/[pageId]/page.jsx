@@ -100,12 +100,13 @@ export default function PageDetailPage() {
   return (
     <div>
       <Breadcrumbs sectionKey="pages" itemName={page.title} />
-      <div className="p-4 md:p-6 max-w-4xl mx-auto space-y-4">
+      <div className="p-4 md:p-6 max-w-4xl mx-auto space-y-6">
         {editing ? (
-          <div className="space-y-4 bg-white p-5 border border-slate-200 rounded-2xl shadow-sm">
+          <div className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Page Title</label>
+              <label htmlFor="page-title" className="block text-xs font-semibold text-slate-600 mb-1">Page Title</label>
               <input
+                id="page-title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Page Title"
@@ -131,7 +132,7 @@ export default function PageDetailPage() {
               />
             </div>
 
-            <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
               <label className="flex items-center gap-2 text-sm text-slate-700 font-medium">
                 <input
                   type="checkbox"

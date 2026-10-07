@@ -3,6 +3,7 @@ import Unauthorized from "@/components/sections/Unauthorized";
 import DataContext from "@/context/DataContext";
 import { useContext, useEffect, useState, useRef } from "react";
 import ManageTitle from "@/components/manage/ManageTitle";
+import { DataTable, Section } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { BookOpen, CheckCircle2, Loader2, Trash2, X, Upload, File, AlertCircle, Eye } from "lucide-react";
@@ -380,98 +381,135 @@ const ManageLibrary = () => {
 
     if (!authenticated) return <Unauthorized />;
 
+    const cloudColumns = [
+        {
+            key: "select",
+            header: "Select",
+            className: "w-10 whitespace-nowrap",
+            render: (book) => {
+                const isLocal = localBooks.some(lb => lb.id === parseInt(book.id));
+                return (
+                    <Checkbox
+                        disabled={isLocal}
+                        onCheckedChange={(v) => handleCheck(book, v)}
+                        checked={!!selectedBooks[book.id]}
+                    />
+                );
+            },
+        },
+        {
+            key: "name",
+            header: "Name",
+            render: (book) => {
+                const isLocal = localBooks.some(lb => lb.id === parseInt(book.id));
+                return (
+                    <>
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <p className="text-[12px] font-medium text-slate-800 dark:text-slate-100">{book.book_name}</p>
+                            {isLocal && (
+                                <span className="text-[9px] bg-green-50 text-green-600 px-2 py-0.5 rounded-full font-bold border border-green-100">
+                                    Downloaded
+                                </span>
+                            )}
+                        </div>
+                        <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">{book.categories}</p>
+                    </>
+                );
+            },
+        },
+    ];
+
+    const localColumns = [
+        {
+            key: "name",
+            header: "Name",
+            render: (book) => (
+                <>
+                    <p className="text-[12px] font-medium text-slate-800 dark:text-slate-100">{book.name}</p>
+                    <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">{book.category_ids}</p>
+                </>
+            ),
+        },
+        {
+            key: "action",
+            header: "Action",
+            align: "right",
+            render: (book) => (
+                <div className="flex items-center justify-end gap-1">
+                    <button
+                        onClick={() => setViewBook(book)}
+                        className="inline-flex items-center gap-1.5 text-[11px] h-7 px-3 rounded-full text-[#0D9488] hover:bg-teal-50 font-semibold transition-colors"
+                    >
+                        <Eye className="w-3 h-3" />
+                        Open
+                    </button>
+                    <button
+                        onClick={() => handleDelete(book.id, book.name)}
+                        className="inline-flex items-center gap-1.5 text-[11px] h-7 px-3 rounded-full text-red-600 hover:bg-red-50 font-semibold transition-colors"
+                    >
+                        <Trash2 className="w-3 h-3" />
+                        Delete
+                    </button>
+                </div>
+            ),
+        },
+    ];
+
     return (
         <div className="min-h-screen pb-24 md:pb-8">
-            <ManageTitle title="Manage Library" />
+            <div className="px-4 md:px-4">
+                <ManageTitle
+                    title="Manage Library"
+                    description="Download books from the cloud or add your own, and manage what is stored on this device."
+                    actions={
+                        <Button
+                            onClick={() => setShowUploadModal(true)}
+                            className="h-8 px-4 rounded-[5px] text-[12px] gap-1.5 flex items-center bg-[#0D9488] hover:bg-[#0f766e] text-white"
+                        >
+                            <Upload className="w-3.5 h-3.5" />
+                            Add a book from computer
+                        </Button>
+                    }
+                />
+            </div>
 
-            <div className="px-4 md:px-4 space-y-3">
+            <div className="px-4 md:px-4 space-y-6">
 
                 {/* Feedback banners */}
-                {banner && (
-                    <Banner type={banner.type} message={banner.message} onDismiss={() => setBanner(null)} />
-                )}
-                {confirm && (
-                    <ConfirmBanner
-                        message={confirm.message}
-                        onConfirm={confirm.onConfirm}
-                        onCancel={() => setConfirm(null)}
-                    />
+                {(banner || confirm) && (
+                    <div className="space-y-3">
+                        {banner && (
+                            <Banner type={banner.type} message={banner.message} onDismiss={() => setBanner(null)} />
+                        )}
+                        {confirm && (
+                            <ConfirmBanner
+                                message={confirm.message}
+                                onConfirm={confirm.onConfirm}
+                                onCancel={() => setConfirm(null)}
+                            />
+                        )}
+                    </div>
                 )}
 
-                <div className="flex justify-end">
-                    <Button 
-                        onClick={() => setShowUploadModal(true)}
-                        className="h-8 px-4 rounded-[5px] text-[12px] gap-1.5 flex items-center bg-[#0D9488] hover:bg-[#0f766e] text-white"
-                    >
-                        <Upload className="w-3.5 h-3.5" />
-                        Add a book from computer
-                    </Button>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 min-w-0">
 
                     {/* ── Available on Cloud ── */}
-                    <div className="bg-white rounded-[5px] border border-slate-100 overflow-hidden flex flex-col">
-                        {/* Card header */}
-                        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
-                            <div className="flex items-center gap-2">
-                                <div className="w-6 h-6 rounded-[5px] bg-violet-50 flex items-center justify-center shrink-0">
-                                    <BookOpen className="w-3.5 h-3.5 text-violet-600" />
-                                </div>
-                                <p className="text-[13px] font-bold text-slate-900">Available on Cloud</p>
-                            </div>
-                            <span className="text-[10px] font-semibold text-slate-600">{books.length} books</span>
-                        </div>
-
-                        {/* Table */}
-                        <div className="overflow-y-auto max-h-[500px] flex-1">
-                            <table className="min-w-full">
-                                <thead className="bg-slate-50 sticky top-0">
-                                    <tr>
-                                        <th className="px-4 py-3 text-left text-[10px] font-bold text-slate-600 uppercase tracking-widest w-10">Select</th>
-                                        <th className="px-4 py-3 text-left text-[10px] font-bold text-slate-600 uppercase tracking-widest">Name</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-50">
-                                    {fetching ? (
-                                        [...Array(4)].map((_, i) => (
-                                            <tr key={i}><td colSpan={2} className="px-4 py-3">
-                                                <div className="h-8 bg-slate-100 rounded-[5px] animate-pulse" />
-                                            </td></tr>
-                                        ))
-                                    ) : books.length === 0 ? (
-                                        <tr><td colSpan={2} className="px-4 py-8 text-center text-[12px] font-semibold text-slate-600">No books available</td></tr>
-                                    ) : books.map((book) => {
-                                        const isLocal = localBooks.some(lb => lb.id === parseInt(book.id));
-                                        return (
-                                            <tr key={book.id} className={`hover:bg-slate-50 transition-colors ${isLocal ? 'bg-green-50/60' : ''}`}>
-                                                <td className="px-4 py-3 whitespace-nowrap">
-                                                    <Checkbox
-                                                        disabled={isLocal}
-                                                        onCheckedChange={(v) => handleCheck(book, v)}
-                                                        checked={!!selectedBooks[book.id]}
-                                                    />
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                    <div className="flex items-center gap-2 flex-wrap">
-                                                        <p className="text-[12px] font-medium text-slate-800">{book.book_name}</p>
-                                                        {isLocal && (
-                                                            <span className="text-[9px] bg-green-50 text-green-600 px-2 py-0.5 rounded-full font-bold border border-green-100">
-                                                                Downloaded
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    <p className="text-[11px] text-slate-600 mt-0.5">{book.categories}</p>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
-
-                        {/* Card footer */}
-                        <div className="flex items-center justify-between gap-3 px-4 py-3 border-t border-slate-100">
+                    <Section
+                        title="Available on Cloud"
+                        description={`${books.length} books`}
+                        className="min-w-0"
+                    >
+                        <DataTable
+                            caption="Books available on the cloud"
+                            columns={cloudColumns}
+                            rows={fetching ? [] : books}
+                            rowClassName={(book) => (localBooks.some(lb => lb.id === parseInt(book.id)) ? "bg-green-50/60 dark:bg-green-950/20" : "")}
+                            empty={fetching ? (
+                                <span className="inline-flex items-center gap-2 text-[12px] font-semibold"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading books…</span>
+                            ) : "No books available"}
+                            className="max-h-[500px] overflow-y-auto"
+                        />
+                        <div className="flex items-center justify-between gap-3 pt-3">
                             {downloadStatus !== 'init' ? (
                                 <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
                                     downloadStatus === 'finished'    ? 'bg-green-50 text-green-600' :
@@ -492,63 +530,22 @@ const ManageLibrary = () => {
                                 Download Selected
                             </Button>
                         </div>
-                    </div>
+                    </Section>
 
                     {/* ── Downloaded Books ── */}
-                    <div className="bg-white rounded-[5px] border border-slate-100 overflow-hidden flex flex-col">
-                        {/* Card header */}
-                        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
-                            <div className="flex items-center gap-2">
-                                <div className="w-6 h-6 rounded-[5px] bg-green-50 flex items-center justify-center shrink-0">
-                                    <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
-                                </div>
-                                <p className="text-[13px] font-bold text-slate-900">Downloaded Books</p>
-                            </div>
-                            <span className="text-[10px] font-semibold text-slate-600">{localBooks.length} books</span>
-                        </div>
-
-                        {/* Table */}
-                        <div className="overflow-y-auto max-h-[500px] flex-1">
-                            <table className="min-w-full">
-                                <thead className="bg-slate-50 sticky top-0">
-                                    <tr>
-                                        <th className="px-4 py-3 text-left text-[10px] font-bold text-slate-600 uppercase tracking-widest">Name</th>
-                                        <th className="px-4 py-3 text-right text-[10px] font-bold text-slate-600 uppercase tracking-widest">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-50">
-                                    {localBooks.length === 0 ? (
-                                        <tr><td colSpan={2} className="px-4 py-8 text-center text-[12px] font-semibold text-slate-600">No books downloaded yet</td></tr>
-                                    ) : localBooks.map((book) => (
-                                        <tr key={book.id} className="hover:bg-slate-50 transition-colors">
-                                            <td className="px-4 py-3">
-                                                <p className="text-[12px] font-medium text-slate-800">{book.name}</p>
-                                                <p className="text-[11px] text-slate-600 mt-0.5">{book.category_ids}</p>
-                                            </td>
-                                            <td className="px-4 py-3 text-right">
-                                                <div className="flex items-center justify-end gap-1">
-                                                    <button
-                                                        onClick={() => setViewBook(book)}
-                                                        className="inline-flex items-center gap-1.5 text-[11px] h-7 px-3 rounded-full text-[#0D9488] hover:bg-teal-50 font-semibold transition-colors"
-                                                    >
-                                                        <Eye className="w-3 h-3" />
-                                                        Open
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDelete(book.id, book.name)}
-                                                        className="inline-flex items-center gap-1.5 text-[11px] h-7 px-3 rounded-full text-red-600 hover:bg-red-50 font-semibold transition-colors"
-                                                    >
-                                                        <Trash2 className="w-3 h-3" />
-                                                        Delete
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+                    <Section
+                        title="Downloaded Books"
+                        description={`${localBooks.length} books`}
+                        className="min-w-0"
+                    >
+                        <DataTable
+                            caption="Books downloaded to this device"
+                            columns={localColumns}
+                            rows={localBooks}
+                            empty="No books downloaded yet"
+                            className="max-h-[500px] overflow-y-auto"
+                        />
+                    </Section>
 
                 </div>
             </div>

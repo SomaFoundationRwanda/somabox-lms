@@ -1,7 +1,8 @@
 "use client"
 import { useContext, useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Check, Palette, School } from "lucide-react";
+import { ArrowLeft, Check, School } from "lucide-react";
+import { PageHeader, Section } from "@/components/layout";
 import DataContext from "@/context/DataContext";
 import Unauthorized from "@/components/sections/Unauthorized";
 import { Button } from "@/components/ui/button";
@@ -57,28 +58,21 @@ export default function BrandingSettingsPage() {
 
     return (
         <div className="min-h-screen p-4 md:p-8 max-w-2xl mx-auto pb-16">
-            <div className="flex items-center justify-between mb-6">
-                <Link href="/manage/admin" className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors">
-                    <ArrowLeft className="w-4 h-4" /> Admin Console
+            <div className="mb-4">
+                <Link href="/manage/admin" className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors">
+                    <ArrowLeft className="w-3.5 h-3.5" /> Admin
                 </Link>
-                <span className="text-[10px] font-black uppercase tracking-wider px-3 py-1 bg-teal-50 text-teal-700 dark:bg-teal-950/60 dark:text-teal-300 rounded-full border border-teal-200 dark:border-teal-800">
-                    Mass-Production Unit Branding
-                </span>
             </div>
 
-            <div className="bg-white dark:bg-[#0f1318] border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-xl">
-                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100 dark:border-slate-800">
-                    <div className="p-3 bg-[#203A3A] text-white rounded-2xl">
-                        <Palette className="w-6 h-6" />
-                    </div>
-                    <div>
-                        <h1 className="text-lg font-black text-slate-900 dark:text-white">School-Specific Branding Configuration</h1>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">Customize logo, colors, and M&E sync endpoints for deployed SOMABOX hardware units.</p>
-                    </div>
-                </div>
+            <PageHeader
+                eyebrow="Unit branding"
+                title="School-Specific Branding Configuration"
+                description="Customize logo, colors, and M&E sync endpoints for deployed SOMABOX hardware units."
+            />
 
+            <Section className="mt-6">
                 {msg && (
-                    <div className="mb-4 p-3 bg-emerald-50 text-emerald-800 text-xs font-bold rounded-xl border border-emerald-200 flex items-center gap-2">
+                    <div className="mb-4 p-3 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200 text-xs font-bold rounded-xl border border-emerald-200 dark:border-emerald-800 flex items-center gap-2">
                         <Check className="w-4 h-4" /> {msg}
                     </div>
                 )}
@@ -110,7 +104,7 @@ export default function BrandingSettingsPage() {
                         />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                             <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
                                 Primary Theme Color
@@ -166,7 +160,7 @@ export default function BrandingSettingsPage() {
                     </div>
 
                     {/* Preview Box */}
-                    <div className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 mt-4" style={{ backgroundColor: branding.primary_color || '#203A3A' }}>
+                    <div className="p-4 rounded-xl mt-4" style={{ backgroundColor: branding.primary_color || '#203A3A' }}>
                         <p className="text-[10px] font-bold uppercase tracking-wider text-white/60 mb-1">Branding Preview</p>
                         <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded-lg flex items-center justify-center font-black text-white text-xs" style={{ backgroundColor: branding.secondary_color || '#0D9488' }}>
@@ -186,7 +180,7 @@ export default function BrandingSettingsPage() {
                         </Button>
                     </div>
                 </form>
-            </div>
+            </Section>
         </div>
     );
 }

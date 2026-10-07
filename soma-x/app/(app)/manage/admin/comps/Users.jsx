@@ -4,6 +4,7 @@ import { useContext, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AddUserDrawer } from "@/components/AddUserDrawer";
 import UserProfileModal from "@/components/manage/UserProfileModal";
+import { DataTable } from "@/components/layout";
 import { useLanguage } from "@/context/LanguageContext";
 import DataContext from "@/context/DataContext";
 import { useToast } from "@/context/ToastContext";
@@ -254,10 +255,7 @@ export default function Users() {
 
     /* ── Design tokens ── */
     const avatarBg      = dm ? "#0D9488" : "#203B3B";
-    const theadBg       = dm ? "rgba(255,255,255,0.04)" : "#f8fafc";
     const thColor       = dm ? "#7A8595" : "#64748b";
-    const rowHover      = dm ? "rgba(255,255,255,0.03)" : "#f8fafc";
-    const rowDivider    = dm ? "rgba(255,255,255,0.06)" : "#f1f5f9";
     const textPrimary   = dm ? "#E8ECF0" : "#0f172a";
     const textSecondary = dm ? "#8B929E" : "#64748b";
     const textMuted     = dm ? "#637080" : "#94a3b8";
@@ -275,11 +273,227 @@ export default function Users() {
     };
     const roleIcons = { admin: ShieldCheck, teacher: User, scholar: GraduationCap };
 
+    const toggleSort = (key, firstOrder = "asc") => {
+        if (sortBy === key) setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+        else { setSortBy(key); setSortOrder(firstOrder); }
+    };
+
+    const SortHeader = ({ label, sortKey, firstOrder }) => (
+        <button
+            type="button"
+            onClick={() => toggleSort(sortKey, firstOrder)}
+            className="inline-flex items-center gap-1 uppercase tracking-wide font-semibold select-none hover:text-slate-800 dark:hover:text-slate-200"
+            style={{ color: thColor }}
+        >
+            {label}
+            <ArrowUpDown className="w-3 h-3 opacity-60" />
+        </button>
+    );
+
+    const allSelected = selectedRows.size === users.length && users.length > 0;
+
+    const columns = [
+        {
+            key: "select",
+            className: "w-10",
+            header: (
+                <button type="button" onClick={toggleSelectAll} aria-label="Select all users" className="text-slate-600 hover:text-slate-600 align-middle">
+                    {allSelected ? <CheckSquare className="w-4 h-4 text-teal-600" /> : <Square className="w-4 h-4" />}
+                </button>
+            ),
+            render: (user) => (
+                <button type="button" onClick={() => toggleSelectRow(user.id)} aria-label="Select user" className="text-slate-600 hover:text-slate-600 align-middle">
+                    {selectedRows.has(user.id) ? <CheckSquare className="w-4 h-4 text-teal-600" /> : <Square className="w-4 h-4" />}
+                </button>
+            ),
+        },
+        {
+            key: "user",
+            header: <SortHeader label="User" sortKey="name" />,
+            render: (user) => {
+                const isInactive = user.is_active === 0;
+                return (
+                    <button
+                        type="button"
+                        onClick={() => setViewProfileUser(user)}
+                        className="flex items-center gap-3 min-w-0 text-left group hover:opacity-85 transition-opacity"
+                    >
+                        <div
+                            className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-white text-[11px] font-black group-hover:ring-2 group-hover:ring-teal-500 transition-all"
+                            style={{ backgroundColor: isInactive ? "#94a3b8" : avatarBg }}
+                        >
+                            {getInitials(user.full_name, user.email)}
+                        </div>
+                        <div className="min-w-0">
+                            <p className={`text-[12px] font-bold truncate leading-tight group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors ${isInactive ? "line-through text-slate-500" : ""}`} style={{ color: isInactive ? textMuted : textPrimary }}>
+                                {user.full_name || <em>No name</em>}
+                            </p>
+                            <p className="text-[11px] truncate mt-0.5" style={{ color: textSecondary }}>{user.email}</p>
+                        </div>
+                    </button>
+                );
+            },
+        },
+        {
+            key: "details",
+            header: "Details",
+            hideOnMobile: true,
+            render: (user) => (
+                <div className="space-y-0.5">
+                    {user.phone && (
+                        <div className="flex items-center gap-1.5 text-[11px]" style={{ color: textSecondary }}>
+                            <Phone className="w-3 h-3 shrink-0" style={{ color: detailIcon }} />
+                            {user.phone}
+                        </div>
+                    )}
+                    {user.school_name && (
+                        <div className="flex items-center gap-1.5 text-[11px]" style={{ color: textSecondary }}>
+                            <School className="w-3 h-3 shrink-0" style={{ color: detailIcon }} />
+                            <span className="truncate max-w-[140px]">{user.school_name}</span>
+                        </div>
+                    )}
+                    {user.grade_level && (
+                        <span className="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                            {user.grade_level}
+                        </span>
+                    )}
+                    {!user.phone && !user.school_name && !user.grade_level && (
+                        <span style={{ color: textMuted }} className="text-[11px]">—</span>
+                    )}
+                </div>
+            ),
+        },
+        {
+            key: "status",
+            header: <SortHeader label="Status" sortKey="status" />,
+            render: (user) => {
+                const isInactive = user.is_active === 0;
+                return (
+                    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold whitespace-nowrap ${
+                        isInactive
+                            ? "bg-slate-100 text-slate-500 border border-slate-200 dark:bg-slate-800 dark:text-slate-400"
+                            : "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300"
+                    }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${isInactive ? "bg-slate-400" : "bg-emerald-500"}`} />
+                        {isInactive ? "Inactive" : "Active"}
+                    </span>
+                );
+            },
+        },
+        {
+            key: "role",
+            header: <SortHeader label="Role" sortKey="role" />,
+            render: (user) => {
+                const roleCfg  = (dm ? roleDark : roleLight)[user.role] || (dm ? roleDark : roleLight).teacher;
+                const RoleIcon = roleIcons[user.role] || User;
+                return (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap"
+                        style={{ backgroundColor: roleCfg.bg, color: roleCfg.text, border: `1px solid ${roleCfg.border}` }}>
+                        <RoleIcon className="w-3 h-3" />
+                        {t(`role.${user.role}`)}
+                    </span>
+                );
+            },
+        },
+        {
+            key: "joined",
+            header: <SortHeader label="Joined" sortKey="created_at" firstOrder="desc" />,
+            hideOnMobile: true,
+            render: (user) => (
+                <span className="text-[11px] font-medium whitespace-nowrap" style={{ color: textSecondary }}>
+                    {formatDate(user.created_at) || "—"}
+                </span>
+            ),
+        },
+        {
+            key: "actions",
+            header: "Actions",
+            align: "right",
+            render: (user) => {
+                const isInactive = user.is_active === 0;
+                return (
+                    <div className="relative inline-block text-left">
+                        <button
+                            type="button"
+                            aria-label="User actions"
+                            onClick={() => setActiveMenuId(activeMenuId === user.id ? null : user.id)}
+                            className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"
+                        >
+                            <MoreVertical className="w-4 h-4" />
+                        </button>
+
+                        {/* Kebab Dropdown Menu */}
+                        {activeMenuId === user.id && (
+                            <>
+                                <div className="fixed inset-0 z-20" onClick={() => setActiveMenuId(null)} />
+                                <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 z-30 py-1 text-left animate-in fade-in zoom-in-95 duration-100">
+
+                                    {/* View Profile */}
+                                    <button
+                                        type="button"
+                                        onClick={() => { setActiveMenuId(null); router.push(`/manage/admin/users/${user.id}`); }}
+                                        className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                                    >
+                                        <Eye className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" /> View Full Details
+                                    </button>
+
+                                    {/* Edit */}
+                                    <AddUserDrawer
+                                        user={user}
+                                        onSuccess={() => { setActiveMenuId(null); fetchUsers(); }}
+                                        trigger={
+                                            <button className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                                                <Pencil className="w-3.5 h-3.5 text-slate-500" /> Edit Profile
+                                            </button>
+                                        }
+                                    />
+
+                                    {/* Deactivate / Reactivate */}
+                                    <button
+                                        type="button"
+                                        onClick={() => { setActiveMenuId(null); handleToggleStatus(user); }}
+                                        className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                                    >
+                                        {isInactive ? (
+                                            <><UserCheck className="w-3.5 h-3.5 text-emerald-500" /> Reactivate User</>
+                                        ) : (
+                                            <><UserX className="w-3.5 h-3.5 text-amber-500" /> Deactivate User</>
+                                        )}
+                                    </button>
+
+                                    {/* Reset Password */}
+                                    <button
+                                        type="button"
+                                        onClick={() => { setActiveMenuId(null); setResetPassUser(user); }}
+                                        className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors border-t border-slate-100 dark:border-slate-800"
+                                    >
+                                        <KeyRound className="w-3.5 h-3.5 text-amber-500" />
+                                        Reset Password
+                                    </button>
+
+                                    {/* Delete */}
+                                    <button
+                                        type="button"
+                                        onClick={() => { setActiveMenuId(null); setDeleteModalUser(user); setTypedConfirmName(""); }}
+                                        className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+                                    >
+                                        <Trash2 className="w-3.5 h-3.5 text-rose-500" />
+                                        Delete User
+                                    </button>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                );
+            },
+        },
+    ];
+
     return (
         <div className="space-y-4">
 
             {/* ── Search & Filter Bar ── */}
-            <div className="bg-white dark:bg-[#0E1117] p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+            <div className="space-y-3">
                 <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
                     
                     {/* Live Search */}
@@ -385,14 +599,14 @@ export default function Users() {
 
             {/* ── Bulk Actions Toolbar (Visible when rows selected) ── */}
             {selectedRows.size > 0 && (
-                <div className="bg-slate-900 text-white p-3.5 rounded-xl flex items-center justify-between shadow-xl animate-in fade-in duration-200">
+                <div className="bg-slate-900 text-white p-3 rounded-xl flex flex-wrap items-center justify-between gap-2 animate-in fade-in duration-200">
                     <div className="flex items-center gap-3">
                         <span className="text-xs font-black bg-teal-500/20 text-teal-300 border border-teal-500/30 px-3 py-1 rounded-lg">
                             {selectedRows.size} user(s) selected
                         </span>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                         <button
                             onClick={() => setBulkRoleModal(true)}
                             className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold transition-colors"
@@ -432,292 +646,31 @@ export default function Users() {
             )}
 
             {/* ── Main Users Table ── */}
-            <div className="w-full overflow-x-auto bg-white dark:bg-[#0E1117] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                <table className="w-full text-left border-collapse min-w-[700px]">
-                    <thead>
-                        <tr style={{ backgroundColor: theadBg }}>
-                            <th className="py-3.5 px-4 w-10">
-                                <button onClick={toggleSelectAll} className="text-slate-600 hover:text-slate-600">
-                                    {selectedRows.size === users.length && users.length > 0 ? (
-                                        <CheckSquare className="w-4 h-4 text-teal-600" />
-                                    ) : (
-                                        <Square className="w-4 h-4" />
-                                    )}
-                                </button>
-                            </th>
-                            <th
-                                className="py-3.5 px-4 text-[10px] font-bold uppercase tracking-widest cursor-pointer select-none"
-                                style={{ color: thColor }}
-                                onClick={() => {
-                                    if (sortBy === "name") setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-                                    else { setSortBy("name"); setSortOrder("asc"); }
-                                }}
+            <DataTable
+                caption="Users"
+                columns={columns}
+                rows={loading ? [] : users}
+                rowClassName={(u) => (u.is_active === 0 ? "opacity-60 bg-slate-50/50 dark:bg-slate-900/30" : "")}
+                empty={loading ? (
+                    <span className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500">
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Loading users…
+                    </span>
+                ) : (
+                    <div className="flex flex-col items-center gap-2 py-6">
+                        <Users2 className="w-9 h-9 text-slate-500 dark:text-slate-700" />
+                        <p className="text-sm font-bold text-slate-800 dark:text-slate-200">No users match your filters</p>
+                        <p className="text-xs text-slate-500">Try adjusting or clearing your active search filters.</p>
+                        {hasActiveFilters && (
+                            <button
+                                onClick={clearFilters}
+                                className="mt-2 px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold transition-colors"
                             >
-                                <div className="flex items-center gap-1">
-                                    User
-                                    <ArrowUpDown className="w-3 h-3 opacity-60" />
-                                </div>
-                            </th>
-                            <th className="py-3.5 px-4 text-[10px] font-bold uppercase tracking-widest" style={{ color: thColor }}>Details</th>
-                            <th
-                                className="py-3.5 px-4 text-[10px] font-bold uppercase tracking-widest cursor-pointer select-none"
-                                style={{ color: thColor }}
-                                onClick={() => {
-                                    if (sortBy === "status") setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-                                    else { setSortBy("status"); setSortOrder("asc"); }
-                                }}
-                            >
-                                <div className="flex items-center gap-1">
-                                    Status
-                                    <ArrowUpDown className="w-3 h-3 opacity-60" />
-                                </div>
-                            </th>
-                            <th
-                                className="py-3.5 px-4 text-[10px] font-bold uppercase tracking-widest cursor-pointer select-none"
-                                style={{ color: thColor }}
-                                onClick={() => {
-                                    if (sortBy === "role") setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-                                    else { setSortBy("role"); setSortOrder("asc"); }
-                                }}
-                            >
-                                <div className="flex items-center gap-1">
-                                    Role
-                                    <ArrowUpDown className="w-3 h-3 opacity-60" />
-                                </div>
-                            </th>
-                            <th
-                                className="py-3.5 px-4 text-[10px] font-bold uppercase tracking-widest cursor-pointer select-none"
-                                style={{ color: thColor }}
-                                onClick={() => {
-                                    if (sortBy === "created_at") setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-                                    else { setSortBy("created_at"); setSortOrder("desc"); }
-                                }}
-                            >
-                                <div className="flex items-center gap-1">
-                                    Joined
-                                    <ArrowUpDown className="w-3 h-3 opacity-60" />
-                                </div>
-                            </th>
-                            <th className="py-3.5 px-4 text-[10px] font-bold uppercase tracking-widest text-right" style={{ color: thColor }}>Actions</th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-                        {loading ? (
-                            [...Array(5)].map((_, i) => (
-                                <tr key={i} style={{ borderTop: `1px solid ${rowDivider}` }}>
-                                    <td className="py-4 px-4" colSpan={7}>
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full animate-pulse shrink-0 bg-slate-200 dark:bg-slate-800" />
-                                            <div className="space-y-1.5 flex-1">
-                                                <div className="h-3 rounded animate-pulse w-36 bg-slate-200 dark:bg-slate-800" />
-                                                <div className="h-2.5 rounded animate-pulse w-48 bg-slate-100 dark:bg-slate-900" />
-                                            </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))
-                        ) : users.length === 0 ? (
-                            <tr>
-                                <td colSpan={7} className="py-12 text-center">
-                                    <div className="flex flex-col items-center gap-2">
-                                        <Users2 className="w-9 h-9 text-slate-500 dark:text-slate-700" />
-                                        <p className="text-sm font-bold text-slate-800 dark:text-slate-200">No users match your filters</p>
-                                        <p className="text-xs text-slate-500">Try adjusting or clearing your active search filters.</p>
-                                        {hasActiveFilters && (
-                                            <button
-                                                onClick={clearFilters}
-                                                className="mt-2 px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold transition-colors"
-                                            >
-                                                Clear filters
-                                            </button>
-                                        )}
-                                    </div>
-                                </td>
-                            </tr>
-                        ) : (
-                            users.map((user) => {
-                                const isInactive = user.is_active === 0;
-                                const isSelected = selectedRows.has(user.id);
-                                const roleCfg    = (dm ? roleDark : roleLight)[user.role] || (dm ? roleDark : roleLight).teacher;
-                                const RoleIcon   = roleIcons[user.role] || User;
-                                const initials   = getInitials(user.full_name, user.email);
-                                const joined     = formatDate(user.created_at);
-
-                                return (
-                                    <tr
-                                        key={user.id}
-                                        className={`transition-colors ${isInactive ? "opacity-60 bg-slate-50/50 dark:bg-slate-900/30" : ""}`}
-                                        style={{ borderTop: `1px solid ${rowDivider}` }}
-                                    >
-                                        {/* Checkbox */}
-                                        <td className="py-3.5 px-4">
-                                            <button onClick={() => toggleSelectRow(user.id)} className="text-slate-600 hover:text-slate-600">
-                                                {isSelected ? (
-                                                    <CheckSquare className="w-4 h-4 text-teal-600" />
-                                                ) : (
-                                                    <Square className="w-4 h-4" />
-                                                )}
-                                            </button>
-                                        </td>
-
-                                        {/* User */}
-                                        <td className="py-3.5 px-4">
-                                            <button
-                                                type="button"
-                                                onClick={() => setViewProfileUser(user)}
-                                                className="flex items-center gap-3 min-w-0 text-left group hover:opacity-85 transition-opacity"
-                                            >
-                                                <div
-                                                    className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-white text-[11px] font-black shadow-sm group-hover:ring-2 group-hover:ring-teal-500 transition-all"
-                                                    style={{ backgroundColor: isInactive ? "#94a3b8" : avatarBg }}
-                                                >
-                                                    {initials}
-                                                </div>
-                                                <div className="min-w-0">
-                                                    <p className={`text-[12px] font-bold truncate leading-tight group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors ${isInactive ? "line-through text-slate-500" : ""}`} style={{ color: isInactive ? textMuted : textPrimary }}>
-                                                        {user.full_name || <em>No name</em>}
-                                                    </p>
-                                                    <p className="text-[11px] truncate mt-0.5" style={{ color: textSecondary }}>{user.email}</p>
-                                                </div>
-                                            </button>
-                                        </td>
-
-                                        {/* Details */}
-                                        <td className="py-3.5 px-4">
-                                            <div className="space-y-0.5">
-                                                {user.phone && (
-                                                    <div className="flex items-center gap-1.5 text-[11px]" style={{ color: textSecondary }}>
-                                                        <Phone className="w-3 h-3 shrink-0" style={{ color: detailIcon }} />
-                                                        {user.phone}
-                                                    </div>
-                                                )}
-                                                {user.school_name && (
-                                                    <div className="flex items-center gap-1.5 text-[11px]" style={{ color: textSecondary }}>
-                                                        <School className="w-3 h-3 shrink-0" style={{ color: detailIcon }} />
-                                                        <span className="truncate max-w-[140px]">{user.school_name}</span>
-                                                    </div>
-                                                )}
-                                                {user.grade_level && (
-                                                    <span className="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-                                                        {user.grade_level}
-                                                    </span>
-                                                )}
-                                                {!user.phone && !user.school_name && !user.grade_level && (
-                                                    <span style={{ color: textMuted }} className="text-[11px]">—</span>
-                                                )}
-                                            </div>
-                                        </td>
-
-                                        {/* Status */}
-                                        <td className="py-3.5 px-4">
-                                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${
-                                                isInactive 
-                                                    ? "bg-slate-100 text-slate-500 border border-slate-200 dark:bg-slate-800 dark:text-slate-400" 
-                                                    : "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300"
-                                            }`}>
-                                                <span className={`w-1.5 h-1.5 rounded-full ${isInactive ? "bg-slate-400" : "bg-emerald-500"}`} />
-                                                {isInactive ? "Inactive" : "Active"}
-                                            </span>
-                                        </td>
-
-                                        {/* Role */}
-                                        <td className="py-3.5 px-4">
-                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold"
-                                                style={{ backgroundColor: roleCfg.bg, color: roleCfg.text, border: `1px solid ${roleCfg.border}` }}>
-                                                <RoleIcon className="w-3 h-3" />
-                                                {t(`role.${user.role}`)}
-                                            </span>
-                                        </td>
-
-                                        {/* Joined */}
-                                        <td className="py-3.5 px-4">
-                                            <span className="text-[11px] font-medium whitespace-nowrap" style={{ color: textSecondary }}>
-                                                {joined || "—"}
-                                            </span>
-                                        </td>
-
-                                        {/* Actions Kebab Menu */}
-                                        <td className="py-3.5 px-4 text-right relative">
-                                            <div className="relative inline-block text-left">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setActiveMenuId(activeMenuId === user.id ? null : user.id)}
-                                                    className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"
-                                                >
-                                                    <MoreVertical className="w-4 h-4" />
-                                                </button>
-
-                                                {/* Kebab Dropdown Menu */}
-                                                {activeMenuId === user.id && (
-                                                    <>
-                                                        <div className="fixed inset-0 z-20" onClick={() => setActiveMenuId(null)} />
-                                                        <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 z-30 py-1 text-left animate-in fade-in zoom-in-95 duration-100">
-                                                            
-                                                            {/* View Profile */}
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => { setActiveMenuId(null); router.push(`/manage/admin/users/${user.id}`); }}
-                                                                className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                                                            >
-                                                                <Eye className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" /> View Full Details
-                                                            </button>
-
-                                                            {/* Edit */}
-                                                            <AddUserDrawer
-                                                                user={user}
-                                                                onSuccess={() => { setActiveMenuId(null); fetchUsers(); }}
-                                                                trigger={
-                                                                    <button className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-                                                                        <Pencil className="w-3.5 h-3.5 text-slate-500" /> Edit Profile
-                                                                    </button>
-                                                                }
-                                                            />
-
-                                                            {/* Deactivate / Reactivate */}
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => { setActiveMenuId(null); handleToggleStatus(user); }}
-                                                                className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                                                            >
-                                                                {isInactive ? (
-                                                                    <><UserCheck className="w-3.5 h-3.5 text-emerald-500" /> Reactivate User</>
-                                                                ) : (
-                                                                    <><UserX className="w-3.5 h-3.5 text-amber-500" /> Deactivate User</>
-                                                                )}
-                                                            </button>
-
-                                                            {/* Reset Password */}
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => { setActiveMenuId(null); setResetPassUser(user); }}
-                                                                className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors border-t border-slate-100 dark:border-slate-800"
-                                                            >
-                                                                <KeyRound className="w-3.5 h-3.5 text-amber-500" />
-                                                                Reset Password
-                                                            </button>
-
-                                                            {/* Delete */}
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => { setActiveMenuId(null); setDeleteModalUser(user); setTypedConfirmName(""); }}
-                                                                className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
-                                                            >
-                                                                <Trash2 className="w-3.5 h-3.5 text-rose-500" />
-                                                                Delete User
-                                                            </button>
-                                                        </div>
-                                                    </>
-                                                )}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                );
-                            })
+                                Clear filters
+                            </button>
                         )}
-                    </tbody>
-                </table>
-            </div>
+                    </div>
+                )}
+            />
 
             {/* ── Pagination Footer ── */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-2">

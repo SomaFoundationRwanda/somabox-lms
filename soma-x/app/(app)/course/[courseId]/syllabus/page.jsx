@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BookOpen, Calendar, Target, Layers, Award } from "lucide-react";
+import { Calendar, Target, Award } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
 import { moduleWeekLabel } from "@/lib/moduleLabels";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
+import { PageHeader, Section, List, DataTable } from "@/components/layout";
+import { formatRange } from "@/lib/dates";
 
 export default function SyllabusPage() {
   const { SERVER_URL, courseId, userEmail, course } = useCourse();
@@ -40,108 +42,87 @@ export default function SyllabusPage() {
   return (
     <div>
       <Breadcrumbs sectionKey="syllabus" />
-      <div className="p-4 md:p-6 space-y-6 max-w-4xl">
-        <div className="flex items-center justify-between border-b border-slate-200 pb-4">
-          <div>
-            <span className="text-xs font-bold uppercase tracking-wider text-[#0D9488]">Auto-Generated Course Syllabus</span>
-            <h1 className="text-2xl font-black text-slate-900 mt-0.5">{course?.title || "Course Syllabus"}</h1>
-            <p className="text-xs text-slate-500 mt-1">
+      <div className="p-4 md:p-6 space-y-8 max-w-4xl">
+        <PageHeader
+          eyebrow="Auto-generated course syllabus"
+          title={course?.title || "Course Syllabus"}
+          meta={
+            <span>
               Start Date: <strong>{startDateStr}</strong> · Duration: <strong>{course?.length_weeks || 4} Weeks</strong>
-            </p>
-          </div>
-        </div>
+            </span>
+          }
+        />
 
-        {/* 1. Course Outcomes Overview */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-3">
-          <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-            <Target className="w-5 h-5 text-[#0D9488]" /> Course Learning Outcomes
-          </h2>
+        {/* 1. Course Outcomes */}
+        <Section title={<span className="flex items-center gap-2"><Target className="w-4 h-4 text-[#0D9488]" /> Course Learning Outcomes</span>}>
           {outcomes.length === 0 ? (
             <p className="text-xs text-slate-500">No outcomes defined yet.</p>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+            <List label="Course learning outcomes">
               {outcomes.map((o) => (
-                <div key={o.id} className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
-                  <span className="text-[10px] font-bold text-[#0D9488] bg-teal-50 px-2 py-0.5 rounded border border-teal-200">
+                <li key={o.id} className="flex items-start gap-3 px-3 py-2.5">
+                  <span className="text-[10px] font-bold text-[#0D9488] bg-teal-50 px-2 py-0.5 rounded border border-teal-200 shrink-0 mt-0.5">
                     {o.code || `OUT-${o.id}`}
                   </span>
-                  <p className="text-xs font-bold text-slate-800">{o.title}</p>
-                  {o.description && <p className="text-[11px] text-slate-500">{o.description}</p>}
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{o.title}</p>
+                    {o.description && <p className="text-xs text-slate-500 mt-0.5">{o.description}</p>}
+                  </div>
+                </li>
+              ))}
+            </List>
+          )}
+        </Section>
+
+        {/* 2. Grading scale */}
+        <Section title={<span className="flex items-center gap-2"><Award className="w-4 h-4 text-[#0D9488]" /> Grading Scale & Assessment Policy</span>}>
+          <DataTable
+            caption="Grading scale"
+            rowKey={(r) => r.grade}
+            rows={[{ grade: "A", range: "90 - 100%" },{ grade: "B", range: "80 - 89%" },{ grade: "C", range: "70 - 79%" },{ grade: "D", range: "60 - 69%" },{ grade: "F", range: "< 60%" }]}
+            columns={[
+              { key: "grade", header: "Grade", className: "font-bold text-slate-900 dark:text-white" },
+              { key: "range", header: "Score", className: "text-slate-600 dark:text-slate-400" },
+            ]}
+          />
+        </Section>
+
+        {/* 3. Weekly module schedule */}
+        <Section title={<span className="flex items-center gap-2"><Calendar className="w-4 h-4 text-[#0D9488]" /> Weekly Module Schedule</span>}>
+          {modules.length === 0 ? (
+            <p className="text-xs text-slate-500">{loading ? "Loading schedule..." : "No weekly modules scheduled yet."}</p>
+          ) : (
+            <div className="space-y-6">
+              {modules.map((m) => (
+                <div key={m.id} className="space-y-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs font-bold text-[#0D9488] bg-teal-50 px-2.5 py-0.5 rounded-md border border-teal-200">
+                      {moduleWeekLabel(m)}
+                    </span>
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">{m.title}</h3>
+                    {m.kind !== "unassigned" && (
+                      <span className="text-xs text-slate-500">{m.startDate ? formatRange(m.startDate, m.endDate) : "No dates yet"}</span>
+                    )}
+                  </div>
+                  {m.description && <p className="text-xs text-slate-600 dark:text-slate-400">{m.description}</p>}
+
+                  {(m.items || []).length > 0 && (
+                    <List label={`Items in ${m.title}`}>
+                      {m.items.map((item) => (
+                        <li key={item.id} className="px-3 py-2 flex items-center gap-2 text-xs">
+                          <span className="capitalize text-[10px] font-bold text-slate-500 bg-slate-50 px-2 py-0.5 rounded border border-slate-200 shrink-0">
+                            {item.item_type}
+                          </span>
+                          <span className="font-semibold text-slate-800 dark:text-slate-100 truncate">{item.title}</span>
+                        </li>
+                      ))}
+                    </List>
+                  )}
                 </div>
               ))}
             </div>
           )}
-        </div>
-
-        {/* 2. Grading Weights & Rubrics Structure */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-3">
-          <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-            <Award className="w-5 h-5 text-[#0D9488]" /> Grading Scale & Assessment Policy
-          </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-center text-xs">
-            <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
-              <span className="block font-bold text-slate-900 text-sm">A</span>
-              <span className="text-slate-500">90 - 100%</span>
-            </div>
-            <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
-              <span className="block font-bold text-slate-900 text-sm">B</span>
-              <span className="text-slate-500">80 - 89%</span>
-            </div>
-            <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
-              <span className="block font-bold text-slate-900 text-sm">C</span>
-              <span className="text-slate-500">70 - 79%</span>
-            </div>
-            <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
-              <span className="block font-bold text-slate-900 text-sm">D</span>
-              <span className="text-slate-500">60 - 69%</span>
-            </div>
-            <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
-              <span className="block font-bold text-slate-900 text-sm">F</span>
-              <span className="text-slate-500">&lt; 60%</span>
-            </div>
-          </div>
-        </div>
-
-        {/* 3. Auto-Built Course Schedule */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
-          <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-[#0D9488]" /> Weekly Module Schedule
-          </h2>
-
-          <div className="space-y-4">
-            {modules.length === 0 ? (
-              <p className="text-xs text-slate-500">No weekly modules scheduled yet.</p>
-            ) : (
-              modules.map((m) => (
-                <div key={m.id} className="p-4 border border-slate-200 rounded-2xl space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-[#0D9488] bg-teal-50 px-2.5 py-1 rounded-full border border-teal-200">
-                      {moduleWeekLabel(m)}
-                    </span>
-                  </div>
-                  <h3 className="text-sm font-bold text-slate-900">{m.title}</h3>
-                  {m.description && <p className="text-xs text-slate-600">{m.description}</p>}
-
-                  {/* Module items */}
-                  {(m.items || []).length > 0 && (
-                    <div className="pt-2 divide-y divide-slate-100 border border-slate-100 rounded-xl bg-slate-50/50">
-                      {m.items.map((item) => (
-                        <div key={item.id} className="p-2.5 flex items-center justify-between text-xs">
-                          <span className="font-semibold text-slate-800 flex items-center gap-1.5">
-                            <span className="capitalize text-[10px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200">
-                              {item.item_type}
-                            </span>
-                            {item.title}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))
-            )}
-          </div>
-        </div>
+        </Section>
       </div>
     </div>
   );

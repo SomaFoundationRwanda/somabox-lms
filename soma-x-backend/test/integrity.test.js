@@ -255,3 +255,13 @@ test("a learner's first submission succeeds and schedules spaced reviews", async
   const reviews = await db.prepare("SELECT interval_days, due_at > NOW() AS future FROM sol_spaced_reviews WHERE topic_id = ? ORDER BY interval_days").all(`assignment_${item.body.content_id}`);
   assert.deepEqual(reviews.map((r) => [r.interval_days, r.future]), [[3, true], [7, true], [30, true]]);
 });
+
+test("admins can list every course with its teacher and learner count", async () => {
+  const courseId = await ctx.createCourse("Listed for admin", { lifecycle: "draft" });
+  const res = await call("admin")("GET", "/courses/all");
+  assert.equal(res.status, 200);
+  const row = res.body.find((c) => c.id === courseId);
+  assert.equal(row.lifecycle, "draft");
+  assert.equal(row.learners, 1);
+  assert.match(row.teachers, /teacher@test\.local/);
+});

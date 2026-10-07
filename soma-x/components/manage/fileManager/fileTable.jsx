@@ -3,8 +3,8 @@ import FileRow from './fileRow';
 
 const FileTable = ({ files, loading, onOpenFolder, onToggleVisibility, onView }) => {
     return (
-        <div className="bg-white rounded-[5px] border border-slate-100 overflow-hidden">
-            <table className="w-full">
+        <div className="bg-white dark:bg-transparent rounded-xl border border-slate-200 dark:border-slate-800 overflow-x-auto">
+            <table className="w-full min-w-[560px]">
                 <thead className="bg-slate-50">
                     <tr>
                         <th className="px-5 py-3 text-left text-[10px] font-bold text-slate-600 uppercase tracking-widest">Name</th>

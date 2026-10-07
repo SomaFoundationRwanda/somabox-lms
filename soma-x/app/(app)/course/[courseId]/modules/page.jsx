@@ -12,7 +12,7 @@ import { useCourse } from "@/context/CourseContext";
 import { useToast } from "@/context/ToastContext";
 import { useCourseSection } from "@/lib/useCourseSection";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
-import { EmptyState } from "@/components/ui/empty-state";
+import { PageHeader, EmptyState } from "@/components/layout";
 import InfoTooltip from "@/components/ui/InfoTooltip";
 import ModuleCard from "@/components/course/modules/ModuleCard";
 import DeleteItemDialog from "@/components/course/modules/DeleteItemDialog";
@@ -305,32 +305,36 @@ export default function ModulesPage() {
   return (
     <div>
       <Breadcrumbs sectionKey="modules" />
-      <div className="p-4 md:p-6 space-y-4">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            <h1 className="text-lg font-bold text-slate-900">Modules</h1>
-            <InfoTooltip text="A Module groups related content — pages, assignments, quizzes, and files — into one learning unit. Example: 'Module 1: Cell Biology' might contain a reading page, a quiz, and an assignment, all in the order students should complete them." />
-          </div>
-          {isTeacher && (
+      <div className="p-4 md:p-6 space-y-6">
+        <PageHeader
+          title={
+            <span className="inline-flex items-center gap-1.5">
+              Modules
+              <InfoTooltip text="A Module groups related content — pages, assignments, quizzes, and files — into one learning unit. Example: 'Module 1: Cell Biology' might contain a reading page, a quiz, and an assignment, all in the order students should complete them." />
+            </span>
+          }
+          description="Each week's module with its dates, followed by its items in the order learners work through them."
+          actions={isTeacher ? (
             <button
               onClick={() => setCreating((v) => !v)}
+              aria-expanded={creating}
               className="flex items-center gap-1.5 text-xs font-semibold text-white bg-[#203A3A] hover:bg-[#162727] rounded-lg px-3 py-2 transition-colors"
             >
               <Plus className="w-3.5 h-3.5" /> Add Module
             </button>
-          )}
-        </div>
+          ) : null}
+        />
 
         {/* Create module form */}
         {creating && (
-          <div className="flex items-center gap-2 rounded-xl border border-slate-200 p-3 bg-white shadow-sm">
+          <div className="flex flex-wrap items-center gap-2">
             <input
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") createModule(); }}
               placeholder="Module title (e.g. Unit 1, Course Introduction)"
-              className="flex-1 text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[#203A3A]"
+              aria-label="New module title"
+              className="flex-1 min-w-[12rem] text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[#203A3A]"
               autoFocus
             />
             <button onClick={createModule} className="text-xs font-semibold text-white bg-[#203A3A] rounded-lg px-3 py-2">
@@ -346,7 +350,11 @@ export default function ModulesPage() {
         {loading && <p className="text-sm text-slate-500">Loading modules...</p>}
         {error && <p className="text-sm text-rose-600">{error}</p>}
         {!loading && !error && (!modules || modules.length === 0) && (
-          <EmptyState message={isTeacher ? "No modules yet. Create a module to start organizing your course content." : "No content published yet."} />
+          <EmptyState
+            compact
+            title={isTeacher ? "No modules yet" : "No content published yet."}
+            description={isTeacher ? "Create a module to start organizing your course content." : undefined}
+          />
         )}
 
         {/* Module list with drag-and-drop */}
@@ -358,7 +366,7 @@ export default function ModulesPage() {
               onDragEnd={handleModuleReorder}
             >
               <SortableContext items={moduleIds} strategy={verticalListSortingStrategy}>
-                <div className="space-y-3">
+                <div className="space-y-8">
                   {modules.map((moduleRow) => (
                     <ModuleCard
                       key={moduleRow.id}
@@ -376,7 +384,7 @@ export default function ModulesPage() {
               </SortableContext>
             </DndContext>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-8">
               {modules.map((moduleRow) => (
                 <ModuleCard
                   key={moduleRow.id}

@@ -1,9 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Target, Trash2, Sparkles, TrendingUp, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Plus, Trash2, Sparkles, TrendingUp, CheckCircle2 } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
+import { PageHeader, Section, List, DataTable, EmptyState } from "@/components/layout";
+
+const MASTERY_LEVELS = [
+  { points: "4 pts", level: "Exceeds Mastery" },
+  { points: "3 pts", level: "Meets Mastery" },
+  { points: "2 pts", level: "Approaching Mastery" },
+  { points: "1 pt", level: "Below Mastery" },
+];
 
 export default function OutcomesPage() {
   const { SERVER_URL, courseId, userEmail, isTeacher } = useCourse();
@@ -92,35 +100,31 @@ export default function OutcomesPage() {
   return (
     <div>
       <Breadcrumbs sectionKey="outcomes" />
-      <div className="p-4 md:p-6 space-y-6 max-w-4xl">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-black text-slate-900 flex items-center gap-2">
-              <Target className="w-5 h-5 text-[#0D9488]" /> Learning Outcomes & Mastery Pulse
-            </h1>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Outcomes define mastery standards. Baseline assessment (Week 0) vs real-time student mastery tracking.
-            </p>
-          </div>
-          {isTeacher ? (
+      <div className="p-4 md:p-6 space-y-8 max-w-4xl">
+        <PageHeader
+          title="Learning outcomes & mastery"
+          description="Outcomes define mastery standards. Baseline assessment (Week 0) vs real-time student mastery tracking."
+          actions={isTeacher ? (
             <button
               onClick={() => setCreating((v) => !v)}
-              className="flex items-center gap-1.5 text-xs font-semibold text-white bg-[#0D9488] hover:bg-teal-700 rounded-xl px-3.5 py-2 transition-colors"
+              aria-expanded={creating}
+              className="flex items-center gap-1.5 text-xs font-semibold text-white bg-[#0D9488] hover:bg-teal-700 rounded-lg px-3.5 py-2 transition-colors"
             >
               <Plus className="w-3.5 h-3.5" /> New Outcome
             </button>
           ) : null}
-        </div>
+        />
 
-        {/* AI Assistant form */}
+        {/* Add outcome form (flat section) */}
         {creating && (
-          <div className="bg-white rounded-2xl border border-slate-200 p-5 space-y-4 shadow-sm">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-sm font-bold text-slate-800">Add Learning Outcome</h3>
-              <div className="flex items-center gap-2">
+          <Section
+            title="Add learning outcome"
+            actions={
+              <div className="flex flex-wrap items-center gap-2">
                 <input
                   type="text"
                   placeholder="Type vague goal (e.g. learn algebra)"
+                  aria-label="Vague goal for AI to refine"
                   value={aiGoal}
                   onChange={(e) => setAiGoal(e.target.value)}
                   className="text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none"
@@ -133,61 +137,64 @@ export default function OutcomesPage() {
                   <Sparkles className="w-3.5 h-3.5 text-teal-400" /> AI Refine Goal
                 </button>
               </div>
-            </div>
-
+            }
+          >
             <div className="space-y-3">
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Measurable Outcome Statement *</label>
+                <label htmlFor="outcome-title" className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Measurable Outcome Statement *</label>
                 <input
+                  id="outcome-title"
                   value={form.title}
                   onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
                   placeholder="e.g. Can solve linear equations with two variables independently"
-                  className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-[#0D9488]"
+                  className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[#0D9488]"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Description / Mastery Level Criteria</label>
+                <label htmlFor="outcome-description" className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Description / Mastery Level Criteria</label>
                 <textarea
+                  id="outcome-description"
                   value={form.description}
                   onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
                   rows={2}
                   placeholder="Describe what mastery looks like..."
-                  className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-[#0D9488]"
+                  className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[#0D9488]"
                 />
               </div>
 
               <div className="flex justify-end gap-2 pt-1">
                 <button onClick={() => setCreating(false)} className="text-xs font-semibold text-slate-500 px-3 py-2">Cancel</button>
-                <button onClick={createOutcome} disabled={saving || !form.title.trim()} className="text-xs font-semibold text-white bg-[#0D9488] rounded-xl px-4 py-2">
+                <button onClick={createOutcome} disabled={saving || !form.title.trim()} className="text-xs font-semibold text-white bg-[#0D9488] rounded-lg px-4 py-2">
                   {saving ? "Saving..." : "Save Outcome"}
                 </button>
               </div>
             </div>
-          </div>
+          </Section>
         )}
 
-        {/* MASTERY VS BASELINE SUMMARY GRID */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
-          <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-[#0D9488]" /> Outcome Mastery vs Week 0 Baseline
-          </h2>
-
-          <div className="space-y-4">
-            {masteryList.length === 0 ? (
-              <div className="p-6 text-center text-xs text-slate-500 border border-dashed border-slate-200 rounded-2xl">
-                No learning outcomes defined yet. Add outcomes to start tracking baseline vs current student mastery.
-              </div>
-            ) : (
-              masteryList.map((m) => (
-                <div key={m.id} className="p-4 border border-slate-200 rounded-2xl space-y-2 bg-slate-50/50">
+        {/* Mastery vs baseline: one list, a row per outcome with its mastery bar */}
+        <Section
+          divided={creating}
+          title={<span className="flex items-center gap-2"><TrendingUp className="w-4 h-4 text-[#0D9488]" /> Outcome mastery vs Week 0 baseline</span>}
+        >
+          {masteryList.length === 0 ? (
+            <EmptyState
+              compact
+              title={loading ? "Loading outcomes..." : "No learning outcomes defined yet."}
+              description={loading ? undefined : "Add outcomes to start tracking baseline vs current student mastery."}
+            />
+          ) : (
+            <List label="Outcome mastery">
+              {masteryList.map((m) => (
+                <li key={m.id} className="px-3 py-3 space-y-2">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-start gap-2.5 min-w-0">
                       <span className="text-xs font-bold text-[#0D9488] bg-teal-50 border border-teal-200 px-2 py-0.5 rounded-md shrink-0">
                         {m.code}
                       </span>
                       <div className="min-w-0">
-                        <h4 className="text-sm font-bold text-slate-900 truncate">{m.title}</h4>
+                        <h3 className="text-sm font-bold text-slate-900 dark:text-white">{m.title}</h3>
                         {m.description && <p className="text-xs text-slate-500 mt-0.5">{m.description}</p>}
                       </div>
                     </div>
@@ -200,16 +207,15 @@ export default function OutcomesPage() {
                         {m.status ?? "No data yet"}
                       </span>
                       {isTeacher && (
-                        <button onClick={() => removeOutcome(m.id)} className="text-slate-400 hover:text-rose-500 p-1">
+                        <button onClick={() => removeOutcome(m.id)} aria-label={`Delete outcome ${m.code || m.title}`} className="text-slate-400 hover:text-rose-500 p-1">
                           <Trash2 className="w-4 h-4" />
                         </button>
                       )}
                     </div>
                   </div>
 
-                  {/* Progress bar comparison */}
-                  <div className="space-y-1 pt-1">
-                    <div className="flex justify-between text-xs text-slate-600 font-medium">
+                  <div className="space-y-1">
+                    <div className="flex flex-wrap justify-between gap-x-3 text-xs text-slate-600 dark:text-slate-400 font-medium">
                       <span>Baseline (Week 0): <strong>{m.baselineScore !== null ? `${m.baselineScore}%` : "No data yet"}</strong></span>
                       <span>
                         Current Mastery: <strong>{m.currentMastery !== null ? `${m.currentMastery}%` : "No data yet"}</strong>
@@ -217,40 +223,33 @@ export default function OutcomesPage() {
                       </span>
                     </div>
 
-                    <div className="w-full h-3 bg-slate-200 rounded-full overflow-hidden flex">
+                    <div className="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden flex">
                       <div className="bg-slate-400 h-full" style={{ width: `${m.baselineScore ?? 0}%` }} title="Week 0 Baseline" />
                       <div className="bg-[#0D9488] h-full" style={{ width: `${m.currentMastery === null ? 0 : Math.max(0, m.currentMastery - (m.baselineScore ?? 0))}%` }} title="Growth" />
                     </div>
                   </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
+                </li>
+              ))}
+            </List>
+          )}
+        </Section>
 
-        {/* MASTERY LEVELS SKELETON EXPLANATION */}
-        <div className="bg-teal-50/60 border border-teal-200/80 rounded-2xl p-5 space-y-2 text-xs text-teal-900">
-          <h3 className="font-bold flex items-center gap-1.5 text-teal-950">
-            <CheckCircle2 className="w-4 h-4 text-[#0D9488]" /> Outcome Mastery Levels Skeleton
-          </h3>
-          <p>
-            When assignments are graded in this course, scores instantiate rubrics directly from these outcome mastery levels:
-          </p>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2">
-            <div className="p-2 bg-white rounded-xl border border-teal-200 font-medium text-center">
-              <span className="block font-bold text-teal-800">4 Points</span> Exceeds Mastery
-            </div>
-            <div className="p-2 bg-white rounded-xl border border-teal-200 font-medium text-center">
-              <span className="block font-bold text-teal-800">3 Points</span> Meets Mastery
-            </div>
-            <div className="p-2 bg-white rounded-xl border border-teal-200 font-medium text-center">
-              <span className="block font-bold text-teal-800">2 Points</span> Approaching Mastery
-            </div>
-            <div className="p-2 bg-white rounded-xl border border-teal-200 font-medium text-center">
-              <span className="block font-bold text-teal-800">1 Point</span> Below Mastery
-            </div>
-          </div>
-        </div>
+        {/* Mastery levels reference */}
+        <Section
+          divided
+          title={<span className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-[#0D9488]" /> Outcome mastery levels</span>}
+          description="When assignments are graded in this course, scores instantiate rubrics directly from these outcome mastery levels."
+        >
+          <DataTable
+            caption="Outcome mastery levels"
+            rowKey={(r) => r.points}
+            rows={MASTERY_LEVELS}
+            columns={[
+              { key: "points", header: "Points", className: "font-bold text-teal-800 dark:text-teal-300 whitespace-nowrap" },
+              { key: "level", header: "Level", className: "text-slate-700 dark:text-slate-300" },
+            ]}
+          />
+        </Section>
       </div>
     </div>
   );

@@ -87,6 +87,25 @@ router.get("/mine", async (req, res) => {
   }
 });
 
+// Admins: every course on the box (must be registered before "/:id").
+router.get("/all", async (req, res) => {
+  try {
+    if (req.user.role !== "admin") return res.status(403).json({ message: "You do not have permission to do this" });
+    const rows = await localDb.prepare(`
+      SELECT c.id, c.title, c.grade, c.lifecycle, c.visibility, c.start_date, c.end_date, c.created_at,
+             c.created_by_teacher_email,
+             (SELECT COUNT(*) FROM enrollments e WHERE e.course_id = c.id AND e.role = 'student' AND e.status = 'active') AS learners,
+             (SELECT string_agg(e.user_email, ', ' ORDER BY e.user_email) FROM enrollments e
+               WHERE e.course_id = c.id AND e.role = 'teacher' AND e.status = 'active') AS teachers
+      FROM courses c ORDER BY c.created_at DESC
+    `).all();
+    return res.json(rows.map((r) => ({ ...r, learners: Number(r.learners) || 0 })));
+  } catch (error) {
+    console.error("Error listing all courses:", error);
+    return res.status(500).json({ message: error.message });
+  }
+});
+
 router.get("/public", async (req, res) => {
   try {
     const page = Math.max(1, Number(req.query.page) || 1);

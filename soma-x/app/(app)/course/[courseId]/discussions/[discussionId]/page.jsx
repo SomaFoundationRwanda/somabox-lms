@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useCourse } from "@/context/CourseContext";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
+import { PageHeader, Section, List } from "@/components/layout";
 
 export default function DiscussionThreadPage() {
   const { courseId, discussionId } = useParams();
@@ -64,16 +65,17 @@ export default function DiscussionThreadPage() {
   return (
     <div>
       <Breadcrumbs sectionKey="discussions" itemName={discussion.title} />
-      <div className="p-4 md:p-6 space-y-4 max-w-2xl">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-lg font-bold text-slate-900">{discussion.title}</h1>
-            {discussion.graded ? <span className="text-[10px] font-bold uppercase text-teal-600 bg-teal-50 rounded-full px-1.5 py-0.5">Graded</span> : null}
-          </div>
-          {discussion.body ? <p className="text-sm text-slate-700 mt-1 whitespace-pre-wrap">{discussion.body}</p> : null}
+      <div className="p-4 md:p-6 space-y-6 max-w-2xl">
+        <PageHeader
+          title={discussion.title}
+          meta={discussion.graded ? <span className="text-[10px] font-bold uppercase text-teal-600 bg-teal-50 rounded-full px-1.5 py-0.5">Graded</span> : null}
+        >
+          {discussion.body ? <p className="text-sm text-slate-700 dark:text-slate-300 mt-2 whitespace-pre-wrap">{discussion.body}</p> : null}
+        </PageHeader>
 
-          {isTeacher ? (
-            <div className="mt-3 flex items-center gap-2 rounded-xl border border-slate-200 p-2.5">
+        {isTeacher ? (
+          <Section title="Grading">
+            <div className="flex flex-wrap items-center gap-2">
               {!discussion.graded ? (
                 <input
                   type="number"
@@ -81,6 +83,7 @@ export default function DiscussionThreadPage() {
                   value={pointsInput}
                   onChange={(e) => setPointsInput(e.target.value)}
                   placeholder="Points possible"
+                  aria-label="Points possible"
                   className="w-28 text-sm border border-slate-200 rounded-lg px-2 py-1.5 outline-none"
                 />
               ) : null}
@@ -97,29 +100,31 @@ export default function DiscussionThreadPage() {
                 </span>
               ) : null}
             </div>
-          ) : null}
-          {isTeacher && gradedError ? (
-            <p className="mt-2 text-xs font-semibold text-rose-600">{gradedError}</p>
-          ) : null}
-        </div>
+            {gradedError ? (
+              <p className="mt-2 text-xs font-semibold text-rose-600">{gradedError}</p>
+            ) : null}
+          </Section>
+        ) : null}
 
-        <div className="space-y-3">
+        <Section title={`Replies (${discussion.replies.length})`}>
           {discussion.replies.length === 0 ? (
             <p className="text-sm text-slate-500">No replies yet — be the first.</p>
           ) : (
-            discussion.replies.map((r) => (
-              <div key={r.id} className="rounded-xl border border-slate-200 p-3">
-                <p className="text-xs font-semibold text-slate-700">{r.authorName}</p>
-                <p className="text-sm text-slate-600 mt-1 whitespace-pre-wrap">{r.body}</p>
-              </div>
-            ))
+            <List label="Replies">
+              {discussion.replies.map((r) => (
+                <li key={r.id} className="px-3 py-3">
+                  <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">{r.authorName}</p>
+                  <p className="text-sm text-slate-600 dark:text-slate-300 mt-1 whitespace-pre-wrap">{r.body}</p>
+                </li>
+              ))}
+            </List>
           )}
-        </div>
 
-        <div className="flex items-center gap-2">
-          <input value={reply} onChange={(e) => setReply(e.target.value)} placeholder="Write a reply..." className="flex-1 text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[#203A3A]" />
-          <button onClick={postReply} className="text-xs font-semibold text-white bg-[#203A3A] rounded-lg px-3 py-2">Reply</button>
-        </div>
+          <div className="mt-3 flex items-center gap-2">
+            <input value={reply} onChange={(e) => setReply(e.target.value)} placeholder="Write a reply..." aria-label="Write a reply" className="flex-1 min-w-0 text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[#203A3A]" />
+            <button onClick={postReply} className="text-xs font-semibold text-white bg-[#203A3A] rounded-lg px-3 py-2">Reply</button>
+          </div>
+        </Section>
       </div>
     </div>
   );

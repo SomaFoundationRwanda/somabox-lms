@@ -9,6 +9,7 @@ import {
     Mail, MapPin, Phone, User, Activity, BrainCircuit
 } from "lucide-react";
 import Link from "next/link";
+import { PageHeader, Section, List, ListRow, DataTable, EmptyState } from "@/components/layout";
 
 function getInitials(name, email) {
     if (name?.trim()) return name.trim().split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
@@ -117,201 +118,176 @@ export default function UserProfilePage() {
     };
     const roleStyle = roleColors[user.role] || roleColors.scholar;
 
-    return (
-        <div className="max-w-6xl mx-auto space-y-6 pb-12 animate-in fade-in duration-300 pt-4 px-4 sm:px-6">
-            {/* Header Section */}
-            <div className="bg-white dark:bg-[#0E1117] rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-                {/* Banner */}
-                <div className="h-32 bg-gradient-to-r from-slate-900 via-teal-950 to-slate-900 relative">
-                    <button 
-                        onClick={() => router.push("/manage/admin?tab=users")}
-                        className="absolute top-4 left-4 flex items-center gap-2 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-xl backdrop-blur-md transition-colors text-sm font-semibold"
-                    >
-                        <ArrowLeft className="w-4 h-4" /> Back to Users
-                    </button>
+    const Field = ({ label, icon: Icon, children, className = "" }) => (
+        <div className="py-2.5 flex items-start justify-between gap-4">
+            <dt className="text-xs font-semibold text-slate-500 dark:text-slate-400">{label}</dt>
+            <dd className={`text-sm font-semibold text-slate-900 dark:text-white text-right flex items-center gap-1.5 min-w-0 ${className}`}>
+                {Icon ? <Icon className="w-3.5 h-3.5 text-slate-400 shrink-0" /> : null}
+                <span className="min-w-0 break-words">{children}</span>
+            </dd>
+        </div>
+    );
+
+    const courseColumns = [
+        {
+            key: "title",
+            header: "Course",
+            render: (course) => (
+                <div className="min-w-0">
+                    <Link href={`/course/${course.id}/home`} className="font-semibold text-slate-900 dark:text-white hover:text-[#0D9488] hover:underline">
+                        {course.title}
+                    </Link>
+                    <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">{course.description || "No description"}</p>
                 </div>
-                
-                {/* Profile Header Content */}
-                <div className="px-8 pb-8 relative">
-                    <div className="flex flex-col sm:flex-row items-start gap-6 -mt-12">
-                        <div className="w-24 h-24 rounded-2xl bg-teal-600 border-4 border-white dark:border-[#0E1117] flex items-center justify-center text-white text-3xl font-black shadow-xl shrink-0 z-10">
-                            {initials}
-                        </div>
-                        <div className="flex-1 pt-14 sm:pt-14 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 w-full">
-                            <div>
-                                <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
-                                    {user.full_name || "Unnamed User"}
-                                    {isInactive && (
-                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 uppercase">
-                                            Inactive
-                                        </span>
-                                    )}
-                                </h1>
-                                <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-2">
-                                    <Mail className="w-4 h-4 text-teal-500" />
-                                    {user.email}
-                                </p>
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                                <span className={`px-3 py-1 rounded-full text-xs font-extrabold border ${roleStyle.bg} ${roleStyle.text} ${roleStyle.border}`}>
+            ),
+        },
+        {
+            key: "teacher",
+            header: "Teacher",
+            hideOnMobile: true,
+            render: (course) => <span className="text-xs text-slate-600 dark:text-slate-300">{course.created_by_teacher_email || "—"}</span>,
+        },
+        {
+            key: "grade",
+            header: "Grade",
+            render: (course) => course.grade
+                ? <span className="text-[11px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-full whitespace-nowrap">{course.grade}</span>
+                : <span className="text-xs text-slate-400">—</span>,
+        },
+        {
+            key: "open",
+            header: <span className="sr-only">Open</span>,
+            align: "right",
+            render: (course) => (
+                <Link href={`/course/${course.id}/home`} className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline whitespace-nowrap">
+                    Open
+                </Link>
+            ),
+        },
+    ];
+
+    return (
+        <div className="max-w-6xl mx-auto space-y-8 pb-12 animate-in fade-in duration-300 pt-4 px-4 sm:px-6">
+            <button
+                onClick={() => router.push("/manage/admin?tab=users")}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
+            >
+                <ArrowLeft className="w-3.5 h-3.5" /> Back to Users
+            </button>
+
+            {/* Header */}
+            <div className="flex items-start gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-teal-600 flex items-center justify-center text-white text-xl font-black shrink-0">
+                    {initials}
+                </div>
+                <div className="min-w-0 flex-1">
+                    <PageHeader
+                        title={user.full_name || "Unnamed User"}
+                        description={
+                            <span className="inline-flex items-center gap-1.5 break-all">
+                                <Mail className="w-3.5 h-3.5 text-teal-500 shrink-0" />
+                                {user.email}
+                            </span>
+                        }
+                        meta={
+                            <>
+                                <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-extrabold border ${roleStyle.bg} ${roleStyle.text} ${roleStyle.border}`}>
                                     {t(`role.${user.role}`) || user.role}
                                 </span>
-                            </div>
-                        </div>
-                    </div>
+                                {isInactive && (
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 uppercase">
+                                        Inactive
+                                    </span>
+                                )}
+                            </>
+                        }
+                    />
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                
-                {/* Left Column: Demographics & Contact */}
-                <div className="lg:col-span-1 space-y-6">
-                    <div className="bg-white dark:bg-[#0E1117] rounded-3xl border border-slate-200 dark:border-slate-800 p-6">
-                        <h3 className="text-sm font-black uppercase tracking-wider text-teal-700 dark:text-teal-400 flex items-center gap-2 mb-4">
-                            <User className="w-4 h-4" /> Personal & Contact Info
-                        </h3>
-                        <div className="space-y-4">
-                            <div>
-                                <p className="text-xs font-bold text-slate-600 uppercase">Phone Number</p>
-                                <p className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2 mt-1">
-                                    <Phone className="w-4 h-4 text-slate-600" />
-                                    {user.phone || "Not specified"}
-                                </p>
-                            </div>
-                            <div>
-                                <p className="text-xs font-bold text-slate-600 uppercase">Gender Identity</p>
-                                <p className="text-sm font-semibold capitalize text-slate-900 dark:text-white mt-1">
-                                    {user.gender && user.gender !== "prefer_not_to_say" ? user.gender.replace("_", " ") : "Not specified"}
-                                </p>
-                            </div>
-                            <div>
-                                <p className="text-xs font-bold text-slate-600 uppercase">Preferred Language</p>
-                                <p className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2 mt-1">
-                                    <Globe2 className="w-4 h-4 text-slate-600" />
-                                    {user.preferred_language ? user.preferred_language.toUpperCase() : "English"}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-                    <div className="bg-white dark:bg-[#0E1117] rounded-3xl border border-slate-200 dark:border-slate-800 p-6">
-                        <h3 className="text-sm font-black uppercase tracking-wider text-teal-700 dark:text-teal-400 flex items-center gap-2 mb-4">
-                            <GraduationCap className="w-4 h-4" /> Academic & Location
-                        </h3>
-                        <div className="space-y-4">
-                            <div>
-                                <p className="text-xs font-bold text-slate-600 uppercase">School / Institution</p>
-                                <p className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2 mt-1">
-                                    <Building2 className="w-4 h-4 text-slate-600" />
-                                    {user.school_name || "Not assigned"}
-                                </p>
-                            </div>
-                            <div>
-                                <p className="text-xs font-bold text-slate-600 uppercase">Grade / Class Level</p>
-                                <p className="text-sm font-semibold text-slate-900 dark:text-white mt-1">
-                                    {user.grade_level || "Not specified"}
-                                </p>
-                            </div>
-                            <div>
-                                <p className="text-xs font-bold text-slate-600 uppercase">Province & District</p>
-                                <p className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2 mt-1">
-                                    <MapPin className="w-4 h-4 text-slate-600" />
-                                    {user.region_province || "N/A"}, {user.region_district || "N/A"}
-                                </p>
-                            </div>
-                            <div>
-                                <p className="text-xs font-bold text-slate-600 uppercase">Location Type</p>
-                                <p className="text-sm font-semibold text-slate-900 dark:text-white mt-1">
-                                    {user.is_rural === 1 ? "Rural Learner" : "Urban / Semi-urban"}
-                                </p>
-                            </div>
-                            <div>
-                                <p className="text-xs font-bold text-slate-600 uppercase">Disability Status</p>
-                                <p className="text-sm font-semibold text-slate-900 dark:text-white mt-1 capitalize">
-                                    {user.disability_status || "None"}
-                                </p>
-                            </div>
-                            <div>
-                                <p className="text-xs font-bold text-slate-600 uppercase">Date Joined</p>
-                                <p className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2 mt-1">
-                                    <Calendar className="w-4 h-4 text-slate-600" />
-                                    {joined}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
+                {/* Left Column: Demographics & Contact */}
+                <div className="lg:col-span-1 space-y-8 min-w-0">
+                    <Section title={<span className="flex items-center gap-2"><User className="w-4 h-4 text-teal-600" /> Personal & Contact Info</span>}>
+                        <dl className="divide-y divide-slate-100 dark:divide-slate-800">
+                            <Field label="Phone Number" icon={Phone}>{user.phone || "Not specified"}</Field>
+                            <Field label="Gender Identity" className="capitalize">
+                                {user.gender && user.gender !== "prefer_not_to_say" ? user.gender.replace("_", " ") : "Not specified"}
+                            </Field>
+                            <Field label="Preferred Language" icon={Globe2}>
+                                {user.preferred_language ? user.preferred_language.toUpperCase() : "English"}
+                            </Field>
+                        </dl>
+                    </Section>
+
+                    <Section divided title={<span className="flex items-center gap-2"><GraduationCap className="w-4 h-4 text-teal-600" /> Academic & Location</span>}>
+                        <dl className="divide-y divide-slate-100 dark:divide-slate-800">
+                            <Field label="School / Institution" icon={Building2}>{user.school_name || "Not assigned"}</Field>
+                            <Field label="Grade / Class Level">{user.grade_level || "Not specified"}</Field>
+                            <Field label="Province & District" icon={MapPin}>
+                                {user.region_province || "N/A"}, {user.region_district || "N/A"}
+                            </Field>
+                            <Field label="Location Type">{user.is_rural === 1 ? "Rural Learner" : "Urban / Semi-urban"}</Field>
+                            <Field label="Disability Status" className="capitalize">{user.disability_status || "None"}</Field>
+                            <Field label="Date Joined" icon={Calendar}>{joined}</Field>
+                        </dl>
+                    </Section>
                 </div>
 
-                {/* Right Column: Classes, Analytics, Demo Info */}
-                <div className="lg:col-span-2 space-y-6">
+                {/* Right Column: Classes, Analytics */}
+                <div className="lg:col-span-2 space-y-8 min-w-0">
                     {user.role === "scholar" && (
                         <>
-                            {/* Analytics & Spaced Practice Summary */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="bg-gradient-to-br from-teal-900 to-slate-900 rounded-3xl border border-teal-800/40 p-6 text-white shadow-md relative overflow-hidden">
-                                    <BrainCircuit className="absolute -right-4 -bottom-4 w-24 h-24 text-teal-800/30 opacity-50" />
-                                    <h3 className="text-sm font-black uppercase tracking-wider text-teal-400 flex items-center gap-2 mb-2 relative z-10">
-                                        <Activity className="w-4 h-4" /> Learning Outcomes
-                                    </h3>
-                                    <div className="relative z-10 mt-4">
-                                        <p className="text-3xl font-black">{analytics?.activeTrackedOutcomes || 0}</p>
-                                        <p className="text-xs font-medium text-teal-200/70 mt-1">Tracked active outcomes</p>
-                                    </div>
+                            {/* Outcome pulse tile (allowed card) */}
+                            <div className="bg-gradient-to-br from-teal-900 to-slate-900 rounded-2xl border border-teal-800/40 p-5 text-white relative overflow-hidden">
+                                <BrainCircuit className="absolute -right-4 -bottom-4 w-24 h-24 text-teal-800/30 opacity-50" />
+                                <h3 className="text-xs font-black uppercase tracking-wider text-teal-400 flex items-center gap-2 relative z-10">
+                                    <Activity className="w-4 h-4" /> Learning Outcomes
+                                </h3>
+                                <div className="relative z-10 mt-3">
+                                    <p className="text-3xl font-black">{analytics?.activeTrackedOutcomes || 0}</p>
+                                    <p className="text-xs font-medium text-teal-200/70 mt-1">Tracked active outcomes</p>
                                 </div>
-                                <div className="bg-white dark:bg-[#0E1117] rounded-3xl border border-slate-200 dark:border-slate-800 p-6">
-                                    <h3 className="text-sm font-black uppercase tracking-wider text-teal-700 dark:text-teal-400 flex items-center gap-2 mb-4">
-                                        Spaced Practice Status
-                                    </h3>
-                                    {spacedPractice?.length > 0 ? (
-                                        <ul className="space-y-3">
-                                            {spacedPractice.map((sp, idx) => (
-                                                <li key={idx} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
-                                                    <div>
-                                                        <p className="text-xs font-bold text-slate-800 dark:text-white">{sp.topic_title}</p>
-                                                        <p className="text-[10px] text-slate-500 mt-0.5">Interval: {sp.interval_days} days</p>
-                                                    </div>
+                            </div>
+
+                            <Section title="Spaced Practice Status">
+                                {spacedPractice?.length > 0 ? (
+                                    <List label="Pending spaced practice reviews">
+                                        {spacedPractice.map((sp, idx) => (
+                                            <ListRow
+                                                key={idx}
+                                                title={sp.topic_title}
+                                                subtitle={`Interval: ${sp.interval_days} days`}
+                                                actions={
                                                     <span className="px-2 py-1 bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 rounded-lg text-[10px] font-black uppercase">
                                                         Pending
                                                     </span>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    ) : (
-                                        <div className="flex flex-col items-center justify-center py-6 text-center">
-                                            <CheckCircle2 className="w-8 h-8 text-slate-500 dark:text-slate-700 mb-2" />
-                                            <p className="text-sm font-semibold text-slate-800 dark:text-white">All Caught Up!</p>
-                                            <p className="text-xs text-slate-500">No pending spaced practice reviews.</p>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
+                                                }
+                                            />
+                                        ))}
+                                    </List>
+                                ) : (
+                                    <EmptyState
+                                        icon={<CheckCircle2 className="w-8 h-8" />}
+                                        title="All Caught Up!"
+                                        description="No pending spaced practice reviews."
+                                    />
+                                )}
+                            </Section>
 
                             {/* Enrolled Classes */}
-                            <div className="bg-white dark:bg-[#0E1117] rounded-3xl border border-slate-200 dark:border-slate-800 p-6">
-                                <h3 className="text-sm font-black uppercase tracking-wider text-teal-700 dark:text-teal-400 flex items-center gap-2 mb-4">
-                                    Enrolled Courses
-                                </h3>
+                            <Section title="Enrolled Courses" divided>
                                 {classes.length > 0 ? (
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        {classes.map(course => (
-                                            <Link key={course.id} href={`/course/${course.id}/home`} className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 hover:border-teal-200 dark:hover:border-teal-900 transition-colors block">
-                                                <h4 className="text-sm font-bold text-slate-900 dark:text-white">{course.title}</h4>
-                                                <p className="text-xs font-medium text-slate-500 mt-1 line-clamp-1">{course.description || "No description"}</p>
-                                                <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-600 font-semibold">
-                                                    <span>Teacher: {course.created_by_teacher_email}</span>
-                                                    {course.grade && <span className="bg-slate-200 dark:bg-slate-800 px-2 py-0.5 rounded-full">{course.grade}</span>}
-                                                </div>
-                                            </Link>
-                                        ))}
-                                    </div>
+                                    <DataTable caption="Enrolled courses" columns={courseColumns} rows={classes} />
                                 ) : (
-                                    <div className="flex flex-col items-center justify-center py-12 text-center bg-slate-50 dark:bg-slate-900 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
-                                        <Building2 className="w-12 h-12 text-slate-500 dark:text-slate-700 mb-3" />
-                                        <p className="text-sm font-semibold text-slate-800 dark:text-white">Not enrolled in any courses</p>
-                                        <p className="text-xs text-slate-500 max-w-sm mt-1">This student has not joined any active courses yet.</p>
-                                    </div>
+                                    <EmptyState
+                                        icon={<Building2 className="w-10 h-10" />}
+                                        title="Not enrolled in any courses"
+                                        description="This student has not joined any active courses yet."
+                                    />
                                 )}
-                            </div>
+                            </Section>
                         </>
                     )}
                 </div>

@@ -12,7 +12,7 @@ export default function AsyncListState({ loading, error, data, onRetry, emptyMes
     return (
       <div className="space-y-2">
         {Array.from({ length: skeletonRows }).map((_, i) => (
-          <div key={i} className="h-12 rounded-xl bg-slate-100 animate-pulse" />
+          <div key={i} className="h-12 rounded-xl bg-slate-100 dark:bg-slate-800 animate-pulse" />
         ))}
       </div>
     );
@@ -37,10 +37,7 @@ export default function AsyncListState({ loading, error, data, onRetry, emptyMes
 
   if (!Array.isArray(data) || data.length === 0) {
     return (
-      <div className="space-y-3">
-        <EmptyState message={emptyMessage || "Nothing here yet."} />
-        {emptyAction ? <div className="flex justify-center">{emptyAction}</div> : null}
-      </div>
+      <EmptyState compact title={emptyMessage || "Nothing here yet."} action={emptyAction || null} />
     );
   }
 

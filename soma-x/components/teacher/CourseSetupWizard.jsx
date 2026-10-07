@@ -207,10 +207,10 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
   ];
 
   return (
-    <div className="bg-slate-50 rounded-2xl p-3 md:p-6">
+    <div className="space-y-0">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+        <div className="bg-white rounded-xl p-4 md:p-6 border border-slate-200">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <span className="text-xs font-bold uppercase tracking-wider text-[#0D9488]">Guided Setup</span>
@@ -259,7 +259,7 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
 
         {/* STEP 1: Course Setup */}
         {step === 1 && (
-          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
+          <div className="bg-white rounded-xl p-4 md:p-6 border border-slate-200 space-y-4">
             <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
               <Calendar className="w-5 h-5 text-[#0D9488]" /> Step 1: Course Setup & Relative Timing Anchor
             </h2>
@@ -317,7 +317,7 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
 
         {/* STEP 2: Outcomes */}
         {step === 2 && (
-          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
+          <div className="bg-white rounded-xl p-4 md:p-6 border border-slate-200 space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
@@ -395,7 +395,7 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
 
         {/* STEP 3: Baseline Assessment */}
         {step === 3 && (
-          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
+          <div className="bg-white rounded-xl p-4 md:p-6 border border-slate-200 space-y-4">
             <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
               <BookOpen className="w-5 h-5 text-[#0D9488]" /> Step 3: Week 0 Baseline Diagnostic Assessment
             </h2>
@@ -427,7 +427,7 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
 
         {/* STEP 4: Modules Timeline */}
         {step === 4 && (
-          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
+          <div className="bg-white rounded-xl p-4 md:p-6 border border-slate-200 space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
@@ -451,12 +451,12 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
 
             <div className="space-y-3 pt-2">
               {modules.length === 0 ? (
-                <div className="p-6 text-center border border-dashed border-slate-200 rounded-2xl text-xs text-slate-500">
+                <div className="py-6 text-center text-xs text-slate-500">
                   No weekly modules created yet. Click "Add Week Slot" above to create week slots.
                 </div>
               ) : (
                 modules.map((m) => (
-                  <div key={m.id} className="p-4 border border-slate-200 rounded-2xl bg-white space-y-2">
+                  <div key={m.id} className="py-3 border-b border-slate-100 last:border-b-0 space-y-2">
                     <div className="flex items-center justify-between">
                       <div>
                         <span className="text-[10px] font-bold text-[#0D9488] uppercase tracking-wider">{moduleWeekLabel(m)}</span>
@@ -493,7 +493,7 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
 
         {/* STEP 5: Syllabus Preview & Open Course */}
         {step === 5 && (
-          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
+          <div className="bg-white rounded-xl p-4 md:p-6 border border-slate-200 space-y-4">
             <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
               <BookOpen className="w-5 h-5 text-[#0D9488]" /> Step 5: Auto-Built Syllabus Preview
             </h2>
@@ -501,7 +501,7 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
               Syllabus is generated automatically from course outcomes, weekly modules, relative dates, and grading weights.
             </p>
 
-            <div className="p-4 border border-slate-200 rounded-2xl space-y-4 bg-slate-50">
+            <div className="pt-4 border-t border-slate-100 space-y-4">
               <div>
                 <h3 className="text-base font-bold text-slate-900">{setupForm.title}</h3>
                 <p className="text-xs text-slate-500">Starts: {formatDate(setupForm.startDate) || "Not set"} · Duration: {setupForm.lengthWeeks} Weeks</p>

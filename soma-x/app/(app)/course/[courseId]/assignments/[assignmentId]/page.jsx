@@ -5,6 +5,14 @@ import { useParams } from "next/navigation";
 import { Pencil, Target, CheckCircle2, Award, Calendar, Layers, Clock } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
+import { PageHeader, Section, List, DataTable, EmptyState } from "@/components/layout";
+
+const RUBRIC_LEVELS = [
+  { level: "Exceeds Mastery", points: "4 pts", description: "Flawless solution with multi-step logical reasoning." },
+  { level: "Meets Mastery", points: "3 pts", description: "Accurate execution with minor minor calculation errors." },
+  { level: "Approaching", points: "2 pts", description: "Partial understanding; needs additional scaffolding." },
+  { level: "Below Mastery", points: "1 pt", description: "Struggling with core concepts; requires reteaching." },
+];
 import PrevNextNav from "@/components/course/navigation/PrevNextNav";
 import { moduleWeekLabel } from "@/lib/moduleLabels";
 import { formatDate } from "@/lib/dates";
@@ -180,34 +188,32 @@ export default function AssignmentDetailPage() {
   return (
     <div>
       <Breadcrumbs sectionKey="assignments" itemName={assignment.title} />
-      <div className="p-4 md:p-6 space-y-6 max-w-4xl">
+      <div className="p-4 md:p-6 space-y-8 max-w-4xl">
 
-        {/* Header Summary Card */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+        {/* Header: flat band, not a card */}
+        <PageHeader
+          title={assignment.title}
+          meta={
+            <>
               <span className="text-xs font-bold text-[#0D9488] bg-teal-50 border border-teal-200 px-2.5 py-1 rounded-full">
                 Module: {currentModule ? `${moduleWeekLabel(currentModule)} - ${currentModule.title}` : "Not in a module"}
               </span>
               <span className="text-xs font-semibold text-slate-500 flex items-center gap-1">
                 <Clock className="w-3.5 h-3.5 text-slate-400" /> {dueText}
               </span>
-            </div>
-
-            {isTeacher && !editing && (
-              <button
-                onClick={startEditing}
-                className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl transition-colors"
-              >
-                <Pencil className="w-3.5 h-3.5" /> Edit Assignment
-              </button>
-            )}
-          </div>
-
-          <h1 className="text-2xl font-black text-slate-900">{assignment.title}</h1>
-
+            </>
+          }
+          actions={isTeacher && !editing ? (
+            <button
+              onClick={startEditing}
+              className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg transition-colors"
+            >
+              <Pencil className="w-3.5 h-3.5" /> Edit Assignment
+            </button>
+          ) : null}
+        >
           {/* Outcome Tags */}
-          <div className="flex items-center gap-2 flex-wrap pt-1">
+          <div className="flex items-center gap-2 flex-wrap pt-2">
             <span className="text-xs font-bold text-slate-500 flex items-center gap-1">
               <Target className="w-3.5 h-3.5 text-[#0D9488]" /> Target Outcomes:
             </span>
@@ -223,40 +229,37 @@ export default function AssignmentDetailPage() {
               ))
             )}
           </div>
-        </div>
+        </PageHeader>
 
         {/* EDIT FORM (If Teacher Editing) */}
         {editing ? (
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4 shadow-sm">
-            <h2 className="text-base font-bold text-slate-900">Edit Assignment Flow & Parameters</h2>
-
-            <div className="space-y-4">
+          <Section title="Edit assignment flow & parameters">
+            <div className="space-y-5">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Title *</label>
+                <label htmlFor="assignment-title" className="block text-xs font-bold text-slate-700 mb-1">Title *</label>
                 <input
+                  id="assignment-title"
                   value={editForm.title}
                   onChange={(e) => setEditForm((p) => ({ ...p, title: e.target.value }))}
-                  className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:border-[#0D9488]"
+                  className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2.5 outline-none focus:border-[#0D9488]"
                 />
               </div>
 
               {/* Module & relative timing */}
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Tied Module Week *</label>
-                  <select
-                    value={editForm.moduleId}
-                    onChange={(e) => setEditForm((p) => ({ ...p, moduleId: Number(e.target.value) }))}
-                    className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white outline-none"
-                  >
-                    {modules.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {moduleWeekLabel(m)}: {m.title}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
+              <div>
+                <label htmlFor="assignment-module" className="block text-xs font-bold text-slate-700 mb-1">Tied Module Week *</label>
+                <select
+                  id="assignment-module"
+                  value={editForm.moduleId}
+                  onChange={(e) => setEditForm((p) => ({ ...p, moduleId: Number(e.target.value) }))}
+                  className="w-full text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white outline-none"
+                >
+                  {modules.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {moduleWeekLabel(m)}: {m.title}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <ScheduleFields
@@ -266,8 +269,8 @@ export default function AssignmentDetailPage() {
               />
 
               {/* Outcome Selection */}
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
-                <label className="block text-xs font-bold text-slate-700">Tagged Course Outcomes (Mandatory for Publish)</label>
+              <fieldset className="space-y-2">
+                <legend className="block text-xs font-bold text-slate-700 mb-1">Tagged Course Outcomes (Mandatory for Publish)</legend>
                 <div className="space-y-1">
                   {outcomes.map((o) => {
                     const isChecked = editForm.selectedOutcomeIds.includes(o.id);
@@ -289,26 +292,28 @@ export default function AssignmentDetailPage() {
                     );
                   })}
                 </div>
-              </div>
+              </fieldset>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Instructions</label>
+                <label htmlFor="assignment-instructions" className="block text-xs font-bold text-slate-700 mb-1">Instructions</label>
                 <textarea
+                  id="assignment-instructions"
                   value={editForm.description}
                   onChange={(e) => setEditForm((p) => ({ ...p, description: e.target.value }))}
                   rows={4}
-                  className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-[#0D9488]"
+                  className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[#0D9488]"
                 />
               </div>
 
               {/* Rubric Draft */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Assignment Rubric Criteria</label>
+                <label htmlFor="assignment-rubric" className="block text-xs font-bold text-slate-700 mb-1">Assignment Rubric Criteria</label>
                 <textarea
+                  id="assignment-rubric"
                   value={editForm.rubricDraft}
                   onChange={(e) => setEditForm((p) => ({ ...p, rubricDraft: e.target.value }))}
                   rows={4}
-                  className="w-full text-xs font-mono border border-slate-200 rounded-xl px-3 py-2 outline-none"
+                  className="w-full text-xs font-mono border border-slate-200 rounded-lg px-3 py-2 outline-none"
                 />
               </div>
 
@@ -318,131 +323,118 @@ export default function AssignmentDetailPage() {
 
               <div className="flex justify-end gap-2 pt-2">
                 <button onClick={() => setEditing(false)} className="text-xs font-semibold text-slate-500 px-4 py-2">Cancel</button>
-                <button onClick={saveEdit} disabled={saving} className="text-xs font-bold text-white bg-[#0D9488] hover:bg-teal-700 px-5 py-2.5 rounded-xl">
+                <button onClick={saveEdit} disabled={saving} className="text-xs font-bold text-white bg-[#0D9488] hover:bg-teal-700 px-5 py-2.5 rounded-lg">
                   {saving ? "Saving..." : "Save Changes"}
                 </button>
               </div>
             </div>
-          </div>
+          </Section>
         ) : (
           /* DISPLAY VIEW (BOTH TEACHER & STUDENT) */
-          <div className="space-y-6">
-            {/* Description */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-2">
-              <h3 className="text-sm font-bold text-slate-900">Assignment Instructions</h3>
-              <p className="text-sm text-slate-700 whitespace-pre-wrap">{assignment.description || "Complete the problem set and submit your response below."}</p>
-            </div>
+          <>
+            <Section title="Assignment instructions">
+              <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap">{assignment.description || "Complete the problem set and submit your response below."}</p>
+            </Section>
 
             {/* INSTANTIATED RUBRIC BREAKDOWN (STUDENT & TEACHER VISIBLE) */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-3">
-              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                <Award className="w-4 h-4 text-[#0D9488]" /> Instantiated Outcome Rubric ({assignment.points_possible} pts)
-              </h3>
-              <p className="text-xs text-slate-500">
-                Your work will be evaluated against these 4 mastery levels:
-              </p>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
-                <div className="p-3 bg-teal-50 border border-teal-200 rounded-xl space-y-1">
-                  <span className="text-xs font-bold text-teal-900 block">Exceeds Mastery (4 pts)</span>
-                  <p className="text-[11px] text-teal-700">Flawless solution with multi-step logical reasoning.</p>
-                </div>
-                <div className="p-3 bg-teal-50/60 border border-teal-200 rounded-xl space-y-1">
-                  <span className="text-xs font-bold text-teal-900 block">Meets Mastery (3 pts)</span>
-                  <p className="text-[11px] text-teal-700">Accurate execution with minor minor calculation errors.</p>
-                </div>
-                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
-                  <span className="text-xs font-bold text-slate-800 block">Approaching (2 pts)</span>
-                  <p className="text-[11px] text-slate-600">Partial understanding; needs additional scaffolding.</p>
-                </div>
-                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
-                  <span className="text-xs font-bold text-slate-800 block">Below Mastery (1 pt)</span>
-                  <p className="text-[11px] text-slate-600">Struggling with core concepts; requires reteaching.</p>
-                </div>
-              </div>
-            </div>
+            <Section
+              divided
+              title={<span className="flex items-center gap-2"><Award className="w-4 h-4 text-[#0D9488]" /> Instantiated outcome rubric ({assignment.points_possible} pts)</span>}
+              description="Your work will be evaluated against these 4 mastery levels:"
+            >
+              <DataTable
+                caption="Mastery levels"
+                rowKey={(r) => r.level}
+                rows={RUBRIC_LEVELS}
+                columns={[
+                  { key: "level", header: "Level", className: "font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap" },
+                  { key: "points", header: "Points", className: "whitespace-nowrap text-[#0D9488] font-semibold" },
+                  { key: "description", header: "What it looks like", className: "text-slate-600 dark:text-slate-400" },
+                ]}
+              />
+            </Section>
 
             {/* TEACHER SUBMISSIONS VIEW WITH AI GRADING ASSIST */}
             {isTeacher ? (
-              <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
-                <h3 className="text-base font-bold text-slate-900">Student Submissions & Rubric Scoring</h3>
+              <Section divided title="Student submissions & rubric scoring">
                 {(assignment.submissions || []).length === 0 ? (
-                  <p className="text-xs text-slate-500">No student submissions received yet.</p>
+                  <EmptyState compact title="No student submissions received yet." />
                 ) : (
-                  <div className="divide-y divide-slate-100 border border-slate-200 rounded-2xl overflow-hidden">
+                  <List label="Student submissions">
                     {assignment.submissions.map((s) => (
-                      <div key={s.scholar_email} className="p-4 space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm font-bold text-slate-900">{s.fullName}</p>
-                            <p className="text-xs text-slate-500">Submitted: {new Date(s.submitted_at).toLocaleString()}</p>
-                          </div>
+                      <li key={s.scholar_email} className="p-4 space-y-3">
+                        <div>
+                          <p className="text-sm font-bold text-slate-900 dark:text-white">{s.fullName}</p>
+                          <p className="text-xs text-slate-500">Submitted: {new Date(s.submitted_at).toLocaleString()}</p>
                         </div>
 
-                        <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 font-mono">
+                        <p className="text-xs text-slate-700 dark:text-slate-300 font-mono whitespace-pre-wrap border-l-2 border-slate-200 dark:border-slate-700 pl-3">
                           {s.body || "(No submission body)"}
-                        </div>
+                        </p>
 
-                        <div className="flex items-center gap-3 pt-1">
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3 pt-1">
                           <input
                             type="number"
                             placeholder="Grade"
+                            aria-label={`Grade for ${s.fullName}`}
                             value={grading[s.scholar_email] ?? (s.grade ?? "")}
                             onChange={(e) => setGrading((p) => ({ ...p, [s.scholar_email]: e.target.value }))}
-                            className="w-24 text-xs border border-slate-200 rounded-xl px-3 py-2"
+                            className="w-24 text-xs border border-slate-200 rounded-lg px-3 py-2"
                           />
                           <input
                             type="text"
                             placeholder="Qualitative feedback suggestion..."
+                            aria-label={`Feedback for ${s.fullName}`}
                             value={feedback[s.scholar_email] ?? (s.feedback ?? "")}
                             onChange={(e) => setFeedback((p) => ({ ...p, [s.scholar_email]: e.target.value }))}
-                            className="flex-1 text-xs border border-slate-200 rounded-xl px-3 py-2"
+                            className="flex-1 min-w-[10rem] text-xs border border-slate-200 rounded-lg px-3 py-2"
                           />
-                          <button onClick={() => gradeSubmission(s.scholar_email)} className="text-xs font-bold text-white bg-[#0D9488] px-4 py-2 rounded-xl">
+                          <button onClick={() => gradeSubmission(s.scholar_email)} className="text-xs font-bold text-white bg-[#0D9488] px-4 py-2 rounded-lg">
                             Save Grade
                           </button>
                         </div>
-                      </div>
+                      </li>
                     ))}
-                  </div>
+                  </List>
                 )}
-              </div>
+              </Section>
             ) : (
               /* STUDENT SUBMISSION SECTION */
-              <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
-                <h3 className="text-base font-bold text-slate-900">Your Submission</h3>
+              <Section divided title="Your submission">
+                <div className="space-y-4">
+                  {assignment.mySubmission ? (
+                    <div className="p-4 bg-teal-50 border border-teal-200 rounded-xl space-y-1">
+                      <p className="text-xs font-bold text-teal-900">Submitted: {new Date(assignment.mySubmission.submitted_at).toLocaleString()}</p>
+                      {assignment.mySubmission.grade != null ? (
+                        <p className="text-sm font-bold text-teal-800">Grade: {assignment.mySubmission.grade} / {assignment.points_possible} pts</p>
+                      ) : (
+                        <p className="text-xs text-teal-700">Status: Ungraded (Pending Teacher Rubric Review)</p>
+                      )}
+                      {assignment.mySubmission.feedback && (
+                        <p className="text-xs text-teal-800 pt-1">Teacher Feedback: &quot;{assignment.mySubmission.feedback}&quot;</p>
+                      )}
+                    </div>
+                  ) : null}
 
-                {assignment.mySubmission ? (
-                  <div className="p-4 bg-teal-50 border border-teal-200 rounded-2xl space-y-1">
-                    <p className="text-xs font-bold text-teal-900">Submitted: {new Date(assignment.mySubmission.submitted_at).toLocaleString()}</p>
-                    {assignment.mySubmission.grade != null ? (
-                      <p className="text-sm font-bold text-teal-800">Grade: {assignment.mySubmission.grade} / {assignment.points_possible} pts</p>
-                    ) : (
-                      <p className="text-xs text-teal-700">Status: Ungraded (Pending Teacher Rubric Review)</p>
-                    )}
-                    {assignment.mySubmission.feedback && (
-                      <p className="text-xs text-teal-800 pt-1">Teacher Feedback: "{assignment.mySubmission.feedback}"</p>
-                    )}
-                  </div>
-                ) : null}
+                  <textarea
+                    value={submissionBody}
+                    onChange={(e) => setSubmissionBody(e.target.value)}
+                    rows={6}
+                    placeholder="Write your detailed assignment response here..."
+                    aria-label="Your assignment response"
+                    className="w-full text-sm border border-slate-200 rounded-lg p-4 outline-none focus:border-[#0D9488]"
+                  />
 
-                <textarea
-                  value={submissionBody}
-                  onChange={(e) => setSubmissionBody(e.target.value)}
-                  rows={6}
-                  placeholder="Write your detailed assignment response here..."
-                  className="w-full text-sm border border-slate-200 rounded-2xl p-4 outline-none focus:border-[#0D9488]"
-                />
-
-                <button
-                  onClick={submitAssignment}
-                  className="px-6 py-2.5 bg-[#0D9488] hover:bg-teal-700 text-white font-bold text-xs rounded-xl shadow-sm transition-colors"
-                >
-                  {assignment.mySubmission ? "Resubmit Assignment" : "Submit Assignment"}
-                </button>
-              </div>
+                  <button
+                    onClick={submitAssignment}
+                    className="px-6 py-2.5 bg-[#0D9488] hover:bg-teal-700 text-white font-bold text-xs rounded-lg transition-colors"
+                  >
+                    {assignment.mySubmission ? "Resubmit Assignment" : "Submit Assignment"}
+                  </button>
+                </div>
+              </Section>
             )}
-          </div>
+          </>
         )}
 
         <PrevNextNav courseId={courseId} itemType="assignment" contentId={assignmentId} />
