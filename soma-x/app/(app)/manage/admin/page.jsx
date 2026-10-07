@@ -7,7 +7,7 @@ import { AddUserDrawer } from "@/components/AddUserDrawer";
 import { Button } from "@/components/ui/button";
 import Users from "./comps/Users";
 import AllCourses from "./comps/AllCourses";
-import { BarChart3, ChevronRight, LayoutDashboard, Library, Megaphone, Palette, Plus, RefreshCcw } from "lucide-react";
+import { BarChart3, ChevronRight, LayoutDashboard, Library, Megaphone, Palette, Plus, RefreshCcw, Sparkles } from "lucide-react";
 import { PageHeader, Section, List, ListRow } from "@/components/layout";
 import SendNotificationModal from "@/components/notifications/SendNotificationModal";
 import InclusivityGapReport from "@/components/analytics/InclusivityGapReport";
@@ -48,6 +48,13 @@ const AdminPortal = () => {
             subtitle: "Download and manage books from the cloud",
             href: "/manage/admin/library",
             icon: Library,
+            allowedRoles: ['admin'],
+        },
+        {
+            title: "AI assistant",
+            subtitle: "Switch AI on or off, per school or per person, and see how it's used",
+            href: "/manage/admin/ai",
+            icon: Sparkles,
             allowedRoles: ['admin'],
         },
         {

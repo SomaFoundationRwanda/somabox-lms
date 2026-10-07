@@ -1,0 +1,8 @@
+Rewrite the teacher's goal as one clear, checkable learning outcome.
+
+{CONTEXT}
+
+Return:
+- "title": the outcome as something a learner can do (start with a verb).
+- "description": one or two sentences on what success looks like.
+- "masteryLevels": exactly 4 levels, from highest to lowest: points 4 "Exceeds", 3 "Meets", 2 "Approaching", 1 "Below" (translate the level names). Each "description" says what a learner at that level can do.

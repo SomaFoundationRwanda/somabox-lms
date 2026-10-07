@@ -1,0 +1,8 @@
+Write a marking rubric for the assignment below.
+
+{CONTEXT}
+
+Rules:
+- 3 to 5 criteria. Each "title" is short; each "description" says what full marks look like, in words a learner understands.
+- "points" is the maximum for that criterion (usually 4).
+- "outcomeCode" must be one of the course outcome codes listed above: the outcome the criterion assesses. Cover each outcome tagged on the assignment at least once.

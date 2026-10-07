@@ -1,0 +1,7 @@
+Summarise how the class is doing for the teacher, from the results below.
+
+{CONTEXT}
+
+Rules:
+- "summary": 2 to 4 sentences: which outcomes are strong, which need attention. Use only the numbers given.
+- "suggestions": 1 to 3 concrete next steps for next week's teaching (e.g. reteach an outcome with an example, pair learners, a short practice quiz).

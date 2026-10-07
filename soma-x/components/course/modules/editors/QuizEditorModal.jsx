@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X, Plus, Trash2, Check, Sparkles } from "lucide-react";
+import { X, Plus, Trash2, Check } from "lucide-react";
 import InfoTooltip from "@/components/ui/InfoTooltip";
 import { useCourse } from "@/context/CourseContext";
 import Explainer from "@/components/help/Explainer";
@@ -25,30 +25,11 @@ function QuestionBuilder({ question, index, onChange, onRemove, outcomes }) {
     updateField("options", next);
   };
 
-  const generateAiDistractors = () => {
-    if (!question.prompt) return;
-    const baseText = question.prompt.slice(0, 20);
-    const newOpts = [
-      { text: `Correct Answer: ${baseText} Principle`, id: `opt_corr_${Date.now()}` },
-      { text: `Plausible Distractor A (${baseText})`, id: `opt_dist1_${Date.now()}` },
-      { text: `Plausible Distractor B (${baseText})`, id: `opt_dist2_${Date.now()}` },
-      { text: `Common Misconception (${baseText})`, id: `opt_dist3_${Date.now()}` },
-    ];
-    updateFields({ options: newOpts, correctOption: newOpts[0].id });
-  };
-
   return (
     <div className="border border-slate-200 rounded-xl p-4 bg-slate-50/50 space-y-3">
       <div className="flex items-start justify-between gap-2">
         <span className="text-[10px] font-bold uppercase text-slate-400">Question {index + 1}</span>
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={generateAiDistractors}
-            className="flex items-center gap-1 text-[11px] font-bold text-[#0D9488] bg-teal-50 border border-teal-200 px-2 py-0.5 rounded-md hover:bg-teal-100 transition-colors"
-          >
-            <Sparkles className="w-3 h-3 text-[#0D9488]" /> AI Generate Distractors
-          </button>
           <button type="button" onClick={() => onRemove(index)} className="p-1 rounded hover:bg-rose-50 text-rose-400 hover:text-rose-600">
             <Trash2 className="w-3.5 h-3.5" />
           </button>

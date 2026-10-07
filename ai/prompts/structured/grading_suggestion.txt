@@ -1,0 +1,8 @@
+Suggest rubric scores for one anonymous learner submission. A teacher will review and decide; be fair and explain each score briefly.
+
+{CONTEXT}
+
+Rules:
+- Give one score per rubric criterion listed above, using the criterion "id" exactly, with "points" between 0 and that criterion's maximum.
+- "reason": one sentence pointing to what in the submission justifies the score.
+- "feedback": 2 to 4 sentences to the learner: one thing done well, one specific thing to improve. Don't mention a grade.

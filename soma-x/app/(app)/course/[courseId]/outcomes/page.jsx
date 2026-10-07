@@ -6,6 +6,10 @@ import { useCourse } from "@/context/CourseContext";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
 import { PageHeader, Section, List, DataTable, EmptyState } from "@/components/layout";
 import MasterySummary from "@/components/course/outcomes/MasterySummary";
+import useAiStatus from "@/lib/useAiStatus";
+import { startAiJob } from "@/lib/ai";
+import { AiStatusNote } from "@/components/ai/AiBits";
+import AiJobPanel from "@/components/ai/AiJobPanel";
 
 const MASTERY_LEVELS = [
   { points: "4 pts", level: "Exceeds Mastery" },
@@ -23,6 +27,12 @@ export default function OutcomesPage() {
   const [form, setForm] = useState({ title: "", description: "" });
   const [aiGoal, setAiGoal] = useState("");
   const [saving, setSaving] = useState(false);
+  const aiStatus = useAiStatus();
+  // AI rewrite: target is null (a new outcome) or the outcome being rewritten.
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiTarget, setAiTarget] = useState(null);
+  const [aiJob, setAiJob] = useState(null);
+  const [aiError, setAiError] = useState("");
 
   const loadData = async () => {
     if (!SERVER_URL || !courseId) return;
@@ -66,25 +76,26 @@ export default function OutcomesPage() {
     }
   };
 
-  const aiRewriteOutcome = async () => {
+  const openAiRewrite = (outcome) => {
+    setAiTarget(outcome || null);
+    setAiGoal(outcome ? [outcome.title, outcome.description].filter(Boolean).join(". ") : "");
+    setAiJob(null);
+    setAiError("");
+    setAiOpen(true);
+  };
+
+  const aiRewriteOutcome = async (e) => {
+    e?.preventDefault();
     if (!aiGoal.trim()) return;
     setSaving(true);
-    try {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/ai/rewrite-outcomes`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ goal: aiGoal }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setForm({ title: data.title, description: data.description });
-        setAiGoal("");
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setSaving(false);
-    }
+    setAiError("");
+    const r = await startAiJob(SERVER_URL, courseId, {
+      kind: "outcome_rewrite",
+      input: { goal: aiGoal.trim(), ...(aiTarget ? { outcomeId: aiTarget.id } : {}) },
+    });
+    setSaving(false);
+    if (!r.ok) { setAiError(r.message); return; }
+    setAiJob(r.data);
   };
 
   const removeOutcome = async (id) => {
@@ -116,29 +127,68 @@ export default function OutcomesPage() {
           ) : null}
         />
 
+        {isTeacher ? <AiStatusNote status={aiStatus} /> : null}
+
+        {isTeacher && aiOpen ? (
+          <Section
+            title={<span className="flex items-center gap-2"><Sparkles className="w-4 h-4 text-[#0D9488]" /> {aiTarget ? `Rewrite ${aiTarget.code || "outcome"} with AI` : "Write an outcome with AI"}</span>}
+            description="The AI turns your goal into a measurable outcome with four mastery levels. It's a draft: nothing changes until you add it."
+            actions={<button type="button" onClick={() => setAiOpen(false)} className="text-xs font-semibold text-slate-500 px-2 py-1">Close</button>}
+          >
+            <div className="space-y-3">
+              <form onSubmit={aiRewriteOutcome} className="flex flex-wrap items-end gap-2">
+                <div className="flex-1 min-w-[12rem]">
+                  <label htmlFor="ai-goal" className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    {aiTarget ? "What should change? (start from the current wording)" : "Your goal, in your own words"}
+                  </label>
+                  <textarea
+                    id="ai-goal"
+                    rows={2}
+                    value={aiGoal}
+                    maxLength={500}
+                    onChange={(e) => setAiGoal(e.target.value)}
+                    placeholder="e.g. learners can add fractions"
+                    className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[#0D9488]"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={saving || !aiGoal.trim() || (aiJob && ["queued", "running"].includes(aiJob.status))}
+                  className="flex items-center gap-1 text-xs font-semibold text-white bg-[#0D9488] hover:bg-teal-700 disabled:opacity-50 px-3.5 py-2 rounded-lg"
+                >
+                  <Sparkles className="w-3.5 h-3.5" /> {saving ? "Starting…" : "Draft with AI"}
+                </button>
+              </form>
+              {aiError ? <p role="alert" className="text-xs font-semibold text-rose-600">{aiError}</p> : null}
+              {aiJob ? (
+                <AiJobPanel
+                  key={aiJob.id}
+                  SERVER_URL={SERVER_URL}
+                  courseId={courseId}
+                  job={aiJob}
+                  label={aiTarget ? `Rewriting ${aiTarget.code || aiTarget.title}` : "New outcome"}
+                  outcomes={outcomes}
+                  onApproved={() => loadData()}
+                  onClose={() => setAiJob(null)}
+                />
+              ) : null}
+            </div>
+          </Section>
+        ) : null}
+
         {/* Add outcome form (flat section) */}
         {creating && (
           <Section
             title="Add learning outcome"
-            actions={
-              <div className="flex flex-wrap items-center gap-2">
-                <input
-                  type="text"
-                  placeholder="Type vague goal (e.g. learn algebra)"
-                  aria-label="Vague goal for AI to refine"
-                  value={aiGoal}
-                  onChange={(e) => setAiGoal(e.target.value)}
-                  className="text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none"
-                />
-                <button
-                  onClick={aiRewriteOutcome}
-                  disabled={saving || !aiGoal.trim()}
-                  className="flex items-center gap-1 text-xs font-semibold text-white bg-[#203A3A] px-3 py-1.5 rounded-lg"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-teal-400" /> AI Refine Goal
-                </button>
-              </div>
-            }
+            actions={aiStatus.allowed ? (
+              <button
+                type="button"
+                onClick={() => openAiRewrite(null)}
+                className="flex items-center gap-1 text-xs font-semibold text-white bg-[#203A3A] px-3 py-1.5 rounded-lg"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-teal-400" /> Write it with AI
+              </button>
+            ) : null}
           >
             <div className="space-y-3">
               <div>
@@ -207,6 +257,17 @@ export default function OutcomesPage() {
                       }`}>
                         {m.status ?? "No data yet"}
                       </span>
+                      {isTeacher && aiStatus.allowed ? (
+                        <button
+                          type="button"
+                          onClick={() => openAiRewrite(outcomes.find((o) => Number(o.id) === Number(m.id)) || m)}
+                          aria-label={`Rewrite outcome ${m.code || m.title} with AI`}
+                          title="Rewrite with AI"
+                          className="text-slate-400 hover:text-[#0D9488] p-1"
+                        >
+                          <Sparkles className="w-4 h-4" />
+                        </button>
+                      ) : null}
                       {isTeacher && (
                         <button onClick={() => removeOutcome(m.id)} aria-label={`Delete outcome ${m.code || m.title}`} className="text-slate-400 hover:text-rose-500 p-1">
                           <Trash2 className="w-4 h-4" />

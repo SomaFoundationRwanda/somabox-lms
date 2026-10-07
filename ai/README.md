@@ -8,9 +8,10 @@ ai/
 ├── config.yaml          # Model file, ports, concurrency, max tokens configuration
 ├── models/              # Local GGUF model files (.gitignore ignored)
 ├── data/                # SQLite feedback database (.gitignore ignored)
-├── prompts/             # Mode-specific prompt templates (lesson_plan, quiz, explain, adapt, rubric)
+├── prompts/             # Chat mode templates (lesson_plan, quiz, explain, adapt, rubric)
+│   └── structured/      # JSON task prompts used by POST /generate
 ├── runtime/             # llama.cpp server runner scripts
-├── gateway/             # Express HTTP Gateway service (GET /health, POST /ask, POST /feedback)
+├── gateway/             # Express HTTP Gateway (GET /health, POST /ask, POST /generate, POST /feedback)
 ├── scripts/             # Admin, test, evaluation & export scripts
 └── README.md            # System documentation
 ```
@@ -65,9 +66,18 @@ To swap to a different GGUF model:
   ```bash
   ./ai/scripts/smoke_test.sh
   ```
-* **Teacher Evaluation Benchmark** (Runs 10 prompts across English, French, and Kinyarwanda):
+* **Teacher Evaluation Benchmark** (chat prompts in English, French, Kinyarwanda, and Swahili):
   ```bash
   ./ai/scripts/teacher_eval.sh
+  ```
+* **Structured Output Quality Gate** (every `/generate` task in en/fr/rw/sw; checks valid JSON,
+  real outcome codes, latency; writes `ai/data/structured_eval_*.json`; exits 1 on failure):
+  ```bash
+  node ai/scripts/structured_eval.mjs [gatewayUrl]
+  ```
+* **Gateway Unit Tests** (no model needed; uses a fake llama runtime):
+  ```bash
+  cd ai/gateway && npm test
   ```
 * **Export Teacher Feedback**:
   ```bash
@@ -78,6 +88,7 @@ To swap to a different GGUF model:
 
 ## 4. System Architecture & RAG Readiness
 
-* **Zero LMS Core Coupling**: All AI code lives inside `./ai/`. The LMS communicates strictly via HTTP (`POST /ask`).
+* **Zero LMS Core Coupling**: All AI code lives inside `./ai/`. The LMS communicates strictly via HTTP (`POST /ask` for chat, `POST /generate` for structured content).
+* **Structured generation**: `POST /generate { task, input }` returns `{ result, usage, attempts }`. Each task (`outline`, `outcome_rewrite`, `quiz`, `rubric`, `story`, `page`, `assignment`, `grading_suggestion`, `class_summary`) has a JSON schema in `gateway/tasks.js`; llama.cpp constrains output to it, the gateway re-validates and retries once. The LMS turns results into drafts a teacher must approve (see `docs/phase-8-ai.md`).
 * **RAG Ready**: The gateway accepts `course_id` and `lesson_id` parameters in `POST /ask` and injects context labels into the prompts.
 * **Privacy & Security**: Teacher IDs are hashed before storing feedback. No student data or model output is written directly to the database without manual teacher editing.

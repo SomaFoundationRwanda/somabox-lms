@@ -14,6 +14,7 @@ import {
 import { recordBaselineResults } from "./setup.js";
 import { recordQuizAttemptResults, recordSubmissionResults, rubricGrade } from "./results.js";
 import { contentDeadlines } from "./schedule.js";
+import { saveRubric } from "./rubrics.js";
 import {
   OUTCOME_REQUIRED_MESSAGE,
   deleteContent,
@@ -295,7 +296,16 @@ router.put("/:id/assignments/:assignmentId/grade/:scholarEmail/rubric", async (r
     const criteria = await localDb.prepare("SELECT * FROM rubric_criteria WHERE rubric_id = ? ORDER BY position").all(rubric.id);
     const byId = new Map(criteria.map((c) => [Number(c.id), c]));
     const scores = Array.isArray(req.body.scores) ? req.body.scores : [];
-    const source = req.body.source === "ai_suggested_accepted" ? "ai_suggested_accepted" : "teacher";
+    // When the teacher saves after an AI suggestion (aiDraftId), scores they kept unchanged are
+    // recorded as "ai_suggested_accepted"; the draft records whether they edited it.
+    const aiDraft = req.body.aiDraftId
+      ? await localDb.prepare(`
+          SELECT * FROM ai_drafts WHERE id = ? AND course_id = ? AND type = 'grading' AND status = 'pending'
+            AND assignment_id = ? AND LOWER(scholar_email) = LOWER(?)
+        `).get(req.body.aiDraftId, courseId, assignment.id, scholarEmail)
+      : null;
+    if (req.body.aiDraftId && !aiDraft) return res.status(404).json({ message: "That AI suggestion isn't available for this learner" });
+    const suggested = new Map((aiDraft?.payload?.scores || []).map((s) => [Number(s.criterionId), Number(s.points)]));
 
     const parsed = new Map();
     for (const sc of scores) {
@@ -305,7 +315,11 @@ router.put("/:id/assignments/:assignmentId/grade/:scholarEmail/rubric", async (r
       if (sc.points === "" || sc.points == null || !Number.isFinite(pts) || pts < 0 || pts > Number(c.points)) {
         return res.status(400).json({ message: `"${c.title}" must be scored between 0 and ${Number(c.points)}` });
       }
-      parsed.set(Number(c.id), { points: pts, level: sc.level ? String(sc.level).slice(0, 100) : null });
+      parsed.set(Number(c.id), {
+        points: pts,
+        level: sc.level ? String(sc.level).slice(0, 100) : null,
+        source: aiDraft && suggested.get(Number(c.id)) === pts ? "ai_suggested_accepted" : "teacher",
+      });
     }
     const missing = criteria.filter((c) => !parsed.has(Number(c.id)));
     if (missing.length) return res.status(400).json({ message: `Score every criterion (missing: ${missing.map((c) => c.title).join(", ")})` });
@@ -319,7 +333,14 @@ router.put("/:id/assignments/:assignmentId/grade/:scholarEmail/rubric", async (r
           VALUES (?, ?, ?, ?, ?, ?)
           ON CONFLICT (submission_id, criterion_id) DO UPDATE SET level = excluded.level, points = excluded.points,
             graded_by = excluded.graded_by, source = excluded.source, created_at = CURRENT_TIMESTAMP
-        `).run(submissionId, criterionId, v.level, v.points, grader.email, source);
+        `).run(submissionId, criterionId, v.level, v.points, grader.email, v.source);
+      }
+      if (aiDraft) {
+        const edited = [...parsed].some(([id, v]) => suggested.get(id) !== v.points)
+          || (req.body.feedback !== undefined && req.body.feedback !== aiDraft.payload.feedback);
+        await localDb.prepare(`
+          UPDATE ai_drafts SET status = 'approved', edited = ?, decided_by = ?, decided_at = CURRENT_TIMESTAMP, result_refs = ?::jsonb WHERE id = ?
+        `).run(edited, grader.email, JSON.stringify({ submissionId }), aiDraft.id);
       }
       // Recompute now that the per-criterion scores exist (outcome results use them).
       await recordSubmissionResults({ courseId, assignmentId: assignment.id, submissionId });
@@ -631,39 +652,10 @@ router.put("/:id/assignments/:assignmentId/rubric", async (req, res) => {
     const assignment = await localDb.prepare("SELECT id, title FROM assignments WHERE id = ? AND course_id = ?").get(req.params.assignmentId, courseId);
     if (!assignment) return res.status(404).json({ message: "Assignment not found" });
 
-    const criteria = Array.isArray(req.body.criteria) ? req.body.criteria : null;
-    if (!criteria || criteria.length === 0) return res.status(400).json({ message: "A rubric needs at least one criterion" });
-    for (const [i, c] of criteria.entries()) {
-      if (!String(c?.title || "").trim()) return res.status(400).json({ message: `Criterion ${i + 1} needs a title` });
-      if (c?.points !== undefined && (!Number.isFinite(Number(c.points)) || Number(c.points) < 0)) {
-        return res.status(400).json({ message: `Criterion ${i + 1}: points must be 0 or more` });
-      }
-      if (c?.outcomeId) {
-        const outcome = await localDb.prepare("SELECT id FROM outcomes WHERE id = ? AND course_id = ?").get(c.outcomeId, courseId);
-        if (!outcome) return res.status(400).json({ message: `Criterion ${i + 1} is tagged with an outcome from another course` });
-      }
-    }
-
-    const rubricId = await localDb.transaction(async () => {
-      const title = String(req.body.title || "").trim() || `${assignment.title} rubric`;
-      const saved = await localDb.prepare(`
-        INSERT INTO rubrics (course_id, assignment_id, title) VALUES (?, ?, ?)
-        ON CONFLICT (assignment_id) DO UPDATE SET title = excluded.title
-        RETURNING id
-      `).get(courseId, assignment.id, title);
-      await localDb.prepare("DELETE FROM rubric_criteria WHERE rubric_id = ?").run(saved.id);
-      for (const [pos, c] of criteria.entries()) {
-        await localDb.prepare(`
-          INSERT INTO rubric_criteria (rubric_id, outcome_id, title, description, points, weight, position)
-          VALUES (?, ?, ?, ?, ?, ?, ?)
-        `).run(saved.id, c.outcomeId || null, String(c.title).trim(), String(c.description || ""),
-          c.points === undefined ? 4 : Number(c.points), Number(c.weight) > 0 ? Number(c.weight) : 1, pos);
-      }
-      return saved.id;
-    })();
-
+    const rubricId = await saveRubric(courseId, assignment, req.body);
     return res.json(await loadRubric(await localDb.prepare("SELECT * FROM rubrics WHERE id = ?").get(rubricId)));
   } catch (error) {
+    if (sendItemError(res, error)) return;
     console.error("Error saving rubric:", error);
     return res.status(500).json({ message: error.message });
   }

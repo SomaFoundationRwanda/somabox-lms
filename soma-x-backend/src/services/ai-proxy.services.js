@@ -1,8 +1,11 @@
 import express from 'express';
 import crypto from 'crypto';
+import { localDb } from '../helpers/db-manager.js';
+import { requireRole } from '../helpers/auth.js';
+import { aiAccess, schoolAiEnabled } from './ai/access.js';
+import { gatewayUrl, logAiCall } from './ai/gateway.js';
 
 const router = express.Router();
-const GATEWAY_URL = process.env.AI_GATEWAY_URL || 'http://127.0.0.1:5000';
 
 // Per-user Rate Limiter (Max 20 requests per 5 minutes)
 const rateLimitMap = new Map();
@@ -24,13 +27,12 @@ function checkRateLimit(userId) {
     return record.count <= MAX_REQUESTS_PER_WINDOW;
 }
 
-// Teachers and admins may use the assistant (the admin question is open: guide §12.2).
-// Identity and role come from the session, never from client headers.
-function verifyTeacherOrAdmin(req, res, next) {
+// Teachers and admins may use the assistant (guide §12.2: decided, admins too), unless an
+// admin switched AI off for the school or for that person. Identity comes from the session.
+async function verifyTeacherOrAdmin(req, res, next) {
     if (!req.user) return res.status(401).json({ message: 'Please log in to continue' });
-    if (!['teacher', 'admin'].includes(req.user.role)) {
-        return res.status(403).json({ message: 'Forbidden: AI Assistant is available for Teachers and Admins only.' });
-    }
+    const access = await aiAccess(req.user);
+    if (!access.allowed) return res.status(403).json({ message: access.reason, code: 'AI_DISABLED' });
     // Opaque id for the gateway's feedback log. Same input as before (the email) so
     // existing hashes stay comparable.
     req.teacherHash = crypto.createHash('sha256').update(req.user.email).digest('hex').substring(0, 16);
@@ -41,7 +43,7 @@ function verifyTeacherOrAdmin(req, res, next) {
 // GET /ai/health - Check if AI service is operational
 router.get('/health', async (req, res) => {
     try {
-        const resp = await fetch(`${GATEWAY_URL}/health`, { signal: AbortSignal.timeout(3000) });
+        const resp = await fetch(`${gatewayUrl()}/health`, { signal: AbortSignal.timeout(3000) });
         if (resp.ok) {
             const data = await resp.json();
             return res.json({ available: true, ...data });
@@ -54,6 +56,7 @@ router.get('/health', async (req, res) => {
 
 // POST /ai/ask - Streamed AI completions for teachers
 router.post('/ask', verifyTeacherOrAdmin, async (req, res) => {
+    const startedAt = Date.now();
     if (!checkRateLimit(req.user.id)) {
         return res.status(429).json({ message: 'Rate limit exceeded. Please wait a few minutes before asking again.' });
     }
@@ -61,7 +64,7 @@ router.post('/ask', verifyTeacherOrAdmin, async (req, res) => {
     const { mode, question, source_text, course_id, lesson_id } = req.body;
 
     try {
-        const gatewayResp = await fetch(`${GATEWAY_URL}/ask`, {
+        const gatewayResp = await fetch(`${gatewayUrl()}/ask`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -94,7 +97,9 @@ router.post('/ask', verifyTeacherOrAdmin, async (req, res) => {
         }
 
         res.end();
+        await logAiCall({ userId: req.user.id, courseId: null, feature: 'assistant', task: req.body.mode, ok: true, latencyMs: Date.now() - startedAt });
     } catch (err) {
+        await logAiCall({ userId: req.user.id, courseId: null, feature: 'assistant', task: req.body.mode, ok: false, errorCode: 'unreachable', latencyMs: Date.now() - startedAt });
         console.error('[AI Proxy] Error contacting gateway:', err);
         if (!res.headersSent) {
             return res.status(503).json({ message: 'AI assistant unavailable' });
@@ -108,7 +113,7 @@ router.post('/feedback', verifyTeacherOrAdmin, async (req, res) => {
     const { response_id, rating, comment, mode } = req.body;
 
     try {
-        const gatewayResp = await fetch(`${GATEWAY_URL}/feedback`, {
+        const gatewayResp = await fetch(`${gatewayUrl()}/feedback`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -125,6 +130,87 @@ router.post('/feedback', verifyTeacherOrAdmin, async (req, res) => {
     } catch (err) {
         console.error('[AI Proxy] Error sending feedback:', err);
         return res.status(500).json({ message: 'Failed to record feedback' });
+    }
+});
+
+// Whether AI is available to the caller (for showing or hiding AI buttons).
+router.get('/status', async (req, res) => {
+    try {
+        const access = await aiAccess(req.user);
+        let runtime = false;
+        try {
+            const resp = await fetch(`${gatewayUrl()}/health`, { signal: AbortSignal.timeout(3000) });
+            runtime = resp.ok && (await resp.json()).runtime_connected === true;
+        } catch { runtime = false; }
+        return res.json({ allowed: access.allowed, reason: access.reason, modelRunning: runtime });
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+});
+
+// ===== Admin controls and usage =====
+const requireAdmin = requireRole('admin');
+
+router.get('/admin/settings', requireAdmin, async (req, res) => {
+    try {
+        const disabled = await localDb.prepare("SELECT id, email, full_name, role FROM users WHERE ai_enabled = false ORDER BY email").all();
+        return res.json({ enabled: await schoolAiEnabled(), disabledUsers: disabled });
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+});
+
+router.put('/admin/settings', requireAdmin, async (req, res) => {
+    try {
+        if (typeof req.body.enabled !== 'boolean') return res.status(400).json({ message: 'enabled must be true or false' });
+        await localDb.prepare(`
+            INSERT INTO system_settings (key, value, updated_by, updated_at) VALUES ('ai_enabled', ?::jsonb, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT (key) DO UPDATE SET value = excluded.value, updated_by = excluded.updated_by, updated_at = CURRENT_TIMESTAMP
+        `).run(JSON.stringify(req.body.enabled), req.user.email);
+        return res.json({ enabled: req.body.enabled });
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+});
+
+router.patch('/admin/users/:id', requireAdmin, async (req, res) => {
+    try {
+        if (typeof req.body.aiEnabled !== 'boolean') return res.status(400).json({ message: 'aiEnabled must be true or false' });
+        const info = await localDb.prepare("UPDATE users SET ai_enabled = ? WHERE id = ?").run(req.body.aiEnabled, req.params.id);
+        if (!info.changes) return res.status(404).json({ message: 'User not found' });
+        return res.json({ id: Number(req.params.id), aiEnabled: req.body.aiEnabled });
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+});
+
+// Usage per person (calls, failures, tokens, speed) and how drafts were received
+// (approved as-is, approved after edits, rejected). No AI output content is exposed here.
+router.get('/admin/usage', requireAdmin, async (req, res) => {
+    try {
+        const days = Math.min(365, Math.max(1, Number(req.query.days) || 30));
+        const calls = await localDb.prepare(`
+            SELECT u.id AS user_id, u.email, u.full_name, c.feature,
+                   COUNT(*) AS calls, COUNT(*) FILTER (WHERE NOT c.ok) AS failed,
+                   COALESCE(SUM(c.prompt_tokens), 0) AS prompt_tokens, COALESCE(SUM(c.completion_tokens), 0) AS completion_tokens,
+                   ROUND(AVG(c.latency_ms)) AS avg_latency_ms
+            FROM ai_calls c LEFT JOIN users u ON u.id = c.user_id
+            WHERE c.created_at >= NOW() - make_interval(days => ?)
+            GROUP BY u.id, u.email, u.full_name, c.feature ORDER BY COUNT(*) DESC
+        `).all(days);
+        const drafts = await localDb.prepare(`
+            SELECT d.type, d.created_by,
+                   COUNT(*) FILTER (WHERE d.status = 'approved' AND NOT d.edited) AS approved_as_is,
+                   COUNT(*) FILTER (WHERE d.status = 'approved' AND d.edited) AS approved_edited,
+                   COUNT(*) FILTER (WHERE d.status = 'rejected') AS rejected,
+                   COUNT(*) FILTER (WHERE d.status = 'pending') AS pending
+            FROM ai_drafts d WHERE d.created_at >= NOW() - make_interval(days => ?)
+            GROUP BY d.type, d.created_by ORDER BY d.created_by, d.type
+        `).all(days);
+        const num = (r) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, typeof v === 'string' && /^\d+$/.test(v) ? Number(v) : v]));
+        return res.json({ days, calls: calls.map(num), drafts: drafts.map(num) });
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
     }
 });
 

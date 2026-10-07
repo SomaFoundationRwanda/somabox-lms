@@ -3,6 +3,7 @@
 import assert from "node:assert/strict";
 import bcrypt from "bcrypt";
 import pg from "pg";
+import { startFakeGateway } from "./fake-gateway.js";
 
 const host = process.env.PGHOST || "localhost";
 const port = process.env.PGPORT || "5432";
@@ -34,8 +35,9 @@ export async function startTestServer() {
   process.env.DATABASE_URL = `postgresql://${auth}@${host}:${port}/${dbName}`;
   process.env.PGMAXCONNECTIONS = "5";
   delete process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
-  // Keep the AI gateway unreachable so /ai routes never call a real model.
-  process.env.AI_GATEWAY_URL = "http://127.0.0.1:9";
+  // A fake AI gateway: tests never call a real model.
+  const fakeGateway = await startFakeGateway();
+  process.env.AI_GATEWAY_URL = fakeGateway.url;
 
   const dbManager = await import("../src/helpers/db-manager.js");
   await dbManager.initSchemas();
@@ -92,6 +94,7 @@ export async function startTestServer() {
 
   async function stop() {
     await new Promise((resolve) => server.close(resolve));
+    await fakeGateway.stop();
     await dbManager.pool.end();
     const a = adminClient();
     await a.connect();
@@ -99,5 +102,5 @@ export async function startTestServer() {
     await a.end();
   }
 
-  return { api, login, tokens, db, dbManager, createCourse, stop, API_ROUTERS, baseUrl };
+  return { api, login, tokens, db, dbManager, createCourse, stop, API_ROUTERS, baseUrl, fakeGateway };
 }

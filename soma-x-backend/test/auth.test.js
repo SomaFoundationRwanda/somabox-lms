@@ -80,6 +80,11 @@ const POLICY = {
 
   "POST /ai/ask": "staff",
   "POST /ai/feedback": "staff",
+  "GET /ai/status": "any",
+  "GET /ai/admin/settings": "admin",
+  "PUT /ai/admin/settings": "admin",
+  "PATCH /ai/admin/users/:id": "admin",
+  "GET /ai/admin/usage": "admin",
 
   // Course routes that aren't about one existing course the caller belongs to.
   "POST /courses": "staff",

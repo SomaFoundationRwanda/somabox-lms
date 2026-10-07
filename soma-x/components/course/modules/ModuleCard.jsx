@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
@@ -33,12 +34,55 @@ export default function ModuleCard({
   onAddItem,
   onEditItem,
   onDeleteItem,
+  ai,
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState(moduleRow.title);
   const { showToast } = useToast();
   const isUnassigned = isUnassignedModule(moduleRow);
+  const [aiBusy, setAiBusy] = useState("");
+  const [aiNote, setAiNote] = useState("");
+  const [storyOpen, setStoryOpen] = useState(false);
+  const [storyIdea, setStoryIdea] = useState("");
+  const moduleJobs = (ai?.activeJobs || []).filter((j) => Number(j.moduleId) === Number(moduleRow.id));
+  const fillRunning = moduleJobs.some((j) => j.kind === "fill_week");
+  const storyRunning = moduleJobs.some((j) => j.kind === "story");
+
+  const startAiJob = async (kind, input) => {
+    setAiBusy(kind);
+    try {
+      const res = await fetch(`${SERVER_URL}/courses/${courseId}/ai/jobs`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind, moduleId: moduleRow.id, input }),
+      });
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        showToast(payload?.message || "The AI request couldn't be started", "error");
+        return false;
+      }
+      showToast("Started: you'll find the drafts in AI drafts", "success", 6000);
+      setAiNote(kind === "story" ? "The AI is writing the story." : "The AI is drafting a page, a quiz and an assignment for this week.");
+      ai?.onStarted?.(payload);
+      return true;
+    } catch (err) {
+      showToast(err.message || "The AI request couldn't be started", "error");
+      return false;
+    } finally {
+      setAiBusy("");
+    }
+  };
+
+  const startFillWeek = () => startAiJob("fill_week", {});
+  const startStory = async (e) => {
+    e.preventDefault();
+    if (!storyIdea.trim()) return;
+    if (await startAiJob("story", { idea: storyIdea.trim() })) {
+      setStoryIdea("");
+      setStoryOpen(false);
+    }
+  };
 
   const {
     attributes,
@@ -206,41 +250,34 @@ export default function ModuleCard({
 
         {isTeacher && (
           <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
-            <button
-              onClick={async () => {
-                const res = await fetch(`${SERVER_URL}/courses/${courseId}/ai/fill-module`, {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ moduleId: moduleRow.id }),
-                });
-                if (res.ok) showToast((await res.json().catch(() => ({}))).message || "Drafts added", "success");
-                else showToast(await readError(res, "AI drafts could not be created"), "error");
-                onRefetch();
-              }}
-              className="flex items-center gap-1 text-[11px] font-semibold text-teal-800 bg-teal-50 border border-teal-200 hover:bg-teal-100 px-2.5 py-1 rounded-lg transition-colors"
-              title="Adds an unpublished draft page, quiz, and assignment to this week. Review and edit them before publishing."
-            >
-              <Sparkles className="w-3 h-3 text-[#0D9488]" /> AI Fill Week
-            </button>
-            <button
-              onClick={async () => {
-                const idea = prompt("Enter story idea (e.g. A boy who finds a broken calculator):");
-                if (idea && idea.trim()) {
-                  const res = await fetch(`${SERVER_URL}/courses/${courseId}/ai/generate-story`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ moduleId: moduleRow.id, idea: idea.trim() }),
-                  });
-                  if (res.ok) showToast((await res.json().catch(() => ({}))).message || "Drafts added", "success");
-                  else showToast(await readError(res, "AI drafts could not be created"), "error");
-                  onRefetch();
-                }
-              }}
-              className="flex items-center gap-1 text-[11px] font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-lg transition-colors"
-              title="Adds an unpublished draft story page and discussion prompt. Review and edit them before publishing."
-            >
-              <Sparkles className="w-3 h-3 text-slate-500" /> AI Story
-            </button>
+            {isUnassigned ? null : ai?.status?.allowed ? (
+              <>
+                <button
+                  type="button"
+                  onClick={startFillWeek}
+                  disabled={aiBusy === "fill_week" || fillRunning}
+                  className="flex items-center gap-1 text-[11px] font-semibold text-teal-800 bg-teal-50 border border-teal-200 hover:bg-teal-100 disabled:opacity-50 px-2.5 py-1 rounded-lg transition-colors"
+                  title={fillRunning ? "The AI is already filling this week" : "The AI drafts a page, a quiz and an assignment for this week. You review them in AI drafts before anything is added."}
+                >
+                  <Sparkles className="w-3 h-3 text-[#0D9488]" /> {fillRunning ? "Filling…" : "AI Fill Week"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStoryOpen((v) => !v)}
+                  aria-expanded={storyOpen}
+                  disabled={storyRunning}
+                  className="flex items-center gap-1 text-[11px] font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 px-2.5 py-1 rounded-lg transition-colors"
+                  title={storyRunning ? "The AI is already writing a story for this week" : "The AI drafts a short story with questions and a discussion prompt. You review it in AI drafts first."}
+                >
+                  <Sparkles className="w-3 h-3 text-slate-500" /> {storyRunning ? "Writing story…" : "AI Story"}
+                </button>
+              </>
+            ) : ai?.status && !ai.status.loading && ai.status.reason ? (
+              <span className="text-[11px] text-slate-400" title={ai.status.reason}>
+                <Sparkles className="inline w-3 h-3 mr-0.5" aria-hidden="true" />AI off
+                <span className="sr-only">: {ai.status.reason}</span>
+              </span>
+            ) : null}
             {!editingTitle && (
               <button onClick={() => { setTitleDraft(moduleRow.title); setEditingTitle(true); }} className="p-1.5 rounded-md hover:bg-slate-100 text-slate-400" title="Rename" aria-label="Rename module">
                 <Pencil className="w-3.5 h-3.5" />
@@ -255,6 +292,40 @@ export default function ModuleCard({
           </div>
         )}
       </div>
+
+      {isTeacher && storyOpen ? (
+        <form onSubmit={startStory} className="flex flex-wrap items-end gap-2">
+          <div className="flex-1 min-w-[12rem]">
+            <label htmlFor={`story-idea-${moduleRow.id}`} className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5">
+              Story idea for {moduleWeekLabel(moduleRow)}
+            </label>
+            <input
+              id={`story-idea-${moduleRow.id}`}
+              value={storyIdea}
+              onChange={(e) => setStoryIdea(e.target.value)}
+              maxLength={500}
+              placeholder="e.g. A girl who uses fractions to share mangoes at the market"
+              className="w-full text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-lg px-2.5 py-1.5 outline-none focus:border-[#0D9488]"
+              autoFocus
+            />
+          </div>
+          <button type="submit" disabled={!storyIdea.trim() || aiBusy === "story"} className="text-xs font-bold text-white bg-[#0D9488] hover:bg-teal-700 disabled:opacity-50 px-3.5 py-2 rounded-lg">
+            {aiBusy === "story" ? "Starting…" : "Write story draft"}
+          </button>
+          <button type="button" onClick={() => setStoryOpen(false)} className="text-xs font-semibold text-slate-500 px-2 py-2">Cancel</button>
+        </form>
+      ) : null}
+
+      {isTeacher && (aiNote || moduleJobs.length > 0) ? (
+        <p role="status" className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-600 dark:text-slate-300">
+          <Sparkles className="w-3.5 h-3.5 text-[#0D9488]" aria-hidden="true" />
+          <span>{moduleJobs.length > 0 ? "AI drafts for this week are being written. It can take a few minutes." : aiNote}</span>
+          <Link href={`/course/${courseId}/ai`} className="font-semibold text-[#0D9488] hover:underline">Open AI drafts</Link>
+          {moduleJobs.length === 0 ? (
+            <button type="button" onClick={() => setAiNote("")} className="text-slate-400 hover:text-slate-600 underline">Hide</button>
+          ) : null}
+        </p>
+      ) : null}
 
       {isUnassigned && moduleRow.items.length > 0 && (
         <p className="text-xs font-medium text-amber-800 dark:text-amber-300">

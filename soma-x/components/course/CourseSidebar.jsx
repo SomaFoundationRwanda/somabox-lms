@@ -23,6 +23,7 @@ import {
   HelpCircle,
   Home,
   Users,
+  Sparkles,
 } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
 
@@ -83,6 +84,24 @@ function NavLinks({ onNavigate }) {
           </Link>
         );
       })}
+      {isTeacher ? (() => {
+        // Not a course_nav_items key: a teacher-only link to the AI drafts review page.
+        const href = `/course/${courseId}/ai`;
+        const isActive = pathname === href || pathname.startsWith(`${href}/`);
+        return (
+          <Link
+            href={href}
+            onClick={onNavigate}
+            aria-current={isActive ? "page" : undefined}
+            className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              isActive ? "bg-[#203A3A] text-white" : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900/40"
+            }`}
+          >
+            <Sparkles className="w-4 h-4 shrink-0" />
+            <span className="flex-1 truncate">AI drafts</span>
+          </Link>
+        );
+      })() : null}
     </div>
   );
 }

@@ -1,10 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Award, ArrowUp, ArrowDown, Plus, Trash2, Pencil } from "lucide-react";
+import { Award, ArrowUp, ArrowDown, Plus, Trash2, Pencil, Sparkles } from "lucide-react";
 import { Section, DataTable, EmptyState } from "@/components/layout";
 import { useToast } from "@/context/ToastContext";
 import { fmtPoints } from "@/lib/rubric";
+import useAiStatus from "@/lib/useAiStatus";
+import { startAiJob, aiFetch } from "@/lib/ai";
+import { AiStatusNote } from "@/components/ai/AiBits";
+import AiJobPanel from "@/components/ai/AiJobPanel";
 
 let draftSeq = 0;
 const newKey = () => `draft-${++draftSeq}`;
@@ -32,6 +36,48 @@ export default function RubricSection({ SERVER_URL, courseId, assignmentId, rubr
   const [error, setError] = useState("");
 
   const base = `${SERVER_URL}/courses/${courseId}/assignments/${assignmentId}/rubric`;
+
+  // AI: draft a rubric for this assignment, reviewed inline before it replaces anything.
+  const aiStatus = useAiStatus();
+  const [aiJob, setAiJob] = useState(null);
+  const [aiStarting, setAiStarting] = useState(false);
+  const aiRunning = !!aiJob && ["queued", "running"].includes(aiJob.status);
+  const startAiRubric = async () => {
+    setAiStarting(true);
+    const r = await startAiJob(SERVER_URL, courseId, { kind: "rubric", assignmentId: Number(assignmentId) });
+    setAiStarting(false);
+    if (!r.ok) { showToast(r.message, "error"); return; }
+    setAiJob(r.data);
+  };
+  const afterAiApproved = async () => {
+    const r = await aiFetch(base);
+    onChange?.(r.ok ? r.data : null);
+  };
+  const aiButton = aiStatus.allowed ? (
+    <button type="button" onClick={startAiRubric} disabled={aiStarting || aiRunning} className="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-800 dark:text-violet-200 border border-violet-200 dark:border-violet-800 hover:bg-violet-50 dark:hover:bg-violet-950/30 disabled:opacity-50 px-3 py-1.5 rounded-lg">
+      <Sparkles className="w-3.5 h-3.5" /> {aiStarting ? "Starting…" : "Draft rubric with AI"}
+    </button>
+  ) : null;
+  const aiPanel = (
+    <>
+      <AiStatusNote status={aiStatus} className="mb-2" />
+      {aiJob ? (
+        <div className="mb-3">
+          <AiJobPanel
+            key={aiJob.id}
+            SERVER_URL={SERVER_URL}
+            courseId={courseId}
+            job={aiJob}
+            label="Rubric draft"
+            outcomes={outcomes}
+            confirmApprove={() => (rubric ? "This replaces the current rubric. Grades already saved keep their scores. Continue?" : null)}
+            onApproved={afterAiApproved}
+            onClose={() => setAiJob(null)}
+          />
+        </div>
+      ) : null}
+    </>
+  );
 
   const startEdit = () => {
     setError("");
@@ -212,14 +258,18 @@ export default function RubricSection({ SERVER_URL, courseId, assignmentId, rubr
   if (!rubric) {
     return (
       <Section divided title={heading}>
+        {aiPanel}
         <EmptyState
           compact
           title="No rubric yet"
           description="Without a rubric you enter one total grade per learner. A rubric scores each criterion and links it to an outcome."
           action={
-            <button type="button" onClick={startEdit} className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-[#0D9488] hover:bg-teal-700 px-4 py-2 rounded-lg">
-              <Plus className="w-3.5 h-3.5" /> Create rubric
-            </button>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <button type="button" onClick={startEdit} className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-[#0D9488] hover:bg-teal-700 px-4 py-2 rounded-lg">
+                <Plus className="w-3.5 h-3.5" /> Create rubric
+              </button>
+              {aiButton}
+            </div>
           }
         />
       </Section>
@@ -232,11 +282,15 @@ export default function RubricSection({ SERVER_URL, courseId, assignmentId, rubr
       title={heading}
       description={`${rubric.title || "Rubric"} · graded out of ${fmtPoints(pointsPossible)} pts`}
       actions={
-        <button type="button" onClick={startEdit} className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg">
-          <Pencil className="w-3.5 h-3.5" /> Edit rubric
-        </button>
+        <>
+          {aiButton}
+          <button type="button" onClick={startEdit} className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg">
+            <Pencil className="w-3.5 h-3.5" /> Edit rubric
+          </button>
+        </>
       }
     >
+      {aiPanel}
       <RubricTable rubric={rubric} />
     </Section>
   );

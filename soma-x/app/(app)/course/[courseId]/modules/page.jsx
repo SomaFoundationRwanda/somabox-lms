@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import Link from "next/link";
 import {
   DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors,
 } from "@dnd-kit/core";
 import {
   SortableContext, verticalListSortingStrategy, arrayMove,
 } from "@dnd-kit/sortable";
-import { Plus } from "lucide-react";
+import { Plus, Sparkles } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
 import { useToast } from "@/context/ToastContext";
 import { useCourseSection } from "@/lib/useCourseSection";
@@ -23,6 +24,8 @@ import PageEditorModal from "@/components/course/modules/editors/PageEditorModal
 import AssignmentEditorModal from "@/components/course/modules/editors/AssignmentEditorModal";
 import QuizEditorModal from "@/components/course/modules/editors/QuizEditorModal";
 import FileUploadModal from "@/components/course/modules/editors/FileUploadModal";
+import useAiStatus from "@/lib/useAiStatus";
+import { AiStatusNote } from "@/components/ai/AiBits";
 
 const ITEM_TYPE_OPTIONS = [
   { value: "page", label: "Page" },
@@ -40,6 +43,35 @@ export default function ModulesPage() {
   const { SERVER_URL, courseId, userEmail, isTeacher } = useCourse();
   const { data: modules, loading, error, refetch } = useCourseSection("modules");
   const { showToast } = useToast();
+  const aiStatus = useAiStatus();
+
+  // AI: pending drafts and running jobs, for the header link and per-week buttons.
+  const [aiActiveJobs, setAiActiveJobs] = useState([]);
+  const [aiPendingCount, setAiPendingCount] = useState(0);
+  const loadAiSummary = useCallback(async () => {
+    if (!SERVER_URL || !courseId || !isTeacher) return;
+    try {
+      const [jobsRes, draftsRes] = await Promise.all([
+        fetch(`${SERVER_URL}/courses/${courseId}/ai/jobs?active=1`),
+        fetch(`${SERVER_URL}/courses/${courseId}/ai/drafts?status=pending`),
+      ]);
+      if (jobsRes.ok) setAiActiveJobs(await jobsRes.json().catch(() => []));
+      if (draftsRes.ok) {
+        const drafts = await draftsRes.json().catch(() => []);
+        setAiPendingCount(Array.isArray(drafts) ? drafts.length : 0);
+      }
+    } catch {
+      /* the link still works without counts */
+    }
+  }, [SERVER_URL, courseId, isTeacher]);
+  useEffect(() => { loadAiSummary(); }, [loadAiSummary]);
+  // While jobs run, refresh every few seconds so the counts and buttons stay current.
+  useEffect(() => {
+    if (aiActiveJobs.length === 0) return undefined;
+    const t = setTimeout(loadAiSummary, 5000);
+    return () => clearTimeout(t);
+  }, [aiActiveJobs, loadAiSummary]);
+  const aiProps = { status: aiStatus, activeJobs: aiActiveJobs, onStarted: (job) => { setAiActiveJobs((list) => [...list, job]); } };
 
   // Reads a JSON response; on failure shows the server message and throws so
   // editor modals stay open. On success, surfaces any `notice` (e.g. a graded
@@ -335,6 +367,18 @@ export default function ModulesPage() {
           description="Each week's module with its dates, followed by its items in the order learners work through them."
           actions={isTeacher ? (
             <>
+            <Link
+              href={`/course/${courseId}/ai`}
+              className="flex items-center gap-1.5 text-xs font-semibold text-violet-800 dark:text-violet-200 border border-violet-200 dark:border-violet-800 hover:bg-violet-50 dark:hover:bg-violet-950/30 rounded-lg px-3 py-2 transition-colors"
+            >
+              <Sparkles className="w-3.5 h-3.5" aria-hidden="true" /> AI drafts
+              {aiPendingCount > 0 ? (
+                <span className="rounded-full bg-violet-600 text-white text-[10px] font-bold px-1.5 py-0.5" aria-label={`${aiPendingCount} waiting for review`}>{aiPendingCount}</span>
+              ) : null}
+              {aiActiveJobs.length > 0 ? (
+                <span className="text-[10px] font-semibold text-violet-700 dark:text-violet-300">{aiActiveJobs.length} running</span>
+              ) : null}
+            </Link>
             <button
               type="button"
               onClick={() => setHelperOpen(true)}
@@ -353,6 +397,8 @@ export default function ModulesPage() {
             </>
           ) : null}
         />
+
+        {isTeacher ? <AiStatusNote status={aiStatus} /> : null}
 
         {/* Create module form */}
         {creating && (
@@ -407,6 +453,7 @@ export default function ModulesPage() {
                       onAddItem={handleAddItem}
                       onEditItem={handleEditItem}
                       onDeleteItem={handleDeleteItem}
+                      ai={aiProps}
                     />
                   ))}
                 </div>

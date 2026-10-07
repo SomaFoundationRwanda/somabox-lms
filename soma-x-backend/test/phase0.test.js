@@ -173,51 +173,7 @@ test("open-course requires the teacher role", async () => {
   assert.equal(res.status, 403);
 });
 
-// ---------- P0-5: AI stub output is unpublished and linked correctly ----------
-
-test("fill-module creates unpublished items linked to their content", async () => {
-  const courseId = await createCourse();
-  const mod = await db.prepare("INSERT INTO modules (course_id, title, week_offset) VALUES (?, 'Week 1', 1) RETURNING id").get(courseId);
-
-  const res = await asTeacher("POST", `/courses/${courseId}/ai/fill-module`, { moduleId: mod.id });
-  assert.equal(res.status, 200, JSON.stringify(res.body));
-
-  const items = await db.prepare("SELECT * FROM module_items WHERE module_id = ?").all(mod.id);
-  assert.equal(items.length, 3);
-  for (const item of items) {
-    assert.equal(Number(item.published), 0, `${item.item_type} module item published`);
-    assert.ok(item.content_id, `${item.item_type} missing content_id`);
-    const table = { page: "course_pages", assignment: "assignments", quiz: "quizzes" }[item.item_type];
-    const content = await db.prepare(`SELECT published, module_id FROM ${table} WHERE id = ?`).get(item.content_id);
-    assert.equal(Number(content.module_id), Number(mod.id), `${item.item_type} module_id`);
-    assert.equal(Number(content.published), 0, `${item.item_type} content published`);
-  }
-});
-
-test("generate-story creates unpublished, escaped content in the course's own module", async () => {
-  const courseId = await createCourse();
-  const otherCourseId = await createCourse("Other");
-  const mod = await db.prepare("INSERT INTO modules (course_id, title, week_offset) VALUES (?, 'Week 1', 1) RETURNING id").get(courseId);
-  const foreignMod = await db.prepare("INSERT INTO modules (course_id, title, week_offset) VALUES (?, 'Foreign', 1) RETURNING id").get(otherCourseId);
-
-  const foreign = await asTeacher("POST", `/courses/${courseId}/ai/generate-story`, { moduleId: foreignMod.id, idea: "x" });
-  assert.equal(foreign.status, 404);
-
-  const res = await asTeacher("POST", `/courses/${courseId}/ai/generate-story`, { moduleId: mod.id, idea: "<script>alert(1)</script>" });
-  assert.equal(res.status, 200, JSON.stringify(res.body));
-
-  const page = await db.prepare("SELECT body, published FROM course_pages WHERE id = ?").get(res.body.pageId);
-  assert.equal(Number(page.published), 0);
-  assert.ok(!page.body.includes("<script>"));
-  assert.ok(!page.body.includes("className"));
-
-  const items = await db.prepare("SELECT published, content_id FROM module_items WHERE module_id = ?").all(mod.id);
-  assert.equal(items.length, 2);
-  for (const item of items) {
-    assert.equal(Number(item.published), 0);
-    assert.ok(item.content_id);
-  }
-});
+// (P0-5 AI stubs were replaced by real AI jobs and drafts in Phase 8: see test/ai.test.js.)
 
 // ---------- P0-4: default admin must change password ----------
 

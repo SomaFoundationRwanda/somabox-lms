@@ -1,9 +1,12 @@
 "use client";
 
-import { useState } from "react";
-import { ChevronDown, ChevronRight, Clock } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ChevronDown, ChevronRight, Clock, Sparkles } from "lucide-react";
 import { useToast } from "@/context/ToastContext";
 import { rubricGradePreview, fmtPoints, pctOf } from "@/lib/rubric";
+import useAiStatus from "@/lib/useAiStatus";
+import { aiFetch, startAiJob, rejectDraft, useAiJob } from "@/lib/ai";
+import { AiDraftLabel, JobProgress } from "@/components/ai/AiBits";
 
 export function LateBadge() {
   return (
@@ -35,6 +38,88 @@ export default function SubmissionGrader({ SERVER_URL, courseId, assignmentId, s
   const [error, setError] = useState("");
 
   const criteria = rubric?.criteria || [];
+
+  // ---- AI grading help (rubric grading only) ----
+  const aiStatus = useAiStatus();
+  const hasText = !!(s.submitted_at && String(s.body || "").trim());
+  const aiAvailable = !!rubric && aiStatus.allowed && hasText;
+  const [suggestion, setSuggestion] = useState(null); // pending grading draft, if any
+  const [aiApplied, setAiApplied] = useState(null); // { draftId, reasons, before: { scores, feedback } }
+  const [aiJob, setAiJob] = useState(null);
+  const [aiError, setAiError] = useState("");
+  const [aiBusy, setAiBusy] = useState(false);
+  const suggestionUrl = `${SERVER_URL}/courses/${courseId}/ai/grading-suggestion?assignmentId=${encodeURIComponent(assignmentId)}&scholarEmail=${encodeURIComponent(s.scholar_email)}`;
+
+  const fetchSuggestion = async () => {
+    const r = await aiFetch(suggestionUrl);
+    if (!r.ok) { setAiError(r.message); return null; }
+    const sug = r.data && r.data.status === "pending" ? r.data : null;
+    setSuggestion(sug);
+    return sug;
+  };
+
+  useEffect(() => {
+    if (open && aiAvailable && suggestion === null && !aiApplied) fetchSuggestion();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, aiAvailable]);
+
+  const applySuggestion = (sug) => {
+    if (!sug) return;
+    const ids = new Set(criteria.map((c) => Number(c.id)));
+    const nextScores = { ...scores };
+    const reasons = {};
+    for (const sc of sug.payload?.scores || []) {
+      const id = Number(sc.criterionId);
+      if (!ids.has(id)) continue;
+      if (sc.points != null && Number.isFinite(Number(sc.points))) nextScores[id] = String(sc.points);
+      if (sc.reason) reasons[id] = sc.reason;
+    }
+    setAiApplied({ draftId: sug.id, reasons, before: { scores, feedback } });
+    setScores(nextScores);
+    if (sug.payload?.feedback) setFeedback(sug.payload.feedback);
+    setError("");
+  };
+
+  const { job: aiJobLive, cancel: cancelAiJob, cancelling: aiCancelling } = useAiJob(SERVER_URL, courseId, aiJob?.id, {
+    initial: aiJob,
+    onFinish: async (j) => {
+      if (j.status === "done") {
+        const sug = await fetchSuggestion();
+        if (sug) applySuggestion(sug);
+        else setAiError("The AI didn't return a suggestion. Try again.");
+        setAiJob(null);
+      } else if (j.status === "failed") {
+        setAiError(j.error || "The AI couldn't suggest scores.");
+        setAiJob(null);
+      } else {
+        setAiJob(null);
+      }
+    },
+  });
+
+  const startSuggestion = async () => {
+    setAiError("");
+    setAiBusy(true);
+    const r = await startAiJob(SERVER_URL, courseId, { kind: "grading", assignmentId: Number(assignmentId), scholarEmail: s.scholar_email });
+    setAiBusy(false);
+    if (!r.ok) { setAiError(r.message); return; }
+    setAiJob(r.data);
+  };
+
+  const dismissSuggestion = async () => {
+    const id = aiApplied?.draftId || suggestion?.id;
+    if (!id) return;
+    setAiBusy(true);
+    const r = await rejectDraft(SERVER_URL, courseId, id);
+    setAiBusy(false);
+    if (!r.ok) { setAiError(r.message); return; }
+    if (aiApplied) {
+      setScores(aiApplied.before.scores);
+      setFeedback(aiApplied.before.feedback);
+    }
+    setAiApplied(null);
+    setSuggestion(null);
+  };
   const preview = rubric ? rubricGradePreview(criteria, scores, pointsPossible) : null;
   const pct = pctOf(s.grade, pointsPossible);
   const panelId = `grade-panel-${s.scholar_email.replace(/[^a-z0-9]/gi, "-")}`;
@@ -55,7 +140,7 @@ export default function SubmissionGrader({ SERVER_URL, courseId, assignmentId, s
       req = fetch(`${gradeUrl}/rubric`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scores: payloadScores, feedback }),
+        body: JSON.stringify({ scores: payloadScores, feedback, ...(aiApplied ? { aiDraftId: aiApplied.draftId } : {}) }),
       });
     } else {
       const v = Number(grade);
@@ -127,6 +212,43 @@ export default function SubmissionGrader({ SERVER_URL, courseId, assignmentId, s
             </p>
           ) : null}
 
+          {aiAvailable ? (
+            <div className="space-y-2">
+              {aiApplied ? (
+                <div role="status" className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-violet-200 dark:border-violet-800 bg-violet-50/60 dark:bg-violet-950/20 px-3 py-2">
+                  <div className="space-y-0.5">
+                    <AiDraftLabel text="AI suggestion — check before saving" />
+                    <p className="text-[11px] text-slate-600 dark:text-slate-400">The scores and feedback below were filled in by the AI. Change anything you disagree with. The AI saw the work without the learner&apos;s name.</p>
+                  </div>
+                  <button type="button" onClick={dismissSuggestion} disabled={aiBusy} className="text-xs font-semibold text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 disabled:opacity-50 px-3 py-1.5 rounded-lg">
+                    Dismiss
+                  </button>
+                </div>
+              ) : aiJob ? (
+                <JobProgress job={aiJobLive} label="Suggesting scores" onCancel={cancelAiJob} cancelling={aiCancelling} />
+              ) : suggestion ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <button type="button" onClick={() => applySuggestion(suggestion)} className="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-800 dark:text-violet-200 border border-violet-200 dark:border-violet-800 hover:bg-violet-50 dark:hover:bg-violet-950/30 px-3 py-1.5 rounded-lg">
+                    <Sparkles className="w-3.5 h-3.5" /> Use AI suggestion
+                  </button>
+                  <button type="button" onClick={dismissSuggestion} disabled={aiBusy} className="text-xs font-semibold text-slate-500 hover:text-slate-700 px-2 py-1.5">Dismiss it</button>
+                  <span className="text-[11px] text-slate-500">An AI suggestion is ready for this submission.</span>
+                </div>
+              ) : (
+                <div className="flex flex-wrap items-center gap-2">
+                  <button type="button" onClick={startSuggestion} disabled={aiBusy} className="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-800 dark:text-violet-200 border border-violet-200 dark:border-violet-800 hover:bg-violet-50 dark:hover:bg-violet-950/30 disabled:opacity-50 px-3 py-1.5 rounded-lg">
+                    <Sparkles className="w-3.5 h-3.5" /> {aiBusy ? "Starting…" : "Suggest scores with AI"}
+                  </button>
+                  <span className="text-[11px] text-slate-500">The AI sees the work without the learner&apos;s name. You decide the grade.</span>
+                </div>
+              )}
+              {!aiStatus.modelRunning && !aiApplied ? (
+                <p className="text-[11px] text-amber-800 dark:text-amber-300">The AI model isn&apos;t running on this box, so suggestions will fail until it&apos;s started.</p>
+              ) : null}
+              {aiError ? <p role="alert" className="text-xs text-rose-600">{aiError}</p> : null}
+            </div>
+          ) : null}
+
           {rubric ? (
             <fieldset className="space-y-3">
               <legend className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Rubric scores</legend>
@@ -145,6 +267,11 @@ export default function SubmissionGrader({ SERVER_URL, courseId, assignmentId, s
                       <span className="text-[11px] text-slate-500">max {fmtPoints(max)} · weight {fmtPoints(c.weight)}</span>
                     </div>
                     {c.description ? <p className="text-xs text-slate-500">{c.description}</p> : null}
+                    {aiApplied?.reasons?.[c.id] ? (
+                      <p className="text-xs text-violet-800 dark:text-violet-300 border-l-2 border-violet-300 dark:border-violet-700 pl-2">
+                        <span className="font-semibold">AI&apos;s reason:</span> {aiApplied.reasons[c.id]}
+                      </p>
+                    ) : null}
                     <div className="flex flex-wrap items-center gap-1.5">
                       <input
                         id={inputId}

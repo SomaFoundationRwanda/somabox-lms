@@ -6,6 +6,11 @@ import { moduleWeekLabel } from "@/lib/moduleLabels";
 import { isDateString, todayIn } from "@somabox/timeline";
 import { formatDate, toDateInput } from "@/lib/dates";
 import BaselinePanel from "./BaselinePanel";
+import Link from "next/link";
+import useAiStatus from "@/lib/useAiStatus";
+import { startAiJob } from "@/lib/ai";
+import { AiStatusNote } from "@/components/ai/AiBits";
+import AiJobPanel from "@/components/ai/AiJobPanel";
 
 export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, course, onCompleted }) {
   const [step, setStep] = useState(1);
@@ -25,6 +30,10 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
   const [outcomes, setOutcomes] = useState([]);
   const [newOutcomeTitle, setNewOutcomeTitle] = useState("");
   const [aiTopic, setAiTopic] = useState("");
+  const aiStatus = useAiStatus();
+  const [outlineJob, setOutlineJob] = useState(null);
+  const [aiStarting, setAiStarting] = useState("");
+  const [fillStarted, setFillStarted] = useState({}); // moduleId -> true
 
   // Step 4 State: Modules
   const [modules, setModules] = useState([]);
@@ -103,31 +112,16 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
     }
   };
 
-  // Step 2 AI Propose Outcomes
+  // Step 2: AI proposes an outline (outcomes + weeks) as a draft the teacher reviews inline.
   const proposeAiOutcomes = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/ai/propose-outline`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic: aiTopic || setupForm.title }),
-      });
-      const data = await res.json();
-      if (res.ok && data.outcomes) {
-        for (const o of data.outcomes) {
-          await fetch(`${SERVER_URL}/courses/${courseId}/outcomes`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ title: o.title, description: o.description }),
-          });
-        }
-        await loadWizardData();
-      }
-    } catch (err) {
-      setError("AI generation failed");
-    } finally {
-      setLoading(false);
-    }
+    const topic = (aiTopic || setupForm.title).trim();
+    if (!topic) { setError("Say what the course is about first."); return; }
+    setAiStarting("outline");
+    setError("");
+    const r = await startAiJob(SERVER_URL, courseId, { kind: "outline", input: { topic, weeks: Number(setupForm.lengthWeeks) || 4 } });
+    setAiStarting("");
+    if (!r.ok) { setError(r.message); return; }
+    setOutlineJob(r.data);
   };
 
   // Step 4: Create Module
@@ -155,21 +149,14 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
     }
   };
 
-  // Step 4: AI Fill Module
+  // Step 4: AI drafts a page, quiz and assignment for a week; they wait in AI drafts.
   const aiFillModule = async (moduleId) => {
-    setLoading(true);
-    try {
-      await fetch(`${SERVER_URL}/courses/${courseId}/ai/fill-module`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ moduleId }),
-      });
-      await loadWizardData();
-    } catch (err) {
-      setError("Failed to generate module items");
-    } finally {
-      setLoading(false);
-    }
+    setAiStarting(`fill-${moduleId}`);
+    setError("");
+    const r = await startAiJob(SERVER_URL, courseId, { kind: "fill_week", moduleId });
+    setAiStarting("");
+    if (!r.ok) { setError(r.message); return; }
+    setFillStarted((m) => ({ ...m, [moduleId]: true }));
   };
 
   // Step 5: Open Course
@@ -328,23 +315,40 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
                 </p>
               </div>
 
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  placeholder="Topic prompt for AI"
-                  value={aiTopic}
-                  onChange={(e) => setAiTopic(e.target.value)}
-                  className="text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none"
-                />
-                <button
-                  onClick={proposeAiOutcomes}
-                  disabled={loading}
-                  className="flex items-center gap-1 text-xs font-semibold text-white bg-[#0D9488] hover:bg-teal-700 px-3 py-1.5 rounded-lg transition-colors"
-                >
-                  <Sparkles className="w-3.5 h-3.5" /> AI Propose Outcomes
-                </button>
-              </div>
+              {aiStatus.allowed ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <input
+                    type="text"
+                    placeholder="What is the course about?"
+                    aria-label="Course topic for the AI"
+                    value={aiTopic}
+                    onChange={(e) => setAiTopic(e.target.value)}
+                    className="text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none"
+                  />
+                  <button
+                    onClick={proposeAiOutcomes}
+                    disabled={aiStarting === "outline" || (outlineJob && ["queued", "running"].includes(outlineJob.status))}
+                    className="flex items-center gap-1 text-xs font-semibold text-white bg-[#0D9488] hover:bg-teal-700 disabled:opacity-50 px-3 py-1.5 rounded-lg transition-colors"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" /> {aiStarting === "outline" ? "Starting…" : "AI Propose Outcomes"}
+                  </button>
+                </div>
+              ) : null}
             </div>
+            <AiStatusNote status={aiStatus} />
+
+            {outlineJob ? (
+              <AiJobPanel
+                key={outlineJob.id}
+                SERVER_URL={SERVER_URL}
+                courseId={courseId}
+                job={outlineJob}
+                label={`Course outline: ${Number(setupForm.lengthWeeks) || 4} weeks`}
+                outcomes={outcomes}
+                onApproved={() => loadWizardData()}
+                onClose={() => setOutlineJob(null)}
+              />
+            ) : null}
 
             <div className="flex gap-2 max-w-md pt-2">
               <input
@@ -449,6 +453,7 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
               </button>
             </div>
 
+            <AiStatusNote status={aiStatus} />
             <div className="space-y-3 pt-2">
               {modules.length === 0 ? (
                 <div className="py-6 text-center text-xs text-slate-500">
@@ -463,14 +468,23 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
                         <h4 className="text-sm font-bold text-slate-800">{m.title}</h4>
                       </div>
 
-                      <button
-                        onClick={() => aiFillModule(m.id)}
-                        disabled={loading}
-                        className="flex items-center gap-1 text-xs font-medium text-teal-700 bg-teal-50 border border-teal-200 hover:bg-teal-100 px-3 py-1.5 rounded-lg transition-colors"
-                      >
-                        <Sparkles className="w-3.5 h-3.5 text-[#0D9488]" /> AI Fill Week (Page + Quiz + Assignment)
-                      </button>
+                      {aiStatus.allowed && m.kind !== "unassigned" ? (
+                        <button
+                          onClick={() => aiFillModule(m.id)}
+                          disabled={aiStarting === `fill-${m.id}` || fillStarted[m.id]}
+                          className="flex items-center gap-1 text-xs font-medium text-teal-700 bg-teal-50 border border-teal-200 hover:bg-teal-100 disabled:opacity-50 px-3 py-1.5 rounded-lg transition-colors"
+                        >
+                          <Sparkles className="w-3.5 h-3.5 text-[#0D9488]" /> {fillStarted[m.id] ? "AI drafts on the way" : "AI Fill Week (Page + Quiz + Assignment)"}
+                        </button>
+                      ) : null}
                     </div>
+                    {fillStarted[m.id] ? (
+                      <p role="status" className="text-xs text-slate-600">
+                        Started. The drafts will appear in{" "}
+                        <Link href={`/course/${courseId}/ai`} className="font-semibold text-[#0D9488] hover:underline">AI drafts</Link>
+                        {" "}in a few minutes. Nothing is added to the week until you approve it there.
+                      </p>
+                    ) : null}
 
                     <p className="text-xs text-slate-500">{(m.items || []).length} item(s) in this module</p>
                   </div>

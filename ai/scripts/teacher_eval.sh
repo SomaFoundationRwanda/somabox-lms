@@ -20,7 +20,7 @@ echo "Timestamp: $TIMESTAMP" | tee -a "$EVAL_FILE"
 echo "Output File: $EVAL_FILE" | tee -a "$EVAL_FILE"
 echo "--------------------------------------------------" | tee -a "$EVAL_FILE"
 
-# 10 Prompts across 5 modes and 3 languages (English, French, Kinyarwanda)
+# 12 prompts across 5 modes and 4 languages (English, French, Kinyarwanda, Swahili)
 declare -a PROMPTS=(
   "lesson_plan|English|Create a 45-minute lesson plan on photosynthesis for Primary 5 science."
   "lesson_plan|Kinyarwanda|Tegura teguro y'isomo ryo kubara ku banyeshuri bo mu mwaka wa 3 w'amashuri abanza."
@@ -32,6 +32,8 @@ declare -a PROMPTS=(
   "adapt|French|Réécrivez ce texte sur l'hygiène pour un niveau de lecture primaire."
   "rubric|English|Create a marking rubric out of 20 points for an essay on Rwandan history."
   "rubric|Kinyarwanda|Kora igipimo cy'amanota (rubric) yo gukosora umukoro w'inyandiko ku kubungabunga ibidukikije."
+  "quiz|Swahili|Tunga maswali 5 ya kuchagua kuhusu mzunguko wa maji kwa wanafunzi wa darasa la tano."
+  "explain|Swahili|Eleza kwa lugha rahisi jinsi mimea inavyotengeneza chakula chake, kwa mifano ya kijijini."
 )
 
 INDEX=1
@@ -39,7 +41,7 @@ for ENTRY in "${PROMPTS[@]}"; do
     IFS="|" read -r MODE LANG QUESTION <<< "$ENTRY"
 
     echo "" | tee -a "$EVAL_FILE"
-    echo "=== Test $INDEX/10: Mode=[$MODE] Language=[$LANG] ===" | tee -a "$EVAL_FILE"
+    echo "=== Test $INDEX/${#PROMPTS[@]}: Mode=[$MODE] Language=[$LANG] ===" | tee -a "$EVAL_FILE"
     echo "Prompt: $QUESTION" | tee -a "$EVAL_FILE"
     echo "--- Model Output ---" | tee -a "$EVAL_FILE"
 

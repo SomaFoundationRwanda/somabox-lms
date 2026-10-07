@@ -5,6 +5,8 @@ import yaml from 'js-yaml';
 import { v4 as uuidv4 } from 'uuid';
 import { fileURLToPath } from 'url';
 import { insertFeedback, getAllFeedback } from './db.js';
+import { generate, GenerateError } from './generate.js';
+import { TASKS } from './tasks.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const configPath = path.resolve(__dirname, '../config.yaml');
@@ -217,6 +219,54 @@ app.post('/ask', (req, res) => {
     processQueue();
 });
 
+// POST /generate - structured (JSON) generation for LMS features.
+// Body: { task, input }. input carries the context the LMS assembled (outcomes, module,
+// grade level, language, source text). Waits in the same concurrency queue as /ask.
+const STATUS_FOR = { unknown_task: 400, invalid_output: 422, runtime_unavailable: 503, runtime_error: 502, timeout: 504 };
+
+app.post('/generate', (req, res) => {
+    const { task, input } = req.body || {};
+    if (!task || !TASKS[task]) {
+        return res.status(400).json({ ok: false, code: 'unknown_task', error: `Unknown task: ${task}` });
+    }
+    const maxQueue = config.gateway.max_queue_length || 10;
+    if (queue.length >= maxQueue) {
+        return res.status(503).json({ ok: false, code: 'busy', error: 'The AI assistant is busy. Please try again shortly.' });
+    }
+
+    const responseId = uuidv4();
+    const queuedAt = Date.now();
+    queue.push(async () => {
+        const startedAt = Date.now();
+        try {
+            const out = await generate({
+                task,
+                input: input || {},
+                runtimeUrl: `http://${config.runtime.host}:${config.runtime.port}`,
+                timeoutMs: config.gateway.timeout_ms || 120000,
+                maxSourceLength: config.gateway.max_pasted_text_length || 4000,
+            });
+            res.json({
+                ok: true,
+                response_id: responseId,
+                model: config.model.name,
+                result: out.result,
+                usage: { prompt_tokens: out.usage.promptTokens, completion_tokens: out.usage.completionTokens },
+                attempts: out.attempts,
+                latency_ms: Date.now() - startedAt,
+                queued_ms: startedAt - queuedAt,
+            });
+        } catch (err) {
+            const code = err instanceof GenerateError ? err.code : 'runtime_error';
+            res.status(STATUS_FOR[code] || 500).json({ ok: false, code, error: err.message, details: err.details, latency_ms: Date.now() - startedAt });
+        } finally {
+            activeRequests--;
+            processQueue();
+        }
+    });
+    processQueue();
+});
+
 // POST /feedback
 app.post('/feedback', (req, res) => {
     const { response_id, teacher_hash, rating, comment, mode } = req.body;
@@ -241,7 +291,7 @@ app.post('/feedback', (req, res) => {
     }
 });
 
-const PORT = config.gateway.port || 5000;
+const PORT = process.env.AI_GATEWAY_PORT || config.gateway.port || 5000;
 const HOST = config.gateway.host || '127.0.0.1';
 
 app.listen(PORT, HOST, () => {
