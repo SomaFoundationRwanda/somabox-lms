@@ -84,28 +84,35 @@ export default function ModuleItemRow({ item, courseId, isTeacher, onTogglePubli
     );
   }
 
+  const isGradedItem = ["assignment", "quiz"].includes(item.item_type);
+  const hasOutcomeTag = item.outcome_title || item.outcomes?.length > 0;
+
   // Normal item rendering
   const TitleContent = (
-    <div className="flex items-center gap-2 min-w-0 flex-1">
-      <Icon className={`w-4 h-4 shrink-0 ${item.published ? "text-slate-400" : "text-slate-300"}`} />
-      <span className={`text-sm truncate ${item.published ? "text-slate-700" : "text-slate-400 italic"}`}>
+    <div className="flex items-center gap-2 min-w-0 flex-1 flex-wrap sm:flex-nowrap">
+      <Icon className={`w-4 h-4 shrink-0 ${item.published ? "text-[#0D9488]" : "text-slate-300"}`} />
+      <span className={`text-sm truncate font-medium ${item.published ? "text-slate-800" : "text-slate-400 italic"}`}>
         {item.title}
       </span>
-      {isTeacher && item.viewed_count != null && (
-        <span className="text-[10px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full shrink-0 ml-auto mr-2">
-          {item.viewed_count}/{item.total_enrolled || 0} viewed
+
+      {/* Outcome Badges */}
+      {hasOutcomeTag ? (
+        <span className="text-[10px] font-bold text-[#0D9488] bg-teal-50 border border-teal-200 px-2 py-0.5 rounded-full shrink-0 ml-1">
+          Target: {item.outcome_title || item.outcomes?.[0]?.title || "Outcome Tagged"}
         </span>
-      )}
-      {item.item_type === "assignment" && item.due_at && (
-        <span className="text-[10px] text-slate-400 shrink-0 ml-auto mr-2">
-          Due {formatDate(item.due_at)}
+      ) : isGradedItem ? (
+        <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full shrink-0 ml-1">
+          ⚠️ Missing Outcome
         </span>
-      )}
-      {item.item_type === "quiz" && item.due_at && (
-        <span className="text-[10px] text-slate-400 shrink-0 ml-auto mr-2">
-          Due {formatDate(item.due_at)}
-        </span>
-      )}
+      ) : null}
+
+      {/* Relative Offsets & Resolved Dates */}
+      <div className="flex items-center gap-2 ml-auto text-[11px] text-slate-400 shrink-0">
+        <span>Rel: Day {item.release_day || 0}</span>
+        <span>·</span>
+        <span>Due: Day {item.due_day || 7}</span>
+        {item.due_at && <span className="font-semibold text-slate-600">({formatDate(item.due_at)})</span>}
+      </div>
     </div>
   );
 

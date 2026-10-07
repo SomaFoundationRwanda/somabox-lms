@@ -111,14 +111,15 @@ function createStatementAdapter(rawSql) {
             const params = args.flat();
             let sqlToRun = transformedSql;
 
-            const isInsert = /^INSERT\s+/i.test(sqlToRun);
+            const isInsert = /^\s*INSERT\s+/i.test(sqlToRun);
             if (isInsert && !/RETURNING/i.test(sqlToRun)) {
                 sqlToRun += " RETURNING id";
             }
 
             try {
                 const res = await pool.query(sqlToRun, params);
-                const lastId = res.rows && res.rows[0] && res.rows[0].id !== undefined ? res.rows[0].id : null;
+                const firstRow = res.rows && res.rows[0];
+                const lastId = firstRow ? (firstRow.id !== undefined ? firstRow.id : Object.values(firstRow)[0]) : null;
                 return {
                     changes: res.rowCount || 0,
                     lastInsertRowid: lastId
@@ -162,19 +163,19 @@ export const localDb = dbClient;
 
 export const DEFAULT_NAV_ITEMS = [
     { nav_key: 'home', label: 'Home', visible_to_students: 1 },
-    { nav_key: 'announcements', label: 'Announcements', visible_to_students: 1 },
+    { nav_key: 'outcomes', label: 'Outcomes', visible_to_students: 1 },
     { nav_key: 'syllabus', label: 'Syllabus', visible_to_students: 1 },
     { nav_key: 'modules', label: 'Modules', visible_to_students: 1 },
-    { nav_key: 'grades', label: 'Grades', visible_to_students: 1 },
-    { nav_key: 'people', label: 'People', visible_to_students: 1 },
     { nav_key: 'assignments', label: 'Assignments', visible_to_students: 1 },
+    { nav_key: 'quizzes', label: 'Quizzes', visible_to_students: 1 },
+    { nav_key: 'discussions', label: 'Discussions', visible_to_students: 1 },
+    { nav_key: 'pages', label: 'Pages', visible_to_students: 1 },
+    { nav_key: 'grades', label: 'Grades', visible_to_students: 1 },
     { nav_key: 'rubrics', label: 'Rubrics', visible_to_students: 1 },
+    { nav_key: 'announcements', label: 'Announcements', visible_to_students: 1 },
+    { nav_key: 'people', label: 'People', visible_to_students: 1 },
     { nav_key: 'files', label: 'Files', visible_to_students: 0 },
     { nav_key: 'collaborations', label: 'Collaborations', visible_to_students: 0 },
-    { nav_key: 'outcomes', label: 'Outcomes', visible_to_students: 0 },
-    { nav_key: 'quizzes', label: 'Quizzes', visible_to_students: 1 },
-    { nav_key: 'pages', label: 'Pages', visible_to_students: 1 },
-    { nav_key: 'discussions', label: 'Discussions', visible_to_students: 1 },
     { nav_key: 'settings', label: 'Settings', visible_to_students: 0 },
 ];
 
@@ -659,6 +660,43 @@ export async function initSchemas() {
         CREATE INDEX IF NOT EXISTS idx_longitudinal_progress_subject ON longitudinal_progress(subject);
         CREATE INDEX IF NOT EXISTS idx_sol_spaced_reviews_scholar ON sol_spaced_reviews(LOWER(scholar_email));
         CREATE INDEX IF NOT EXISTS idx_user_notifications_email ON user_notifications(LOWER(user_email));
+
+        -- Item Outcomes Junction Table
+        CREATE TABLE IF NOT EXISTS item_outcomes (
+            id SERIAL PRIMARY KEY,
+            course_id VARCHAR(10) NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+            item_type TEXT NOT NULL CHECK (item_type IN ('assignment', 'quiz', 'page', 'discussion')),
+            item_id INTEGER NOT NULL,
+            outcome_id INTEGER NOT NULL REFERENCES outcomes(id) ON DELETE CASCADE,
+            UNIQUE (item_type, item_id, outcome_id)
+        );
+
+        -- Student Outcome Baseline Assessments Table
+        CREATE TABLE IF NOT EXISTS student_outcome_baselines (
+            id SERIAL PRIMARY KEY,
+            course_id VARCHAR(10) NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+            scholar_email TEXT NOT NULL,
+            outcome_id INTEGER NOT NULL REFERENCES outcomes(id) ON DELETE CASCADE,
+            baseline_score NUMERIC NOT NULL DEFAULT 0,
+            assessed_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE (course_id, scholar_email, outcome_id)
+        );
+
+        -- Auto-migrations for course timing & outcome properties
+        ALTER TABLE courses ADD COLUMN IF NOT EXISTS length_weeks INTEGER DEFAULT 4;
+        ALTER TABLE courses ADD COLUMN IF NOT EXISTS grading_scale TEXT DEFAULT '{"A":90,"B":80,"C":70,"D":60,"F":0}';
+        ALTER TABLE courses ADD COLUMN IF NOT EXISTS is_opened INTEGER DEFAULT 0;
+        ALTER TABLE courses ADD COLUMN IF NOT EXISTS setup_step INTEGER DEFAULT 1;
+
+        ALTER TABLE outcomes ADD COLUMN IF NOT EXISTS code TEXT DEFAULT 'OUT-1';
+        ALTER TABLE outcomes ADD COLUMN IF NOT EXISTS mastery_levels TEXT DEFAULT '[{"level":"Exceeds Mastery","points":4},{"level":"Meets Mastery","points":3},{"level":"Approaching Mastery","points":2},{"level":"Below Mastery","points":1}]';
+
+        ALTER TABLE modules ADD COLUMN IF NOT EXISTS week_offset INTEGER DEFAULT 0;
+        ALTER TABLE modules ADD COLUMN IF NOT EXISTS day_offset INTEGER DEFAULT 0;
+
+        ALTER TABLE module_items ADD COLUMN IF NOT EXISTS release_day INTEGER DEFAULT 0;
+        ALTER TABLE module_items ADD COLUMN IF NOT EXISTS due_day INTEGER DEFAULT 7;
+        ALTER TABLE module_items ADD COLUMN IF NOT EXISTS close_day INTEGER DEFAULT 7;
     `);
 
     // Ensure default admin user exists
@@ -678,6 +716,20 @@ export async function initSchemas() {
         VALUES (1, 'SOMABOX Partner School')
         ON CONFLICT (id) DO NOTHING
     `);
+
+    // Migrate existing course_nav_items so outcomes is position 1 and visible_to_students = 1 for all courses
+    try {
+        const allCourseIds = await pool.query("SELECT id FROM courses");
+        for (const cRow of allCourseIds.rows) {
+            await seedDefaultNavItems(cRow.id);
+            await pool.query(
+                "UPDATE course_nav_items SET position = 1, visible_to_students = 1 WHERE course_id = $1 AND nav_key = 'outcomes'",
+                [cRow.id]
+            );
+        }
+    } catch (mErr) {
+        console.error("Nav items migration error:", mErr);
+    }
 
     console.log("PostgreSQL database schemas successfully initialized!");
 }

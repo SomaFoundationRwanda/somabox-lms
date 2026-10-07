@@ -44,10 +44,12 @@ export default function CourseSidebar() {
   const { courseId, nav, isTeacher } = useCourse();
   const pathname = usePathname();
 
+  const visibleNav = nav.filter((item) => isTeacher || item.visibleToStudents);
+
   return (
     <nav className="w-56 shrink-0 border-r border-slate-200 bg-white py-4">
       <div className="flex flex-col gap-0.5 px-2">
-        {nav.map((item) => {
+        {visibleNav.map((item) => {
           const Icon = NAV_ICONS[item.navKey] || Home;
           const href = `/course/${courseId}/${item.navKey}`;
           const isActive = pathname === href || pathname.startsWith(`${href}/`);

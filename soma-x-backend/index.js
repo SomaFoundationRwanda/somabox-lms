@@ -12,24 +12,14 @@ import coursesServices from "./src/services/courses.services.js";
 import solServices from "./src/services/sol.services.js";
 import analyticsServices from "./src/services/analytics.services.js";
 import notificationsServices from "./src/services/notifications.service.js";
+import aiServices from "./src/services/ai-proxy.services.js";
 
 const app = express();
-
-// CORS configuration (covers dev hosts and LAN IPs)
+// CORS configuration - Allow all origins for dev/off-grid deployment
 const corsOptions = {
-    origin: [
-        'http://localhost:3001',
-        'http://localhost:3002',
-        'http://127.0.0.1:3001',
-        'http://127.0.0.1:3002',
-        'http://10.0.0.62:3001',
-        'http://192.168.1.186:3001',
-        'https://9c38c031342a.ngrok-free.app',
-	    'https://somabox.somaglobaltalent.org',
-	    'https://demo.somabox.org'
-    ],
+    origin: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-user-role', 'x-user-email'],
     credentials: true,
     optionsSuccessStatus: 204
 };
@@ -55,6 +45,7 @@ app.use("/courses", coursesServices);
 app.use("/sol", solServices);
 app.use("/analytics", analyticsServices);
 app.use("/notifications", notificationsServices);
+app.use("/ai", aiServices);
 
 // Static Content Serving
 app.use("/khan-academy", express.static(config.paths.static.khan));

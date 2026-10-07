@@ -1,128 +1,204 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { HelpCircle, Plus, Trash2 } from "lucide-react";
+import { HelpCircle, Plus, Target, Layers, Clock } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
-import { useCourseSection } from "@/lib/useCourseSection";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
-import AsyncListState from "@/components/course/AsyncListState";
-import { Button } from "@/components/ui/button";
-import InfoTooltip from "@/components/ui/InfoTooltip";
 
 export default function QuizzesListPage() {
   const { SERVER_URL, courseId, userEmail, isTeacher } = useCourse();
-  const { data: quizzes, loading, error, refetch } = useCourseSection("quizzes");
+  const [quizzes, setQuizzes] = useState([]);
+  const [modules, setModules] = useState([]);
+  const [outcomes, setOutcomes] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
-  const [title, setTitle] = useState("");
-  const [questions, setQuestions] = useState([{ prompt: "", questionType: "multiple_choice", options: ["", ""], correctOption: "", points: 1 }]);
+  const [form, setForm] = useState({ title: "", moduleId: "", releaseDay: 0, dueDay: 7, outcomeId: "" });
 
-  const addQuestion = () => setQuestions((p) => [...p, { prompt: "", questionType: "multiple_choice", options: ["", ""], correctOption: "", points: 1 }]);
-  const updateQuestion = (idx, patch) => setQuestions((p) => p.map((q, i) => (i === idx ? { ...q, ...patch } : q)));
-  const removeQuestion = (idx) => setQuestions((p) => p.filter((_, i) => i !== idx));
+  const loadData = async () => {
+    if (!SERVER_URL || !courseId) return;
+    try {
+      setLoading(true);
+      const [quizRes, modRes, outRes] = await Promise.all([
+        fetch(`${SERVER_URL}/courses/${courseId}/quizzes?userEmail=${encodeURIComponent(userEmail)}`),
+        fetch(`${SERVER_URL}/courses/${courseId}/modules?userEmail=${encodeURIComponent(userEmail)}`),
+        fetch(`${SERVER_URL}/courses/${courseId}/outcomes?userEmail=${encodeURIComponent(userEmail)}`),
+      ]);
 
-  const create = async () => {
-    if (!title.trim()) return;
-    await fetch(`${SERVER_URL}/courses/${courseId}/quizzes`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ teacherEmail: userEmail, title: title.trim(), published: true, questions }),
-    });
-    setTitle("");
-    setQuestions([{ prompt: "", questionType: "multiple_choice", options: ["", ""], correctOption: "", points: 1 }]);
-    setCreating(false);
-    refetch();
+      if (quizRes.ok) setQuizzes(await quizRes.json());
+      if (modRes.ok) {
+        const mods = await modRes.json();
+        setModules(mods);
+        if (mods.length > 0) setForm(p => ({ ...p, moduleId: mods[0].id }));
+      }
+      if (outRes.ok) {
+        const outs = await outRes.json();
+        setOutcomes(outs);
+        if (outs.length > 0) setForm(p => ({ ...p, outcomeId: outs[0].id }));
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const remove = async (id) => {
-    await fetch(`${SERVER_URL}/courses/${courseId}/quizzes/${id}`, {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ teacherEmail: userEmail }),
-    });
-    refetch();
+  useEffect(() => {
+    loadData();
+  }, [SERVER_URL, courseId, userEmail]);
+
+  const createQuiz = async () => {
+    if (!form.title.trim() || !form.moduleId) return;
+    try {
+      const res = await fetch(`${SERVER_URL}/courses/${courseId}/modules/${form.moduleId}/items`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          teacherEmail: userEmail,
+          itemType: "quiz",
+          title: form.title.trim(),
+          releaseDay: Number(form.releaseDay) || 0,
+          dueDay: Number(form.dueDay) || 7,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && form.outcomeId && data.content_ref_id) {
+        await fetch(`${SERVER_URL}/courses/${courseId}/item-outcomes`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            teacherEmail: userEmail,
+            itemType: "quiz",
+            itemId: data.content_ref_id,
+            outcomeIds: [Number(form.outcomeId)]
+          })
+        });
+      }
+
+      setForm({ title: "", moduleId: modules[0]?.id || "", releaseDay: 0, dueDay: 7, outcomeId: outcomes[0]?.id || "" });
+      setCreating(false);
+      loadData();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   return (
     <div>
       <Breadcrumbs sectionKey="quizzes" />
-      <div className="p-4 md:p-6 space-y-4 max-w-2xl">
-        <div className="flex items-center justify-between">
-          <h1 className="text-lg font-bold text-slate-900">Quizzes</h1>
+      <div className="p-4 md:p-6 space-y-6 max-w-4xl">
+        <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+          <div>
+            <h1 className="text-xl font-black text-slate-900 flex items-center gap-2">
+              <HelpCircle className="w-5 h-5 text-[#0D9488]" /> Course Quizzes
+            </h1>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Quizzes are bound to weekly modules and assess tagged outcome baselines.
+            </p>
+          </div>
           {isTeacher ? (
-            <Button onClick={() => setCreating((v) => !v)} className="h-9 gap-1.5">
-              <Plus className="w-3.5 h-3.5" /> New Quiz
-            </Button>
+            <button
+              onClick={() => setCreating((v) => !v)}
+              className="flex items-center gap-1.5 text-xs font-semibold text-white bg-[#0D9488] hover:bg-teal-700 rounded-xl px-3.5 py-2 transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" /> Add Quiz
+            </button>
           ) : null}
         </div>
 
-        {creating ? (
-          <div className="space-y-3 rounded-xl border border-slate-200 p-3">
-            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Quiz title" className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none" />
-            {questions.map((q, idx) => (
-              <div key={idx} className="rounded-lg border border-slate-200 p-2.5 space-y-2">
-                <div className="flex items-center gap-2">
-                  <input value={q.prompt} onChange={(e) => updateQuestion(idx, { prompt: e.target.value })} placeholder={`Question ${idx + 1}`} className="flex-1 text-sm border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none" />
-                  <button onClick={() => removeQuestion(idx)} className="text-rose-500"><Trash2 className="w-4 h-4" /></button>
-                </div>
-                <div className="flex items-center gap-1 pl-3">
-                  <span className="text-[10px] font-semibold uppercase text-slate-500">Select the correct answer</span>
-                  <InfoTooltip text="Click the radio button next to the choice students should pick to get this question right. You can only mark one choice correct per question." />
-                </div>
-                {(Array.isArray(q.options) ? q.options : []).map((opt, optIdx) => {
-                  const val = typeof opt === "object" && opt !== null ? (opt.text || opt.id || "") : String(opt || "");
-                  return (
-                    <div key={optIdx} className="flex items-center gap-2 pl-3">
-                      <input
-                        type="radio"
-                        name={`correct-answer-${idx}`}
-                        aria-label={`Mark choice ${optIdx + 1} as the correct answer for question ${idx + 1}`}
-                        checked={q.correctOption === val && val !== ""}
-                        onChange={() => updateQuestion(idx, { correctOption: val })}
-                      />
-                      <input
-                        value={val}
-                        onChange={(e) => {
-                          const nextOptions = [...q.options];
-                          const oldVal = val;
-                          nextOptions[optIdx] = typeof opt === "object" && opt !== null ? { ...opt, text: e.target.value } : e.target.value;
-                          updateQuestion(idx, { options: nextOptions, correctOption: q.correctOption === oldVal ? e.target.value : q.correctOption });
-                        }}
-                        placeholder={`Choice ${optIdx + 1}`}
-                        className="flex-1 text-xs border border-slate-200 rounded-lg px-2 py-1 outline-none"
-                      />
-                    </div>
-                  );
-                })}
-                <button onClick={() => updateQuestion(idx, { options: [...q.options, ""] })} className="text-xs font-semibold text-[#203A3A] hover:underline pl-3">+ Add choice</button>
+        {/* CREATION FORM WITH MODULE BINDING */}
+        {creating && (
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 space-y-4 shadow-sm">
+            <h3 className="text-sm font-bold text-slate-800">Add Quiz to Module Slot</h3>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Title *</label>
+                <input
+                  value={form.title}
+                  onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
+                  placeholder="Quiz title"
+                  className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-[#0D9488]"
+                />
               </div>
-            ))}
-            <div className="flex items-center gap-2">
-              <button onClick={addQuestion} className="text-xs font-semibold text-[#203A3A] hover:underline">+ Add question</button>
-              <button onClick={create} className="ml-auto text-xs font-semibold text-white bg-[#203A3A] rounded-lg px-3 py-2">Create Quiz</button>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Target Module *</label>
+                  <select
+                    value={form.moduleId}
+                    onChange={(e) => setForm((p) => ({ ...p, moduleId: Number(e.target.value) }))}
+                    className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white outline-none"
+                  >
+                    {modules.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        Week {m.week_offset || 1}: {m.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Tag Outcome *</label>
+                  <select
+                    value={form.outcomeId}
+                    onChange={(e) => setForm((p) => ({ ...p, outcomeId: Number(e.target.value) }))}
+                    className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white outline-none"
+                  >
+                    {outcomes.map((o) => (
+                      <option key={o.id} value={o.id}>
+                        {o.code || `OUT-${o.id}`}: {o.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Due Day Offset</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={form.dueDay}
+                    onChange={(e) => setForm((p) => ({ ...p, dueDay: e.target.value }))}
+                    className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button onClick={() => setCreating(false)} className="text-xs font-semibold text-slate-500 px-3 py-2">Cancel</button>
+                <button onClick={createQuiz} disabled={!form.title.trim() || !form.moduleId} className="text-xs font-bold text-white bg-[#0D9488] rounded-xl px-4 py-2">
+                  Create Quiz
+                </button>
+              </div>
             </div>
           </div>
-        ) : null}
+        )}
 
-        <AsyncListState loading={loading} error={error} data={quizzes} onRetry={refetch} emptyMessage="No quizzes yet.">
-          {(list) => (
-            <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl">
-              {list.map((q) => (
-                <div key={q.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
-                  <Link href={`/course/${courseId}/quizzes/${q.id}`} className="flex items-center gap-2 text-sm text-slate-700 hover:text-[#203A3A] min-w-0">
-                    <HelpCircle className="w-4 h-4 text-slate-400 shrink-0" />
-                    <span className="truncate">{q.title}</span>
-                    <span className="text-xs text-slate-400 shrink-0">({q.questionCount} question{q.questionCount === 1 ? "" : "s"})</span>
-                  </Link>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {q.myScore != null ? <span className="text-xs font-semibold text-emerald-600">Score: {q.myScore}</span> : null}
-                    {isTeacher ? <button onClick={() => remove(q.id)} className="text-rose-500"><Trash2 className="w-3.5 h-3.5" /></button> : null}
+        {/* QUIZZES LIST */}
+        <div className="divide-y divide-slate-100 border border-slate-200 rounded-2xl bg-white overflow-hidden shadow-sm">
+          {quizzes.length === 0 ? (
+            <div className="p-6 text-center text-xs text-slate-500">No quizzes created yet.</div>
+          ) : (
+            quizzes.map((q) => (
+              <Link key={q.id} href={`/course/${courseId}/quizzes/${q.id}`} className="flex items-center justify-between gap-3 p-4 hover:bg-slate-50/80 transition-colors">
+                <div className="flex items-center gap-3 min-w-0">
+                  <HelpCircle className="w-4 h-4 text-[#0D9488] shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-slate-900 truncate">{q.title}</p>
+                    <p className="text-xs text-slate-500">
+                      {q.questionCount || 0} question(s) · {q.due_at ? `Due ${new Date(q.due_at).toLocaleDateString()}` : "Relative Timing Active"}
+                    </p>
                   </div>
                 </div>
-              ))}
-            </div>
+                <span className="text-xs font-semibold text-[#0D9488] shrink-0 bg-teal-50 px-3 py-1 rounded-full border border-teal-200">
+                  Open Quiz &rarr;
+                </span>
+              </Link>
+            ))
           )}
-        </AsyncListState>
+        </div>
       </div>
     </div>
   );

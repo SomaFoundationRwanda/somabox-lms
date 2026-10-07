@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { HelpCircle, Target, Sparkles, CheckCircle2, Clock } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
 import PrevNextNav from "@/components/course/navigation/PrevNextNav";
@@ -22,21 +23,41 @@ export default function QuizDetailPage() {
   const { courseId, quizId } = useParams();
   const { SERVER_URL, userEmail, isTeacher } = useCourse();
   const [quiz, setQuiz] = useState(null);
+  const [modules, setModules] = useState([]);
+  const [itemOutcomes, setItemOutcomes] = useState([]);
   const [answers, setAnswers] = useState({});
   const [loading, setLoading] = useState(true);
   const [submitted, setSubmitted] = useState(null);
 
   const load = async () => {
-    setLoading(true);
-    const res = await fetch(`${SERVER_URL}/courses/${courseId}/quizzes/${quizId}?userEmail=${encodeURIComponent(userEmail)}`);
-    const payload = await res.json();
-    if (res.ok) setQuiz(payload);
-    setLoading(false);
+    if (!SERVER_URL || !courseId || !quizId) return;
+    try {
+      setLoading(true);
+      const [quizRes, modRes, itemOutRes] = await Promise.all([
+        fetch(`${SERVER_URL}/courses/${courseId}/quizzes/${quizId}?userEmail=${encodeURIComponent(userEmail)}`),
+        fetch(`${SERVER_URL}/courses/${courseId}/modules?userEmail=${encodeURIComponent(userEmail)}`),
+        fetch(`${SERVER_URL}/courses/${courseId}/item-outcomes?userEmail=${encodeURIComponent(userEmail)}`),
+      ]);
+
+      if (quizRes.ok) setQuiz(await quizRes.json());
+      if (modRes.ok) setModules(await modRes.json());
+      if (itemOutRes.ok) {
+        const allTags = await itemOutRes.json();
+        const myTags = allTags.filter(t => t.item_type === 'quiz' && Number(t.item_id) === Number(quizId));
+        setItemOutcomes(myTags);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  useEffect(() => { if (SERVER_URL && userEmail) load(); }, [SERVER_URL, userEmail]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    load();
+  }, [SERVER_URL, courseId, quizId, userEmail]);
 
-  const submit = async () => {
+  const submitQuiz = async () => {
     const res = await fetch(`${SERVER_URL}/courses/${courseId}/quizzes/${quizId}/submit`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -47,114 +68,112 @@ export default function QuizDetailPage() {
     load();
   };
 
-  if (loading) return <div className="p-6"><p className="text-sm text-slate-500">Loading...</p></div>;
+  if (loading) return <div className="p-6"><p className="text-sm text-slate-500">Loading quiz...</p></div>;
   if (!quiz) return <div className="p-6"><p className="text-sm text-rose-600">Quiz not found.</p></div>;
+
+  const currentModule = modules.find(m => m.id === quiz.module_id) || modules[0] || null;
 
   return (
     <div>
       <Breadcrumbs sectionKey="quizzes" itemName={quiz.title} />
-      <div className="p-4 md:p-6 space-y-4 max-w-3xl">
-        <h1 className="text-lg font-bold text-slate-900">{quiz.title}</h1>
-        {quiz.description ? <p className="text-sm text-slate-600">{quiz.description}</p> : null}
+      <div className="p-4 md:p-6 space-y-6 max-w-4xl">
+        
+        {/* Header Summary Card */}
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-[#0D9488] bg-teal-50 border border-teal-200 px-2.5 py-1 rounded-full">
+              Module: {currentModule ? `Week ${currentModule.week_offset || 1} - ${currentModule.title}` : "Module Week Slot"}
+            </span>
+            <span className="text-xs font-semibold text-slate-500 flex items-center gap-1">
+              <Clock className="w-3.5 h-3.5 text-slate-400" /> Due: Day {quiz.due_day ?? 7}
+            </span>
+          </div>
+
+          <h1 className="text-2xl font-black text-slate-900">{quiz.title}</h1>
+          {quiz.description && <p className="text-xs text-slate-600">{quiz.description}</p>}
+
+          {/* Outcome Tags */}
+          <div className="flex items-center gap-2 flex-wrap pt-1">
+            <span className="text-xs font-bold text-slate-500 flex items-center gap-1">
+              <Target className="w-3.5 h-3.5 text-[#0D9488]" /> Target Outcomes Assessed:
+            </span>
+            {itemOutcomes.length === 0 ? (
+              <span className="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full">
+                ⚠️ Missing Outcome Tag
+              </span>
+            ) : (
+              itemOutcomes.map((t) => (
+                <span key={t.outcome_id} className="text-xs font-bold text-[#0D9488] bg-teal-50 border border-teal-200 px-2.5 py-0.5 rounded-full">
+                  {t.outcome_code}: {t.outcome_title}
+                </span>
+              ))
+            )}
+          </div>
+        </div>
 
         {submitted !== null ? (
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-emerald-800">
-            Submitted! Score: {submitted}
+          <div className="rounded-2xl border border-teal-200 bg-teal-50 p-4 text-sm font-bold text-teal-900 flex items-center gap-2">
+            <CheckCircle2 className="w-5 h-5 text-[#0D9488]" /> Quiz Submitted Successfully! Score: {submitted} Points
           </div>
         ) : null}
 
-        {isTeacher ? (
-          <div className="space-y-4">
-            {(quiz.questions || []).map((q, idx) => (
-              <div key={q.id || idx} className="rounded-xl border border-slate-200 p-3">
-                <p className="text-sm font-semibold text-slate-800">
-                  {idx + 1}. {q.prompt} <span className="text-xs text-slate-400 font-normal">({q.points} pts)</span>
-                </p>
-                {q.question_type === "multiple_choice" ? (
-                  <ul className="mt-1.5 space-y-1">
-                    {(Array.isArray(q.options) ? q.options : []).map((opt, i) => {
-                      const text = getOptionText(opt);
-                      const id = getOptionId(opt, i);
-                      const isCorrect = q.correctOption === id || q.correctOption === text || (typeof opt === "object" && q.correctOption === opt.id);
-                      return (
-                        <li
-                          key={i}
-                          className={`text-xs px-2 py-1 rounded ${
-                            isCorrect ? "bg-emerald-100 text-emerald-800 font-semibold" : "text-slate-600"
-                          }`}
-                        >
-                          {text} {isCorrect ? " ✓" : ""}
-                        </li>
-                      );
-                    })}
-                  </ul>
-                ) : (
-                  <p className="text-xs text-slate-400 mt-1">Open response</p>
-                )}
+        {/* QUESTIONS LIST (FOR STUDENT TAKING OR TEACHER PREVIEW) */}
+        <div className="space-y-4">
+          {(quiz.questions || []).map((q, idx) => (
+            <div key={q.id || idx} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-3">
+              <div className="flex items-start justify-between">
+                <h3 className="text-sm font-bold text-slate-900">
+                  Question {idx + 1}: {q.prompt}
+                </h3>
+                <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full">
+                  {q.points} pts
+                </span>
               </div>
-            ))}
-            <div className="pt-2">
-              <h2 className="text-sm font-bold text-slate-800 mb-2">Submissions ({(quiz.submissions || []).length})</h2>
-              <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl">
-                {(quiz.submissions || []).map((s) => (
-                  <div key={s.scholar_email} className="flex items-center justify-between px-3 py-2 text-sm">
-                    <span className="text-slate-700">{s.fullName}</span>
-                    <span className="font-semibold text-slate-800">{s.score}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        ) : quiz.mySubmission ? (
-          <div className="rounded-xl border border-slate-200 p-3 text-sm">
-            <p className="font-semibold text-slate-800">Already submitted</p>
-            <p className="text-slate-600 mt-1">Score: {quiz.mySubmission.score}</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {(quiz.questions || []).map((q, idx) => (
-              <div key={q.id || idx} className="rounded-xl border border-slate-200 p-3">
-                <p className="text-sm font-semibold text-slate-800">{idx + 1}. {q.prompt}</p>
-                {q.question_type === "multiple_choice" ? (
-                  <div className="mt-1.5 space-y-1">
-                    {(Array.isArray(q.options) ? q.options : []).map((opt, i) => {
-                      const text = getOptionText(opt);
-                      const id = getOptionId(opt, i);
-                      const isChecked = answers[q.id] === id || answers[q.id] === text;
-                      return (
-                        <label key={i} className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
-                          <input
-                            type="radio"
-                            name={`q-${q.id}`}
-                            checked={isChecked}
-                            onChange={() => setAnswers((p) => ({ ...p, [q.id]: id || text }))}
-                          />
-                          <span>{text}</span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <textarea
-                    value={answers[q.id] || ""}
-                    onChange={(e) => setAnswers((p) => ({ ...p, [q.id]: e.target.value }))}
-                    rows={2}
-                    className="mt-1.5 w-full text-sm border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-[#203A3A]"
-                  />
-                )}
-              </div>
-            ))}
-            <button onClick={submit} className="text-xs font-semibold text-white bg-[#203A3A] hover:bg-[#162727] rounded-lg px-4 py-2 transition-colors">
-              Submit Quiz
-            </button>
-          </div>
-        )}
 
-        <PrevNextNav
-          courseId={courseId}
-          itemType="quiz"
-          contentRefId={quizId}
-        />
+              {q.question_type === "multiple_choice" ? (
+                <div className="space-y-2 pt-1">
+                  {(Array.isArray(q.options) ? q.options : []).map((opt, i) => {
+                    const text = getOptionText(opt);
+                    const id = getOptionId(opt, i);
+                    const isChecked = answers[q.id] === id || answers[q.id] === text;
+                    return (
+                      <label key={i} className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 cursor-pointer hover:bg-slate-100 transition-colors">
+                        <input
+                          type="radio"
+                          name={`q-${q.id}`}
+                          checked={isChecked}
+                          onChange={() => setAnswers((p) => ({ ...p, [q.id]: id || text }))}
+                        />
+                        <span>{text}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              ) : (
+                <textarea
+                  value={answers[q.id] || ""}
+                  onChange={(e) => setAnswers((p) => ({ ...p, [q.id]: e.target.value }))}
+                  rows={3}
+                  placeholder="Write your open answer..."
+                  className="w-full text-xs border border-slate-200 rounded-xl p-3 outline-none focus:border-[#0D9488]"
+                />
+              )}
+            </div>
+          ))}
+
+          {!isTeacher && (
+            <div className="pt-2 flex justify-end">
+              <button
+                onClick={submitQuiz}
+                className="px-6 py-2.5 bg-[#0D9488] hover:bg-teal-700 text-white font-bold text-xs rounded-xl shadow-sm transition-colors"
+              >
+                Submit Quiz Answers
+              </button>
+            </div>
+          )}
+        </div>
+
+        <PrevNextNav courseId={courseId} itemType="quiz" contentRefId={quizId} />
       </div>
     </div>
   );

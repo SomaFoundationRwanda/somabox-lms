@@ -277,6 +277,17 @@ const RichTextEditor = forwardRef(function RichTextEditor(
       });
       return { isValid: missingCount === 0, missingCount };
     },
+    insertContent(text) {
+      if (!editor || !text) return;
+      // Convert plain text newlines into HTML paragraphs for clean TipTap insertion
+      const formatted = text.includes("<p>")
+        ? text
+        : text
+            .split("\n\n")
+            .map((p) => `<p>${p.replace(/\n/g, "<br/>")}</p>`)
+            .join("");
+      editor.chain().focus().insertContent(formatted).run();
+    },
     getEditor() {
       return editor;
     },

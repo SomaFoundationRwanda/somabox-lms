@@ -1,98 +1,117 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ListChecks, Target, CheckCircle2, Lock } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
-import { useCourseSection } from "@/lib/useCourseSection";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
-import AsyncListState from "@/components/course/AsyncListState";
-import { Button } from "@/components/ui/button";
 
 export default function RubricsPage() {
-  const { SERVER_URL, courseId, userEmail, isTeacher } = useCourse();
-  const { data: rubrics, loading, error, refetch } = useCourseSection("rubrics");
-  const [creating, setCreating] = useState(false);
-  const [title, setTitle] = useState("");
-  const [criteria, setCriteria] = useState([{ description: "", points: 10 }]);
+  const { SERVER_URL, courseId, userEmail } = useCourse();
+  const [rubrics, setRubrics] = useState([]);
+  const [outcomes, setOutcomes] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const addCriterion = () => setCriteria((p) => [...p, { description: "", points: 10 }]);
-  const updateCriterion = (idx, patch) => setCriteria((p) => p.map((c, i) => (i === idx ? { ...c, ...patch } : c)));
-  const removeCriterion = (idx) => setCriteria((p) => p.filter((_, i) => i !== idx));
-
-  const create = async () => {
-    if (!title.trim()) return;
-    await fetch(`${SERVER_URL}/courses/${courseId}/rubrics`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ teacherEmail: userEmail, title: title.trim(), criteria }),
-    });
-    setTitle("");
-    setCriteria([{ description: "", points: 10 }]);
-    setCreating(false);
-    refetch();
+  const loadRubricLibrary = async () => {
+    if (!SERVER_URL || !courseId) return;
+    try {
+      setLoading(true);
+      const [rubRes, outRes] = await Promise.all([
+        fetch(`${SERVER_URL}/courses/${courseId}/rubrics?userEmail=${encodeURIComponent(userEmail)}`),
+        fetch(`${SERVER_URL}/courses/${courseId}/outcomes?userEmail=${encodeURIComponent(userEmail)}`),
+      ]);
+      if (rubRes.ok) setRubrics(await rubRes.json());
+      if (outRes.ok) setOutcomes(await outRes.json());
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const remove = async (id) => {
-    await fetch(`${SERVER_URL}/courses/${courseId}/rubrics/${id}`, {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ teacherEmail: userEmail }),
-    });
-    refetch();
-  };
+  useEffect(() => {
+    loadRubricLibrary();
+  }, [SERVER_URL, courseId, userEmail]);
 
   return (
     <div>
       <Breadcrumbs sectionKey="rubrics" />
-      <div className="p-4 md:p-6 space-y-4 max-w-2xl">
-        <div className="flex items-center justify-between">
-          <h1 className="text-lg font-bold text-slate-900">Rubrics</h1>
-          {isTeacher ? (
-            <Button onClick={() => setCreating((v) => !v)} className="h-9 gap-1.5">
-              <Plus className="w-3.5 h-3.5" /> New Rubric
-            </Button>
-          ) : null}
+      <div className="p-4 md:p-6 space-y-6 max-w-4xl">
+        <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-[#0D9488]">Rubric Library</span>
+              <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full flex items-center gap-1">
+                <Lock className="w-3 h-3" /> Read-Only View
+              </span>
+            </div>
+            <h1 className="text-2xl font-black text-slate-900 mt-0.5">Course Rubrics Library</h1>
+            <p className="text-xs text-slate-500 mt-1">
+              Rubrics are instantiated directly within assignment forms from course learning outcome mastery levels.
+            </p>
+          </div>
         </div>
 
-        {creating ? (
-          <div className="space-y-2 rounded-xl border border-slate-200 p-3">
-            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Rubric title" className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none" />
-            {criteria.map((c, idx) => (
-              <div key={idx} className="flex items-center gap-2">
-                <input value={c.description} onChange={(e) => updateCriterion(idx, { description: e.target.value })} placeholder="Criterion description" className="flex-1 text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none" />
-                <input type="number" value={c.points} onChange={(e) => updateCriterion(idx, { points: Number(e.target.value) })} className="w-20 text-sm border border-slate-200 rounded-lg px-2 py-2" />
-                <button onClick={() => removeCriterion(idx)} className="text-rose-500"><Trash2 className="w-4 h-4" /></button>
+        {/* Instantiated Assignment Rubrics */}
+        <div className="space-y-4">
+          <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+            <ListChecks className="w-5 h-5 text-[#0D9488]" /> Instantiated Rubrics in Assignments
+          </h2>
+
+          {rubrics.length === 0 ? (
+            <div className="p-6 text-center text-xs text-slate-500 border border-dashed border-slate-200 rounded-2xl">
+              No assignment rubrics instantiated yet. Create or edit an assignment to instantiate a rubric from tagged outcomes.
+            </div>
+          ) : (
+            rubrics.map((r) => (
+              <div key={r.id} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                  <h3 className="text-sm font-bold text-slate-900">{r.title}</h3>
+                  <span className="text-[10px] font-bold text-teal-700 bg-teal-50 px-2.5 py-0.5 rounded-full border border-teal-200">
+                    Instantiated Rubric
+                  </span>
+                </div>
+
+                <div className="divide-y divide-slate-100 border border-slate-100 rounded-xl bg-slate-50/50">
+                  {(r.criteria || []).map((c, idx) => (
+                    <div key={idx} className="p-3 flex items-center justify-between text-xs">
+                      <span className="font-semibold text-slate-800">{c.description}</span>
+                      <span className="font-bold text-[#0D9488] bg-white px-2.5 py-1 rounded border border-slate-200">
+                        {c.points} pts
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Mastery Skeleton Reference Library */}
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-3">
+          <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+            <Target className="w-5 h-5 text-[#0D9488]" /> Course Outcome Mastery Criteria Skeletons
+          </h2>
+          <p className="text-xs text-slate-500">
+            These outcome mastery level criteria serve as the skeleton when instantiating new assignment rubrics:
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+            {outcomes.map((o) => (
+              <div key={o.id} className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
+                <span className="text-[10px] font-bold text-[#0D9488] bg-white px-2 py-0.5 rounded border border-teal-200">
+                  {o.code || `OUT-${o.id}`}
+                </span>
+                <h4 className="text-xs font-bold text-slate-800">{o.title}</h4>
+                <div className="text-[11px] text-slate-600 pt-1 space-y-0.5">
+                  <div className="flex justify-between"><span>Exceeds Mastery:</span><span className="font-bold">4 pts</span></div>
+                  <div className="flex justify-between"><span>Meets Mastery:</span><span className="font-bold">3 pts</span></div>
+                  <div className="flex justify-between"><span>Approaching:</span><span className="font-bold">2 pts</span></div>
+                  <div className="flex justify-between"><span>Below Mastery:</span><span className="font-bold">1 pt</span></div>
+                </div>
               </div>
             ))}
-            <div className="flex items-center gap-2">
-              <button onClick={addCriterion} className="text-xs font-semibold text-[#203A3A] hover:underline">+ Add criterion</button>
-              <button onClick={create} className="ml-auto text-xs font-semibold text-white bg-[#203A3A] rounded-lg px-3 py-2">Create</button>
-            </div>
           </div>
-        ) : null}
-
-        <AsyncListState loading={loading} error={error} data={rubrics} onRetry={refetch} emptyMessage="No rubrics yet.">
-          {(list) => (
-            <div className="space-y-3">
-              {list.map((r) => (
-                <div key={r.id} className="rounded-xl border border-slate-200 p-3">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-bold text-slate-800">{r.title}</p>
-                    {isTeacher ? <button onClick={() => remove(r.id)} className="text-rose-500"><Trash2 className="w-3.5 h-3.5" /></button> : null}
-                  </div>
-                  <div className="mt-1.5 space-y-1">
-                    {(r.criteria || []).map((c, idx) => (
-                      <div key={idx} className="flex items-center justify-between text-xs text-slate-600">
-                        <span>{c.description}</span>
-                        <span className="font-semibold">{c.points} pts</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </AsyncListState>
+        </div>
       </div>
     </div>
   );

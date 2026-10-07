@@ -1,0 +1,16 @@
+[Unit]
+Description=Somabox LMS Offline AI Gateway Service
+After=network.target somabox-ai-runtime.service
+Wants=somabox-ai-runtime.service
+
+[Service]
+Type=simple
+User=mac
+WorkingDirectory=/Users/mac/Documents/SFR/somabox_lms_2/ai/gateway
+ExecStart=/usr/local/bin/node index.js
+Restart=always
+RestartSec=5s
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target

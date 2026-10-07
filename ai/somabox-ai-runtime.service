@@ -1,0 +1,15 @@
+[Unit]
+Description=Somabox LMS Offline AI Model Runtime (llama.cpp)
+After=network.target
+
+[Service]
+Type=simple
+User=mac
+WorkingDirectory=/Users/mac/Documents/SFR/somabox_lms_2/ai
+ExecStart=/Users/mac/Documents/SFR/somabox_lms_2/ai/runtime/start_runtime.sh
+Restart=always
+RestartSec=5s
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target

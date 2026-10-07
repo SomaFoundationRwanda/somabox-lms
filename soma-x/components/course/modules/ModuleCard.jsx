@@ -10,7 +10,7 @@ import {
   SortableContext, verticalListSortingStrategy, arrayMove,
 } from "@dnd-kit/sortable";
 import {
-  Eye, EyeOff, Trash2, GripVertical, Plus, ChevronDown, ChevronRight, Pencil,
+  Eye, EyeOff, Trash2, GripVertical, Plus, ChevronDown, ChevronRight, Pencil, Sparkles,
 } from "lucide-react";
 import ModuleItemRow from "./ModuleItemRow";
 
@@ -116,8 +116,8 @@ export default function ModuleCard({
       {...attributes}
     >
       {/* Header */}
-      <div className="flex items-center justify-between gap-2 bg-gradient-to-r from-slate-50 to-slate-100/50 px-3 py-2.5">
-        <div className="flex items-center gap-2 min-w-0 flex-1">
+      <div className="flex items-center justify-between gap-2 bg-gradient-to-r from-slate-50 to-slate-100/50 px-3.5 py-3">
+        <div className="flex items-center gap-2 min-w-0 flex-1 flex-wrap">
           {isTeacher && (
             <button {...listeners} className="cursor-grab active:cursor-grabbing p-0.5 text-slate-300 hover:text-slate-500 shrink-0">
               <GripVertical className="w-4 h-4" />
@@ -126,6 +126,9 @@ export default function ModuleCard({
           <button onClick={() => setCollapsed((v) => !v)} className="p-0.5 text-slate-400 hover:text-slate-600 shrink-0">
             {collapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
           </button>
+          <span className="text-xs font-bold text-[#0D9488] bg-teal-50 border border-teal-200 px-2.5 py-0.5 rounded-md shrink-0">
+            Week {moduleRow.week_offset || 1}
+          </span>
           {editingTitle ? (
             <input
               value={titleDraft}
@@ -144,14 +147,45 @@ export default function ModuleCard({
             </span>
           )}
           {!moduleRow.published && isTeacher && (
-            <span className="text-[9px] font-bold uppercase text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded shrink-0">
+            <span className="text-[9px] font-bold uppercase text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded shrink-0">
               Draft
             </span>
           )}
         </div>
 
         {isTeacher && (
-          <div className="flex items-center gap-0.5 shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+            <button
+              onClick={async () => {
+                await fetch(`${SERVER_URL}/courses/${courseId}/ai/fill-module`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ teacherEmail: userEmail, moduleId: moduleRow.id }),
+                });
+                onRefetch();
+              }}
+              className="flex items-center gap-1 text-[11px] font-semibold text-teal-800 bg-teal-50 border border-teal-200 hover:bg-teal-100 px-2.5 py-1 rounded-lg transition-colors"
+              title="AI Fill Week (Generates reading page, quiz, assignment tagged with outcomes)"
+            >
+              <Sparkles className="w-3 h-3 text-[#0D9488]" /> AI Fill Week
+            </button>
+            <button
+              onClick={async () => {
+                const idea = prompt("Enter story idea (e.g. A boy who finds a broken calculator):");
+                if (idea && idea.trim()) {
+                  await fetch(`${SERVER_URL}/courses/${courseId}/ai/generate-story`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ teacherEmail: userEmail, moduleId: moduleRow.id, idea: idea.trim() }),
+                  });
+                  onRefetch();
+                }
+              }}
+              className="flex items-center gap-1 text-[11px] font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-lg transition-colors"
+              title="AI Story Generator (Writes story, comprehension quiz, and discussion prompt)"
+            >
+              <Sparkles className="w-3 h-3 text-slate-500" /> AI Story
+            </button>
             {!editingTitle && (
               <button onClick={() => { setTitleDraft(moduleRow.title); setEditingTitle(true); }} className="p-1.5 rounded-md hover:bg-white text-slate-400" title="Rename">
                 <Pencil className="w-3.5 h-3.5" />

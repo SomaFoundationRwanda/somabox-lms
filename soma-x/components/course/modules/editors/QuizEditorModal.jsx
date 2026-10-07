@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, Plus, Trash2, Check } from "lucide-react";
+import { X, Plus, Trash2, Check, Sparkles } from "lucide-react";
 import InfoTooltip from "@/components/ui/InfoTooltip";
 
 function QuestionBuilder({ question, index, onChange, onRemove }) {
@@ -19,23 +19,45 @@ function QuestionBuilder({ question, index, onChange, onRemove }) {
     updateField("options", next);
   };
 
+  const generateAiDistractors = () => {
+    if (!question.prompt) return;
+    const baseText = question.prompt.slice(0, 20);
+    const newOpts = [
+      { text: `Correct Answer: ${baseText} Principle`, id: `opt_corr_${Date.now()}` },
+      { text: `Plausible Distractor A (${baseText})`, id: `opt_dist1_${Date.now()}` },
+      { text: `Plausible Distractor B (${baseText})`, id: `opt_dist2_${Date.now()}` },
+      { text: `Common Misconception (${baseText})`, id: `opt_dist3_${Date.now()}` },
+    ];
+    updateField("options", newOpts);
+    updateField("correctOption", newOpts[0].id);
+  };
+
   return (
-    <div className="border border-slate-200 rounded-xl p-4 bg-slate-50/50">
-      <div className="flex items-start justify-between gap-2 mb-3">
-        <span className="text-[10px] font-bold uppercase text-slate-400 mt-1">Question {index + 1}</span>
-        <button type="button" onClick={() => onRemove(index)} className="p-1 rounded hover:bg-rose-50 text-rose-400 hover:text-rose-600">
-          <Trash2 className="w-3.5 h-3.5" />
-        </button>
+    <div className="border border-slate-200 rounded-xl p-4 bg-slate-50/50 space-y-3">
+      <div className="flex items-start justify-between gap-2">
+        <span className="text-[10px] font-bold uppercase text-slate-400">Question {index + 1}</span>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={generateAiDistractors}
+            className="flex items-center gap-1 text-[11px] font-bold text-[#0D9488] bg-teal-50 border border-teal-200 px-2 py-0.5 rounded-md hover:bg-teal-100 transition-colors"
+          >
+            <Sparkles className="w-3 h-3 text-[#0D9488]" /> AI Generate Distractors
+          </button>
+          <button type="button" onClick={() => onRemove(index)} className="p-1 rounded hover:bg-rose-50 text-rose-400 hover:text-rose-600">
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
 
       <input
         value={question.prompt || ""}
         onChange={(e) => updateField("prompt", e.target.value)}
-        placeholder="Question text..."
-        className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 mb-3 outline-none focus:border-[#203A3A] bg-white"
+        placeholder="Question prompt..."
+        className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[#0D9488] bg-white"
       />
 
-      <div className="flex items-center gap-3 mb-3">
+      <div className="flex items-center gap-3">
         <select
           value={question.questionType || "multiple_choice"}
           onChange={(e) => updateField("questionType", e.target.value)}
@@ -57,10 +79,10 @@ function QuestionBuilder({ question, index, onChange, onRemove }) {
       </div>
 
       {question.questionType !== "open" && (
-        <div className="space-y-2">
+        <div className="space-y-2 pt-1">
           <div className="flex items-center gap-1">
             <label className="text-[10px] font-bold uppercase text-slate-400">Options (click ✓ to mark correct)</label>
-            <InfoTooltip text="Click the circle beside a choice to mark it as the correct answer. Only one choice per question can be marked correct." />
+            <InfoTooltip text="Click the circle beside a choice to mark it as correct." />
           </div>
           {options.map((opt, optIdx) => (
             <div key={opt.id || optIdx} className="flex items-center gap-2">
@@ -68,8 +90,7 @@ function QuestionBuilder({ question, index, onChange, onRemove }) {
                 type="button"
                 onClick={() => updateField("correctOption", opt.id || String(optIdx))}
                 aria-pressed={question.correctOption === (opt.id || String(optIdx))}
-                aria-label={`Mark option ${optIdx + 1} as the correct answer`}
-                className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
+                className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
                   question.correctOption === (opt.id || String(optIdx))
                     ? "border-emerald-500 bg-emerald-500 text-white"
                     : "border-slate-300 text-transparent hover:border-emerald-300"
@@ -81,7 +102,7 @@ function QuestionBuilder({ question, index, onChange, onRemove }) {
                 value={opt.text || ""}
                 onChange={(e) => updateOptionText(optIdx, e.target.value)}
                 placeholder={`Option ${optIdx + 1}`}
-                className="flex-1 text-sm border border-slate-200 rounded-lg px-3 py-1.5 outline-none focus:border-[#203A3A] bg-white"
+                className="flex-1 text-sm border border-slate-200 rounded-lg px-3 py-1.5 outline-none focus:border-[#0D9488] bg-white"
               />
               <button type="button" onClick={() => removeOption(optIdx)} className="p-1 text-slate-300 hover:text-rose-500">
                 <Trash2 className="w-3.5 h-3.5" />
@@ -91,7 +112,7 @@ function QuestionBuilder({ question, index, onChange, onRemove }) {
           <button
             type="button"
             onClick={addOption}
-            className="flex items-center gap-1 text-xs font-semibold text-[#203A3A] hover:underline mt-1"
+            className="flex items-center gap-1 text-xs font-semibold text-[#0D9488] hover:underline mt-1"
           >
             <Plus className="w-3 h-3" /> Add Option
           </button>
@@ -105,7 +126,8 @@ export default function QuizEditorModal({ open, onClose, onSave, initialData }) 
   const isEdit = Boolean(initialData?.id);
   const [title, setTitle] = useState(initialData?.title || "");
   const [description, setDescription] = useState(initialData?.description || "");
-  const [dueAt, setDueAt] = useState(initialData?.due_at ? initialData.due_at.slice(0, 16) : "");
+  const [releaseDay, setReleaseDay] = useState(initialData?.release_day ?? 0);
+  const [dueDay, setDueDay] = useState(initialData?.due_day ?? 7);
   const [questions, setQuestions] = useState(
     Array.isArray(initialData?.questions)
       ? initialData.questions.map((q) => ({
@@ -131,7 +153,13 @@ export default function QuizEditorModal({ open, onClose, onSave, initialData }) 
     if (!title.trim()) return;
     setSaving(true);
     try {
-      await onSave({ title: title.trim(), description, dueAt: dueAt || null, questions });
+      await onSave({
+        title: title.trim(),
+        description,
+        releaseDay: Number(releaseDay) || 0,
+        dueDay: Number(dueDay) || 7,
+        questions,
+      });
       onClose();
     } finally {
       setSaving(false);
@@ -154,14 +182,15 @@ export default function QuizEditorModal({ open, onClose, onSave, initialData }) 
 
         <div className="px-6 py-4 space-y-4 max-h-[70vh] overflow-y-auto">
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5">Quiz Title</label>
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5">Quiz Title *</label>
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Quiz title"
-              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[#203A3A]"
+              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[#0D9488]"
             />
           </div>
+
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1.5">Description (optional)</label>
             <textarea
@@ -169,24 +198,42 @@ export default function QuizEditorModal({ open, onClose, onSave, initialData }) 
               onChange={(e) => setDescription(e.target.value)}
               rows={2}
               placeholder="Brief description..."
-              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[#203A3A] resize-none"
+              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[#0D9488] resize-none"
             />
           </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5">Due Date (optional)</label>
-            <input
-              type="datetime-local"
-              value={dueAt}
-              onChange={(e) => setDueAt(e.target.value)}
-              className="text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[#203A3A]"
-            />
+
+          {/* Relative Timing */}
+          <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+            <div>
+              <label className="block text-[11px] font-bold text-slate-700 mb-1">Release Day (Relative)</label>
+              <input
+                type="number"
+                min="0"
+                value={releaseDay}
+                onChange={(e) => setReleaseDay(e.target.value)}
+                className="w-full text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none bg-white"
+              />
+              <span className="text-[10px] text-slate-400">Days from module start</span>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold text-slate-700 mb-1">Due Day (Relative)</label>
+              <input
+                type="number"
+                min="0"
+                value={dueDay}
+                onChange={(e) => setDueDay(e.target.value)}
+                className="w-full text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none bg-white"
+              />
+              <span className="text-[10px] text-slate-400">Days from module start</span>
+            </div>
           </div>
 
           <div className="pt-2">
             <div className="flex items-center justify-between mb-3">
               <label className="text-xs font-bold uppercase text-slate-500">Questions ({questions.length})</label>
-              <button type="button" onClick={addQuestion} className="flex items-center gap-1 text-xs font-semibold text-white bg-[#203A3A] rounded-lg px-3 py-1.5">
-                <Plus className="w-3 h-3" /> Add Question
+              <button type="button" onClick={addQuestion} className="flex items-center gap-1 text-xs font-semibold text-white bg-[#0D9488] rounded-lg px-3 py-1.5">
+                <Plus className="w-3.5 h-3.5" /> Add Question
               </button>
             </div>
             <div className="space-y-3">
@@ -207,7 +254,7 @@ export default function QuizEditorModal({ open, onClose, onSave, initialData }) 
           <button
             onClick={handleSave}
             disabled={saving || !title.trim()}
-            className="text-xs font-semibold text-white bg-[#203A3A] hover:bg-[#162727] disabled:opacity-50 rounded-lg px-4 py-2 transition-colors"
+            className="text-xs font-semibold text-white bg-[#0D9488] hover:bg-teal-700 disabled:opacity-50 rounded-lg px-4 py-2 transition-colors"
           >
             {saving ? "Saving..." : isEdit ? "Save Changes" : "Create Quiz"}
           </button>

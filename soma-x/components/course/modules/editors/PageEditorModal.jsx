@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { X, AlertCircle } from "lucide-react";
 import RichTextEditor from "@/components/course/editor/RichTextEditor";
+import AIAssistantWidget from "@/components/course/editor/AIAssistantWidget";
 
 export default function PageEditorModal({ open, onClose, onSave, initialData }) {
   const isEdit = Boolean(initialData?.id);
@@ -68,6 +69,13 @@ export default function PageEditorModal({ open, onClose, onSave, initialData }) 
               className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[#203A3A] transition-colors"
             />
           </div>
+
+          {/* Teacher AI Assistant Widget */}
+          <AIAssistantWidget
+            lessonId={initialData?.id ? String(initialData.id) : ""}
+            courseId={initialData?.course_id ? String(initialData.course_id) : ""}
+            onInsertContent={(text) => editorRef.current?.insertContent(text)}
+          />
 
           {altWarning && (
             <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl text-xs font-semibold">

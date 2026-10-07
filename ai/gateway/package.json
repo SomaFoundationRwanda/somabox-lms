@@ -1,0 +1,15 @@
+{
+  "name": "ai-gateway",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.8.0",
+    "express": "^5.0.0",
+    "js-yaml": "^4.1.0",
+    "uuid": "^11.0.5"
+  }
+}
