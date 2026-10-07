@@ -7,7 +7,7 @@ import DataContext from "@/context/DataContext"
 import MandatoryProfileSetupModal from "@/components/onboarding/MandatoryProfileSetupModal";
 import BrightnessSlider from "@/components/ui/BrightnessSlider";
 import Header from "@/components/global/Header";
-import { BookOpen, Compass, LayoutDashboard, LogOut, PanelLeftClose, PanelLeftOpen, Settings } from "lucide-react"
+import { BookOpen, CalendarDays, Compass, LayoutDashboard, LogOut, PanelLeftClose, PanelLeftOpen, Settings } from "lucide-react"
 
 const ACCENT_LIGHT = "#203A3A"
 const ACCENT_DARK = "#0D9488"
@@ -18,6 +18,7 @@ const mainNavItems = [
   { id: "dashboard", label: "Dashboard", Icon: LayoutDashboard, href: "/teacher/dashboard" },
   { id: "courses", label: "Courses", Icon: BookOpen, href: "/teacher/courses" },
   { id: "explore", label: "Explore", Icon: Compass, href: "/teacher/explore" },
+  { id: "calendar", label: "Calendar", Icon: CalendarDays, href: "/calendar" },
 ]
 
 const otherNavItems = [

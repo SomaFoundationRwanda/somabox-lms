@@ -1,0 +1,12 @@
+{
+  "name": "@somabox/timeline",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Pure course timeline calculations shared by the backend and the frontend.",
+  "type": "module",
+  "main": "index.js",
+  "exports": { ".": "./index.js" },
+  "scripts": {
+    "test": "node --test \"test/**/*.test.js\""
+  }
+}

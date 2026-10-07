@@ -7,6 +7,10 @@ import { useCourse } from "@/context/CourseContext";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
 import PrevNextNav from "@/components/course/navigation/PrevNextNav";
 import { moduleWeekLabel } from "@/lib/moduleLabels";
+import { formatDate } from "@/lib/dates";
+import ScheduleFields, { initialScheduleValues, scheduleError, schedulePayload } from "@/components/course/modules/editors/ScheduleFields";
+
+const itemDaysOf = (item) => ({ release_day: item.release_day, due_day: item.due_day, close_day: item.close_day });
 
 export default function AssignmentDetailPage() {
   const { courseId, assignmentId } = useParams();
@@ -75,13 +79,17 @@ export default function AssignmentDetailPage() {
     loadData();
   };
 
+  // The assignment's module listing carries its day offsets and resolved dates.
+  const listing = modules
+    .flatMap((m) => (Array.isArray(m.items) ? m.items : []))
+    .find((i) => i.item_type === "assignment" && Number(i.content_id) === Number(assignmentId)) || null;
+
   const startEditing = () => {
     setEditForm({
       title: assignment.title || "",
       description: assignment.description || "",
       moduleId: assignment.module?.id ?? assignment.module_id ?? "",
-      releaseDay: assignment.release_day ?? 0,
-      dueDay: assignment.due_day ?? 7,
+      schedule: initialScheduleValues(listing ? itemDaysOf(listing) : null),
       pointsPossible: assignment.points_possible ?? 100,
       published: !!assignment.published,
       selectedOutcomeIds: itemOutcomes.map(o => o.outcome_id),
@@ -93,6 +101,8 @@ export default function AssignmentDetailPage() {
 
   const saveEdit = async () => {
     if (!editForm.title.trim()) return;
+    const timingError = scheduleError(editForm.schedule);
+    if (timingError) { setSaveError(timingError); return; }
     setSaving(true);
     setSaveError("");
     try {
@@ -123,8 +133,7 @@ export default function AssignmentDetailPage() {
             title: editForm.title.trim(),
             description: editForm.description,
             moduleId: editForm.moduleId,
-            releaseDay: Number(editForm.releaseDay) || 0,
-            dueDay: Number(editForm.dueDay) || 7,
+            ...schedulePayload(editForm.schedule),
             pointsPossible: Number(editForm.pointsPossible) || 100,
             published: editForm.published,
             rubricDraft: editForm.rubricDraft
@@ -159,6 +168,14 @@ export default function AssignmentDetailPage() {
   if (!assignment) return <div className="p-6"><p className="text-sm text-rose-600">Assignment not found.</p></div>;
 
   const currentModule = assignment.module || modules.find(m => m.id === assignment.module_id) || null;
+  const dueText = listing?.dueDate
+    ? `Due ${formatDate(listing.dueDate)}${listing.closeDate ? ` · Closes ${formatDate(listing.closeDate)}` : ""}`
+    : listing && listing.due_day != null
+      ? `Due: Day ${listing.due_day}`
+      : assignment.due_at
+        ? `Due ${new Date(assignment.due_at).toLocaleDateString()}`
+        : "No due date";
+  const editModuleStart = editForm ? modules.find((m) => Number(m.id) === Number(editForm.moduleId))?.startDate || null : null;
 
   return (
     <div>
@@ -173,7 +190,7 @@ export default function AssignmentDetailPage() {
                 Module: {currentModule ? `${moduleWeekLabel(currentModule)} - ${currentModule.title}` : "Not in a module"}
               </span>
               <span className="text-xs font-semibold text-slate-500 flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5 text-slate-400" /> Due: Day {assignment.due_day ?? 7}
+                <Clock className="w-3.5 h-3.5 text-slate-400" /> {dueText}
               </span>
             </div>
 
@@ -223,8 +240,8 @@ export default function AssignmentDetailPage() {
                 />
               </div>
 
-              {/* Module & Relative Timing */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-4 bg-slate-50 border border-slate-200 rounded-2xl">
+              {/* Module & relative timing */}
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">Tied Module Week *</label>
                   <select
@@ -240,30 +257,13 @@ export default function AssignmentDetailPage() {
                   </select>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Release Day (Relative)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={editForm.releaseDay}
-                    onChange={(e) => setEditForm((p) => ({ ...p, releaseDay: e.target.value }))}
-                    className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white outline-none"
-                  />
-                  <span className="text-[10px] text-slate-500">Days from module start</span>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Due Day (Relative)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={editForm.dueDay}
-                    onChange={(e) => setEditForm((p) => ({ ...p, dueDay: e.target.value }))}
-                    className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white outline-none"
-                  />
-                  <span className="text-[10px] text-slate-500">Days from module start</span>
-                </div>
               </div>
+
+              <ScheduleFields
+                values={editForm.schedule}
+                onChange={(schedule) => setEditForm((p) => ({ ...p, schedule }))}
+                moduleStartDate={editModuleStart}
+              />
 
               {/* Outcome Selection */}
               <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">

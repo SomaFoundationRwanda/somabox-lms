@@ -24,7 +24,9 @@ import {
   needsOutcomeBeforePublish,
   sendItemError,
   syncListingPublished,
+  updateItemDays,
 } from "./items.js";
+import { refreshDueDates } from "./schedule.js";
 
 const router = express.Router();
 
@@ -635,6 +637,7 @@ router.post("/:id/discussions", async (req, res) => {
       if (isGraded) {
         await localDb.prepare("UPDATE discussions SET graded = 1, points_possible = ? WHERE id = ?").run(pointsPossible, result.contentId);
         await linkDiscussionAssignment(courseId, result.contentId, title, pointsPossible, auth.email);
+        await refreshDueDates(courseId);
       }
       return result;
     })();
@@ -680,7 +683,8 @@ router.patch("/:id/discussions/:discussionId", async (req, res) => {
       }
     }
 
-    if (!updates.length) return res.status(400).json({ message: "No fields to update" });
+    const hasDays = ["releaseDay", "dueDay", "closeDay"].some((k) => req.body[k] !== undefined);
+    if (!updates.length && !hasDays) return res.status(400).json({ message: "No fields to update" });
 
     // Publishing a graded discussion publishes its assignment, which needs an outcome first.
     const current = await localDb.prepare("SELECT linked_assignment_id FROM discussions WHERE id = ?").get(discussion.id);
@@ -689,8 +693,10 @@ router.patch("/:id/discussions/:discussionId", async (req, res) => {
     }
 
     params.push(req.params.discussionId, courseId);
-    await localDb.prepare(`UPDATE discussions SET ${updates.join(", ")} WHERE id = ? AND course_id = ?`).run(...params);
+    if (updates.length) await localDb.prepare(`UPDATE discussions SET ${updates.join(", ")} WHERE id = ? AND course_id = ?`).run(...params);
     if (title !== undefined) await localDb.prepare("UPDATE module_items SET title = ? WHERE item_type = 'discussion' AND content_id = ?").run(title, discussion.id);
+    await updateItemDays(courseId, "discussion", discussion.id, req.body);
+    if (graded !== undefined) await refreshDueDates(courseId);
     if (published !== undefined) {
       await syncListingPublished("discussion", discussion.id, published);
       if (current?.linked_assignment_id) {
@@ -699,6 +705,7 @@ router.patch("/:id/discussions/:discussionId", async (req, res) => {
     }
     return res.json(await localDb.prepare("SELECT * FROM discussions WHERE id = ?").get(req.params.discussionId));
   } catch (error) {
+    if (sendItemError(res, error)) return;
     console.error("Error updating discussion:", error);
     return res.status(500).json({ message: error.message });
   }

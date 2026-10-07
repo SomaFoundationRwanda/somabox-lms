@@ -1,5 +1,7 @@
 // Course CRUD, course lists, joining, and cover images.
 import express from "express";
+import { dateIn } from "@somabox/timeline";
+import { SCHOOL_TIMEZONE, refreshDueDates } from "./schedule.js";
 import fs from "fs";
 import path from "path";
 import { localDb, seedDefaultNavItems } from "../../helpers/db-manager.js";
@@ -11,7 +13,6 @@ import {
   requireTeacher,
   requireEnrolled,
   courseExists,
-  normalizeDueAt,
   upload,
 } from "./shared.js";
 
@@ -36,7 +37,7 @@ router.post("", async (req, res) => {
     await localDb.prepare(`
       INSERT INTO courses (id, title, description, grade, start_date, end_date, lifecycle, created_by_teacher_email)
       VALUES (?, ?, ?, ?, ?, ?, 'draft', ?)
-    `).run(courseId, title, description || "", grade || "", normalizeDueAt(startDate), normalizeDueAt(endDate), email);
+    `).run(courseId, title, description || "", grade || "", parseCourseDate(startDate), parseCourseDate(endDate), email);
 
     await seedDefaultNavItems(courseId);
 
@@ -48,6 +49,7 @@ router.post("", async (req, res) => {
     const created = await courseExists(courseId);
     return res.status(201).json(created);
   } catch (error) {
+    if (error.status === 400) return res.status(400).json({ message: error.message });
     console.error("Error creating course:", error);
     return res.status(500).json({ message: error.message });
   }
@@ -181,6 +183,14 @@ function lifecycleChangeProblem(from, to) {
   return null;
 }
 
+// Course start/end are calendar dates ('YYYY-MM-DD'); timestamps are read in the school's time zone.
+function parseCourseDate(value) {
+  if (value === undefined || value === null || value === "") return null;
+  const date = dateIn(value, SCHOOL_TIMEZONE);
+  if (!date) throw Object.assign(new Error("Dates must look like YYYY-MM-DD"), { status: 400 });
+  return date;
+}
+
 router.patch("/:id", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
@@ -201,8 +211,11 @@ router.patch("/:id", async (req, res) => {
     if (grade !== undefined) { updates.push("grade = ?"); params.push(grade); }
     if (lifecycle !== undefined && lifecycle !== existingCourse.lifecycle) { updates.push("lifecycle = ?"); params.push(lifecycle); }
     if (homePageType !== undefined && ["modules", "activity", "page"].includes(homePageType)) { updates.push("home_page_type = ?"); params.push(homePageType); }
-    if (startDate !== undefined) { updates.push("start_date = ?"); params.push(normalizeDueAt(startDate)); }
-    if (endDate !== undefined) { updates.push("end_date = ?"); params.push(normalizeDueAt(endDate)); }
+    const newStart = startDate !== undefined ? parseCourseDate(startDate) : existingCourse.start_date;
+    const newEnd = endDate !== undefined ? parseCourseDate(endDate) : existingCourse.end_date;
+    if (newStart && newEnd && newEnd < newStart) return res.status(400).json({ message: "The end date can't be before the start date" });
+    if (startDate !== undefined) { updates.push("start_date = ?"); params.push(newStart); }
+    if (endDate !== undefined) { updates.push("end_date = ?"); params.push(newEnd); }
     if (visibility !== undefined && ["private", "public"].includes(visibility)) { updates.push("visibility = ?"); params.push(visibility); }
 
     if (updates.length === 0) return res.status(400).json({ message: "No fields to update" });
@@ -211,8 +224,11 @@ router.patch("/:id", async (req, res) => {
     params.push(courseId);
 
     await localDb.prepare(`UPDATE courses SET ${updates.join(", ")} WHERE id = ?`).run(...params);
+    // Every module and item date follows the start date.
+    if (startDate !== undefined) await refreshDueDates(courseId);
     return res.json(await courseExists(courseId));
   } catch (error) {
+    if (error.status === 400) return res.status(400).json({ message: error.message });
     console.error("Error updating course:", error);
     return res.status(500).json({ message: error.message });
   }

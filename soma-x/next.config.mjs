@@ -9,6 +9,8 @@ const nextConfig = {
     reactStrictMode: false,
     allowedDevOrigins: ['*'],
     outputFileTracingRoot: path.join(__dirname, '../'),
+    // Workspace package shared with the backend (plain ESM source).
+    transpilePackages: ['@somabox/timeline'],
 };
 
 export default nextConfig;

@@ -101,7 +101,7 @@ export default function QuizDetailPage() {
               Module: {currentModule ? `${moduleWeekLabel(currentModule)} - ${currentModule.title}` : "Not in a module"}
             </span>
             <span className="text-xs font-semibold text-slate-500 flex items-center gap-1">
-              <Clock className="w-3.5 h-3.5 text-slate-400" /> Due: Day {quiz.due_day ?? 7}
+              <Clock className="w-3.5 h-3.5 text-slate-400" /> {quiz.due_at ? `Due ${new Date(quiz.due_at).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}` : "No due date"}
             </span>
           </div>
 

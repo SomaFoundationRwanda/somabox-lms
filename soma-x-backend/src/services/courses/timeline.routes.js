@@ -1,6 +1,8 @@
 // Relative timing, setup status, opening a course, and the Home weekly loop.
 import express from "express";
+import { addDays, resolveTimeline, shiftModuleOffsets } from "@somabox/timeline";
 import { localDb } from "../../helpers/db-manager.js";
+import { loadCourseTimeline, refreshDueDates } from "./schedule.js";
 import {
   isTeacherRole,
   requireTeacher,
@@ -10,20 +12,11 @@ import {
 
 const router = express.Router();
 
-// ==========================================
-// RELATIVE TIMING & OUTCOME MASTERY ENGINE
-// ==========================================
-
-export function computeResolvedDate(baseDateIso, weekOffset = 0, dayOffset = 0) {
-  const base = baseDateIso ? new Date(baseDateIso) : new Date();
-  if (isNaN(base.getTime())) return new Date().toISOString();
-  const totalDays = (Number(weekOffset) || 0) * 7 + (Number(dayOffset) || 0);
-  const resolved = new Date(base.getTime() + totalDays * 86400000);
-  return resolved.toISOString();
-}
-
-
-// Shift timeline (start date or single module)
+// ===== Shift timeline =====
+// Moves dates by rewriting offsets (never absolute dates):
+// - no fromModuleId: the course start date moves, so every module and item moves with it;
+// - fromModuleId: that module and every module after it (in week order) move; earlier ones stay.
+// Send { preview: true } to see the result without saving.
 router.patch("/:id/shift-timeline", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
@@ -31,29 +24,70 @@ router.patch("/:id/shift-timeline", async (req, res) => {
     if (!course) return res.status(404).json({ message: "Course not found" });
     if (!await requireTeacher(req, res, courseId)) return;
 
-    const shiftDays = Number(req.body.shiftDays) || 0;
+    const days = Number(req.body.days ?? req.body.shiftDays);
+    if (!Number.isInteger(days) || days === 0) return res.status(400).json({ message: "days must be a whole number other than 0" });
     const fromModuleId = req.body.fromModuleId ? Number(req.body.fromModuleId) : null;
+    const preview = !!req.body.preview;
 
+    const before = await loadCourseTimeline(courseId);
+    if (!before.startDate) return res.status(400).json({ message: "Set the course start date first" });
+
+    let newStart = before.startDate;
+    const moved = new Map();
     if (fromModuleId) {
-      const targetMod = await localDb.prepare("SELECT position FROM modules WHERE id = ? AND course_id = ?").get(fromModuleId, courseId);
-      if (targetMod) {
-        const mods = await localDb.prepare("SELECT id FROM modules WHERE course_id = ? AND position >= ?").all(courseId, targetMod.position);
-        for (const m of mods) {
-          await localDb.prepare("UPDATE modules SET day_offset = COALESCE(day_offset, 0) + ? WHERE id = ?").run(shiftDays, m.id);
+      const ordered = before.modules.filter((m) => m.kind !== "unassigned")
+        .sort((x, y) => (x.startDate < y.startDate ? -1 : x.startDate > y.startDate ? 1 : x.position - y.position));
+      const fromIndex = ordered.findIndex((m) => Number(m.id) === fromModuleId);
+      if (fromIndex === -1) return res.status(404).json({ message: "Module not found" });
+      for (const m of ordered.slice(fromIndex)) {
+        try {
+          moved.set(Number(m.id), shiftModuleOffsets(m, days));
+        } catch (error) {
+          return res.status(400).json({ message: `"${m.title}": ${error.message}` });
         }
       }
     } else {
-      const curStart = course.start_date ? new Date(course.start_date) : new Date();
-      const newStart = new Date(curStart.getTime() + shiftDays * 86400000).toISOString();
-      await localDb.prepare("UPDATE courses SET start_date = ? WHERE id = ?").run(newStart, courseId);
+      newStart = addDays(before.startDate, days);
     }
 
-    return res.json({ message: `Shifted timeline by ${shiftDays} days`, course: await courseExists(courseId) });
+    const after = resolveTimeline({
+      startDate: newStart,
+      modules: before.modules.map((m) => ({ ...m, ...(moved.get(Number(m.id)) || {}) })),
+      items: before.items,
+    });
+    const afterModules = new Map(after.modules.map((m) => [Number(m.id), m]));
+    const afterItems = new Map(after.items.map((i) => [Number(i.id), i]));
+    const changes = before.modules
+      .filter((m) => afterModules.get(Number(m.id))?.startDate !== m.startDate)
+      .map((m) => ({ moduleId: m.id, title: m.title, fromStart: m.startDate, toStart: afterModules.get(Number(m.id)).startDate }));
+    const itemChanges = before.items
+      .filter((i) => i.dueDate && afterItems.get(Number(i.id))?.dueDate !== i.dueDate)
+      .map((i) => ({ moduleItemId: i.id, title: i.title, fromDue: i.dueDate, toDue: afterItems.get(Number(i.id)).dueDate }));
+
+    if (!preview) {
+      await localDb.transaction(async () => {
+        if (newStart !== before.startDate) {
+          await localDb.prepare("UPDATE courses SET start_date = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(newStart, courseId);
+        }
+        for (const [moduleId, offsets] of moved) {
+          await localDb.prepare("UPDATE modules SET week_offset = ?, day_offset = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?")
+            .run(offsets.week_offset, offsets.day_offset, moduleId);
+        }
+        await refreshDueDates(courseId);
+      })();
+    }
+
+    return res.json({
+      preview,
+      message: preview ? `Preview: ${changes.length} module(s) and ${itemChanges.length} due date(s) would move` : `Moved ${changes.length} module(s) by ${days} day(s)`,
+      startDate: newStart,
+      modules: changes,
+      items: itemChanges,
+    });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
 });
-
 
 // Setup status & Course Opening
 // TODO(phase 4): add the full blocking list (baseline, graded items tagged, start date, no orphans).
@@ -121,7 +155,11 @@ router.post("/:id/open-course", async (req, res) => {
   }
 });
 
-// Opened Course Weekly Loop API (Home Screen Data Driver)
+// ===== Home weekly loop =====
+// Driven by resolved dates: the current module is the one whose week contains today, and
+// the "beat" comes from its items' release and due dates (not from the day of the week).
+const SOON_DAYS = 2;
+
 router.get("/:id/home-loop", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
@@ -129,92 +167,111 @@ router.get("/:id/home-loop", async (req, res) => {
     if (!course) return res.status(404).json({ message: "Course not found" });
     const auth = await requireEnrolled(req, res, courseId);
     if (!auth) return;
-    // Ungraded counts and missing-tag warnings are class-wide teacher data.
+    // Ungraded counts and setup warnings are class-wide teacher data.
     const isTeacher = isTeacherRole(auth.enrollment.role);
 
-    const startDateIso = course.start_date || course.created_at || new Date().toISOString();
-    const startDate = new Date(startDateIso);
-    const now = new Date();
-    const daysDiff = Math.floor((now.getTime() - startDate.getTime()) / 86400000);
-    const currentWeekNumber = Math.max(0, Math.floor(daysDiff / 7));
+    const tl = await loadCourseTimeline(courseId);
+    const today = tl.today;
+    const dated = tl.modules.filter((m) => m.startDate)
+      .filter((m) => isTeacher || Number(m.published) === 1)
+      .sort((x, y) => (x.startDate < y.startDate ? -1 : x.startDate > y.startDate ? 1 : x.position - y.position));
+    const current = dated.find((m) => m.startDate <= today && today <= m.endDate)
+      || [...dated].reverse().find((m) => m.endDate < today && !dated.some((n) => n.startDate > today))
+      || dated.find((m) => m.startDate > today)
+      || null;
 
-    const rawModules = await localDb.prepare("SELECT * FROM modules WHERE course_id = ? ORDER BY week_offset ASC, position ASC").all(courseId);
-    const currentModule = rawModules.find(m => Number(m.week_offset) === currentWeekNumber) || rawModules[0] || null;
+    const visibleItems = tl.items.filter((i) => i.item_type !== "sub_header" && (isTeacher || Number(i.published) === 1));
+    const inCurrent = current ? visibleItems.filter((i) => Number(i.module_id) === Number(current.id)) : [];
+    const soon = addDays(today, SOON_DAYS);
+    const label = (m) => (m.kind === "baseline" ? "Baseline week" : `Week ${m.week_offset}`);
+
+    // Ungraded work whose due date has passed, anywhere in the course.
+    let ungradedCount = 0;
+    if (isTeacher) {
+      const row = await localDb.prepare(`
+        SELECT COUNT(*) AS c FROM assignment_submissions s JOIN assignments a ON a.id = s.assignment_id
+        WHERE a.course_id = ? AND s.grade IS NULL
+      `).get(courseId);
+      ungradedCount = Number(row?.c || 0);
+    }
+    const releasingUnpublished = inCurrent.filter((i) => Number(i.published) !== 1 && i.releaseDate && i.releaseDate <= soon);
+    const openNow = inCurrent.filter((i) => i.status === "open" && i.dueDate);
+    const nextDue = openNow.map((i) => i.dueDate).sort()[0];
 
     let beat = "prepare";
-    let beatTitle = `Week ${currentWeekNumber || 1} is empty / needs preparation`;
-    let primaryAction = { label: "Fill Module & Add Items", href: `/course/${courseId}/modules` };
-
-    if (currentModule) {
-      const dayInWeek = ((daysDiff % 7) + 7) % 7;
-      const items = await localDb.prepare("SELECT * FROM module_items WHERE module_id = ?").all(currentModule.id);
-      
-      let ungradedCount = 0;
-      for (const item of isTeacher ? items : []) {
-        if (item.item_type === 'assignment' && item.content_id) {
-          const uRow = await localDb.prepare("SELECT COUNT(*) AS c FROM assignment_submissions WHERE assignment_id = ? AND grade IS NULL").get(item.content_id);
-          ungradedCount += Number(uRow?.c || 0);
-        }
-      }
-
-      if (ungradedCount > 0) {
-        beat = "grade";
-        beatTitle = `${ungradedCount} ungraded submission${ungradedCount === 1 ? "" : "s"} need rubric scoring`;
-        primaryAction = { label: "Launch Rubric Grading", href: `/course/${courseId}/grades` };
-      } else if (dayInWeek <= 1) {
-        beat = "prepare";
-        beatTitle = `Week ${currentWeekNumber} Prepare Phase: Review module items and AI drafts`;
-        primaryAction = { label: "Review & Fill Week", href: `/course/${courseId}/modules` };
-      } else if (dayInWeek === 2) {
-        beat = "release";
-        beatTitle = `Week ${currentWeekNumber} is live for students`;
-        primaryAction = { label: "View Live Timeline", href: `/course/${courseId}/modules` };
-      } else if (dayInWeek <= 5) {
-        beat = "collect";
-        beatTitle = `Week ${currentWeekNumber} Active Submissions & Participation`;
-        primaryAction = { label: "Check Student Submissions", href: `/course/${courseId}/grades` };
-      } else {
-        beat = "review";
-        beatTitle = `End of Week ${currentWeekNumber}: Review outcome mastery vs baseline`;
-        primaryAction = { label: "View Outcome Pulse", href: `/course/${courseId}/outcomes` };
-      }
+    let beatTitle;
+    let primaryAction = { label: "Open Modules", href: `/course/${courseId}/modules` };
+    if (!tl.startDate) {
+      beatTitle = "Set the course start date to place each week on the calendar";
+      primaryAction = { label: "Open Settings", href: `/course/${courseId}/settings` };
+    } else if (!current) {
+      beatTitle = "Add a module to start planning the weeks";
+    } else if (isTeacher && ungradedCount > 0) {
+      beat = "grade";
+      beatTitle = `${ungradedCount} submission${ungradedCount === 1 ? "" : "s"} waiting to be graded`;
+      primaryAction = { label: "Open Grades", href: `/course/${courseId}/grades` };
+    } else if (today < current.startDate) {
+      beatTitle = `${label(current)} starts on ${current.startDate}`;
+    } else if (isTeacher && releasingUnpublished.length > 0) {
+      beatTitle = `${releasingUnpublished.length} item${releasingUnpublished.length === 1 ? "" : "s"} in ${label(current)} release by ${soon} but aren't published`;
+    } else if (openNow.length > 0) {
+      beat = "collect";
+      beatTitle = `${label(current)}: ${openNow.length} item${openNow.length === 1 ? "" : "s"} open, next due ${nextDue}`;
+      primaryAction = isTeacher
+        ? { label: "Check Submissions", href: `/course/${courseId}/grades` }
+        : { label: "Open Calendar", href: `/course/${courseId}/calendar` };
+    } else if (today > current.endDate || (inCurrent.length > 0 && inCurrent.every((i) => !i.dueDate || i.dueDate < today))) {
+      beat = "review";
+      beatTitle = `${label(current)} is finished: review progress before the next week`;
+      primaryAction = { label: "View Outcomes", href: `/course/${courseId}/outcomes` };
+    } else {
+      beat = "release";
+      beatTitle = `${label(current)} is live`;
     }
 
     const needsAttention = [];
-    const itemsWithoutOutcomes = !isTeacher ? [] : await localDb.prepare(`
-      SELECT mi.id, mi.title, mi.item_type
-      FROM module_items mi
-      JOIN modules m ON m.id = mi.module_id
-      LEFT JOIN item_outcomes io ON io.item_type = mi.item_type AND io.item_id = mi.content_id
-      WHERE m.course_id = ? AND io.id IS NULL AND mi.item_type IN ('assignment', 'quiz')
-    `).all(courseId);
-
-    if (itemsWithoutOutcomes.length > 0) {
-      needsAttention.push({
-        id: "missing-outcomes",
-        title: `${itemsWithoutOutcomes.length} graded item(s) missing outcome tags`,
-        actionLabel: "Tag Outcomes",
-        href: `/course/${courseId}/modules`
-      });
+    if (isTeacher) {
+      if (!tl.startDate) {
+        needsAttention.push({ id: "no-start-date", title: "The course has no start date, so nothing has a date yet", actionLabel: "Set Start Date", href: `/course/${courseId}/settings` });
+      }
+      const untagged = await localDb.prepare(`
+        SELECT COUNT(*) AS c FROM module_items mi
+        JOIN modules m ON m.id = mi.module_id
+        LEFT JOIN quizzes q ON mi.item_type = 'quiz' AND q.id = mi.content_id
+        WHERE m.course_id = ? AND mi.item_type IN ('assignment', 'quiz') AND COALESCE(q.kind, 'graded') <> 'practice'
+          AND NOT EXISTS (SELECT 1 FROM item_outcomes io WHERE io.item_type = mi.item_type AND io.item_id = mi.content_id)
+      `).get(courseId);
+      if (Number(untagged?.c) > 0) {
+        needsAttention.push({ id: "missing-outcomes", title: `${untagged.c} graded item(s) missing outcome tags`, actionLabel: "Tag Outcomes", href: `/course/${courseId}/modules` });
+      }
+      if (releasingUnpublished.length > 0) {
+        needsAttention.push({ id: "release-soon", title: `${releasingUnpublished.length} item(s) release by ${soon} but aren't published`, actionLabel: "Review Items", href: `/course/${courseId}/modules` });
+      }
+      const unassigned = tl.items.filter((i) => tl.modules.find((m) => Number(m.id) === Number(i.module_id))?.kind === "unassigned").length;
+      if (unassigned > 0) {
+        needsAttention.push({ id: "unassigned", title: `${unassigned} item(s) are not in a week yet`, actionLabel: "Move Items", href: `/course/${courseId}/modules` });
+      }
     }
 
-    const timeline = rawModules.map(m => {
-      const resolvedStart = computeResolvedDate(startDateIso, m.week_offset, m.day_offset);
-      const isCurrent = Number(m.week_offset) === currentWeekNumber;
-      return {
+    const timeline = tl.modules
+      .filter((m) => m.kind !== "unassigned" && (isTeacher || Number(m.published) === 1))
+      .map((m) => ({
         ...m,
-        resolvedStartDate: resolvedStart,
-        isCurrent
-      };
-    });
+        resolvedStartDate: m.startDate,
+        resolvedEndDate: m.endDate,
+        isCurrent: current ? Number(m.id) === Number(current.id) : false,
+      }));
 
     return res.json({
+      today,
+      startDate: tl.startDate,
       currentBeat: beat,
-      currentWeekNumber,
+      currentWeekNumber: current ? Number(current.week_offset) : null,
+      currentModuleId: current?.id ?? null,
       beatTitle,
       primaryAction,
       needsAttention,
-      timeline
+      timeline,
     });
   } catch (error) {
     return res.status(500).json({ message: error.message });

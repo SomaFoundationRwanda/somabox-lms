@@ -135,7 +135,7 @@ test("home-loop hides class-wide attention items from students", async () => {
 
   const teacher = await asTeacher("GET", `/courses/${courseId}/home-loop`);
   assert.equal(teacher.status, 200);
-  assert.equal(teacher.body.needsAttention.length, 1);
+  assert.ok(teacher.body.needsAttention.some((n) => n.id === "missing-outcomes"));
 
   const student = await asStudent("GET", `/courses/${courseId}/home-loop`);
   assert.equal(student.status, 200);

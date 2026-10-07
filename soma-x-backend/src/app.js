@@ -13,6 +13,7 @@ import solServices from './services/sol.services.js';
 import analyticsServices from './services/analytics.services.js';
 import notificationsServices from './services/notifications.service.js';
 import aiServices from './services/ai-proxy.services.js';
+import calendarServices from './services/calendar.services.js';
 
 // API routers in mount order. Exported so tests can enumerate every route.
 export const API_ROUTERS = [
@@ -26,6 +27,7 @@ export const API_ROUTERS = [
     ['/analytics', analyticsServices],
     ['/notifications', notificationsServices],
     ['/ai', aiServices],
+    ['/calendar', calendarServices],
 ];
 
 export function createApp({ logRequests = true } = {}) {

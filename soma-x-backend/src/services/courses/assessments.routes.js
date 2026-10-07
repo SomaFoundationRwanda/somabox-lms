@@ -8,7 +8,6 @@ import {
   requireEnrolled,
   requireNavVisible,
   courseExists,
-  normalizeDueAt,
   scheduleSpacedReview,
   userFullName,
 } from "./shared.js";
@@ -20,6 +19,7 @@ import {
   needsOutcomeBeforePublish,
   sendItemError,
   syncListingPublished,
+  updateItemDays,
 } from "./items.js";
 
 const router = express.Router();
@@ -102,15 +102,15 @@ router.patch("/:id/assignments/:assignmentId", async (req, res) => {
     const existing = await localDb.prepare("SELECT * FROM assignments WHERE id = ? AND course_id = ?").get(req.params.assignmentId, courseId);
     if (!existing) return res.status(404).json({ message: "Assignment not found" });
 
-    const { title, description, dueAt, pointsPossible, published, moduleId } = req.body;
+    const { title, description, pointsPossible, published, moduleId } = req.body;
     const updates = [];
     const params = [];
     if (title !== undefined) { updates.push("title = ?"); params.push(title); }
     if (description !== undefined) { updates.push("description = ?"); params.push(description); }
-    if (dueAt !== undefined) { updates.push("due_at = ?"); params.push(normalizeDueAt(dueAt)); }
     if (pointsPossible !== undefined) { updates.push("points_possible = ?"); params.push(Number(pointsPossible)); }
     if (published !== undefined) { updates.push("published = ?"); params.push(published ? 1 : 0); }
-    if (!updates.length && moduleId === undefined) return res.status(400).json({ message: "No fields to update" });
+    const hasDays = ["releaseDay", "dueDay", "closeDay"].some((k) => req.body[k] !== undefined);
+    if (!updates.length && moduleId === undefined && !hasDays) return res.status(400).json({ message: "No fields to update" });
     if (published && await needsOutcomeBeforePublish("assignment", existing.id)) {
       return res.status(422).json({ message: OUTCOME_REQUIRED_MESSAGE, code: "OUTCOME_REQUIRED" });
     }
@@ -125,6 +125,7 @@ router.patch("/:id/assignments/:assignmentId", async (req, res) => {
       }
       if (title !== undefined) await localDb.prepare("UPDATE module_items SET title = ? WHERE item_type = 'assignment' AND content_id = ?").run(title, existing.id);
       if (published !== undefined) await syncListingPublished("assignment", existing.id, published);
+      await updateItemDays(courseId, "assignment", existing.id, req.body);
     })();
     const row = await localDb.prepare("SELECT * FROM assignments WHERE id = ?").get(existing.id);
     return res.json({ ...row, module: await moduleSummary(row.module_id) });
@@ -300,14 +301,14 @@ router.patch("/:id/quizzes/:quizId", async (req, res) => {
     const existing = await localDb.prepare("SELECT * FROM quizzes WHERE id = ? AND course_id = ?").get(req.params.quizId, courseId);
     if (!existing) return res.status(404).json({ message: "Quiz not found" });
 
-    const { title, description, dueAt, published, moduleId } = req.body;
+    const { title, description, published, moduleId } = req.body;
     const updates = [];
     const params = [];
     if (title !== undefined) { updates.push("title = ?"); params.push(title); }
     if (description !== undefined) { updates.push("description = ?"); params.push(description); }
-    if (dueAt !== undefined) { updates.push("due_at = ?"); params.push(normalizeDueAt(dueAt)); }
     if (published !== undefined) { updates.push("published = ?"); params.push(published ? 1 : 0); }
-    if (!updates.length && moduleId === undefined) return res.status(400).json({ message: "No fields to update" });
+    const hasDays = ["releaseDay", "dueDay", "closeDay"].some((k) => req.body[k] !== undefined);
+    if (!updates.length && moduleId === undefined && !hasDays) return res.status(400).json({ message: "No fields to update" });
     if (published && await needsOutcomeBeforePublish("quiz", existing.id)) {
       return res.status(422).json({ message: OUTCOME_REQUIRED_MESSAGE, code: "OUTCOME_REQUIRED" });
     }
@@ -322,6 +323,7 @@ router.patch("/:id/quizzes/:quizId", async (req, res) => {
       }
       if (title !== undefined) await localDb.prepare("UPDATE module_items SET title = ? WHERE item_type = 'quiz' AND content_id = ?").run(title, existing.id);
       if (published !== undefined) await syncListingPublished("quiz", existing.id, published);
+      await updateItemDays(courseId, "quiz", existing.id, req.body);
     })();
     const row = await localDb.prepare("SELECT * FROM quizzes WHERE id = ?").get(existing.id);
     return res.json({ ...row, module: await moduleSummary(row.module_id) });

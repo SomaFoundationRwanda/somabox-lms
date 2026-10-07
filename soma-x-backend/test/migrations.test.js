@@ -70,6 +70,10 @@ before(async () => {
   ids.r3 = await rubric("Broken", "{not json");
   await q(`INSERT INTO rubric_assignment_links (rubric_id, assignment_id) VALUES ($1, $2), ($1, $3), ($4, $5)`, [ids.r1, ids.a1, ids.a3, ids.r3, ids.a2]);
 
+  // Phase 3 inputs: a start "date" stored as a timestamp and a due date a teacher set.
+  await q(`UPDATE courses SET start_date = '2026-01-05T00:00:00+02:00' WHERE id = 'C1'`);
+  await q(`UPDATE assignments SET due_at = '2026-01-08T21:59:59Z' WHERE id = $1`, [ids.a1]);
+
   await runMigrations(pool);
 });
 
@@ -178,4 +182,17 @@ test("running migrations again changes nothing", async () => {
   await runMigrations(pool);
   const afterCount = await one(`SELECT COUNT(*)::int AS c FROM migration_report`);
   assert.equal(afterCount.c, before.c);
+});
+
+test("dates become calendar dates and set due dates become offsets", async () => {
+  const c1 = await one(`SELECT start_date::text AS d FROM courses WHERE id = 'C1'`);
+  assert.equal(c1.d, "2026-01-05");
+  const a1Item = await one(`SELECT release_day, due_day, close_day FROM module_items WHERE item_type = 'assignment' AND content_id = $1`, [ids.a1]);
+  assert.deepEqual([a1Item.release_day, a1Item.due_day, a1Item.close_day], [0, 3, null], "due 8 Jan in a week starting 5 Jan = day 3");
+  const a3Item = await one(`SELECT due_day, close_day FROM module_items WHERE item_type = 'assignment' AND content_id = $1`, [ids.a3]);
+  assert.deepEqual([a3Item.due_day, a3Item.close_day], [6, null], "unset defaults become due on day 6, no close");
+  const reported = await one(`SELECT details FROM migration_report WHERE action = 'due_date_to_offset' AND entity_id = (SELECT id::text FROM module_items WHERE item_type = 'assignment' AND content_id = $1)`, [ids.a1]);
+  assert.ok(reported);
+  const nav = await one(`SELECT pg_get_constraintdef(oid) AS def FROM pg_constraint WHERE conname = 'course_nav_items_nav_key_check'`);
+  assert.match(nav.def, /calendar/);
 });

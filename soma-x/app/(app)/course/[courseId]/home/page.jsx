@@ -10,6 +10,7 @@ import { useCourse } from "@/context/CourseContext";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
 import CourseSetupWizard from "@/components/teacher/CourseSetupWizard";
 import { moduleWeekLabel, courseLifecycleLabel } from "@/lib/moduleLabels";
+import { formatRange } from "@/lib/dates";
 
 export default function CourseHomePage() {
   const { courseId, course, SERVER_URL, userEmail, isTeacher, refresh } = useCourse();
@@ -33,7 +34,7 @@ export default function CourseHomePage() {
       if (loopRes.ok) {
         const loopData = await loopRes.json();
         setHomeLoop(loopData);
-        setExpandedWeek(loopData.currentWeekNumber);
+        setExpandedWeek(loopData.currentModuleId ?? null);
       }
       if (outcomeRes.ok) setOutcomePulse(await outcomeRes.json());
     } catch (err) {
@@ -119,7 +120,10 @@ export default function CourseHomePage() {
                 Now: {currentBeat.toUpperCase()} BEAT
               </span>
               <span className="text-xs font-semibold text-slate-500 flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5 text-slate-400" /> Week {beatInfo.currentWeekNumber || 1}
+                <Clock className="w-3.5 h-3.5 text-slate-400" />
+                {beatInfo.currentWeekNumber === null || beatInfo.currentWeekNumber === undefined
+                  ? (beatInfo.startDate ? "No module this week" : "No dates yet")
+                  : beatInfo.currentWeekNumber === 0 ? "Week 0 · Baseline" : `Week ${beatInfo.currentWeekNumber}`}
               </span>
             </div>
 
@@ -244,7 +248,7 @@ export default function CourseHomePage() {
                         <div className="min-w-0">
                           <h4 className="text-sm font-bold text-slate-900 truncate">{m.title}</h4>
                           <p className="text-[11px] text-slate-500 mt-0.5">
-                            Starts: {new Date(m.resolvedStartDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                            {m.resolvedStartDate ? formatRange(m.resolvedStartDate, m.resolvedEndDate) : "No dates yet"}
                           </p>
                         </div>
                       </div>

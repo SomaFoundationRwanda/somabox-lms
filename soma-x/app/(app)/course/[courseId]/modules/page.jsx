@@ -30,6 +30,9 @@ const ITEM_TYPE_OPTIONS = [
   { value: "discussion", label: "Discussion" },
 ];
 
+// A module item's day offsets, for the editor modals.
+const itemDays = (item) => ({ release_day: item.release_day, due_day: item.due_day, close_day: item.close_day });
+
 export default function ModulesPage() {
   const { SERVER_URL, courseId, userEmail, isTeacher } = useCourse();
   const { data: modules, loading, error, refetch } = useCourseSection("modules");
@@ -138,13 +141,13 @@ export default function ModulesPage() {
     }
 
     if (selectedItemType === "assignment") {
-      setAssignmentModal({ open: true, moduleId, data: null, itemId: null });
+      setAssignmentModal({ open: true, moduleId, data: null, itemId: null, days: null, startDate: addingItemFor.startDate || null });
       setAddingItemFor(null);
       return;
     }
 
     if (selectedItemType === "quiz") {
-      setQuizModal({ open: true, moduleId, data: null, itemId: null });
+      setQuizModal({ open: true, moduleId, data: null, itemId: null, days: null, startDate: addingItemFor.startDate || null });
       setAddingItemFor(null);
       return;
     }
@@ -266,11 +269,11 @@ export default function ModulesPage() {
     } else if (item.item_type === "assignment") {
       const res = await fetch(`${SERVER_URL}/courses/${courseId}/assignments/${contentId}`);
       const data = await res.json();
-      setAssignmentModal({ open: true, moduleId: moduleRow.id, data, itemId: item.id });
+      setAssignmentModal({ open: true, moduleId: moduleRow.id, data, itemId: item.id, days: itemDays(item), startDate: moduleRow.startDate || null });
     } else if (item.item_type === "quiz") {
       const res = await fetch(`${SERVER_URL}/courses/${courseId}/quizzes/${contentId}`);
       const data = await res.json();
-      setQuizModal({ open: true, moduleId: moduleRow.id, data, itemId: item.id });
+      setQuizModal({ open: true, moduleId: moduleRow.id, data, itemId: item.id, days: itemDays(item), startDate: moduleRow.startDate || null });
     }
   }, [SERVER_URL, courseId, userEmail, refetch, showToast]);
 
@@ -455,6 +458,7 @@ export default function ModulesPage() {
 
       {/* ===== Modals ===== */}
       <PageEditorModal
+        key={`page-${pageModal.open}-${pageModal.moduleId}-${pageModal.itemId}`}
         open={pageModal.open}
         onClose={() => setPageModal({ open: false, moduleId: null, data: null, itemId: null })}
         onSave={handlePageSave}
@@ -462,17 +466,23 @@ export default function ModulesPage() {
       />
 
       <AssignmentEditorModal
+        key={`assignment-${assignmentModal.open}-${assignmentModal.moduleId}-${assignmentModal.itemId}`}
         open={assignmentModal.open}
         onClose={() => setAssignmentModal({ open: false, moduleId: null, data: null, itemId: null })}
         onSave={handleAssignmentSave}
         initialData={assignmentModal.data}
+        initialDays={assignmentModal.days}
+        moduleStartDate={assignmentModal.startDate}
       />
 
       <QuizEditorModal
+        key={`quiz-${quizModal.open}-${quizModal.moduleId}-${quizModal.itemId}`}
         open={quizModal.open}
         onClose={() => setQuizModal({ open: false, moduleId: null, data: null, itemId: null })}
         onSave={handleQuizSave}
         initialData={quizModal.data}
+        initialDays={quizModal.days}
+        moduleStartDate={quizModal.startDate}
       />
 
       <FileUploadModal

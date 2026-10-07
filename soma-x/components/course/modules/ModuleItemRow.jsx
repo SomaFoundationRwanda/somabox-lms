@@ -7,6 +7,36 @@ import {
   FileText, ClipboardList, HelpCircle, Upload, MessageSquare, Minus,
   Eye, EyeOff, Pencil, Trash2, GripVertical,
 } from "lucide-react";
+import { formatDate } from "@/lib/dates";
+
+const ITEM_STATUS_HINTS = {
+  upcoming: { label: "Not open yet", cls: "text-sky-700 bg-sky-50 border-sky-200" },
+  past_due: { label: "Past due", cls: "text-amber-700 bg-amber-50 border-amber-200" },
+  closed: { label: "Closed", cls: "text-slate-500 bg-slate-50 border-slate-200" },
+};
+
+const SHORT_DATE = { weekday: "short", day: "numeric", month: "short" };
+
+// "Opens Tue 13 Jan · Due Fri 16 Jan · Closes Sun 18 Jan" (only the parts that exist);
+// "Opens Day 0 · Due Day 4" when the course has no start date yet.
+function itemScheduleText(item) {
+  const parts = [];
+  const isPlain = item.item_type === "page" || item.item_type === "file";
+  if (item.releaseDate) {
+    parts.push(`Opens ${formatDate(item.releaseDate, SHORT_DATE)}`);
+    if (item.dueDate) parts.push(`Due ${formatDate(item.dueDate, SHORT_DATE)}`);
+    if (item.closeDate) parts.push(`Closes ${formatDate(item.closeDate, SHORT_DATE)}`);
+    return parts.join(" · ");
+  }
+  const day = (v) => (v === null || v === undefined || v === "" ? null : Number(v));
+  const release = day(item.release_day);
+  const due = isPlain ? null : day(item.due_day);
+  const close = isPlain ? null : day(item.close_day);
+  if (release !== null && (release > 0 || due !== null)) parts.push(`Opens Day ${release}`);
+  if (due !== null) parts.push(`Due Day ${due}`);
+  if (close !== null) parts.push(`Closes Day ${close}`);
+  return parts.join(" · ");
+}
 
 const ITEM_ICONS = {
   page: FileText,
@@ -44,12 +74,8 @@ export default function ModuleItemRow({ item, courseId, isTeacher, onTogglePubli
     : item.item_type === "discussion" ? `/course/${courseId}/discussions/${item.content_id}`
     : `/course/${courseId}/files`;
 
-  const formatDate = (d) => {
-    if (!d) return null;
-    try {
-      return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-    } catch { return null; }
-  };
+  const schedule = itemScheduleText(item);
+  const statusHint = ITEM_STATUS_HINTS[item.status];
 
   // Sub-header rendering
   if (isSubHeader) {
@@ -112,13 +138,17 @@ export default function ModuleItemRow({ item, courseId, isTeacher, onTogglePubli
         </span>
       ) : null}
 
-      {/* Relative Offsets & Resolved Dates */}
-      <div className="flex items-center gap-2 ml-auto text-[11px] text-slate-400 shrink-0">
-        <span>Rel: Day {item.release_day || 0}</span>
-        <span>·</span>
-        <span>Due: Day {item.due_day || 7}</span>
-        {item.due_at && <span className="font-semibold text-slate-600">({formatDate(item.due_at)})</span>}
-      </div>
+      {/* Resolved dates (falls back to day offsets when the course has no start date) */}
+      {(schedule || statusHint) && (
+        <div className="flex items-center gap-1.5 ml-auto text-[11px] text-slate-500 shrink-0">
+          {schedule && <span>{schedule}</span>}
+          {statusHint && (
+            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${statusHint.cls}`}>
+              {statusHint.label}
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 

@@ -9,6 +9,7 @@ const SECTION_LABELS = {
   announcements: "Announcements",
   syllabus: "Syllabus",
   modules: "Modules",
+  calendar: "Calendar",
   grades: "Grades",
   people: "People",
   assignments: "Assignments",

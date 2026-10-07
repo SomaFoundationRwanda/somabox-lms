@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { X, Plus, Trash2, Check, Sparkles } from "lucide-react";
 import InfoTooltip from "@/components/ui/InfoTooltip";
+import ScheduleFields, { initialScheduleValues, scheduleError, schedulePayload } from "./ScheduleFields";
 
 function QuestionBuilder({ question, index, onChange, onRemove }) {
   const updateField = (field, value) => onChange(index, { ...question, [field]: value });
@@ -122,12 +123,13 @@ function QuestionBuilder({ question, index, onChange, onRemove }) {
   );
 }
 
-export default function QuizEditorModal({ open, onClose, onSave, initialData }) {
+// initialDays: the module item's { release_day, due_day, close_day } when editing.
+// moduleStartDate: the module's first day ('YYYY-MM-DD'), for previewing dates.
+export default function QuizEditorModal({ open, onClose, onSave, initialData, initialDays, moduleStartDate }) {
   const isEdit = Boolean(initialData?.id);
   const [title, setTitle] = useState(initialData?.title || "");
   const [description, setDescription] = useState(initialData?.description || "");
-  const [releaseDay, setReleaseDay] = useState(initialData?.release_day ?? 0);
-  const [dueDay, setDueDay] = useState(initialData?.due_day ?? 7);
+  const [schedule, setSchedule] = useState(() => initialScheduleValues(initialDays));
   const [kind, setKind] = useState(initialData?.kind || "graded");
   const [attemptsAllowed, setAttemptsAllowed] = useState(
     initialData?.attempts_allowed === null || initialData?.attempts_allowed === undefined
@@ -156,14 +158,13 @@ export default function QuizEditorModal({ open, onClose, onSave, initialData }) 
   const removeQuestion = (index) => setQuestions((prev) => prev.filter((_, i) => i !== index));
 
   const handleSave = async () => {
-    if (!title.trim()) return;
+    if (!title.trim() || scheduleError(schedule)) return;
     setSaving(true);
     try {
       await onSave({
         title: title.trim(),
         description,
-        releaseDay: Number(releaseDay) || 0,
-        dueDay: Number(dueDay) || 7,
+        ...schedulePayload(schedule),
         kind,
         attemptsAllowed: attemptsAllowed === "" ? null : Math.max(1, Number(attemptsAllowed) || 1),
         questions,
@@ -243,32 +244,8 @@ export default function QuizEditorModal({ open, onClose, onSave, initialData }) 
             </div>
           </div>
 
-          {/* Relative Timing */}
-          <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl">
-            <div>
-              <label className="block text-[11px] font-bold text-slate-700 mb-1">Release Day (Relative)</label>
-              <input
-                type="number"
-                min="0"
-                value={releaseDay}
-                onChange={(e) => setReleaseDay(e.target.value)}
-                className="w-full text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none bg-white"
-              />
-              <span className="text-[10px] text-slate-400">Days from module start</span>
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-bold text-slate-700 mb-1">Due Day (Relative)</label>
-              <input
-                type="number"
-                min="0"
-                value={dueDay}
-                onChange={(e) => setDueDay(e.target.value)}
-                className="w-full text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none bg-white"
-              />
-              <span className="text-[10px] text-slate-400">Days from module start</span>
-            </div>
-          </div>
+          {/* Relative timing */}
+          <ScheduleFields values={schedule} onChange={setSchedule} moduleStartDate={moduleStartDate} />
 
           <div className="pt-2">
             <div className="flex items-center justify-between mb-3">
@@ -294,7 +271,7 @@ export default function QuizEditorModal({ open, onClose, onSave, initialData }) 
           </button>
           <button
             onClick={handleSave}
-            disabled={saving || !title.trim()}
+            disabled={saving || !title.trim() || Boolean(scheduleError(schedule))}
             className="text-xs font-semibold text-white bg-[#0D9488] hover:bg-teal-700 disabled:opacity-50 rounded-lg px-4 py-2 transition-colors"
           >
             {saving ? "Saving..." : isEdit ? "Save Changes" : "Create Quiz"}

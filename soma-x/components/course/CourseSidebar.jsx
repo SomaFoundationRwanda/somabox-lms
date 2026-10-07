@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BookOpen,
+  CalendarDays,
   ClipboardList,
   EyeOff,
   FileText,
@@ -27,6 +28,7 @@ const NAV_ICONS = {
   announcements: Megaphone,
   syllabus: BookOpen,
   modules: Layers,
+  calendar: CalendarDays,
   grades: GraduationCap,
   people: Users,
   assignments: ClipboardList,

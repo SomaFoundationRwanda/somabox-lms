@@ -11,7 +11,6 @@ import {
   requireNavVisible,
   getCourseModuleItem,
   courseExists,
-  normalizeDueAt,
   calculateEstimatedReadMinutes,
   syncPageFileReferences,
   upload,
@@ -26,7 +25,9 @@ import {
   needsOutcomeBeforePublish,
   replaceQuizQuestions,
   sendItemError,
+  updateItemDays,
 } from "./items.js";
+import { datesPayload, loadCourseTimeline, parseItemDays, refreshDueDates } from "./schedule.js";
 
 const router = express.Router();
 
@@ -92,6 +93,10 @@ router.get("/:id/modules", async (req, res) => {
     const isTeacher = isTeacherRole(auth.enrollment.role);
 
     const modules = await localDb.prepare("SELECT * FROM modules WHERE course_id = ? ORDER BY position ASC").all(courseId);
+    // Resolved dates and statuses (from the course start date and each item's day offsets).
+    const tl = await loadCourseTimeline(courseId);
+    const moduleDates = new Map(tl.modules.map((m) => [Number(m.id), m]));
+    const itemDates = new Map(tl.items.map((i) => [Number(i.id), i]));
     const result = await Promise.all(modules
       .filter((m) => isTeacher || Number(m.published) === 1)
       .map(async (moduleRow) => {
@@ -103,6 +108,7 @@ router.get("/:id/modules", async (req, res) => {
               ...item,
               published: Number(item.published) === 1,
               indent_level: Number(item.indent_level) || 0,
+              ...datesPayload(itemDates.get(Number(item.id)) || {}),
             };
             if (item.item_type === 'assignment' && item.content_id) {
               const assignment = await localDb.prepare("SELECT due_at, points_possible FROM assignments WHERE id = ?").get(item.content_id);
@@ -134,7 +140,15 @@ router.get("/:id/modules", async (req, res) => {
             }
             return enriched;
           }));
-        return { ...moduleRow, published: Number(moduleRow.published) === 1, items };
+        const dates = moduleDates.get(Number(moduleRow.id)) || {};
+        return {
+          ...moduleRow,
+          published: Number(moduleRow.published) === 1,
+          startDate: dates.startDate ?? null,
+          endDate: dates.endDate ?? null,
+          status: dates.status ?? "undated",
+          items,
+        };
       }));
 
     return res.json(result);
@@ -174,9 +188,10 @@ router.post("/:id/modules", async (req, res) => {
     const maxPosition = Number((await localDb.prepare("SELECT COALESCE(MAX(position), -1) AS m FROM modules WHERE course_id = ? AND kind <> 'unassigned'").get(courseId))?.m ?? -1);
 
     const info = await localDb.prepare(`
-      INSERT INTO modules (course_id, title, description, position, published, due_at, created_by_teacher_email, kind, week_offset)
-      VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?)
-    `).run(courseId, title, req.body.description || "", maxPosition + 1, normalizeDueAt(req.body.dueAt), auth.email, kind, weekOffset);
+      INSERT INTO modules (course_id, title, description, position, published, created_by_teacher_email, kind, week_offset, day_offset)
+      VALUES (?, ?, ?, ?, 0, ?, ?, ?, 0)
+    `).run(courseId, title, req.body.description || "", maxPosition + 1, auth.email, kind, weekOffset);
+    await refreshDueDates(courseId);
 
     return res.status(201).json({ id: Number(info.lastInsertRowid), title, position: maxPosition + 1, kind, week_offset: weekOffset });
   } catch (error) {
@@ -194,7 +209,7 @@ router.patch("/:id/modules/:moduleId", async (req, res) => {
     const moduleRow = await localDb.prepare("SELECT * FROM modules WHERE id = ? AND course_id = ?").get(req.params.moduleId, courseId);
     if (!moduleRow) return res.status(404).json({ message: "Module not found" });
 
-    const { title, description, published, position, dueAt, weekOffset } = req.body;
+    const { title, description, published, position, weekOffset, dayOffset } = req.body;
     const updates = [];
     const params = [];
     if (weekOffset !== undefined) {
@@ -203,16 +218,22 @@ router.patch("/:id/modules/:moduleId", async (req, res) => {
       if (!Number.isInteger(week) || week < 1) return res.status(400).json({ message: "weekOffset must be a whole number of 1 or more (week 0 is the baseline module)" });
       updates.push("week_offset = ?"); params.push(week);
     }
+    if (dayOffset !== undefined) {
+      const day = Number(dayOffset);
+      if (moduleRow.kind === "unassigned") return res.status(400).json({ message: "The Unassigned module has no dates" });
+      if (!Number.isInteger(day) || day < 0 || day > 6) return res.status(400).json({ message: "dayOffset must be 0-6 (days into the module's week)" });
+      updates.push("day_offset = ?"); params.push(day);
+    }
     if (title !== undefined) { updates.push("title = ?"); params.push(title); }
     if (description !== undefined) { updates.push("description = ?"); params.push(description); }
     if (published !== undefined) { updates.push("published = ?"); params.push(published ? 1 : 0); }
     if (position !== undefined) { updates.push("position = ?"); params.push(Number(position)); }
-    if (dueAt !== undefined) { updates.push("due_at = ?"); params.push(normalizeDueAt(dueAt)); }
     if (!updates.length) return res.status(400).json({ message: "No fields to update" });
 
     updates.push("updated_at = CURRENT_TIMESTAMP");
     params.push(req.params.moduleId, courseId);
     await localDb.prepare(`UPDATE modules SET ${updates.join(", ")} WHERE id = ? AND course_id = ?`).run(...params);
+    if (weekOffset !== undefined || dayOffset !== undefined) await refreshDueDates(courseId);
 
     return res.json(await localDb.prepare("SELECT * FROM modules WHERE id = ?").get(req.params.moduleId));
   } catch (error) {
@@ -371,7 +392,8 @@ router.patch("/:id/modules/:moduleId/items/:itemId", async (req, res) => {
     if (position !== undefined) { updates.push("position = ?"); params.push(Number(position)); }
     if (title !== undefined) { updates.push("title = ?"); params.push(title); }
     if (indentLevel !== undefined) { updates.push("indent_level = ?"); params.push(Math.min(3, Math.max(0, Number(indentLevel)))); }
-    if (!updates.length && moduleId === undefined) return res.status(400).json({ message: "No fields to update" });
+    const hasDays = ["releaseDay", "dueDay", "closeDay"].some((k) => req.body[k] !== undefined);
+    if (!updates.length && moduleId === undefined && !hasDays) return res.status(400).json({ message: "No fields to update" });
 
     const item = await getCourseModuleItem(courseId, req.params.itemId);
     if (!item) return res.status(404).json({ message: "Module item not found" });
@@ -391,6 +413,12 @@ router.patch("/:id/modules/:moduleId/items/:itemId", async (req, res) => {
       }
       if (updates.length) {
         await localDb.prepare(`UPDATE module_items SET ${updates.join(", ")} WHERE id = ?`).run(...params, item.id);
+      }
+      if (hasDays) {
+        const days = parseItemDays(item.item_type, req.body, item);
+        await localDb.prepare("UPDATE module_items SET release_day = ?, due_day = ?, close_day = ? WHERE id = ?")
+          .run(days.release_day, days.due_day, days.close_day, item.id);
+        await refreshDueDates(courseId);
       }
       // The listing and its content are published together.
       if (published !== undefined && CONTENT_TABLES[item.item_type]) {
@@ -427,6 +455,8 @@ router.patch("/:id/modules/:moduleId/items/:itemId/content", async (req, res) =>
     if (req.body.published !== undefined) {
       await localDb.prepare("UPDATE module_items SET published = ? WHERE id = ?").run(req.body.published ? 1 : 0, item.id);
     }
+    // Release/due/close days live on the listing, whatever the content type.
+    await updateItemDays(courseId, item.item_type, contentId, req.body);
 
     if (item.item_type === 'page') {
       const { title, body, bodyJson, bodyHtml, published } = req.body;
@@ -462,12 +492,11 @@ router.patch("/:id/modules/:moduleId/items/:itemId/content", async (req, res) =>
     }
 
     if (item.item_type === 'assignment') {
-      const { title, description, dueAt, pointsPossible, published } = req.body;
+      const { title, description, pointsPossible, published } = req.body;
       const updates = [];
       const params = [];
       if (title !== undefined) { updates.push("title = ?"); params.push(title); }
       if (description !== undefined) { updates.push("description = ?"); params.push(description); }
-      if (dueAt !== undefined) { updates.push("due_at = ?"); params.push(normalizeDueAt(dueAt)); }
       if (pointsPossible !== undefined) { updates.push("points_possible = ?"); params.push(Number(pointsPossible)); }
       if (published !== undefined) { updates.push("published = ?"); params.push(published ? 1 : 0); }
       if (updates.length) {
@@ -482,12 +511,11 @@ router.patch("/:id/modules/:moduleId/items/:itemId/content", async (req, res) =>
     }
 
     if (item.item_type === 'quiz') {
-      const { title, description, dueAt, published, questions, kind, attemptsAllowed, timeLimitMinutes } = req.body;
+      const { title, description, published, questions, kind, attemptsAllowed, timeLimitMinutes } = req.body;
       const updates = [];
       const params = [];
       if (title !== undefined) { updates.push("title = ?"); params.push(title); }
       if (description !== undefined) { updates.push("description = ?"); params.push(description); }
-      if (dueAt !== undefined) { updates.push("due_at = ?"); params.push(normalizeDueAt(dueAt)); }
       if (published !== undefined) { updates.push("published = ?"); params.push(published ? 1 : 0); }
       if (kind !== undefined) {
         if (!["baseline", "practice", "graded"].includes(kind)) return res.status(400).json({ message: "kind must be baseline, practice, or graded" });

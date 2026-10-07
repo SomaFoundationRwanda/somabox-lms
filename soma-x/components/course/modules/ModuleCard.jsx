@@ -15,6 +15,7 @@ import {
 import ModuleItemRow from "./ModuleItemRow";
 import { useToast } from "@/context/ToastContext";
 import { moduleWeekLabel, isUnassignedModule } from "@/lib/moduleLabels";
+import { formatRange } from "@/lib/dates";
 
 async function readError(res, fallback) {
   const payload = await res.json().catch(() => ({}));
@@ -145,6 +146,21 @@ export default function ModuleCard({
           }`}>
             {moduleWeekLabel(moduleRow)}
           </span>
+          {!isUnassigned && moduleRow.startDate && (
+            <span className={`text-[11px] font-medium shrink-0 ${moduleRow.status === "past" ? "text-slate-400" : "text-slate-600"}`}>
+              {formatRange(moduleRow.startDate, moduleRow.endDate)}
+            </span>
+          )}
+          {!isUnassigned && moduleRow.status === "current" && (
+            <span className="text-[9px] font-bold uppercase text-white bg-[#0D9488] px-1.5 py-0.5 rounded shrink-0">
+              Current
+            </span>
+          )}
+          {!isUnassigned && moduleRow.status === "past" && (
+            <span className="text-[9px] font-semibold uppercase text-slate-400 border border-slate-200 px-1.5 py-0.5 rounded shrink-0">
+              Past
+            </span>
+          )}
           {editingTitle ? (
             <input
               value={titleDraft}

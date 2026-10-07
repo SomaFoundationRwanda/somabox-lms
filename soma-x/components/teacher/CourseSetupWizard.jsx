@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { CheckCircle2, ChevronRight, Sparkles, Plus, Trash2, ArrowRight, Target, Calendar, BookOpen, Layers } from "lucide-react";
 import { moduleWeekLabel } from "@/lib/moduleLabels";
+import { isDateString, todayIn } from "@somabox/timeline";
+import { formatDate, toDateInput } from "@/lib/dates";
 
 export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, course, onCompleted }) {
   const [step, setStep] = useState(1);
@@ -12,7 +14,7 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
   // Step 1 State: Setup
   const [setupForm, setSetupForm] = useState({
     title: course?.title || "",
-    startDate: course?.start_date ? new Date(course.start_date).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+    startDate: toDateInput(course?.start_date) || todayIn(),
     lengthWeeks: course?.length_weeks || 4,
     gradingScale: "A:90, B:80, C:70, D:60, F:<60",
   });
@@ -54,9 +56,14 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
 
   // Step 1: Save Course details & next
   const saveStep1 = async () => {
+    if (!isDateString(setupForm.startDate)) {
+      setError("Choose a start date.");
+      return;
+    }
     setLoading(true);
+    setError("");
     try {
-      await fetch(`${SERVER_URL}/courses/${courseId}`, {
+      const res = await fetch(`${SERVER_URL}/courses/${courseId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -65,6 +72,10 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
           lengthWeeks: setupForm.lengthWeeks,
         }),
       });
+      if (!res.ok) {
+        const payload = await res.json().catch(() => ({}));
+        throw new Error(payload?.message || "Failed to update course details");
+      }
       setStep(2);
     } catch (err) {
       setError(err.message || "Failed to update course details");
@@ -266,7 +277,7 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
                   onChange={(e) => setSetupForm((p) => ({ ...p, startDate: e.target.value }))}
                   className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:border-[#0D9488]"
                 />
-                <p className="text-[11px] text-slate-500 mt-1">Week 0 Baseline starts immediately on this date.</p>
+                <p className="text-[11px] text-slate-500 mt-1">Week 1 starts on this date. A Week 0 baseline, if you add one, is the 7 days before it.</p>
               </div>
 
               <div>
@@ -485,7 +496,7 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
             <div className="p-4 border border-slate-200 rounded-2xl space-y-4 bg-slate-50">
               <div>
                 <h3 className="text-base font-bold text-slate-900">{setupForm.title}</h3>
-                <p className="text-xs text-slate-500">Starts: {setupForm.startDate} · Duration: {setupForm.lengthWeeks} Weeks</p>
+                <p className="text-xs text-slate-500">Starts: {formatDate(setupForm.startDate) || "Not set"} · Duration: {setupForm.lengthWeeks} Weeks</p>
               </div>
 
               <div>

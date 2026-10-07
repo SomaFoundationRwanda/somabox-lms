@@ -2,13 +2,15 @@
 
 import { useState } from "react";
 import { X, Sparkles, Target } from "lucide-react";
+import ScheduleFields, { initialScheduleValues, scheduleError, schedulePayload } from "./ScheduleFields";
 
-export default function AssignmentEditorModal({ open, onClose, onSave, initialData }) {
+// initialDays: the module item's { release_day, due_day, close_day } when editing.
+// moduleStartDate: the module's first day ('YYYY-MM-DD'), for previewing dates.
+export default function AssignmentEditorModal({ open, onClose, onSave, initialData, initialDays, moduleStartDate }) {
   const isEdit = Boolean(initialData?.id);
   const [title, setTitle] = useState(initialData?.title || "");
   const [description, setDescription] = useState(initialData?.description || "");
-  const [releaseDay, setReleaseDay] = useState(initialData?.release_day ?? 0);
-  const [dueDay, setDueDay] = useState(initialData?.due_day ?? 7);
+  const [schedule, setSchedule] = useState(() => initialScheduleValues(initialDays));
   const [pointsPossible, setPointsPossible] = useState(initialData?.points_possible ?? 100);
   const [rubricDraft, setRubricDraft] = useState(initialData?.rubric_draft || "");
   const [saving, setSaving] = useState(false);
@@ -24,14 +26,13 @@ export default function AssignmentEditorModal({ open, onClose, onSave, initialDa
   };
 
   const handleSave = async () => {
-    if (!title.trim()) return;
+    if (!title.trim() || scheduleError(schedule)) return;
     setSaving(true);
     try {
       await onSave({
         title: title.trim(),
         description,
-        releaseDay: Number(releaseDay) || 0,
-        dueDay: Number(dueDay) || 7,
+        ...schedulePayload(schedule),
         pointsPossible: Number(pointsPossible) || 100,
         rubricDraft,
       });
@@ -79,42 +80,19 @@ export default function AssignmentEditorModal({ open, onClose, onSave, initialDa
             />
           </div>
 
-          {/* Relative Timing */}
-          <div className="grid grid-cols-3 gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl">
-            <div>
-              <label className="block text-[11px] font-bold text-slate-700 mb-1">Release Day (Relative)</label>
-              <input
-                type="number"
-                min="0"
-                value={releaseDay}
-                onChange={(e) => setReleaseDay(e.target.value)}
-                className="w-full text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none bg-white"
-              />
-              <span className="text-[10px] text-slate-400">Days from module start</span>
-            </div>
+          {/* Relative timing */}
+          <ScheduleFields values={schedule} onChange={setSchedule} moduleStartDate={moduleStartDate} />
 
-            <div>
-              <label className="block text-[11px] font-bold text-slate-700 mb-1">Due Day (Relative)</label>
-              <input
-                type="number"
-                min="0"
-                value={dueDay}
-                onChange={(e) => setDueDay(e.target.value)}
-                className="w-full text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none bg-white"
-              />
-              <span className="text-[10px] text-slate-400">Days from module start</span>
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-bold text-slate-700 mb-1">Points Possible</label>
-              <input
-                type="number"
-                min="0"
-                value={pointsPossible}
-                onChange={(e) => setPointsPossible(e.target.value)}
-                className="w-full text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none bg-white"
-              />
-            </div>
+          <div className="max-w-[10rem]">
+            <label htmlFor="assignment-points" className="block text-[11px] font-bold text-slate-700 mb-1">Points Possible</label>
+            <input
+              id="assignment-points"
+              type="number"
+              min="0"
+              value={pointsPossible}
+              onChange={(e) => setPointsPossible(e.target.value)}
+              className="w-full text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none bg-white focus:border-[#0D9488]"
+            />
           </div>
 
           {/* Rubric Generator from Tagged Outcomes */}
@@ -145,7 +123,7 @@ export default function AssignmentEditorModal({ open, onClose, onSave, initialDa
           </button>
           <button
             onClick={handleSave}
-            disabled={saving || !title.trim()}
+            disabled={saving || !title.trim() || Boolean(scheduleError(schedule))}
             className="text-xs font-semibold text-white bg-[#0D9488] hover:bg-teal-700 disabled:opacity-50 rounded-lg px-4 py-2 transition-colors"
           >
             {saving ? "Saving..." : isEdit ? "Save Changes" : "Create Assignment"}

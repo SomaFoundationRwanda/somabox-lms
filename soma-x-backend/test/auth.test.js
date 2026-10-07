@@ -86,6 +86,10 @@ const POLICY = {
   "POST /courses/:id/join": "any",
   "POST /courses/:id/enroll": "any",
   "POST /courses/:id/accept-invite": "any",
+
+  "GET /calendar/me": "any",
+  "GET /calendar/me.ics": "any",
+  "GET /calendar/school": "admin",
 };
 
 let ctx;

@@ -1,5 +1,5 @@
 "use client"
-import { BookOpen, BookMarked, Compass, Globe, LayoutDashboard, Library, LogOut, Menu, PanelLeftClose, PanelLeftOpen, RefreshCcw, UserRound, X } from "lucide-react";
+import { BookOpen, BookMarked, CalendarDays, Compass, Globe, LayoutDashboard, Library, LogOut, Menu, PanelLeftClose, PanelLeftOpen, RefreshCcw, UserRound, X } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { useContext, useEffect, useState } from "react";
@@ -55,6 +55,7 @@ export default function SomaboxNav() {
         { id: "explore", label: "Explore", Icon: Compass, to: "/home" }
       ]
       : []),
+    { id: "calendar", label: "Calendar", Icon: CalendarDays, to: "/calendar" },
   ];
 
   const managementNavItems = (currentRole === 'admin' || currentRole === 'teacher')

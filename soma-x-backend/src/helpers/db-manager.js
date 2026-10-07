@@ -6,6 +6,10 @@ import bcrypt from 'bcrypt';
 
 const { Pool } = pg;
 
+// Return DATE columns as 'YYYY-MM-DD' strings. The default turns them into a JS Date at local
+// midnight, which shifts the day in some time zones.
+pg.types.setTypeParser(1082, (value) => value);
+
 // Create PostgreSQL connection pool
 export const pool = new Pool(
     config.db.connectionString
@@ -212,6 +216,7 @@ export const DEFAULT_NAV_ITEMS = [
     { nav_key: 'files', label: 'Files', visible_to_students: 0 },
     { nav_key: 'collaborations', label: 'Collaborations', visible_to_students: 0 },
     { nav_key: 'settings', label: 'Settings', visible_to_students: 0 },
+    { nav_key: 'calendar', label: 'Calendar', visible_to_students: 1 },
 ];
 
 export async function seedDefaultNavItems(courseId) {
