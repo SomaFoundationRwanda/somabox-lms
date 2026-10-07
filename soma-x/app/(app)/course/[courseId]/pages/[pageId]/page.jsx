@@ -179,7 +179,7 @@ export default function PageDetailPage() {
         <PrevNextNav
           courseId={courseId}
           itemType="page"
-          contentRefId={pageId}
+          contentId={pageId}
         />
       </div>
     </div>

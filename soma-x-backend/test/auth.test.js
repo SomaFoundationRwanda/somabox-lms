@@ -211,7 +211,7 @@ test("teacher-only course routes reject enrolled students with 403", async () =>
 
 test("course items can't be edited through another course", async () => {
   const otherCourse = await ctx.createCourse("Other");
-  const mod = await ctx.db.prepare("INSERT INTO modules (course_id, title) VALUES (?, 'Week 1') RETURNING id").get(otherCourse);
+  const mod = await ctx.db.prepare("INSERT INTO modules (course_id, title, week_offset) VALUES (?, 'Week 1', 1) RETURNING id").get(otherCourse);
   const item = await ctx.db.prepare("INSERT INTO module_items (module_id, item_type, title, position) VALUES (?, 'sub_header', 'Keep me', 0) RETURNING id").get(mod.id);
   // otherTeacher owns a course of their own, then tries to touch the first teacher's item.
   const own = await ctx.api("POST", "/courses", { token: ctx.tokens.otherTeacher, body: { title: "Mine" } });

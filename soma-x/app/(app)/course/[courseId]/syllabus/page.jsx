@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { BookOpen, Calendar, Target, Layers, Award } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
+import { moduleWeekLabel } from "@/lib/moduleLabels";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
 
 export default function SyllabusPage() {
@@ -115,7 +116,7 @@ export default function SyllabusPage() {
                 <div key={m.id} className="p-4 border border-slate-200 rounded-2xl space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-[#0D9488] bg-teal-50 px-2.5 py-1 rounded-full border border-teal-200">
-                      Week {m.week_offset || 1} Slot
+                      {moduleWeekLabel(m)}
                     </span>
                   </div>
                   <h3 className="text-sm font-bold text-slate-900">{m.title}</h3>

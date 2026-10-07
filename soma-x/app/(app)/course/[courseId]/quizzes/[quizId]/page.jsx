@@ -6,6 +6,7 @@ import { HelpCircle, Target, Sparkles, CheckCircle2, Clock } from "lucide-react"
 import { useCourse } from "@/context/CourseContext";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
 import PrevNextNav from "@/components/course/navigation/PrevNextNav";
+import { moduleWeekLabel } from "@/lib/moduleLabels";
 
 function getOptionText(opt) {
   if (opt === null || opt === undefined) return "";
@@ -28,6 +29,8 @@ export default function QuizDetailPage() {
   const [answers, setAnswers] = useState({});
   const [loading, setLoading] = useState(true);
   const [submitted, setSubmitted] = useState(null);
+  const [submitError, setSubmitError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const load = async () => {
     if (!SERVER_URL || !courseId || !quizId) return;
@@ -58,20 +61,33 @@ export default function QuizDetailPage() {
   }, [SERVER_URL, courseId, quizId, userEmail]);
 
   const submitQuiz = async () => {
-    const res = await fetch(`${SERVER_URL}/courses/${courseId}/quizzes/${quizId}/submit`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ answers }),
-    });
-    const payload = await res.json();
-    if (res.ok) setSubmitted(payload.score);
-    load();
+    setSubmitError("");
+    setSubmitting(true);
+    try {
+      const res = await fetch(`${SERVER_URL}/courses/${courseId}/quizzes/${quizId}/submit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ answers }),
+      });
+      const payload = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setSubmitted(payload.score);
+      } else {
+        setSubmitError(payload.message || "Failed to submit quiz.");
+      }
+      load();
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (loading) return <div className="p-6"><p className="text-sm text-slate-500">Loading quiz...</p></div>;
   if (!quiz) return <div className="p-6"><p className="text-sm text-rose-600">Quiz not found.</p></div>;
 
-  const currentModule = modules.find(m => m.id === quiz.module_id) || modules[0] || null;
+  const currentModule = quiz.module || modules.find(m => m.id === quiz.module_id) || null;
+  const attemptsAllowed = quiz.attempts_allowed ?? null;
+  const attemptsUsed = Number(quiz.attemptsUsed || 0);
+  const noAttemptsLeft = quiz.attemptsRemaining === 0;
 
   return (
     <div>
@@ -82,7 +98,7 @@ export default function QuizDetailPage() {
         <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-3">
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold text-[#0D9488] bg-teal-50 border border-teal-200 px-2.5 py-1 rounded-full">
-              Module: {currentModule ? `Week ${currentModule.week_offset || 1} - ${currentModule.title}` : "Module Week Slot"}
+              Module: {currentModule ? `${moduleWeekLabel(currentModule)} - ${currentModule.title}` : "Not in a module"}
             </span>
             <span className="text-xs font-semibold text-slate-500 flex items-center gap-1">
               <Clock className="w-3.5 h-3.5 text-slate-400" /> Due: Day {quiz.due_day ?? 7}
@@ -97,7 +113,9 @@ export default function QuizDetailPage() {
             <span className="text-xs font-bold text-slate-500 flex items-center gap-1">
               <Target className="w-3.5 h-3.5 text-[#0D9488]" /> Target Outcomes Assessed:
             </span>
-            {itemOutcomes.length === 0 ? (
+            {itemOutcomes.length === 0 && quiz.kind === "practice" ? (
+              <span className="text-xs text-slate-400">Practice quiz (not graded)</span>
+            ) : itemOutcomes.length === 0 ? (
               <span className="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full">
                 ⚠️ Missing Outcome Tag
               </span>
@@ -162,18 +180,32 @@ export default function QuizDetailPage() {
           ))}
 
           {!isTeacher && (
-            <div className="pt-2 flex justify-end">
+            <div className="pt-2 flex flex-col items-end gap-2">
+              <span className="text-xs font-semibold text-slate-500">
+                {attemptsAllowed == null
+                  ? "Unlimited attempts"
+                  : noAttemptsLeft
+                  ? `All ${attemptsAllowed} attempt(s) used`
+                  : `Attempt ${attemptsUsed + 1} of ${attemptsAllowed}`}
+              </span>
+              {noAttemptsLeft && (
+                <p className="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-xl">
+                  You&apos;ve used all your attempts for this quiz.
+                </p>
+              )}
+              {submitError && <p className="text-xs font-semibold text-rose-600">{submitError}</p>}
               <button
                 onClick={submitQuiz}
-                className="px-6 py-2.5 bg-[#0D9488] hover:bg-teal-700 text-white font-bold text-xs rounded-xl shadow-sm transition-colors"
+                disabled={noAttemptsLeft || submitting}
+                className="px-6 py-2.5 bg-[#0D9488] hover:bg-teal-700 disabled:opacity-50 disabled:hover:bg-[#0D9488] text-white font-bold text-xs rounded-xl shadow-sm transition-colors"
               >
-                Submit Quiz Answers
+                {submitting ? "Submitting..." : "Submit Quiz Answers"}
               </button>
             </div>
           )}
         </div>
 
-        <PrevNextNav courseId={courseId} itemType="quiz" contentRefId={quizId} />
+        <PrevNextNav courseId={courseId} itemType="quiz" contentId={quizId} />
       </div>
     </div>
   );

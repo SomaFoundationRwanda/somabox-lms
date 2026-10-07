@@ -14,9 +14,19 @@ import {
   normalizeDueAt,
   calculateEstimatedReadMinutes,
   syncPageFileReferences,
-  CONTENT_TABLE_MAP,
   upload,
 } from "./shared.js";
+import {
+  CONTENT_TABLES,
+  OUTCOME_REQUIRED_MESSAGE,
+  createModuleContent,
+  deleteContent,
+  getUnassignedModule,
+  moveContentToModule,
+  needsOutcomeBeforePublish,
+  replaceQuizQuestions,
+  sendItemError,
+} from "./items.js";
 
 const router = express.Router();
 
@@ -73,8 +83,6 @@ router.patch("/:id/modules/:moduleId/items/reorder", async (req, res) => {
 
 // ===== Modules =====
 
-
-
 router.get("/:id/modules", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
@@ -96,19 +104,28 @@ router.get("/:id/modules", async (req, res) => {
               published: Number(item.published) === 1,
               indent_level: Number(item.indent_level) || 0,
             };
-            if (item.item_type === 'assignment' && item.content_ref_id) {
-              const assignment = await localDb.prepare("SELECT due_at, points_possible FROM assignments WHERE id = ?").get(item.content_ref_id);
+            if (item.item_type === 'assignment' && item.content_id) {
+              const assignment = await localDb.prepare("SELECT due_at, points_possible FROM assignments WHERE id = ?").get(item.content_id);
               if (assignment) {
                 enriched.due_at = assignment.due_at;
                 enriched.points_possible = assignment.points_possible;
               }
             }
-            if (item.item_type === 'quiz' && item.content_ref_id) {
-              const quiz = await localDb.prepare("SELECT due_at FROM quizzes WHERE id = ?").get(item.content_ref_id);
-              if (quiz) enriched.due_at = quiz.due_at;
+            if (item.item_type === 'quiz' && item.content_id) {
+              const quiz = await localDb.prepare("SELECT due_at, kind FROM quizzes WHERE id = ?").get(item.content_id);
+              if (quiz) {
+                enriched.due_at = quiz.due_at;
+                enriched.quiz_kind = quiz.kind;
+              }
             }
-            if (item.item_type === 'file' && item.content_ref_id) {
-              const file = await localDb.prepare("SELECT original_name, filename, content_type FROM course_files WHERE id = ?").get(item.content_ref_id);
+            if (['assignment', 'quiz', 'page', 'discussion'].includes(item.item_type) && item.content_id) {
+              enriched.outcomes = await localDb.prepare(`
+                SELECT o.id, o.code, o.title FROM item_outcomes io JOIN outcomes o ON o.id = io.outcome_id
+                WHERE io.item_type = ? AND io.item_id = ? ORDER BY o.id
+              `).all(item.item_type, item.content_id);
+            }
+            if (item.item_type === 'file' && item.content_id) {
+              const file = await localDb.prepare("SELECT original_name, filename, content_type FROM course_files WHERE id = ?").get(item.content_id);
               if (file) {
                 enriched.original_name = file.original_name;
                 enriched.filename = file.filename;
@@ -137,14 +154,31 @@ router.post("/:id/modules", async (req, res) => {
     const title = String(req.body.title || "").trim();
     if (!title) return res.status(400).json({ message: "title is required" });
 
-    const maxPosition = Number((await localDb.prepare("SELECT COALESCE(MAX(position), -1) AS m FROM modules WHERE course_id = ?").get(courseId))?.m ?? -1);
+    // "baseline" is the course's Week 0 (at most one). Everything else is a regular week.
+    const kind = req.body.kind === "baseline" ? "baseline" : "regular";
+    if (kind === "baseline") {
+      const existing = await localDb.prepare("SELECT id FROM modules WHERE course_id = ? AND kind = 'baseline'").get(courseId);
+      if (existing) return res.status(409).json({ message: "This course already has a baseline (Week 0) module" });
+    }
+    let weekOffset = 0;
+    if (kind === "regular") {
+      const requested = Number(req.body.weekOffset);
+      if (req.body.weekOffset !== undefined && (!Number.isInteger(requested) || requested < 1)) {
+        return res.status(400).json({ message: "weekOffset must be a whole number of 1 or more (week 0 is the baseline module)" });
+      }
+      const lastWeek = Number((await localDb.prepare("SELECT COALESCE(MAX(week_offset), 0) AS w FROM modules WHERE course_id = ? AND kind = 'regular'").get(courseId))?.w ?? 0);
+      weekOffset = req.body.weekOffset !== undefined ? requested : lastWeek + 1;
+    }
+
+    // New modules go before the "Unassigned (fix me)" holding module, which stays last.
+    const maxPosition = Number((await localDb.prepare("SELECT COALESCE(MAX(position), -1) AS m FROM modules WHERE course_id = ? AND kind <> 'unassigned'").get(courseId))?.m ?? -1);
 
     const info = await localDb.prepare(`
-      INSERT INTO modules (course_id, title, description, position, published, due_at, created_by_teacher_email)
-      VALUES (?, ?, ?, ?, 0, ?, ?)
-    `).run(courseId, title, req.body.description || "", maxPosition + 1, normalizeDueAt(req.body.dueAt), auth.email);
+      INSERT INTO modules (course_id, title, description, position, published, due_at, created_by_teacher_email, kind, week_offset)
+      VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?)
+    `).run(courseId, title, req.body.description || "", maxPosition + 1, normalizeDueAt(req.body.dueAt), auth.email, kind, weekOffset);
 
-    return res.status(201).json({ id: Number(info.lastInsertRowid), title, position: maxPosition + 1 });
+    return res.status(201).json({ id: Number(info.lastInsertRowid), title, position: maxPosition + 1, kind, week_offset: weekOffset });
   } catch (error) {
     console.error("Error creating module:", error);
     return res.status(500).json({ message: error.message });
@@ -157,9 +191,18 @@ router.patch("/:id/modules/:moduleId", async (req, res) => {
     if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
     if (!await requireTeacher(req, res, courseId)) return;
 
-    const { title, description, published, position, dueAt } = req.body;
+    const moduleRow = await localDb.prepare("SELECT * FROM modules WHERE id = ? AND course_id = ?").get(req.params.moduleId, courseId);
+    if (!moduleRow) return res.status(404).json({ message: "Module not found" });
+
+    const { title, description, published, position, dueAt, weekOffset } = req.body;
     const updates = [];
     const params = [];
+    if (weekOffset !== undefined) {
+      const week = Number(weekOffset);
+      if (moduleRow.kind !== "regular") return res.status(400).json({ message: "Only regular modules have a week number" });
+      if (!Number.isInteger(week) || week < 1) return res.status(400).json({ message: "weekOffset must be a whole number of 1 or more (week 0 is the baseline module)" });
+      updates.push("week_offset = ?"); params.push(week);
+    }
     if (title !== undefined) { updates.push("title = ?"); params.push(title); }
     if (description !== undefined) { updates.push("description = ?"); params.push(description); }
     if (published !== undefined) { updates.push("published = ?"); params.push(published ? 1 : 0); }
@@ -184,7 +227,18 @@ router.delete("/:id/modules/:moduleId", async (req, res) => {
     if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
     if (!await requireTeacher(req, res, courseId)) return;
 
-    await localDb.prepare("DELETE FROM modules WHERE id = ? AND course_id = ?").run(req.params.moduleId, courseId);
+    const moduleRow = await localDb.prepare("SELECT id FROM modules WHERE id = ? AND course_id = ?").get(req.params.moduleId, courseId);
+    if (!moduleRow) return res.status(404).json({ message: "Module not found" });
+    // Content always belongs to a module, so a module with items can't just disappear.
+    const contentCount = Number((await localDb.prepare("SELECT COUNT(*) AS c FROM module_items WHERE module_id = ? AND item_type <> 'sub_header'").get(moduleRow.id))?.c || 0);
+    if (contentCount > 0) {
+      return res.status(409).json({
+        message: `This module still has ${contentCount} item${contentCount === 1 ? "" : "s"}. Move or delete them first.`,
+        code: "MODULE_NOT_EMPTY",
+      });
+    }
+
+    await localDb.prepare("DELETE FROM modules WHERE id = ? AND course_id = ?").run(moduleRow.id, courseId);
     return res.status(204).end();
   } catch (error) {
     console.error("Error deleting module:", error);
@@ -214,90 +268,40 @@ router.post("/:id/modules/:moduleId/items", async (req, res) => {
       return res.status(400).json({ message: "Invalid itemType. Must be: page, assignment, quiz, file, discussion, or sub_header" });
     }
 
-    const maxPosition = Number((await localDb.prepare("SELECT COALESCE(MAX(position), -1) AS m FROM module_items WHERE module_id = ?").get(moduleRow.id))?.m ?? -1);
-
-    // Sub-header: no content record
+    // Sub-header: a label inside the module, no content record
     if (itemType === 'sub_header') {
+      const maxPosition = Number((await localDb.prepare("SELECT COALESCE(MAX(position), -1) AS m FROM module_items WHERE module_id = ?").get(moduleRow.id))?.m ?? -1);
       const info = await localDb.prepare(`
-        INSERT INTO module_items (module_id, item_type, item_ref_id, title, position, indent_level, published, content_ref_table, content_ref_id)
-        VALUES (?, 'sub_header', NULL, ?, ?, ?, 1, NULL, NULL)
+        INSERT INTO module_items (module_id, item_type, content_id, title, position, indent_level, published)
+        VALUES (?, 'sub_header', NULL, ?, ?, ?, 1)
       `).run(moduleRow.id, title, maxPosition + 1, indentLevel);
 
       return res.status(201).json({
         id: Number(info.lastInsertRowid), itemType: 'sub_header', title,
-        position: maxPosition + 1, indent_level: indentLevel, content_ref_id: null
+        position: maxPosition + 1, indent_level: indentLevel, content_id: null
       });
     }
 
-    // All other types: create content record + module item in a transaction
-    const createItemTx = localDb.transaction(async () => {
-      let contentRefId;
-      let contentRefTable = CONTENT_TABLE_MAP[itemType];
+    if (itemType === 'file') {
+      return res.status(400).json({ message: "Use POST /:id/modules/:moduleId/items/file for file uploads" });
+    }
 
-      if (itemType === 'page') {
-        const bodyJsonStr = req.body.bodyJson ? (typeof req.body.bodyJson === 'string' ? req.body.bodyJson : JSON.stringify(req.body.bodyJson)) : null;
-        const readMins = calculateEstimatedReadMinutes(bodyJsonStr, req.body.bodyHtml, req.body.body);
-        const r = await localDb.prepare(`
-          INSERT INTO course_pages (course_id, title, body, body_json, body_html, estimated_read_minutes, published, created_by_teacher_email)
-          VALUES (?, ?, ?, ?, ?, ?, 1, ?)
-        `).run(courseId, title, req.body.body || "", bodyJsonStr, req.body.bodyHtml || null, readMins, auth.email);
-        contentRefId = Number(r.lastInsertRowid);
-        await syncPageFileReferences(contentRefId, bodyJsonStr);
-      } else if (itemType === 'assignment') {
-        const r = await localDb.prepare(`
-          INSERT INTO assignments (course_id, title, description, due_at, points_possible, published, created_by_teacher_email)
-          VALUES (?, ?, ?, ?, ?, 1, ?)
-        `).run(courseId, title, req.body.description || "", normalizeDueAt(req.body.dueAt), Number(req.body.pointsPossible) || 100, auth.email);
-        contentRefId = Number(r.lastInsertRowid);
-      } else if (itemType === 'quiz') {
-        const r = await localDb.prepare(`
-          INSERT INTO quizzes (course_id, title, description, due_at, published, created_by_teacher_email)
-          VALUES (?, ?, ?, ?, 1, ?)
-        `).run(courseId, title, req.body.description || "", normalizeDueAt(req.body.dueAt), auth.email);
-        contentRefId = Number(r.lastInsertRowid);
-
-        // Insert quiz questions if provided
-        const questions = Array.isArray(req.body.questions) ? req.body.questions : [];
-        const insertQuestion = await localDb.prepare(`
-          INSERT INTO quiz_questions (quiz_id, position, prompt, question_type, options, correct_option, points)
-          VALUES (?, ?, ?, ?, ?, ?, ?)
-        `);
-        questions.forEach((q, idx) => {
-          const opts = Array.isArray(q.options) ? JSON.stringify(q.options) : JSON.stringify([]);
-          insertQuestion.run(
-            contentRefId, idx,
-            String(q?.prompt || "").trim() || "Untitled question",
-            q?.questionType === "open" ? "open" : "multiple_choice",
-            opts,
-            q?.correctOption || null,
-            Number(q?.points) || 1
-          );
-        });
-      } else if (itemType === 'discussion') {
-        const r = await localDb.prepare(`
-          INSERT INTO discussions (course_id, title, body, published, created_by_teacher_email)
-          VALUES (?, ?, ?, 1, ?)
-        `).run(courseId, title, req.body.body || "", auth.email);
-        contentRefId = Number(r.lastInsertRowid);
-      } else {
-        // file type handled by separate upload endpoint
-        throw new Error("Use POST /:id/modules/:moduleId/items/file for file uploads");
-      }
-
-      const info = await localDb.prepare(`
-        INSERT INTO module_items (module_id, item_type, item_ref_id, title, position, indent_level, published, content_ref_table, content_ref_id)
-        VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)
-      `).run(moduleRow.id, itemType, contentRefId, title, maxPosition + 1, indentLevel, contentRefTable, contentRefId);
-
-      return { moduleItemId: Number(info.lastInsertRowid), contentRefId, contentRefTable };
+    const result = await createModuleContent({
+      courseId,
+      moduleId: moduleRow.id,
+      itemType,
+      data: { ...req.body, title },
+      actorEmail: auth.email,
+      publish: req.body.published !== false,
+      indentLevel,
     });
-
-    const result = await createItemTx();
     return res.status(201).json({
-      id: result.moduleItemId, itemType, title, position: maxPosition + 1,
-      indent_level: indentLevel, content_ref_id: result.contentRefId, content_ref_table: result.contentRefTable
+      id: result.moduleItemId, itemType, title, position: result.position,
+      indent_level: indentLevel, content_id: result.contentId, published: result.published,
+      ...(result.notice ? { notice: result.notice } : {}),
     });
   } catch (error) {
+    if (sendItemError(res, error)) return;
     console.error("Error adding module item:", error);
     return res.status(500).json({ message: error.message });
   }
@@ -334,9 +338,9 @@ router.post("/:id/modules/:moduleId/items/file", upload.single("file"), async (r
 
       const maxPosition = Number((await localDb.prepare("SELECT COALESCE(MAX(position), -1) AS m FROM module_items WHERE module_id = ?").get(moduleRow.id))?.m ?? -1);
       const itemInfo = await localDb.prepare(`
-        INSERT INTO module_items (module_id, item_type, item_ref_id, title, position, indent_level, published, content_ref_table, content_ref_id)
-        VALUES (?, 'file', ?, ?, ?, ?, 0, 'course_files', ?)
-      `).run(moduleRow.id, fileId, title, maxPosition + 1, indentLevel, fileId);
+        INSERT INTO module_items (module_id, item_type, content_id, title, position, indent_level, published)
+        VALUES (?, 'file', ?, ?, ?, ?, 0)
+      `).run(moduleRow.id, fileId, title, maxPosition + 1, indentLevel);
 
       return { moduleItemId: Number(itemInfo.lastInsertRowid), fileId, position: maxPosition + 1 };
     });
@@ -344,7 +348,7 @@ router.post("/:id/modules/:moduleId/items/file", upload.single("file"), async (r
     const result = await createFileTx();
     return res.status(201).json({
       id: result.moduleItemId, itemType: 'file', title, position: result.position,
-      indent_level: indentLevel, content_ref_id: result.fileId, content_ref_table: 'course_files',
+      indent_level: indentLevel, content_id: result.fileId,
       original_name: req.file.originalname, downloadUrl: `/course-files/${courseId}/${folder ? `${folder}/` : ''}${storedName}`
     });
   } catch (error) {
@@ -360,20 +364,44 @@ router.patch("/:id/modules/:moduleId/items/:itemId", async (req, res) => {
     if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
     if (!await requireTeacher(req, res, courseId)) return;
 
-    const { published, position, title, indentLevel } = req.body;
+    const { published, position, title, indentLevel, moduleId } = req.body;
     const updates = [];
     const params = [];
     if (published !== undefined) { updates.push("published = ?"); params.push(published ? 1 : 0); }
     if (position !== undefined) { updates.push("position = ?"); params.push(Number(position)); }
     if (title !== undefined) { updates.push("title = ?"); params.push(title); }
     if (indentLevel !== undefined) { updates.push("indent_level = ?"); params.push(Math.min(3, Math.max(0, Number(indentLevel)))); }
-    if (!updates.length) return res.status(400).json({ message: "No fields to update" });
+    if (!updates.length && moduleId === undefined) return res.status(400).json({ message: "No fields to update" });
 
-    if (!await getCourseModuleItem(courseId, req.params.itemId)) return res.status(404).json({ message: "Module item not found" });
-    params.push(req.params.itemId);
-    await localDb.prepare(`UPDATE module_items SET ${updates.join(", ")} WHERE id = ?`).run(...params);
-    return res.json(await localDb.prepare("SELECT * FROM module_items WHERE id = ?").get(req.params.itemId));
+    const item = await getCourseModuleItem(courseId, req.params.itemId);
+    if (!item) return res.status(404).json({ message: "Module item not found" });
+    if (published && item.content_id && await needsOutcomeBeforePublish(item.item_type, item.content_id)) {
+      return res.status(422).json({ message: OUTCOME_REQUIRED_MESSAGE, code: "OUTCOME_REQUIRED" });
+    }
+
+    await localDb.transaction(async () => {
+      if (moduleId !== undefined && Number(moduleId) !== Number(item.module_id)) {
+        if (CONTENT_TABLES[item.item_type]) {
+          await moveContentToModule(courseId, item.item_type, item.content_id, moduleId);
+        } else {
+          const target = await localDb.prepare("SELECT id FROM modules WHERE id = ? AND course_id = ?").get(moduleId, courseId);
+          if (!target) throw Object.assign(new Error("Module not found"), { status: 404 });
+          await localDb.prepare("UPDATE module_items SET module_id = ? WHERE id = ?").run(target.id, item.id);
+        }
+      }
+      if (updates.length) {
+        await localDb.prepare(`UPDATE module_items SET ${updates.join(", ")} WHERE id = ?`).run(...params, item.id);
+      }
+      // The listing and its content are published together.
+      if (published !== undefined && CONTENT_TABLES[item.item_type]) {
+        await localDb.prepare(`UPDATE ${CONTENT_TABLES[item.item_type]} SET published = ? WHERE id = ? AND course_id = ?`)
+          .run(published ? 1 : 0, item.content_id, courseId);
+      }
+    })();
+    return res.json(await localDb.prepare("SELECT * FROM module_items WHERE id = ?").get(item.id));
   } catch (error) {
+    if (sendItemError(res, error)) return;
+    if (error.status === 404) return res.status(404).json({ message: error.message });
     console.error("Error updating module item:", error);
     return res.status(500).json({ message: error.message });
   }
@@ -390,8 +418,15 @@ router.patch("/:id/modules/:moduleId/items/:itemId/content", async (req, res) =>
     if (!item) return res.status(404).json({ message: "Module item not found" });
     if (item.item_type === 'sub_header') return res.status(400).json({ message: "Sub-headers have no content to edit" });
 
-    const contentId = item.content_ref_id || item.item_ref_id;
+    const contentId = item.content_id;
     if (!contentId) return res.status(400).json({ message: "No content record linked" });
+    if (req.body.published && await needsOutcomeBeforePublish(item.item_type, contentId)) {
+      return res.status(422).json({ message: OUTCOME_REQUIRED_MESSAGE, code: "OUTCOME_REQUIRED" });
+    }
+    // The listing and its content are published together.
+    if (req.body.published !== undefined) {
+      await localDb.prepare("UPDATE module_items SET published = ? WHERE id = ?").run(req.body.published ? 1 : 0, item.id);
+    }
 
     if (item.item_type === 'page') {
       const { title, body, bodyJson, bodyHtml, published } = req.body;
@@ -447,13 +482,27 @@ router.patch("/:id/modules/:moduleId/items/:itemId/content", async (req, res) =>
     }
 
     if (item.item_type === 'quiz') {
-      const { title, description, dueAt, published, questions } = req.body;
+      const { title, description, dueAt, published, questions, kind, attemptsAllowed, timeLimitMinutes } = req.body;
       const updates = [];
       const params = [];
       if (title !== undefined) { updates.push("title = ?"); params.push(title); }
       if (description !== undefined) { updates.push("description = ?"); params.push(description); }
       if (dueAt !== undefined) { updates.push("due_at = ?"); params.push(normalizeDueAt(dueAt)); }
       if (published !== undefined) { updates.push("published = ?"); params.push(published ? 1 : 0); }
+      if (kind !== undefined) {
+        if (!["baseline", "practice", "graded"].includes(kind)) return res.status(400).json({ message: "kind must be baseline, practice, or graded" });
+        updates.push("kind = ?"); params.push(kind);
+      }
+      if (attemptsAllowed !== undefined) {
+        const n = attemptsAllowed === null || attemptsAllowed === "" ? null : Number(attemptsAllowed);
+        if (n !== null && (!Number.isInteger(n) || n < 1)) return res.status(400).json({ message: "attemptsAllowed must be 1 or more, or empty for unlimited" });
+        updates.push("attempts_allowed = ?"); params.push(n);
+      }
+      if (timeLimitMinutes !== undefined) {
+        const n = timeLimitMinutes === null || timeLimitMinutes === "" ? null : Number(timeLimitMinutes);
+        if (n !== null && (!Number.isInteger(n) || n < 1)) return res.status(400).json({ message: "timeLimitMinutes must be 1 or more, or empty for no limit" });
+        updates.push("time_limit_minutes = ?"); params.push(n);
+      }
       if (updates.length) {
         updates.push("updated_at = CURRENT_TIMESTAMP");
         params.push(contentId, courseId);
@@ -461,21 +510,7 @@ router.patch("/:id/modules/:moduleId/items/:itemId/content", async (req, res) =>
       }
       // Replace quiz questions if provided
       if (Array.isArray(questions)) {
-        await localDb.prepare("DELETE FROM quiz_questions WHERE quiz_id = ?").run(contentId);
-        const insertQ = await localDb.prepare(`
-          INSERT INTO quiz_questions (quiz_id, position, prompt, question_type, options, correct_option, points)
-          VALUES (?, ?, ?, ?, ?, ?, ?)
-        `);
-        questions.forEach((q, idx) => {
-          insertQ.run(
-            contentId, idx,
-            String(q?.prompt || "").trim() || "Untitled question",
-            q?.questionType === "open" ? "open" : "multiple_choice",
-            JSON.stringify(Array.isArray(q?.options) ? q.options : []),
-            q?.correctOption || null,
-            Number(q?.points) || 1
-          );
-        });
+        await localDb.transaction(() => replaceQuizQuestions(contentId, questions, courseId))();
       }
       if (title !== undefined) {
         await localDb.prepare("UPDATE module_items SET title = ? WHERE id = ?").run(title, item.id);
@@ -504,6 +539,7 @@ router.patch("/:id/modules/:moduleId/items/:itemId/content", async (req, res) =>
 
     return res.status(400).json({ message: "Unsupported item type for content edit" });
   } catch (error) {
+    if (sendItemError(res, error)) return;
     console.error("Error editing module item content:", error);
     return res.status(500).json({ message: error.message });
   }
@@ -520,26 +556,29 @@ router.delete("/:id/modules/:moduleId/items/:itemId", async (req, res) => {
     const item = await getCourseModuleItem(courseId, req.params.itemId);
     if (!item) return res.status(404).json({ message: "Module item not found" });
 
-    if (mode === 'delete_permanently' && item.item_type !== 'sub_header') {
-      const contentId = item.content_ref_id || item.item_ref_id;
-      if (contentId) {
-        const tableMap = {
-          page: { table: 'course_pages', idCol: 'id', courseCol: 'course_id' },
-          assignment: { table: 'assignments', idCol: 'id', courseCol: 'course_id' },
-          quiz: { table: 'quizzes', idCol: 'id', courseCol: 'course_id' },
-          file: { table: 'course_files', idCol: 'id', courseCol: 'course_id' },
-          discussion: { table: 'discussions', idCol: 'id', courseCol: 'course_id' },
-        };
-        const mapping = tableMap[item.item_type];
-        if (mapping) {
-          await localDb.prepare(`DELETE FROM ${mapping.table} WHERE ${mapping.idCol} = ? AND ${mapping.courseCol} = ?`).run(contentId, courseId);
-        }
-      }
+    // Sub-headers and file links are just listings: removing them deletes nothing else.
+    if (!CONTENT_TABLES[item.item_type]) {
+      await localDb.prepare("DELETE FROM module_items WHERE id = ?").run(item.id);
+      return res.status(204).end();
     }
 
-    await localDb.prepare("DELETE FROM module_items WHERE id = ?").run(req.params.itemId);
+    if (mode === 'delete_permanently') {
+      await deleteContent(courseId, item.item_type, item.content_id);
+      return res.status(204).end();
+    }
+
+    // Content always belongs to a module: "remove from module" parks it in the course's
+    // "Unassigned (fix me)" module (unpublished) instead of leaving it orphaned.
+    const unassigned = await getUnassignedModule(courseId);
+    if (Number(item.module_id) === Number(unassigned.id)) {
+      return res.status(400).json({ message: "This item is already unassigned. Move it into a module or delete it." });
+    }
+    await moveContentToModule(courseId, item.item_type, item.content_id, unassigned.id);
+    await localDb.prepare("UPDATE module_items SET published = 0 WHERE id = ?").run(item.id);
+    await localDb.prepare(`UPDATE ${CONTENT_TABLES[item.item_type]} SET published = 0 WHERE id = ?`).run(item.content_id);
     return res.status(204).end();
   } catch (error) {
+    if (sendItemError(res, error)) return;
     console.error("Error deleting module item:", error);
     return res.status(500).json({ message: error.message });
   }
@@ -562,14 +601,14 @@ async function getCourseSequence(courseId, isTeacher) {
       if (!isTeacher && Number(item.published) !== 1) continue;
 
       let targetUrl = "";
-      if (item.item_type === "page" && item.content_ref_id) {
-        targetUrl = `/course/${courseId}/pages/${item.content_ref_id}`;
-      } else if (item.item_type === "assignment" && item.content_ref_id) {
-        targetUrl = `/course/${courseId}/assignments/${item.content_ref_id}`;
-      } else if (item.item_type === "quiz" && item.content_ref_id) {
-        targetUrl = `/course/${courseId}/quizzes/${item.content_ref_id}`;
-      } else if (item.item_type === "discussion" && item.content_ref_id) {
-        targetUrl = `/course/${courseId}/discussions/${item.content_ref_id}`;
+      if (item.item_type === "page" && item.content_id) {
+        targetUrl = `/course/${courseId}/pages/${item.content_id}`;
+      } else if (item.item_type === "assignment" && item.content_id) {
+        targetUrl = `/course/${courseId}/assignments/${item.content_id}`;
+      } else if (item.item_type === "quiz" && item.content_id) {
+        targetUrl = `/course/${courseId}/quizzes/${item.content_id}`;
+      } else if (item.item_type === "discussion" && item.content_id) {
+        targetUrl = `/course/${courseId}/discussions/${item.content_id}`;
       } else if (item.item_type === "file") {
         targetUrl = `/course/${courseId}/files`;
       }
@@ -578,7 +617,7 @@ async function getCourseSequence(courseId, isTeacher) {
         module_item_id: item.id,
         module_id: mod.id,
         item_type: item.item_type,
-        content_ref_id: item.content_ref_id,
+        content_id: item.content_id,
         title: item.title,
         module_title: mod.title,
         url: targetUrl,
@@ -616,14 +655,15 @@ router.get("/:id/module-items/sequence-position", async (req, res) => {
     const isTeacher = isTeacherRole(auth.enrollment.role);
     const sequence = await getCourseSequence(courseId, isTeacher);
 
-    const { moduleItemId, itemType, contentRefId } = req.query;
+    const { moduleItemId, itemType } = req.query;
+    const contentId = req.query.contentId || req.query.contentRefId;
     let idx = -1;
 
     if (moduleItemId) {
       idx = sequence.findIndex((s) => String(s.module_item_id) === String(moduleItemId));
-    } else if (itemType && contentRefId) {
+    } else if (itemType && contentId) {
       idx = sequence.findIndex(
-        (s) => s.item_type === itemType && String(s.content_ref_id) === String(contentRefId)
+        (s) => s.item_type === itemType && String(s.content_id) === String(contentId)
       );
     }
 

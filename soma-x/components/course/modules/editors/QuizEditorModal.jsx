@@ -128,6 +128,12 @@ export default function QuizEditorModal({ open, onClose, onSave, initialData }) 
   const [description, setDescription] = useState(initialData?.description || "");
   const [releaseDay, setReleaseDay] = useState(initialData?.release_day ?? 0);
   const [dueDay, setDueDay] = useState(initialData?.due_day ?? 7);
+  const [kind, setKind] = useState(initialData?.kind || "graded");
+  const [attemptsAllowed, setAttemptsAllowed] = useState(
+    initialData?.attempts_allowed === null || initialData?.attempts_allowed === undefined
+      ? ""
+      : String(initialData.attempts_allowed)
+  );
   const [questions, setQuestions] = useState(
     Array.isArray(initialData?.questions)
       ? initialData.questions.map((q) => ({
@@ -158,9 +164,13 @@ export default function QuizEditorModal({ open, onClose, onSave, initialData }) 
         description,
         releaseDay: Number(releaseDay) || 0,
         dueDay: Number(dueDay) || 7,
+        kind,
+        attemptsAllowed: attemptsAllowed === "" ? null : Math.max(1, Number(attemptsAllowed) || 1),
         questions,
       });
       onClose();
+    } catch {
+      // Save failed: the parent already reported the error; keep the editor open.
     } finally {
       setSaving(false);
     }
@@ -200,6 +210,37 @@ export default function QuizEditorModal({ open, onClose, onSave, initialData }) 
               placeholder="Brief description..."
               className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[#0D9488] resize-none"
             />
+          </div>
+
+          {/* Quiz type & attempts */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">Quiz Type</label>
+              <select
+                value={kind}
+                onChange={(e) => setKind(e.target.value)}
+                className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[#0D9488] bg-white"
+              >
+                <option value="graded">Graded</option>
+                <option value="practice">Practice</option>
+                <option value="baseline">Baseline</option>
+              </select>
+              {kind !== "practice" && (
+                <span className="text-[10px] text-slate-400">Needs an outcome tag before it can be published.</span>
+              )}
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">Attempts Allowed</label>
+              <input
+                type="number"
+                min="1"
+                value={attemptsAllowed}
+                onChange={(e) => setAttemptsAllowed(e.target.value)}
+                placeholder="Unlimited"
+                className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[#0D9488]"
+              />
+              <span className="text-[10px] text-slate-400">Leave empty for unlimited</span>
+            </div>
           </div>
 
           {/* Relative Timing */}

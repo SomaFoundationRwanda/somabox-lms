@@ -6,6 +6,7 @@ import { Pencil, Target, CheckCircle2, Award, Calendar, Layers, Clock } from "lu
 import { useCourse } from "@/context/CourseContext";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
 import PrevNextNav from "@/components/course/navigation/PrevNextNav";
+import { moduleWeekLabel } from "@/lib/moduleLabels";
 
 export default function AssignmentDetailPage() {
   const { courseId, assignmentId } = useParams();
@@ -21,6 +22,7 @@ export default function AssignmentDetailPage() {
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
 
   const loadData = async () => {
     if (!SERVER_URL || !courseId || !assignmentId) return;
@@ -77,7 +79,7 @@ export default function AssignmentDetailPage() {
     setEditForm({
       title: assignment.title || "",
       description: assignment.description || "",
-      moduleId: assignment.module_id || (modules[0]?.id ?? ""),
+      moduleId: assignment.module?.id ?? assignment.module_id ?? "",
       releaseDay: assignment.release_day ?? 0,
       dueDay: assignment.due_day ?? 7,
       pointsPossible: assignment.points_possible ?? 100,
@@ -85,31 +87,18 @@ export default function AssignmentDetailPage() {
       selectedOutcomeIds: itemOutcomes.map(o => o.outcome_id),
       rubricDraft: assignment.rubric_draft || `Rubric (Instantiated from Outcomes):\n- Exceeds Mastery (4 pts): Complete accuracy and clear reasoning.\n- Meets Mastery (3 pts): Correct application with minor errors.\n- Approaching Mastery (2 pts): Partial understanding.\n- Below Mastery (1 pt): Needs targeted reteaching.`
     });
+    setSaveError("");
     setEditing(true);
   };
 
   const saveEdit = async () => {
     if (!editForm.title.trim()) return;
     setSaving(true);
+    setSaveError("");
     try {
-      await fetch(`${SERVER_URL}/courses/${courseId}/assignments/${assignmentId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: editForm.title.trim(),
-          description: editForm.description,
-          moduleId: editForm.moduleId,
-          releaseDay: Number(editForm.releaseDay) || 0,
-          dueDay: Number(editForm.dueDay) || 7,
-          pointsPossible: Number(editForm.pointsPossible) || 100,
-          published: editForm.published,
-          rubricDraft: editForm.rubricDraft
-        }),
-      });
-
-      // Update Outcome Tags
-      if (editForm.selectedOutcomeIds) {
-        await fetch(`${SERVER_URL}/courses/${courseId}/item-outcomes`, {
+      const saveOutcomes = async () => {
+        if (!editForm.selectedOutcomeIds) return true;
+        const res = await fetch(`${SERVER_URL}/courses/${courseId}/item-outcomes`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -118,6 +107,45 @@ export default function AssignmentDetailPage() {
             outcomeIds: editForm.selectedOutcomeIds
           })
         });
+        if (!res.ok) {
+          const payload = await res.json().catch(() => ({}));
+          setSaveError(payload.message || "Failed to update outcome tags.");
+          return false;
+        }
+        return true;
+      };
+
+      const saveAssignment = async () => {
+        const res = await fetch(`${SERVER_URL}/courses/${courseId}/assignments/${assignmentId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: editForm.title.trim(),
+            description: editForm.description,
+            moduleId: editForm.moduleId,
+            releaseDay: Number(editForm.releaseDay) || 0,
+            dueDay: Number(editForm.dueDay) || 7,
+            pointsPossible: Number(editForm.pointsPossible) || 100,
+            published: editForm.published,
+            rubricDraft: editForm.rubricDraft
+          }),
+        });
+        if (!res.ok) {
+          const payload = await res.json().catch(() => ({}));
+          setSaveError(payload.message || "Failed to save assignment.");
+          return false;
+        }
+        return true;
+      };
+
+      // Publishing requires an outcome tag, and removing the last tag from a
+      // published item is rejected — so order the two writes accordingly.
+      const ok = editForm.published
+        ? (await saveOutcomes()) && (await saveAssignment())
+        : (await saveAssignment()) && (await saveOutcomes());
+      if (!ok) {
+        loadData();
+        return;
       }
 
       setEditing(false);
@@ -130,7 +158,7 @@ export default function AssignmentDetailPage() {
   if (loading) return <div className="p-6"><p className="text-sm text-slate-500">Loading assignment details...</p></div>;
   if (!assignment) return <div className="p-6"><p className="text-sm text-rose-600">Assignment not found.</p></div>;
 
-  const currentModule = modules.find(m => m.id === assignment.module_id) || modules[0] || null;
+  const currentModule = assignment.module || modules.find(m => m.id === assignment.module_id) || null;
 
   return (
     <div>
@@ -142,7 +170,7 @@ export default function AssignmentDetailPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-[#0D9488] bg-teal-50 border border-teal-200 px-2.5 py-1 rounded-full">
-                Module: {currentModule ? `Week ${currentModule.week_offset || 1} - ${currentModule.title}` : "Module Week Slot"}
+                Module: {currentModule ? `${moduleWeekLabel(currentModule)} - ${currentModule.title}` : "Not in a module"}
               </span>
               <span className="text-xs font-semibold text-slate-500 flex items-center gap-1">
                 <Clock className="w-3.5 h-3.5 text-slate-400" /> Due: Day {assignment.due_day ?? 7}
@@ -206,7 +234,7 @@ export default function AssignmentDetailPage() {
                   >
                     {modules.map((m) => (
                       <option key={m.id} value={m.id}>
-                        Week {m.week_offset || 1}: {m.title}
+                        {moduleWeekLabel(m)}: {m.title}
                       </option>
                     ))}
                   </select>
@@ -283,6 +311,10 @@ export default function AssignmentDetailPage() {
                   className="w-full text-xs font-mono border border-slate-200 rounded-xl px-3 py-2 outline-none"
                 />
               </div>
+
+              {saveError && (
+                <p className="text-xs font-semibold text-rose-600">{saveError}</p>
+              )}
 
               <div className="flex justify-end gap-2 pt-2">
                 <button onClick={() => setEditing(false)} className="text-xs font-semibold text-slate-500 px-4 py-2">Cancel</button>
@@ -413,7 +445,7 @@ export default function AssignmentDetailPage() {
           </div>
         )}
 
-        <PrevNextNav courseId={courseId} itemType="assignment" contentRefId={assignmentId} />
+        <PrevNextNav courseId={courseId} itemType="assignment" contentId={assignmentId} />
       </div>
     </div>
   );

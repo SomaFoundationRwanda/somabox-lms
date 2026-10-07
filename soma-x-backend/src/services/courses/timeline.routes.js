@@ -59,13 +59,15 @@ router.patch("/:id/shift-timeline", async (req, res) => {
 // TODO(phase 4): add the full blocking list (baseline, graded items tagged, start date, no orphans).
 async function getSetupRequirements(courseId) {
   const outcomesCount = Number((await localDb.prepare("SELECT COUNT(*) AS c FROM outcomes WHERE course_id = ?").get(courseId))?.c || 0);
-  const modulesCount = Number((await localDb.prepare("SELECT COUNT(*) AS c FROM modules WHERE course_id = ?").get(courseId))?.c || 0);
-  const itemsCount = Number((await localDb.prepare("SELECT COUNT(*) AS c FROM module_items mi JOIN modules m ON m.id = mi.module_id WHERE m.course_id = ?").get(courseId))?.c || 0);
+  const modulesCount = Number((await localDb.prepare("SELECT COUNT(*) AS c FROM modules WHERE course_id = ? AND kind <> 'unassigned'").get(courseId))?.c || 0);
+  const itemsCount = Number((await localDb.prepare("SELECT COUNT(*) AS c FROM module_items mi JOIN modules m ON m.id = mi.module_id WHERE m.course_id = ? AND m.kind <> 'unassigned'").get(courseId))?.c || 0);
+  const unassignedCount = Number((await localDb.prepare("SELECT COUNT(*) AS c FROM module_items mi JOIN modules m ON m.id = mi.module_id WHERE m.course_id = ? AND m.kind = 'unassigned'").get(courseId))?.c || 0);
 
   const missingRequirements = [];
   if (outcomesCount === 0) missingRequirements.push("Define course learning outcomes");
   if (modulesCount === 0) missingRequirements.push("Add at least one module");
   if (itemsCount === 0) missingRequirements.push("Add items to modules");
+  if (unassignedCount > 0) missingRequirements.push(`Move the ${unassignedCount} item${unassignedCount === 1 ? "" : "s"} in "Unassigned (fix me)" into a module`);
 
   return { outcomesCount, modulesCount, itemsCount, missingRequirements };
 }
@@ -80,7 +82,8 @@ router.get("/:id/setup-status", async (req, res) => {
     const setup = await getSetupRequirements(courseId);
 
     return res.json({
-      isOpened: Number(course.is_opened) === 1,
+      lifecycle: course.lifecycle,
+      isOpened: course.lifecycle !== "draft",
       setupStep: Number(course.setup_step) || 1,
       outcomesCount: setup.outcomesCount,
       modulesCount: setup.modulesCount,
@@ -108,7 +111,10 @@ router.post("/:id/open-course", async (req, res) => {
       });
     }
 
-    await localDb.prepare("UPDATE courses SET is_opened = 1, status = 'active', updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(courseId);
+    if (course.lifecycle !== "draft") {
+      return res.status(400).json({ message: `This course is already ${course.lifecycle}` });
+    }
+    await localDb.prepare("UPDATE courses SET lifecycle = 'open', updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(courseId);
     return res.json({ message: "Course successfully opened!", course: await courseExists(courseId) });
   } catch (error) {
     return res.status(500).json({ message: error.message });
@@ -145,8 +151,8 @@ router.get("/:id/home-loop", async (req, res) => {
       
       let ungradedCount = 0;
       for (const item of isTeacher ? items : []) {
-        if (item.item_type === 'assignment' && item.content_ref_id) {
-          const uRow = await localDb.prepare("SELECT COUNT(*) AS c FROM assignment_submissions WHERE assignment_id = ? AND grade IS NULL").get(item.content_ref_id);
+        if (item.item_type === 'assignment' && item.content_id) {
+          const uRow = await localDb.prepare("SELECT COUNT(*) AS c FROM assignment_submissions WHERE assignment_id = ? AND grade IS NULL").get(item.content_id);
           ungradedCount += Number(uRow?.c || 0);
         }
       }
@@ -179,7 +185,7 @@ router.get("/:id/home-loop", async (req, res) => {
       SELECT mi.id, mi.title, mi.item_type
       FROM module_items mi
       JOIN modules m ON m.id = mi.module_id
-      LEFT JOIN item_outcomes io ON io.item_type = mi.item_type AND io.item_id = mi.content_ref_id
+      LEFT JOIN item_outcomes io ON io.item_type = mi.item_type AND io.item_id = mi.content_id
       WHERE m.course_id = ? AND io.id IS NULL AND mi.item_type IN ('assignment', 'quiz')
     `).all(courseId);
 

@@ -17,6 +17,14 @@ import {
   userFullName,
   upload,
 } from "./shared.js";
+import {
+  OUTCOME_REQUIRED_MESSAGE,
+  createModuleContent,
+  deleteContent,
+  needsOutcomeBeforePublish,
+  sendItemError,
+  syncListingPublished,
+} from "./items.js";
 
 const router = express.Router();
 
@@ -424,34 +432,6 @@ router.get("/:id/pages", async (req, res) => {
   }
 });
 
-router.post("/:id/pages", async (req, res) => {
-  try {
-    const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
-    const auth = await requireTeacher(req, res, courseId);
-    if (!auth) return;
-
-    const title = String(req.body.title || "").trim();
-    if (!title) return res.status(400).json({ message: "title is required" });
-
-    const bodyJsonStr = req.body.bodyJson ? (typeof req.body.bodyJson === 'string' ? req.body.bodyJson : JSON.stringify(req.body.bodyJson)) : null;
-    const readMins = calculateEstimatedReadMinutes(bodyJsonStr, req.body.bodyHtml, req.body.body);
-
-    const info = await localDb.prepare(`
-      INSERT INTO course_pages (course_id, title, body, body_json, body_html, estimated_read_minutes, published, created_by_teacher_email)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(courseId, title, req.body.body || "", bodyJsonStr, req.body.bodyHtml || null, readMins, req.body.published ? 1 : 0, auth.email);
-
-    const pageId = Number(info.lastInsertRowid);
-    await syncPageFileReferences(pageId, bodyJsonStr);
-
-    return res.status(201).json(await localDb.prepare("SELECT * FROM course_pages WHERE id = ?").get(pageId));
-  } catch (error) {
-    console.error("Error creating page:", error);
-    return res.status(500).json({ message: error.message });
-  }
-});
-
 router.get("/:id/pages/:pageId", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
@@ -524,6 +504,9 @@ router.patch("/:id/pages/:pageId", async (req, res) => {
     if (newBodyJson) {
       await syncPageFileReferences(req.params.pageId, newBodyJson);
     }
+    // Keep the page's module listing in step with its title and published state.
+    if (title !== undefined) await localDb.prepare("UPDATE module_items SET title = ? WHERE item_type = 'page' AND content_id = ?").run(title, existing.id);
+    if (published !== undefined) await syncListingPublished("page", existing.id, published);
 
     return res.json(await localDb.prepare("SELECT * FROM course_pages WHERE id = ?").get(req.params.pageId));
   } catch (error) {
@@ -584,7 +567,9 @@ router.delete("/:id/pages/:pageId", async (req, res) => {
     const courseId = String(req.params.id || "").trim();
     if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
     if (!await requireTeacher(req, res, courseId)) return;
-    await localDb.prepare("DELETE FROM course_pages WHERE id = ? AND course_id = ?").run(req.params.pageId, courseId);
+    const page = await localDb.prepare("SELECT id FROM course_pages WHERE id = ? AND course_id = ?").get(req.params.pageId, courseId);
+    if (!page) return res.status(404).json({ message: "Page not found" });
+    await deleteContent(courseId, "page", page.id);
     return res.status(204).end();
   } catch (error) {
     console.error("Error deleting page:", error);
@@ -628,20 +613,35 @@ router.post("/:id/discussions", async (req, res) => {
     if (!title) return res.status(400).json({ message: "title is required" });
     const isTeacher = isTeacherRole(auth.enrollment.role);
 
+    // Every discussion lives in a module. Learners can start one in any module they can see.
+    if (!req.body.moduleId) return res.status(400).json({ message: "Choose the module this discussion belongs to (moduleId)" });
+    const moduleRow = await localDb.prepare("SELECT * FROM modules WHERE id = ? AND course_id = ?").get(req.body.moduleId, courseId);
+    if (!moduleRow || (!isTeacher && (Number(moduleRow.published) !== 1 || moduleRow.kind === "unassigned"))) {
+      return res.status(404).json({ message: "Module not found" });
+    }
+
     const isGraded = !!(req.body.graded && isTeacher);
     const pointsPossible = Number(req.body.pointsPossible) || 0;
 
-    const info = await localDb.prepare(`
-      INSERT INTO discussions (course_id, title, body, graded, points_possible, published, created_by_teacher_email)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(courseId, title, req.body.body || "", isGraded ? 1 : 0, pointsPossible, isTeacher ? (req.body.published ? 1 : 0) : 1, auth.email);
+    const created = await localDb.transaction(async () => {
+      const result = await createModuleContent({
+        courseId,
+        moduleId: moduleRow.id,
+        itemType: "discussion",
+        data: { title, body: req.body.body || "" },
+        actorEmail: auth.email,
+        publish: isTeacher ? !!req.body.published && !isGraded : true,
+      });
+      if (isGraded) {
+        await localDb.prepare("UPDATE discussions SET graded = 1, points_possible = ? WHERE id = ?").run(pointsPossible, result.contentId);
+        await linkDiscussionAssignment(courseId, result.contentId, title, pointsPossible, auth.email);
+      }
+      return result;
+    })();
 
-    if (isGraded) {
-      await linkDiscussionAssignment(courseId, info.lastInsertRowid, title, pointsPossible, auth.email);
-    }
-
-    return res.status(201).json(await localDb.prepare("SELECT * FROM discussions WHERE id = ?").get(info.lastInsertRowid));
+    return res.status(201).json(await localDb.prepare("SELECT * FROM discussions WHERE id = ?").get(created.contentId));
   } catch (error) {
+    if (sendItemError(res, error)) return;
     console.error("Error creating discussion:", error);
     return res.status(500).json({ message: error.message });
   }
@@ -675,14 +675,28 @@ router.patch("/:id/discussions/:discussionId", async (req, res) => {
         await linkDiscussionAssignment(courseId, discussion.id, effectiveTitle, effectivePoints, auth.email);
       } else if (!willBeGraded && discussion.linked_assignment_id) {
         await localDb.prepare("UPDATE discussions SET linked_assignment_id = NULL WHERE id = ?").run(discussion.id);
-        await localDb.prepare("DELETE FROM assignments WHERE id = ?").run(discussion.linked_assignment_id);
+        await localDb.prepare("DELETE FROM item_outcomes WHERE item_type = 'assignment' AND item_id = ?").run(discussion.linked_assignment_id);
+        await localDb.prepare("DELETE FROM assignments WHERE id = ? AND course_id = ?").run(discussion.linked_assignment_id, courseId);
       }
     }
 
     if (!updates.length) return res.status(400).json({ message: "No fields to update" });
 
+    // Publishing a graded discussion publishes its assignment, which needs an outcome first.
+    const current = await localDb.prepare("SELECT linked_assignment_id FROM discussions WHERE id = ?").get(discussion.id);
+    if (published && current?.linked_assignment_id && await needsOutcomeBeforePublish("assignment", current.linked_assignment_id)) {
+      return res.status(422).json({ message: OUTCOME_REQUIRED_MESSAGE, code: "OUTCOME_REQUIRED" });
+    }
+
     params.push(req.params.discussionId, courseId);
     await localDb.prepare(`UPDATE discussions SET ${updates.join(", ")} WHERE id = ? AND course_id = ?`).run(...params);
+    if (title !== undefined) await localDb.prepare("UPDATE module_items SET title = ? WHERE item_type = 'discussion' AND content_id = ?").run(title, discussion.id);
+    if (published !== undefined) {
+      await syncListingPublished("discussion", discussion.id, published);
+      if (current?.linked_assignment_id) {
+        await localDb.prepare("UPDATE assignments SET published = ? WHERE id = ?").run(published ? 1 : 0, current.linked_assignment_id);
+      }
+    }
     return res.json(await localDb.prepare("SELECT * FROM discussions WHERE id = ?").get(req.params.discussionId));
   } catch (error) {
     console.error("Error updating discussion:", error);

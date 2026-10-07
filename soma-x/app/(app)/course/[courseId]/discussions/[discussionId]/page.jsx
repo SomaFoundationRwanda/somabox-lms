@@ -13,6 +13,7 @@ export default function DiscussionThreadPage() {
   const [reply, setReply] = useState("");
   const [pointsInput, setPointsInput] = useState("");
   const [savingGraded, setSavingGraded] = useState(false);
+  const [gradedError, setGradedError] = useState("");
 
   const load = async () => {
     setLoading(true);
@@ -27,7 +28,8 @@ export default function DiscussionThreadPage() {
 
   const toggleGraded = async () => {
     setSavingGraded(true);
-    await fetch(`${SERVER_URL}/courses/${courseId}/discussions/${discussionId}`, {
+    setGradedError("");
+    const res = await fetch(`${SERVER_URL}/courses/${courseId}/discussions/${discussionId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -35,6 +37,10 @@ export default function DiscussionThreadPage() {
         pointsPossible: Number(pointsInput) || 0,
       }),
     });
+    if (!res.ok) {
+      const payload = await res.json().catch(() => ({}));
+      setGradedError(payload.message || "Failed to update discussion.");
+    }
     setSavingGraded(false);
     load();
   };
@@ -91,6 +97,9 @@ export default function DiscussionThreadPage() {
                 </span>
               ) : null}
             </div>
+          ) : null}
+          {isTeacher && gradedError ? (
+            <p className="mt-2 text-xs font-semibold text-rose-600">{gradedError}</p>
           ) : null}
         </div>
 

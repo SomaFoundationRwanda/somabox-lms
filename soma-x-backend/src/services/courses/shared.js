@@ -68,6 +68,14 @@ export async function requireEnrolled(req, res, courseId) {
     res.status(403).json({ message: "Not enrolled in this course" });
     return null;
   }
+  // Learners can't see a course while it's still being set up.
+  if (!isTeacherRole(enrollment.role)) {
+    const course = await localDb.prepare("SELECT lifecycle FROM courses WHERE id = ?").get(courseId);
+    if (course?.lifecycle === "draft") {
+      res.status(403).json({ message: "This course hasn't opened yet", code: "COURSE_NOT_OPEN" });
+      return null;
+    }
+  }
   return { email, enrollment };
 }
 
@@ -108,11 +116,14 @@ export function normalizeDueAt(value) {
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
+// A graded discussion is graded through a linked assignment in the discussion's module.
+// It starts unpublished: it's published with its discussion once it has an outcome.
 export async function linkDiscussionAssignment(courseId, discussionId, title, pointsPossible, teacherEmail) {
+  const discussion = await localDb.prepare("SELECT module_id FROM discussions WHERE id = ? AND course_id = ?").get(discussionId, courseId);
   const info = await localDb.prepare(`
-    INSERT INTO assignments (course_id, title, description, points_possible, published, created_by_teacher_email)
-    VALUES (?, ?, ?, ?, 1, ?)
-  `).run(courseId, title, "Graded discussion — see Discussions for the conversation.", pointsPossible || 0, teacherEmail);
+    INSERT INTO assignments (course_id, module_id, title, description, points_possible, published, created_by_teacher_email)
+    VALUES (?, ?, ?, ?, ?, 0, ?)
+  `).run(courseId, discussion.module_id, title, "Graded discussion — see Discussions for the conversation.", pointsPossible || 0, teacherEmail);
   await localDb.prepare("UPDATE discussions SET linked_assignment_id = ? WHERE id = ?").run(info.lastInsertRowid, discussionId);
   return info.lastInsertRowid;
 }
@@ -180,11 +191,11 @@ export async function scheduleSpacedReview(scholarEmail, topicId, topicTitle) {
   `);
   const insert = await localDb.prepare(`
     INSERT INTO sol_spaced_reviews (scholar_email, topic_id, topic_title, interval_days, due_at, status)
-    VALUES (?, ?, ?, ?, DATETIME('now', ?), 'pending')
+    VALUES (?, ?, ?, ?, NOW() + make_interval(days => ?), 'pending')
   `);
   for (const days of intervals) {
     if (!await exists.get(scholarEmail, topicId, days)) {
-      await insert.run(scholarEmail, topicId, topicTitle, days, `+${days} days`);
+      await insert.run(scholarEmail, topicId, topicTitle, days, days);
     }
   }
 }
@@ -194,10 +205,3 @@ export async function userFullName(email) {
   return user?.full_name || email;
 }
 
-export const CONTENT_TABLE_MAP = {
-  page: 'course_pages',
-  assignment: 'assignments',
-  quiz: 'quizzes',
-  file: 'course_files',
-  discussion: 'discussions',
-};

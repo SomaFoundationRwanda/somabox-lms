@@ -34,8 +34,8 @@ router.post("", async (req, res) => {
     const courseId = await generateUniqueCourseCode();
 
     await localDb.prepare(`
-      INSERT INTO courses (id, title, description, grade, start_date, end_date, status, is_opened, created_by_teacher_email)
-      VALUES (?, ?, ?, ?, ?, ?, 'unpublished', 0, ?)
+      INSERT INTO courses (id, title, description, grade, start_date, end_date, lifecycle, created_by_teacher_email)
+      VALUES (?, ?, ?, ?, ?, ?, 'draft', ?)
     `).run(courseId, title, description || "", grade || "", normalizeDueAt(startDate), normalizeDueAt(endDate), email);
 
     await seedDefaultNavItems(courseId);
@@ -67,6 +67,8 @@ router.get("/mine", async (req, res) => {
       FROM courses c
       JOIN enrollments e ON e.course_id = c.id
       WHERE LOWER(e.user_email) = LOWER(?) AND e.status IN ('active', 'invited')
+        -- learners don't see courses that are still being set up
+        AND (e.role IN ('teacher', 'ta') OR c.lifecycle <> 'draft')
       ORDER BY c.created_at DESC
     `).all(email);
 
@@ -89,9 +91,9 @@ router.get("/public", async (req, res) => {
     const pageSize = Math.min(50, Math.max(1, Number(req.query.pageSize) || 20));
     const offset = (page - 1) * pageSize;
 
-    const total = Number((await localDb.prepare("SELECT COUNT(*) AS c FROM courses WHERE visibility = 'public'").get())?.c || 0);
+    const total = Number((await localDb.prepare("SELECT COUNT(*) AS c FROM courses WHERE visibility = 'public' AND lifecycle = 'open'").get())?.c || 0);
     const rows = await localDb.prepare(`
-      SELECT * FROM courses WHERE visibility = 'public' ORDER BY created_at DESC LIMIT ? OFFSET ?
+      SELECT * FROM courses WHERE visibility = 'public' AND lifecycle = 'open' ORDER BY created_at DESC LIMIT ? OFFSET ?
     `).all(pageSize, offset);
 
     const courses = await Promise.all(rows.map(async (course) => {
@@ -113,6 +115,7 @@ router.post("/:id/join", async (req, res) => {
     const course = await courseExists(courseId);
     if (!course) return res.status(404).json({ message: "Course not found" });
     if (course.visibility !== "public") return res.status(403).json({ message: "This course is private and requires an invite" });
+    if (course.lifecycle !== "open") return res.status(400).json({ message: "This course isn't open for joining" });
 
     const email = req.user.email;
 
@@ -160,6 +163,24 @@ router.get("/:id", async (req, res) => {
   }
 });
 
+// Allowed lifecycle moves through PATCH. Opening a draft goes through POST /:id/open-course
+// so the setup checks can't be bypassed, and an opened course never returns to draft.
+const LIFECYCLE_MOVES = {
+  open: ["closed", "archived"],
+  closed: ["open", "archived"],
+  archived: ["closed"],
+};
+
+function lifecycleChangeProblem(from, to) {
+  if (!["draft", "open", "closed", "archived"].includes(to)) return "lifecycle must be draft, open, closed, or archived";
+  if (from === "draft") return to === "open"
+    ? "Finish course setup and use Open Course to open this course"
+    : "A draft course can only be opened";
+  if (to === "draft") return "An opened course can't go back to draft";
+  if (!(LIFECYCLE_MOVES[from] || []).includes(to)) return `A ${from} course can't be moved to ${to}`;
+  return null;
+}
+
 router.patch("/:id", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
@@ -167,10 +188,10 @@ router.patch("/:id", async (req, res) => {
     if (!existingCourse) return res.status(404).json({ message: "Course not found" });
     if (!await requireTeacher(req, res, courseId)) return;
 
-    const { title, description, grade, status, homePageType, startDate, endDate, visibility } = req.body;
-    // Opening goes through POST /:id/open-course so the setup checks can't be bypassed.
-    if (status === "active" && Number(existingCourse.is_opened) !== 1) {
-      return res.status(400).json({ message: "Finish course setup and use Open Course to make this course active" });
+    const { title, description, grade, lifecycle, homePageType, startDate, endDate, visibility } = req.body;
+    if (lifecycle !== undefined && lifecycle !== existingCourse.lifecycle) {
+      const problem = lifecycleChangeProblem(existingCourse.lifecycle, lifecycle);
+      if (problem) return res.status(400).json({ message: problem });
     }
     const updates = [];
     const params = [];
@@ -178,7 +199,7 @@ router.patch("/:id", async (req, res) => {
     if (title !== undefined) { updates.push("title = ?"); params.push(title); }
     if (description !== undefined) { updates.push("description = ?"); params.push(description); }
     if (grade !== undefined) { updates.push("grade = ?"); params.push(grade); }
-    if (status !== undefined && ["unpublished", "active", "completed"].includes(status)) { updates.push("status = ?"); params.push(status); }
+    if (lifecycle !== undefined && lifecycle !== existingCourse.lifecycle) { updates.push("lifecycle = ?"); params.push(lifecycle); }
     if (homePageType !== undefined && ["modules", "activity", "page"].includes(homePageType)) { updates.push("home_page_type = ?"); params.push(homePageType); }
     if (startDate !== undefined) { updates.push("start_date = ?"); params.push(normalizeDueAt(startDate)); }
     if (endDate !== undefined) { updates.push("end_date = ?"); params.push(normalizeDueAt(endDate)); }

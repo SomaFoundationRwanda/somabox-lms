@@ -7,6 +7,7 @@ import {
   requireNavVisible,
   courseExists,
 } from "./shared.js";
+import { CONTENT_TABLES, GRADED_TYPES, sendItemError, setItemOutcomes } from "./items.js";
 
 const router = express.Router();
 
@@ -108,16 +109,20 @@ router.post("/:id/item-outcomes", async (req, res) => {
     if (!itemType || !itemId || !Array.isArray(outcomeIds)) {
       return res.status(400).json({ message: "itemType, itemId, and outcomeIds array required" });
     }
-    await localDb.prepare("DELETE FROM item_outcomes WHERE course_id = ? AND item_type = ? AND item_id = ?").run(courseId, itemType, itemId);
-    for (const oid of outcomeIds) {
-      await localDb.prepare(`
-        INSERT INTO item_outcomes (course_id, item_type, item_id, outcome_id)
-        VALUES (?, ?, ?, ?)
-        ON CONFLICT (item_type, item_id, outcome_id) DO NOTHING
-      `).run(courseId, itemType, itemId, oid);
+    if (!CONTENT_TABLES[itemType]) return res.status(400).json({ message: "itemType must be page, assignment, quiz, or discussion" });
+    const item = await localDb.prepare(`SELECT id, published FROM ${CONTENT_TABLES[itemType]} WHERE id = ? AND course_id = ?`).get(itemId, courseId);
+    if (!item) return res.status(404).json({ message: "Item not found in this course" });
+    // A published graded item must keep at least one outcome.
+    if (Number(item.published) === 1 && GRADED_TYPES.includes(itemType) && outcomeIds.filter(Boolean).length === 0) {
+      const quiz = itemType === "quiz" ? await localDb.prepare("SELECT kind FROM quizzes WHERE id = ?").get(item.id) : null;
+      if (quiz?.kind !== "practice") {
+        return res.status(422).json({ message: "A published graded item needs at least one outcome. Unpublish it first to remove all outcomes.", code: "OUTCOME_REQUIRED" });
+      }
     }
+    await localDb.transaction(() => setItemOutcomes(courseId, itemType, item.id, outcomeIds.filter(Boolean)))();
     return res.json({ message: "Item outcomes updated", itemCount: outcomeIds.length });
   } catch (error) {
+    if (sendItemError(res, error)) return;
     return res.status(500).json({ message: error.message });
   }
 });
@@ -131,13 +136,13 @@ router.get("/:id/baseline", async (req, res) => {
     if (!course) return res.status(404).json({ message: "Course not found" });
     if (!await requireEnrolled(req, res, courseId)) return;
 
-    const week0Module = await localDb.prepare("SELECT * FROM modules WHERE course_id = ? AND week_offset = 0 LIMIT 1").get(courseId);
+    const week0Module = await localDb.prepare("SELECT * FROM modules WHERE course_id = ? AND kind = 'baseline'").get(courseId);
     let quiz = null;
     if (week0Module) {
-      const item = await localDb.prepare("SELECT * FROM module_items WHERE module_id = ? AND item_type = 'quiz' LIMIT 1").get(week0Module.id);
-      if (item && item.content_ref_id) {
-        quiz = await localDb.prepare("SELECT * FROM quizzes WHERE id = ?").get(item.content_ref_id);
-      }
+      quiz = await localDb.prepare(`
+        SELECT q.* FROM quizzes q JOIN module_items mi ON mi.item_type = 'quiz' AND mi.content_id = q.id
+        WHERE q.module_id = ? AND q.kind = 'baseline' ORDER BY mi.position, q.id LIMIT 1
+      `).get(week0Module.id) || null;
     }
     const outcomes = await localDb.prepare("SELECT * FROM outcomes WHERE course_id = ?").all(courseId);
     return res.json({ week0Module, quiz, outcomesCount: outcomes.length });

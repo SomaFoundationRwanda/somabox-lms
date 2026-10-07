@@ -2,6 +2,10 @@
 export async function up(client) {
     await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS must_change_password INTEGER DEFAULT 0`);
 
+    // is_opened used to be added by initSchemas; it lives here so it isn't re-added
+    // after 0004 replaces it with courses.lifecycle.
+    await client.query(`ALTER TABLE courses ADD COLUMN IF NOT EXISTS is_opened INTEGER DEFAULT 0`);
+
     // New courses start unpublished with is_opened = 0. Courses that were already
     // active before the setup gate existed are treated as opened.
     await client.query(`UPDATE courses SET is_opened = 1 WHERE status = 'active' AND COALESCE(is_opened, 0) = 0`);

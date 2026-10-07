@@ -38,10 +38,10 @@ export default function ModuleItemRow({ item, courseId, isTeacher, onTogglePubli
 
   // Build link href for clickable items
   const href = isSubHeader ? null
-    : item.item_type === "quiz" ? `/course/${courseId}/quizzes/${item.content_ref_id || item.item_ref_id}`
-    : item.item_type === "page" ? `/course/${courseId}/pages/${item.content_ref_id || item.item_ref_id}`
-    : item.item_type === "assignment" ? `/course/${courseId}/assignments/${item.content_ref_id || item.item_ref_id}`
-    : item.item_type === "discussion" ? `/course/${courseId}/discussions/${item.content_ref_id || item.item_ref_id}`
+    : item.item_type === "quiz" ? `/course/${courseId}/quizzes/${item.content_id}`
+    : item.item_type === "page" ? `/course/${courseId}/pages/${item.content_id}`
+    : item.item_type === "assignment" ? `/course/${courseId}/assignments/${item.content_id}`
+    : item.item_type === "discussion" ? `/course/${courseId}/discussions/${item.content_id}`
     : `/course/${courseId}/files`;
 
   const formatDate = (d) => {
@@ -84,8 +84,11 @@ export default function ModuleItemRow({ item, courseId, isTeacher, onTogglePubli
     );
   }
 
-  const isGradedItem = ["assignment", "quiz"].includes(item.item_type);
-  const hasOutcomeTag = item.outcome_title || item.outcomes?.length > 0;
+  const outcomes = Array.isArray(item.outcomes) ? item.outcomes : [];
+  const needsOutcome =
+    item.item_type === "assignment" ||
+    (item.item_type === "quiz" && item.quiz_kind !== "practice");
+  const hasOutcomeTag = outcomes.length > 0;
 
   // Normal item rendering
   const TitleContent = (
@@ -97,10 +100,13 @@ export default function ModuleItemRow({ item, courseId, isTeacher, onTogglePubli
 
       {/* Outcome Badges */}
       {hasOutcomeTag ? (
-        <span className="text-[10px] font-bold text-[#0D9488] bg-teal-50 border border-teal-200 px-2 py-0.5 rounded-full shrink-0 ml-1">
-          Target: {item.outcome_title || item.outcomes?.[0]?.title || "Outcome Tagged"}
+        <span
+          className="text-[10px] font-bold text-[#0D9488] bg-teal-50 border border-teal-200 px-2 py-0.5 rounded-full shrink-0 ml-1"
+          title={outcomes.map((o) => [o.code, o.title].filter(Boolean).join(" — ")).join("\n")}
+        >
+          Target: {outcomes.map((o) => o.code || o.title).filter(Boolean).join(", ") || "Outcome Tagged"}
         </span>
-      ) : isGradedItem ? (
+      ) : needsOutcome ? (
         <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full shrink-0 ml-1">
           ⚠️ Missing Outcome
         </span>

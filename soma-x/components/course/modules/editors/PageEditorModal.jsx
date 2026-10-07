@@ -38,6 +38,8 @@ export default function PageEditorModal({ open, onClose, onSave, initialData }) 
         bodyHtml: editorData.html || "",
       });
       onClose();
+    } catch {
+      // Save failed: the parent already reported the error; keep the editor open.
     } finally {
       setSaving(false);
     }

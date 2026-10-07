@@ -9,6 +9,7 @@ import {
 import { useCourse } from "@/context/CourseContext";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
 import CourseSetupWizard from "@/components/teacher/CourseSetupWizard";
+import { moduleWeekLabel, courseLifecycleLabel } from "@/lib/moduleLabels";
 
 export default function CourseHomePage() {
   const { courseId, course, SERVER_URL, userEmail, isTeacher, refresh } = useCourse();
@@ -86,7 +87,7 @@ export default function CourseHomePage() {
           <img src={`${SERVER_URL}${course.coverImageUrl}`} alt={course.title} className="w-full h-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
           <div className="absolute bottom-4 left-6 text-white">
-            <span className="text-[10px] font-bold uppercase tracking-wider bg-[#0D9488] px-2.5 py-0.5 rounded-full">Active Course</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider bg-[#0D9488] px-2.5 py-0.5 rounded-full">{courseLifecycleLabel(course)}</span>
             <h1 className="text-xl md:text-2xl font-black mt-1">{course.title}</h1>
           </div>
         </div>
@@ -229,16 +230,16 @@ export default function CourseHomePage() {
               <p className="text-xs text-slate-500">No modules added to timeline yet.</p>
             ) : (
               timeline.map((m) => {
-                const isExpanded = expandedWeek === m.week_offset;
+                const isExpanded = expandedWeek === m.id;
                 return (
                   <div key={m.id} className={`border rounded-2xl overflow-hidden transition-all ${m.isCurrent ? "border-[#0D9488] bg-teal-50/20" : "border-slate-200 bg-white"}`}>
                     <button
-                      onClick={() => setExpandedWeek(isExpanded ? null : m.week_offset)}
+                      onClick={() => setExpandedWeek(isExpanded ? null : m.id)}
                       className="w-full p-4 flex items-center justify-between text-left hover:bg-slate-50/50 transition-colors"
                     >
                       <div className="flex items-center gap-3 min-w-0">
                         <span className={`text-xs font-bold px-2.5 py-1 rounded-lg shrink-0 ${m.isCurrent ? "bg-[#0D9488] text-white" : "bg-slate-100 text-slate-700"}`}>
-                          Week {m.week_offset || 1}
+                          {moduleWeekLabel(m)}
                         </span>
                         <div className="min-w-0">
                           <h4 className="text-sm font-bold text-slate-900 truncate">{m.title}</h4>

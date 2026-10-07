@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { CheckCircle2, ChevronRight, Sparkles, Plus, Trash2, ArrowRight, Target, Calendar, BookOpen, Layers } from "lucide-react";
+import { moduleWeekLabel } from "@/lib/moduleLabels";
 
 export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, course, onCompleted }) {
   const [step, setStep] = useState(1);
@@ -125,14 +126,19 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
   const addModuleWeek = async (weekOffset) => {
     setLoading(true);
     try {
-      await fetch(`${SERVER_URL}/courses/${courseId}/modules`, {
+      // Week 0 is the baseline module and is created by kind, not by offset.
+      const body = Number(weekOffset) === 0
+        ? { title: "Week 0: Baseline", kind: "baseline" }
+        : { title: `Week ${weekOffset}: Module Title`, weekOffset };
+      const res = await fetch(`${SERVER_URL}/courses/${courseId}/modules`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: `Week ${weekOffset}: Module Title`,
-          weekOffset: weekOffset,
-        }),
+        body: JSON.stringify(body),
       });
+      if (!res.ok) {
+        const payload = await res.json().catch(() => ({}));
+        setError(payload.message || "Failed to add week");
+      }
       await loadWizardData();
     } catch (err) {
       setError(err.message);
@@ -414,7 +420,9 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
               </div>
 
               <button
-                onClick={() => addModuleWeek((modules.length || 0) + 1)}
+                onClick={() => addModuleWeek(
+                  Math.max(0, ...modules.filter((m) => m.kind !== "baseline" && m.kind !== "unassigned").map((m) => Number(m.week_offset) || 0)) + 1
+                )}
                 disabled={loading}
                 className="flex items-center gap-1.5 text-xs font-semibold text-white bg-[#0D9488] hover:bg-teal-700 px-3.5 py-2 rounded-xl transition-colors"
               >
@@ -432,7 +440,7 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
                   <div key={m.id} className="p-4 border border-slate-200 rounded-2xl bg-white space-y-2">
                     <div className="flex items-center justify-between">
                       <div>
-                        <span className="text-[10px] font-bold text-[#0D9488] uppercase tracking-wider">Week {m.week_offset || 1} Slot</span>
+                        <span className="text-[10px] font-bold text-[#0D9488] uppercase tracking-wider">{moduleWeekLabel(m)}</span>
                         <h4 className="text-sm font-bold text-slate-800">{m.title}</h4>
                       </div>
 
@@ -495,7 +503,7 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
                   {modules.map((m) => (
                     <div key={m.id} className="text-xs text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 flex justify-between">
                       <span className="font-semibold">{m.title}</span>
-                      <span className="text-slate-400">Week {m.week_offset || 1}</span>
+                      <span className="text-slate-400">{moduleWeekLabel(m)}</span>
                     </div>
                   ))}
                 </div>

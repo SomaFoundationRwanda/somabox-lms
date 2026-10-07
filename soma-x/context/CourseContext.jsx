@@ -23,10 +23,15 @@ export function CourseProvider({ courseId, children }) {
         fetch(`${SERVER_URL}/courses/${courseId}`),
         fetch(`${SERVER_URL}/courses/${courseId}/nav`),
       ]);
-      const coursePayload = await courseRes.json();
-      const navPayload = await navRes.json();
+      const coursePayload = await courseRes.json().catch(() => ({}));
+      const navPayload = await navRes.json().catch(() => ({}));
 
-      if (!courseRes.ok) throw new Error(coursePayload.message || "Failed to load course");
+      if (!courseRes.ok) {
+        if (courseRes.status === 403 && coursePayload?.code === "COURSE_NOT_OPEN") {
+          throw new Error("This course hasn't opened yet.");
+        }
+        throw new Error(coursePayload.message || "Failed to load course");
+      }
       if (!navRes.ok) throw new Error(navPayload.message || "Failed to load navigation");
 
       setCourse(coursePayload);

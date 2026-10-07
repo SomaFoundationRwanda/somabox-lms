@@ -13,6 +13,13 @@ import {
   Eye, EyeOff, Trash2, GripVertical, Plus, ChevronDown, ChevronRight, Pencil, Sparkles,
 } from "lucide-react";
 import ModuleItemRow from "./ModuleItemRow";
+import { useToast } from "@/context/ToastContext";
+import { moduleWeekLabel, isUnassignedModule } from "@/lib/moduleLabels";
+
+async function readError(res, fallback) {
+  const payload = await res.json().catch(() => ({}));
+  return payload?.message || fallback;
+}
 
 export default function ModuleCard({
   module: moduleRow,
@@ -27,6 +34,8 @@ export default function ModuleCard({
   const [collapsed, setCollapsed] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState(moduleRow.title);
+  const { showToast } = useToast();
+  const isUnassigned = isUnassignedModule(moduleRow);
 
   const {
     attributes,
@@ -48,42 +57,48 @@ export default function ModuleCard({
   );
 
   const togglePublish = async () => {
-    await fetch(`${SERVER_URL}/courses/${courseId}/modules/${moduleRow.id}`, {
+    const res = await fetch(`${SERVER_URL}/courses/${courseId}/modules/${moduleRow.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ published: !moduleRow.published }),
     });
+    if (!res.ok) showToast(await readError(res, "Failed to update module"), "error");
     onRefetch();
   };
 
   const deleteModule = async () => {
-    if (!confirm(`Delete module "${moduleRow.title}" and all its items?`)) return;
-    await fetch(`${SERVER_URL}/courses/${courseId}/modules/${moduleRow.id}`, {
+    if (!confirm(`Delete module "${moduleRow.title}"? Only empty modules can be deleted.`)) return;
+    const res = await fetch(`${SERVER_URL}/courses/${courseId}/modules/${moduleRow.id}`, {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({}),
     });
+    if (!res.ok) showToast(await readError(res, "Failed to delete module"), "error");
     onRefetch();
   };
 
   const saveTitle = async () => {
     if (titleDraft.trim() && titleDraft.trim() !== moduleRow.title) {
-      await fetch(`${SERVER_URL}/courses/${courseId}/modules/${moduleRow.id}`, {
+      const res = await fetch(`${SERVER_URL}/courses/${courseId}/modules/${moduleRow.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: titleDraft.trim() }),
       });
+      if (!res.ok) showToast(await readError(res, "Failed to rename module"), "error");
       onRefetch();
     }
     setEditingTitle(false);
   };
 
   const toggleItemPublish = async (item) => {
-    await fetch(`${SERVER_URL}/courses/${courseId}/modules/${moduleRow.id}/items/${item.id}`, {
+    const res = await fetch(`${SERVER_URL}/courses/${courseId}/modules/${moduleRow.id}/items/${item.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ published: !item.published }),
     });
+    if (!res.ok) {
+      showToast(await readError(res, item.published ? "Failed to unpublish item" : "Failed to publish item"), "error");
+    }
     onRefetch();
   };
 
@@ -111,7 +126,7 @@ export default function ModuleCard({
       style={style}
       className={`rounded-xl border overflow-hidden transition-shadow ${
         isDragging ? "opacity-50 shadow-lg border-[#203A3A]/30" : "border-slate-200 shadow-sm"
-      } ${!moduleRow.published && isTeacher ? "border-dashed border-slate-300 bg-slate-50/30" : "bg-white"}`}
+      } ${isUnassigned ? "border-amber-300 bg-amber-50/30" : !moduleRow.published && isTeacher ? "border-dashed border-slate-300 bg-slate-50/30" : "bg-white"}`}
       {...attributes}
     >
       {/* Header */}
@@ -125,8 +140,10 @@ export default function ModuleCard({
           <button onClick={() => setCollapsed((v) => !v)} className="p-0.5 text-slate-400 hover:text-slate-600 shrink-0">
             {collapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
           </button>
-          <span className="text-xs font-bold text-[#0D9488] bg-teal-50 border border-teal-200 px-2.5 py-0.5 rounded-md shrink-0">
-            Week {moduleRow.week_offset || 1}
+          <span className={`text-xs font-bold px-2.5 py-0.5 rounded-md shrink-0 border ${
+            isUnassigned ? "text-amber-700 bg-amber-50 border-amber-200" : "text-[#0D9488] bg-teal-50 border-teal-200"
+          }`}>
+            {moduleWeekLabel(moduleRow)}
           </span>
           {editingTitle ? (
             <input
@@ -156,11 +173,13 @@ export default function ModuleCard({
           <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
             <button
               onClick={async () => {
-                await fetch(`${SERVER_URL}/courses/${courseId}/ai/fill-module`, {
+                const res = await fetch(`${SERVER_URL}/courses/${courseId}/ai/fill-module`, {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({ moduleId: moduleRow.id }),
                 });
+                if (res.ok) showToast((await res.json().catch(() => ({}))).message || "Drafts added", "success");
+                else showToast(await readError(res, "AI drafts could not be created"), "error");
                 onRefetch();
               }}
               className="flex items-center gap-1 text-[11px] font-semibold text-teal-800 bg-teal-50 border border-teal-200 hover:bg-teal-100 px-2.5 py-1 rounded-lg transition-colors"
@@ -172,11 +191,13 @@ export default function ModuleCard({
               onClick={async () => {
                 const idea = prompt("Enter story idea (e.g. A boy who finds a broken calculator):");
                 if (idea && idea.trim()) {
-                  await fetch(`${SERVER_URL}/courses/${courseId}/ai/generate-story`, {
+                  const res = await fetch(`${SERVER_URL}/courses/${courseId}/ai/generate-story`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ moduleId: moduleRow.id, idea: idea.trim() }),
                   });
+                  if (res.ok) showToast((await res.json().catch(() => ({}))).message || "Drafts added", "success");
+                  else showToast(await readError(res, "AI drafts could not be created"), "error");
                   onRefetch();
                 }
               }}
@@ -199,6 +220,12 @@ export default function ModuleCard({
           </div>
         )}
       </div>
+
+      {isUnassigned && moduleRow.items.length > 0 && (
+        <div className="text-xs font-medium text-amber-800 bg-amber-50 border-t border-amber-200 px-4 py-2">
+          ⚠️ Move these items into a week. The course can't open while this has items.
+        </div>
+      )}
 
       {/* Items */}
       {!collapsed && (

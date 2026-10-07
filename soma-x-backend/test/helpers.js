@@ -79,11 +79,14 @@ export async function startTestServer() {
   const tokens = {};
   for (const [key, u] of Object.entries(USERS)) tokens[key] = await login(u.email);
 
-  async function createCourse(title = "Algebra") {
+  // Creates a course owned by the teacher with the student enrolled. Opened by default
+  // (students can't see drafts); pass { lifecycle: "draft" } to keep it in setup.
+  async function createCourse(title = "Algebra", { lifecycle = "open" } = {}) {
     const res = await api("POST", "/courses", { token: tokens.teacher, body: { title } });
     assert.equal(res.status, 201, JSON.stringify(res.body));
     const courseId = res.body.id;
     await db.prepare("INSERT INTO enrollments (course_id, user_email, role, status) VALUES (?, ?, 'student', 'active')").run(courseId, USERS.student.email);
+    if (lifecycle !== "draft") await db.prepare("UPDATE courses SET lifecycle = ? WHERE id = ?").run(lifecycle, courseId);
     return courseId;
   }
 

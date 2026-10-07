@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, CheckCircle2 } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
 
-export default function PrevNextNav({ courseId, itemType, contentRefId, moduleItemId }) {
+export default function PrevNextNav({ courseId, itemType, contentId, moduleItemId }) {
   const router = useRouter();
   const { SERVER_URL, userEmail } = useCourse();
   const [positionData, setPositionData] = useState(null);
@@ -19,7 +19,7 @@ export default function PrevNextNav({ courseId, itemType, contentRefId, moduleIt
       try {
         const query = moduleItemId
           ? `moduleItemId=${moduleItemId}`
-          : `itemType=${encodeURIComponent(itemType)}&contentRefId=${contentRefId}`;
+          : `itemType=${encodeURIComponent(itemType)}&contentId=${contentId}`;
 
         const res = await fetch(
           `${SERVER_URL}/courses/${courseId}/module-items/sequence-position?${query}`
@@ -36,7 +36,7 @@ export default function PrevNextNav({ courseId, itemType, contentRefId, moduleIt
     };
 
     fetchPosition();
-  }, [SERVER_URL, courseId, itemType, contentRefId, moduleItemId, userEmail]);
+  }, [SERVER_URL, courseId, itemType, contentId, moduleItemId, userEmail]);
 
   if (loading || !positionData || positionData.total <= 0) return null;
 

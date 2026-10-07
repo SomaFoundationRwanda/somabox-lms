@@ -36,6 +36,8 @@ export default function AssignmentEditorModal({ open, onClose, onSave, initialDa
         rubricDraft,
       });
       onClose();
+    } catch {
+      // Save failed: the parent already reported the error; keep the editor open.
     } finally {
       setSaving(false);
     }

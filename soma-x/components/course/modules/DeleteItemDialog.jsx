@@ -25,7 +25,7 @@ export default function DeleteItemDialog({ open, onClose, item, onRemove, onDele
           </p>
           {!isSubHeader && (
             <p className="text-xs text-slate-400">
-              Removing from the module keeps the {item.item_type} available elsewhere in the course. Deleting permanently removes it everywhere.
+              Removing from the module moves the {item.item_type} to &quot;Unassigned&quot; (unpublished) — it stays in the course. Deleting permanently removes it everywhere.
             </p>
           )}
         </div>
@@ -35,7 +35,7 @@ export default function DeleteItemDialog({ open, onClose, item, onRemove, onDele
             onClick={() => { onRemove(); onClose(); }}
             className="w-full text-sm font-semibold text-[#203A3A] bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl px-4 py-2.5 transition-colors"
           >
-            {isSubHeader ? "Delete Sub-header" : "Remove from module only"}
+            {isSubHeader ? "Delete Sub-header" : "Move to Unassigned"}
           </button>
           {!isSubHeader && (
             <button

@@ -188,6 +188,7 @@ router.get('/me/dashboard', async (req, res) => {
             FROM courses c
             JOIN enrollments e ON e.course_id = c.id
             WHERE LOWER(e.user_email) = LOWER(?) AND e.status = 'active'
+              AND (e.role IN ('teacher', 'ta') OR c.lifecycle <> 'draft')
             ORDER BY c.created_at DESC
         `).all(email);
 
@@ -216,7 +217,7 @@ router.get('/me/dashboard', async (req, res) => {
         }));
 
         const publicRows = await localDb.prepare(
-            "SELECT * FROM courses WHERE visibility = 'public' ORDER BY created_at DESC"
+            "SELECT * FROM courses WHERE visibility = 'public' AND lifecycle = 'open' ORDER BY created_at DESC"
         ).all();
 
         const enrolledIds = new Set(enrolledCourses.map((c) => c.id));

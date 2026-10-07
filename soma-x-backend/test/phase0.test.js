@@ -20,7 +20,7 @@ const asTeacher = as("teacher");
 const asStudent = as("student");
 const asOutsider = as("outsider");
 const anon = as(null);
-const createCourse = (title) => ctx.createCourse(title);
+const createCourse = (title, opts) => ctx.createCourse(title, opts);
 
 before(async () => {
   ctx = await startTestServer();
@@ -80,7 +80,8 @@ test("outcome-mastery returns null baseline and mastery when nothing was assesse
 test("outcome-mastery normalizes graded work to percent", async () => {
   const courseId = await createCourse();
   const outcome = await db.prepare("INSERT INTO outcomes (course_id, title) VALUES (?, 'Graphing') RETURNING id").get(courseId);
-  const assignment = await db.prepare("INSERT INTO assignments (course_id, title, points_possible, published) VALUES (?, 'HW', 50, 1) RETURNING id").get(courseId);
+  const mod = await db.prepare("INSERT INTO modules (course_id, title, week_offset) VALUES (?, 'Week 1', 1) RETURNING id").get(courseId);
+  const assignment = await db.prepare("INSERT INTO assignments (course_id, module_id, title, points_possible, published) VALUES (?, ?, 'HW', 50, 1) RETURNING id").get(courseId, mod.id);
   await db.prepare("INSERT INTO item_outcomes (course_id, item_type, item_id, outcome_id) VALUES (?, 'assignment', ?, ?)").run(courseId, assignment.id, outcome.id);
   await db.prepare("INSERT INTO assignment_submissions (assignment_id, scholar_email, grade) VALUES (?, ?, 40)").run(assignment.id, STUDENT);
 
@@ -128,9 +129,9 @@ test("course read endpoints reject anonymous and non-enrolled callers", async ()
 
 test("home-loop hides class-wide attention items from students", async () => {
   const courseId = await createCourse();
-  const mod = await db.prepare("INSERT INTO modules (course_id, title) VALUES (?, 'Week 1') RETURNING id").get(courseId);
-  const assignment = await db.prepare("INSERT INTO assignments (course_id, title) VALUES (?, 'Untagged') RETURNING id").get(courseId);
-  await db.prepare("INSERT INTO module_items (module_id, item_type, item_ref_id, content_ref_table, content_ref_id, title, position) VALUES (?, 'assignment', ?, 'assignments', ?, 'Untagged', 0)").run(mod.id, assignment.id, assignment.id);
+  const mod = await db.prepare("INSERT INTO modules (course_id, title, week_offset) VALUES (?, 'Week 1', 1) RETURNING id").get(courseId);
+  const assignment = await db.prepare("INSERT INTO assignments (course_id, module_id, title) VALUES (?, ?, 'Untagged') RETURNING id").get(courseId, mod.id);
+  await db.prepare("INSERT INTO module_items (module_id, item_type, content_id, title, position) VALUES (?, 'assignment', ?, 'Untagged', 0)").run(mod.id, assignment.id);
 
   const teacher = await asTeacher("GET", `/courses/${courseId}/home-loop`);
   assert.equal(teacher.status, 200);
@@ -144,7 +145,7 @@ test("home-loop hides class-wide attention items from students", async () => {
 // ---------- P0-6: new courses are drafts and the opening gate is real ----------
 
 test("a new course starts unopened and cannot open with missing requirements", async () => {
-  const courseId = await createCourse();
+  const courseId = await createCourse("Draft", { lifecycle: "draft" });
   const status = await asTeacher("GET", `/courses/${courseId}/setup-status`);
   assert.equal(status.status, 200);
   assert.equal(status.body.isOpened, false);
@@ -154,18 +155,17 @@ test("a new course starts unopened and cannot open with missing requirements", a
   const open = await asTeacher("POST", `/courses/${courseId}/open-course`, {});
   assert.equal(open.status, 400);
 
-  const patch = await asTeacher("PATCH", `/courses/${courseId}`, { status: "active" });
+  const patch = await asTeacher("PATCH", `/courses/${courseId}`, { lifecycle: "open" });
   assert.equal(patch.status, 400);
 
-  const course = await db.prepare("SELECT status, is_opened FROM courses WHERE id = ?").get(courseId);
-  assert.equal(course.status, "unpublished");
-  assert.equal(Number(course.is_opened), 0);
+  const course = await db.prepare("SELECT lifecycle FROM courses WHERE id = ?").get(courseId);
+  assert.equal(course.lifecycle, "draft");
 });
 
 test("a course with outcomes, a module, and an item can open", async () => {
-  const courseId = await createCourse();
+  const courseId = await createCourse("To open", { lifecycle: "draft" });
   await db.prepare("INSERT INTO outcomes (course_id, title) VALUES (?, 'O1')").run(courseId);
-  const mod = await db.prepare("INSERT INTO modules (course_id, title) VALUES (?, 'Week 1') RETURNING id").get(courseId);
+  const mod = await db.prepare("INSERT INTO modules (course_id, title, week_offset) VALUES (?, 'Week 1', 1) RETURNING id").get(courseId);
   await db.prepare("INSERT INTO module_items (module_id, item_type, title, position) VALUES (?, 'sub_header', 'Intro', 0)").run(mod.id);
 
   const open = await asTeacher("POST", `/courses/${courseId}/open-course`, {});
@@ -183,9 +183,9 @@ test("open-course requires the teacher role", async () => {
 
 // ---------- P0-5: AI stub output is unpublished and linked correctly ----------
 
-test("fill-module creates unpublished items readable through content_ref_id", async () => {
+test("fill-module creates unpublished items linked to their content", async () => {
   const courseId = await createCourse();
-  const mod = await db.prepare("INSERT INTO modules (course_id, title) VALUES (?, 'Week 1') RETURNING id").get(courseId);
+  const mod = await db.prepare("INSERT INTO modules (course_id, title, week_offset) VALUES (?, 'Week 1', 1) RETURNING id").get(courseId);
 
   const res = await asTeacher("POST", `/courses/${courseId}/ai/fill-module`, { moduleId: mod.id });
   assert.equal(res.status, 200, JSON.stringify(res.body));
@@ -194,9 +194,10 @@ test("fill-module creates unpublished items readable through content_ref_id", as
   assert.equal(items.length, 3);
   for (const item of items) {
     assert.equal(Number(item.published), 0, `${item.item_type} module item published`);
-    assert.ok(item.content_ref_id, `${item.item_type} missing content_ref_id`);
-    assert.ok(item.content_ref_table, `${item.item_type} missing content_ref_table`);
-    const content = await db.prepare(`SELECT published FROM ${item.content_ref_table} WHERE id = ?`).get(item.content_ref_id);
+    assert.ok(item.content_id, `${item.item_type} missing content_id`);
+    const table = { page: "course_pages", assignment: "assignments", quiz: "quizzes" }[item.item_type];
+    const content = await db.prepare(`SELECT published, module_id FROM ${table} WHERE id = ?`).get(item.content_id);
+    assert.equal(Number(content.module_id), Number(mod.id), `${item.item_type} module_id`);
     assert.equal(Number(content.published), 0, `${item.item_type} content published`);
   }
 });
@@ -204,8 +205,8 @@ test("fill-module creates unpublished items readable through content_ref_id", as
 test("generate-story creates unpublished, escaped content in the course's own module", async () => {
   const courseId = await createCourse();
   const otherCourseId = await createCourse("Other");
-  const mod = await db.prepare("INSERT INTO modules (course_id, title) VALUES (?, 'Week 1') RETURNING id").get(courseId);
-  const foreignMod = await db.prepare("INSERT INTO modules (course_id, title) VALUES (?, 'Foreign') RETURNING id").get(otherCourseId);
+  const mod = await db.prepare("INSERT INTO modules (course_id, title, week_offset) VALUES (?, 'Week 1', 1) RETURNING id").get(courseId);
+  const foreignMod = await db.prepare("INSERT INTO modules (course_id, title, week_offset) VALUES (?, 'Foreign', 1) RETURNING id").get(otherCourseId);
 
   const foreign = await asTeacher("POST", `/courses/${courseId}/ai/generate-story`, { moduleId: foreignMod.id, idea: "x" });
   assert.equal(foreign.status, 404);
@@ -218,11 +219,11 @@ test("generate-story creates unpublished, escaped content in the course's own mo
   assert.ok(!page.body.includes("<script>"));
   assert.ok(!page.body.includes("className"));
 
-  const items = await db.prepare("SELECT published, content_ref_id FROM module_items WHERE module_id = ?").all(mod.id);
+  const items = await db.prepare("SELECT published, content_id FROM module_items WHERE module_id = ?").all(mod.id);
   assert.equal(items.length, 2);
   for (const item of items) {
     assert.equal(Number(item.published), 0);
-    assert.ok(item.content_ref_id);
+    assert.ok(item.content_id);
   }
 });
 
@@ -265,8 +266,8 @@ test("new modules get increasing positions", async () => {
 
 test("modules and items can be reordered", async () => {
   const courseId = await createCourse();
-  const a = await db.prepare("INSERT INTO modules (course_id, title, position) VALUES (?, 'A', 0) RETURNING id").get(courseId);
-  const b = await db.prepare("INSERT INTO modules (course_id, title, position) VALUES (?, 'B', 1) RETURNING id").get(courseId);
+  const a = await db.prepare("INSERT INTO modules (course_id, title, position, week_offset) VALUES (?, 'A', 0, 1) RETURNING id").get(courseId);
+  const b = await db.prepare("INSERT INTO modules (course_id, title, position, week_offset) VALUES (?, 'B', 1, 2) RETURNING id").get(courseId);
   const res = await asTeacher("PATCH", `/courses/${courseId}/modules/reorder`, { moduleIds: [b.id, a.id] });
   assert.equal(res.status, 200, JSON.stringify(res.body));
   const mods = await db.prepare("SELECT id FROM modules WHERE course_id = ? ORDER BY position").all(courseId);

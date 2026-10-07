@@ -9,6 +9,7 @@ import {
 } from "@dnd-kit/sortable";
 import { Plus } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
+import { useToast } from "@/context/ToastContext";
 import { useCourseSection } from "@/lib/useCourseSection";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -32,6 +33,21 @@ const ITEM_TYPE_OPTIONS = [
 export default function ModulesPage() {
   const { SERVER_URL, courseId, userEmail, isTeacher } = useCourse();
   const { data: modules, loading, error, refetch } = useCourseSection("modules");
+  const { showToast } = useToast();
+
+  // Reads a JSON response; on failure shows the server message and throws so
+  // editor modals stay open. On success, surfaces any `notice` (e.g. a graded
+  // item saved unpublished because it has no outcome tag).
+  const handleResponse = async (res, fallbackError) => {
+    const payload = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const message = payload?.message || fallbackError;
+      showToast(message, "error");
+      throw new Error(message);
+    }
+    if (payload?.notice) showToast(payload.notice, "info", 7000);
+    return payload;
+  };
 
   // Module creation
   const [creating, setCreating] = useState(false);
@@ -60,11 +76,16 @@ export default function ModulesPage() {
   // ===== Module CRUD =====
   const createModule = async () => {
     if (!newTitle.trim()) return;
-    await fetch(`${SERVER_URL}/courses/${courseId}/modules`, {
+    const res = await fetch(`${SERVER_URL}/courses/${courseId}/modules`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title: newTitle.trim() }),
     });
+    if (!res.ok) {
+      const payload = await res.json().catch(() => ({}));
+      showToast(payload?.message || "Failed to create module", "error");
+      return;
+    }
     setNewTitle("");
     setCreating(false);
     refetch();
@@ -136,77 +157,85 @@ export default function ModulesPage() {
   };
 
   const createSubHeader = async (moduleId, title) => {
-    await fetch(`${SERVER_URL}/courses/${courseId}/modules/${moduleId}/items`, {
+    const res = await fetch(`${SERVER_URL}/courses/${courseId}/modules/${moduleId}/items`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ itemType: "sub_header", title }),
     });
+    try { await handleResponse(res, "Failed to add sub-header"); } catch { return; }
     setAddingItemFor(null);
     setSubHeaderTitle("");
     refetch();
   };
 
   const createSimpleItem = async (moduleId, itemType, title) => {
-    await fetch(`${SERVER_URL}/courses/${courseId}/modules/${moduleId}/items`, {
+    const res = await fetch(`${SERVER_URL}/courses/${courseId}/modules/${moduleId}/items`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ itemType, title }),
     });
+    try { await handleResponse(res, "Failed to add item"); } catch { return; }
     setAddingItemFor(null);
     refetch();
   };
 
   // ===== Save handlers for editor modals =====
   const handlePageSave = async (data) => {
+    let res;
     if (pageModal.itemId) {
       // Edit existing
-      await fetch(`${SERVER_URL}/courses/${courseId}/modules/${pageModal.moduleId}/items/${pageModal.itemId}/content`, {
+      res = await fetch(`${SERVER_URL}/courses/${courseId}/modules/${pageModal.moduleId}/items/${pageModal.itemId}/content`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...data }),
       });
     } else {
       // Create new
-      await fetch(`${SERVER_URL}/courses/${courseId}/modules/${pageModal.moduleId}/items`, {
+      res = await fetch(`${SERVER_URL}/courses/${courseId}/modules/${pageModal.moduleId}/items`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ itemType: "page", ...data }),
       });
     }
+    await handleResponse(res, "Failed to save page");
     refetch();
   };
 
   const handleAssignmentSave = async (data) => {
+    let res;
     if (assignmentModal.itemId) {
-      await fetch(`${SERVER_URL}/courses/${courseId}/modules/${assignmentModal.moduleId}/items/${assignmentModal.itemId}/content`, {
+      res = await fetch(`${SERVER_URL}/courses/${courseId}/modules/${assignmentModal.moduleId}/items/${assignmentModal.itemId}/content`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...data }),
       });
     } else {
-      await fetch(`${SERVER_URL}/courses/${courseId}/modules/${assignmentModal.moduleId}/items`, {
+      res = await fetch(`${SERVER_URL}/courses/${courseId}/modules/${assignmentModal.moduleId}/items`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ itemType: "assignment", ...data }),
       });
     }
+    await handleResponse(res, "Failed to save assignment");
     refetch();
   };
 
   const handleQuizSave = async (data) => {
+    let res;
     if (quizModal.itemId) {
-      await fetch(`${SERVER_URL}/courses/${courseId}/modules/${quizModal.moduleId}/items/${quizModal.itemId}/content`, {
+      res = await fetch(`${SERVER_URL}/courses/${courseId}/modules/${quizModal.moduleId}/items/${quizModal.itemId}/content`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...data }),
       });
     } else {
-      await fetch(`${SERVER_URL}/courses/${courseId}/modules/${quizModal.moduleId}/items`, {
+      res = await fetch(`${SERVER_URL}/courses/${courseId}/modules/${quizModal.moduleId}/items`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ itemType: "quiz", ...data }),
       });
     }
+    await handleResponse(res, "Failed to save quiz");
     refetch();
   };
 
@@ -215,18 +244,19 @@ export default function ModulesPage() {
     if (item.item_type === "sub_header") {
       const newTitle = prompt("Edit sub-header title:", item.title);
       if (newTitle !== null && newTitle.trim()) {
-        await fetch(`${SERVER_URL}/courses/${courseId}/modules/${moduleRow.id}/items/${item.id}`, {
+        const res = await fetch(`${SERVER_URL}/courses/${courseId}/modules/${moduleRow.id}/items/${item.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ title: newTitle.trim() }),
         });
+        try { await handleResponse(res, "Failed to rename sub-header"); } catch { /* toast shown */ }
         refetch();
       }
       return;
     }
 
     // For content types, fetch the content data first
-    const contentId = item.content_ref_id || item.item_ref_id;
+    const contentId = item.content_id;
     if (!contentId) return;
 
     if (item.item_type === "page") {
@@ -242,7 +272,7 @@ export default function ModulesPage() {
       const data = await res.json();
       setQuizModal({ open: true, moduleId: moduleRow.id, data, itemId: item.id });
     }
-  }, [SERVER_URL, courseId, userEmail, refetch]);
+  }, [SERVER_URL, courseId, userEmail, refetch, showToast]);
 
   // ===== Delete item =====
   const handleDeleteItem = (moduleRow, item) => {
@@ -251,17 +281,19 @@ export default function ModulesPage() {
 
   const removeFromModule = async () => {
     const { module: m, item } = deleteTarget;
-    await fetch(`${SERVER_URL}/courses/${courseId}/modules/${m.id}/items/${item.id}?mode=remove_from_module`, {
+    const res = await fetch(`${SERVER_URL}/courses/${courseId}/modules/${m.id}/items/${item.id}?mode=remove_from_module`, {
       method: "DELETE",
     });
+    try { await handleResponse(res, "Failed to remove item"); } catch { /* toast shown */ }
     refetch();
   };
 
   const deletePermanently = async () => {
     const { module: m, item } = deleteTarget;
-    await fetch(`${SERVER_URL}/courses/${courseId}/modules/${m.id}/items/${item.id}?mode=delete_permanently`, {
+    const res = await fetch(`${SERVER_URL}/courses/${courseId}/modules/${m.id}/items/${item.id}?mode=delete_permanently`, {
       method: "DELETE",
     });
+    try { await handleResponse(res, "Failed to delete item"); } catch { /* toast shown */ }
     refetch();
   };
 

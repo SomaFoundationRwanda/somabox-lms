@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { MessageSquare, Plus } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
@@ -8,21 +8,55 @@ import { useCourseSection } from "@/lib/useCourseSection";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
 import AsyncListState from "@/components/course/AsyncListState";
 import { Button } from "@/components/ui/button";
+import { moduleWeekLabel } from "@/lib/moduleLabels";
 
 export default function DiscussionsListPage() {
   const { SERVER_URL, courseId } = useCourse();
   const { data: discussions, loading, error, refetch } = useCourseSection("discussions");
   const [creating, setCreating] = useState(false);
-  const [form, setForm] = useState({ title: "", body: "" });
+  const [form, setForm] = useState({ title: "", body: "", moduleId: "" });
+  const [modules, setModules] = useState([]);
+  const [createError, setCreateError] = useState("");
+
+  // Discussions must live in a module. Learners only receive published modules
+  // from the API; the "unassigned" bucket is never a valid target.
+  useEffect(() => {
+    if (!creating || !SERVER_URL || !courseId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${SERVER_URL}/courses/${courseId}/modules`);
+        if (!res.ok) return;
+        const mods = await res.json();
+        if (cancelled) return;
+        const choices = (Array.isArray(mods) ? mods : []).filter((m) => m.kind !== "unassigned");
+        setModules(choices);
+        setForm((p) => (p.moduleId || choices.length === 0 ? p : { ...p, moduleId: choices[0].id }));
+      } catch (err) {
+        console.error(err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [creating, SERVER_URL, courseId]);
 
   const create = async () => {
     if (!form.title.trim()) return;
-    await fetch(`${SERVER_URL}/courses/${courseId}/discussions`, {
+    if (!form.moduleId) {
+      setCreateError("Choose a module for this discussion.");
+      return;
+    }
+    setCreateError("");
+    const res = await fetch(`${SERVER_URL}/courses/${courseId}/discussions`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: form.title.trim(), body: form.body }),
+      body: JSON.stringify({ title: form.title.trim(), body: form.body, moduleId: Number(form.moduleId) }),
     });
-    setForm({ title: "", body: "" });
+    if (!res.ok) {
+      const payload = await res.json().catch(() => ({}));
+      setCreateError(payload.message || "Failed to create discussion.");
+      return;
+    }
+    setForm({ title: "", body: "", moduleId: "" });
     setCreating(false);
     refetch();
   };
@@ -40,11 +74,24 @@ export default function DiscussionsListPage() {
 
         {creating ? (
           <div className="space-y-2 rounded-xl border border-slate-200 p-3">
+            <select
+              value={form.moduleId}
+              onChange={(e) => setForm((p) => ({ ...p, moduleId: e.target.value }))}
+              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none bg-white"
+            >
+              <option value="" disabled>{modules.length === 0 ? "No modules available" : "Choose a module *"}</option>
+              {modules.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {moduleWeekLabel(m)}: {m.title}
+                </option>
+              ))}
+            </select>
             <input value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} placeholder="Title" className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none" />
             <textarea value={form.body} onChange={(e) => setForm((p) => ({ ...p, body: e.target.value }))} rows={3} placeholder="Start the discussion..." className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none" />
+            {createError ? <p className="text-xs font-semibold text-rose-600">{createError}</p> : null}
             <div className="flex justify-end gap-2">
               <button onClick={() => setCreating(false)} className="text-xs font-medium text-slate-500 px-3 py-2">Cancel</button>
-              <button onClick={create} className="text-xs font-semibold text-white bg-[#203A3A] rounded-lg px-3 py-2">Post</button>
+              <button onClick={create} disabled={!form.title.trim() || !form.moduleId} className="text-xs font-semibold text-white bg-[#203A3A] rounded-lg px-3 py-2 disabled:opacity-50">Post</button>
             </div>
           </div>
         ) : null}

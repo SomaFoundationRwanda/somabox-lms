@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { ListChecks, Target, CheckCircle2, Lock } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
@@ -48,6 +49,9 @@ export default function RubricsPage() {
             <p className="text-xs text-slate-500 mt-1">
               Rubrics are instantiated directly within assignment forms from course learning outcome mastery levels.
             </p>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Each rubric belongs to one assignment — edit it from that assignment.
+            </p>
           </div>
         </div>
 
@@ -64,18 +68,43 @@ export default function RubricsPage() {
           ) : (
             rubrics.map((r) => (
               <div key={r.id} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-3">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
-                  <h3 className="text-sm font-bold text-slate-900">{r.title}</h3>
+                <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-bold text-slate-900">{r.title}</h3>
+                    {r.assignment_id ? (
+                      <Link
+                        href={`/course/${courseId}/assignments/${r.assignment_id}`}
+                        className="text-xs font-semibold text-[#0D9488] hover:underline"
+                      >
+                        Assignment: {r.assignment_title || `#${r.assignment_id}`}
+                      </Link>
+                    ) : null}
+                  </div>
                   <span className="text-[10px] font-bold text-teal-700 bg-teal-50 px-2.5 py-0.5 rounded-full border border-teal-200">
                     Instantiated Rubric
                   </span>
                 </div>
 
                 <div className="divide-y divide-slate-100 border border-slate-100 rounded-xl bg-slate-50/50">
-                  {(r.criteria || []).map((c, idx) => (
-                    <div key={idx} className="p-3 flex items-center justify-between text-xs">
-                      <span className="font-semibold text-slate-800">{c.description}</span>
-                      <span className="font-bold text-[#0D9488] bg-white px-2.5 py-1 rounded border border-slate-200">
+                  {(r.criteria || []).length === 0 ? (
+                    <p className="p-3 text-xs text-slate-400 italic">No criteria yet.</p>
+                  ) : (r.criteria || []).map((c, idx) => (
+                    <div key={c.id ?? idx} className="p-3 flex items-start justify-between gap-3 text-xs">
+                      <div className="min-w-0 space-y-0.5">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold text-slate-800">{c.title}</span>
+                          {c.outcome_code ? (
+                            <span
+                              className="text-[10px] font-bold text-[#0D9488] bg-teal-50 border border-teal-200 px-2 py-0.5 rounded-full"
+                              title={c.outcome_title || undefined}
+                            >
+                              {c.outcome_code}
+                            </span>
+                          ) : null}
+                        </div>
+                        {c.description ? <p className="text-[11px] text-slate-500">{c.description}</p> : null}
+                      </div>
+                      <span className="font-bold text-[#0D9488] bg-white px-2.5 py-1 rounded border border-slate-200 shrink-0">
                         {c.points} pts
                       </span>
                     </div>
