@@ -53,7 +53,7 @@ export default function CollaborationsPage() {
     <div>
       <Breadcrumbs sectionKey="collaborations" />
       <div className="p-4 md:p-6 space-y-6 max-w-2xl">
-        <PageHeader
+        <PageHeader help="pages.collaborations"
           title="Collaborations"
           description="Share a link to an external doc, sheet, or board with specific course members."
           actions={

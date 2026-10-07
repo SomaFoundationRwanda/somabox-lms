@@ -74,7 +74,7 @@ export default function GradesPage() {
     <div>
       <Breadcrumbs sectionKey="grades" />
       <div className="p-4 md:p-6 space-y-6">
-        <PageHeader
+        <PageHeader help="pages.grades"
           title="Grades"
           meta={data?.role === "student" && data.averagePct != null ? (
             <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">

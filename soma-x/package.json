@@ -9,7 +9,8 @@
     "build": "next build",
     "start": "next start",
     "startprod": "pm2 start npm --name soma-x -- run start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "node scripts/check-explainers.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

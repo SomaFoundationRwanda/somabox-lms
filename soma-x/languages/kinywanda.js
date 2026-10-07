@@ -1,4 +1,7 @@
+// Kinyarwanda explainers are not written yet: they fall back to English (marked as such)
+// until a native-speaking teacher translates languages/explainers/en.js.
 export default {
+    "explainers": {},
     "nav": {
         "dashboard": "Ahabanza",
         "lessons": "Amasomo",

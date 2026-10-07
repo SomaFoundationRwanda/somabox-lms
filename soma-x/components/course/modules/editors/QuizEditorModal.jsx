@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { X, Plus, Trash2, Check, Sparkles } from "lucide-react";
 import InfoTooltip from "@/components/ui/InfoTooltip";
 import { useCourse } from "@/context/CourseContext";
+import Explainer from "@/components/help/Explainer";
 import ScheduleFields, { initialScheduleValues, scheduleError, schedulePayload } from "./ScheduleFields";
 
 function QuestionBuilder({ question, index, onChange, onRemove, outcomes }) {
@@ -253,7 +254,10 @@ export default function QuizEditorModal({ open, onClose, onSave, initialData, in
           {/* Quiz type & attempts */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1.5">Quiz Type</label>
+              <div className="flex items-center gap-2 mb-1.5">
+                <label className="block text-xs font-semibold text-slate-600">Quiz Type</label>
+                <Explainer k={`quizKinds.${kind}`} variant="icon" />
+              </div>
               <select
                 value={kind}
                 onChange={(e) => setKind(e.target.value)}

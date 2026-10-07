@@ -1,4 +1,7 @@
+import frExplainers from "./explainers/fr";
+
 export default {
+    "explainers": frExplainers,
     "nav": {
         "dashboard": "Tableau de bord",
         "lessons": "Leçons",

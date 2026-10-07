@@ -130,7 +130,7 @@ export default function QuizDetailPage() {
       <Breadcrumbs sectionKey="quizzes" itemName={quiz.title} />
       <div className="p-4 md:p-6 space-y-6 max-w-4xl">
         {/* Header: flat band, not a card */}
-        <PageHeader
+        <PageHeader help="items.quiz"
           title={quiz.title}
           description={quiz.description || undefined}
           meta={

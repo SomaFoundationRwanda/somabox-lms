@@ -70,3 +70,8 @@ export function useCourse() {
   if (!ctx) throw new Error("useCourse must be used within a CourseProvider");
   return ctx;
 }
+
+/** The course context if inside a course, else null (never throws). */
+export function useOptionalCourse() {
+  return useContext(CourseContext);
+}

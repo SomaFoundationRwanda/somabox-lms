@@ -43,7 +43,7 @@ export default function SyllabusPage() {
     <div>
       <Breadcrumbs sectionKey="syllabus" />
       <div className="p-4 md:p-6 space-y-8 max-w-4xl">
-        <PageHeader
+        <PageHeader help="pages.syllabus"
           eyebrow="Auto-generated course syllabus"
           title={course?.title || "Course Syllabus"}
           meta={

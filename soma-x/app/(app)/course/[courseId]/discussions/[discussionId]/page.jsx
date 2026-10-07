@@ -66,7 +66,7 @@ export default function DiscussionThreadPage() {
     <div>
       <Breadcrumbs sectionKey="discussions" itemName={discussion.title} />
       <div className="p-4 md:p-6 space-y-6 max-w-2xl">
-        <PageHeader
+        <PageHeader help="items.discussion"
           title={discussion.title}
           meta={discussion.graded ? <span className="text-[10px] font-bold uppercase text-teal-600 bg-teal-50 rounded-full px-1.5 py-0.5">Graded</span> : null}
         >

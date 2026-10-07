@@ -13,6 +13,9 @@ import { useToast } from "@/context/ToastContext";
 import { useCourseSection } from "@/lib/useCourseSection";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
 import { PageHeader, EmptyState } from "@/components/layout";
+import Explainer, { ExplainerText } from "@/components/help/Explainer";
+import WhatShouldICreate from "@/components/help/WhatShouldICreate";
+import { useLanguage } from "@/context/LanguageContext";
 import InfoTooltip from "@/components/ui/InfoTooltip";
 import ModuleCard from "@/components/course/modules/ModuleCard";
 import DeleteItemDialog from "@/components/course/modules/DeleteItemDialog";
@@ -59,6 +62,8 @@ export default function ModulesPage() {
   // Add item flow
   const [addingItemFor, setAddingItemFor] = useState(null); // module object
   const [selectedItemType, setSelectedItemType] = useState("page");
+  const [helperOpen, setHelperOpen] = useState(false);
+  const { explain } = useLanguage();
   const [subHeaderTitle, setSubHeaderTitle] = useState("");
 
   // Editor modals
@@ -119,10 +124,22 @@ export default function ModulesPage() {
 
   const startItemCreation = () => {
     if (!addingItemFor) return;
-    const moduleId = addingItemFor.id;
+    openCreator(addingItemFor, selectedItemType);
+  };
+
+  // Opens the right editor for itemType in moduleRow (used by the Add item drawer and by
+  // "What should I create?"). quizKind pre-selects graded/practice for a new quiz.
+  const openCreator = (moduleRow, itemType, quizKind) => {
+    const moduleId = moduleRow.id;
+    const selectedItemType = itemType;
 
     if (selectedItemType === "sub_header") {
-      // Sub-header: just needs a title
+      // Sub-header: just needs a title (the drawer asks for it)
+      if (addingItemFor?.id !== moduleId) {
+        setAddingItemFor(moduleRow);
+        setSelectedItemType("sub_header");
+        return;
+      }
       if (!subHeaderTitle.trim()) return;
       createSubHeader(moduleId, subHeaderTitle.trim());
       return;
@@ -141,13 +158,13 @@ export default function ModulesPage() {
     }
 
     if (selectedItemType === "assignment") {
-      setAssignmentModal({ open: true, moduleId, data: null, itemId: null, days: null, startDate: addingItemFor.startDate || null });
+      setAssignmentModal({ open: true, moduleId, data: null, itemId: null, days: null, startDate: moduleRow.startDate || null });
       setAddingItemFor(null);
       return;
     }
 
     if (selectedItemType === "quiz") {
-      setQuizModal({ open: true, moduleId, data: null, itemId: null, days: null, startDate: addingItemFor.startDate || null });
+      setQuizModal({ open: true, moduleId, data: quizKind ? { kind: quizKind } : null, itemId: null, days: null, startDate: moduleRow.startDate || null });
       setAddingItemFor(null);
       return;
     }
@@ -302,19 +319,30 @@ export default function ModulesPage() {
 
   const moduleIds = (modules || []).map((m) => m.id);
 
+  const chooseFromHelper = ({ moduleId, itemType, kind }) => {
+    const moduleRow = (modules || []).find((m) => Number(m.id) === Number(moduleId));
+    setHelperOpen(false);
+    if (moduleRow) openCreator(moduleRow, itemType, kind);
+  };
+  const selectedExplainer = explain(`items.${selectedItemType}`).entry;
+
   return (
     <div>
       <Breadcrumbs sectionKey="modules" />
       <div className="p-4 md:p-6 space-y-6">
-        <PageHeader
-          title={
-            <span className="inline-flex items-center gap-1.5">
-              Modules
-              <InfoTooltip text="A Module groups related content — pages, assignments, quizzes, and files — into one learning unit. Example: 'Module 1: Cell Biology' might contain a reading page, a quiz, and an assignment, all in the order students should complete them." />
-            </span>
-          }
+        <PageHeader help="pages.modules"
+          title="Modules"
           description="Each week's module with its dates, followed by its items in the order learners work through them."
           actions={isTeacher ? (
+            <>
+            <button
+              type="button"
+              onClick={() => setHelperOpen(true)}
+              disabled={!modules || modules.filter((m) => m.kind !== "unassigned").length === 0}
+              className="flex items-center gap-1.5 text-xs font-semibold text-[#203A3A] border border-slate-200 hover:bg-slate-50 disabled:opacity-40 rounded-lg px-3 py-2 transition-colors"
+            >
+              {explain("helper").entry?.button || "What should I create?"}
+            </button>
             <button
               onClick={() => setCreating((v) => !v)}
               aria-expanded={creating}
@@ -322,6 +350,7 @@ export default function ModulesPage() {
             >
               <Plus className="w-3.5 h-3.5" /> Add Module
             </button>
+            </>
           ) : null}
         />
 
@@ -353,7 +382,7 @@ export default function ModulesPage() {
           <EmptyState
             compact
             title={isTeacher ? "No modules yet" : "No content published yet."}
-            description={isTeacher ? "Create a module to start organizing your course content." : undefined}
+            description={isTeacher ? <ExplainerText k="pages.modules" /> : undefined}
           />
         )}
 
@@ -412,21 +441,30 @@ export default function ModulesPage() {
               <div className="space-y-3">
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1.5">Item Type</label>
-                  <div className="grid grid-cols-3 gap-1.5">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
                     {ITEM_TYPE_OPTIONS.map((opt) => (
-                      <button
-                        key={opt.value}
-                        onClick={() => setSelectedItemType(opt.value)}
-                        className={`text-xs font-medium py-2 rounded-lg border transition-colors ${
-                          selectedItemType === opt.value
-                            ? "border-[#203A3A] bg-[#203A3A] text-white"
-                            : "border-slate-200 text-slate-600 hover:border-slate-300"
-                        }`}
-                      >
-                        {opt.label}
-                      </button>
+                      <div key={opt.value} className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedItemType(opt.value)}
+                          aria-pressed={selectedItemType === opt.value}
+                          className={`flex-1 text-xs font-medium py-2 rounded-lg border transition-colors ${
+                            selectedItemType === opt.value
+                              ? "border-[#203A3A] bg-[#203A3A] text-white"
+                              : "border-slate-200 text-slate-600 hover:border-slate-300"
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                        <Explainer k={`items.${opt.value}`} variant="icon" align={["quiz", "sub_header"].includes(opt.value) ? "right" : "left"} />
+                      </div>
                     ))}
                   </div>
+                  {selectedExplainer ? (
+                    <p className="mt-2 text-xs text-slate-500">
+                      {selectedExplainer.what} <span className="text-slate-400">{selectedExplainer.when}</span>
+                    </p>
+                  ) : null}
                 </div>
 
                 {selectedItemType === "sub_header" && (
@@ -463,6 +501,13 @@ export default function ModulesPage() {
           </div>
         )}
       </div>
+
+      <WhatShouldICreate
+        open={helperOpen}
+        onClose={() => setHelperOpen(false)}
+        modules={modules || []}
+        onChoose={chooseFromHelper}
+      />
 
       {/* ===== Modals ===== */}
       <PageEditorModal

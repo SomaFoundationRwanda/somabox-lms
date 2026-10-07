@@ -6,6 +6,7 @@ import { HelpCircle, Plus } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
 import { PageHeader, List, ListRow, EmptyState } from "@/components/layout";
+import { ExplainerText } from "@/components/help/Explainer";
 
 export default function QuizzesListPage() {
   const { SERVER_URL, courseId, userEmail, isTeacher } = useCourse();
@@ -33,7 +34,7 @@ export default function QuizzesListPage() {
     <div>
       <Breadcrumbs sectionKey="quizzes" />
       <div className="p-4 md:p-6 space-y-6 max-w-4xl">
-        <PageHeader
+        <PageHeader help="pages.quizzes"
           title="Quizzes"
           description="Quizzes are bound to weekly modules and assess tagged outcome baselines."
           actions={isTeacher ? (
@@ -47,7 +48,7 @@ export default function QuizzesListPage() {
         />
 
         {quizzes.length === 0 ? (
-          <EmptyState compact title={loading ? "Loading quizzes..." : "No quizzes created yet."} />
+          <EmptyState compact title={loading ? "Loading quizzes..." : "No quizzes created yet."} description={loading ? undefined : <ExplainerText k="pages.quizzes" />} />
         ) : (
           <List label="Quizzes">
             {quizzes.map((q) => (

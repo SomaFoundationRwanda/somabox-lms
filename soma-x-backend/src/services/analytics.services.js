@@ -182,6 +182,67 @@ router.get('/sol-outcomes', async (req, res) => {
     }
 });
 
+// ===== Usage events =====
+// Append-only, batched from the browser. Only known event types are stored, and a course is
+// only attached if the caller belongs to it (or is an admin).
+const USAGE_EVENT_TYPES = new Set(["explainer_opened", "create_helper_used"]);
+const MAX_EVENTS_PER_BATCH = 50;
+const MAX_EVENT_DATA_BYTES = 2000;
+
+router.post('/events', async (req, res) => {
+    try {
+        const events = Array.isArray(req.body?.events) ? req.body.events : null;
+        if (!events || events.length === 0) return res.status(400).json({ message: 'events array is required' });
+        if (events.length > MAX_EVENTS_PER_BATCH) return res.status(400).json({ message: `At most ${MAX_EVENTS_PER_BATCH} events per batch` });
+
+        const memberOf = new Map();
+        let stored = 0;
+        for (const e of events) {
+            const type = String(e?.type || '');
+            if (!USAGE_EVENT_TYPES.has(type)) continue;
+            const data = e?.data && typeof e.data === 'object' && !Array.isArray(e.data) ? e.data : {};
+            const json = JSON.stringify(data);
+            if (json.length > MAX_EVENT_DATA_BYTES) continue;
+
+            let courseId = e?.courseId ? String(e.courseId).slice(0, 10) : null;
+            if (courseId && req.user.role !== 'admin') {
+                if (!memberOf.has(courseId)) {
+                    const enrollment = await localDb.prepare("SELECT 1 FROM enrollments WHERE course_id = ? AND LOWER(user_email) = LOWER(?) AND status = 'active'").get(courseId, req.user.email);
+                    memberOf.set(courseId, !!enrollment);
+                }
+                if (!memberOf.get(courseId)) courseId = null;
+            }
+            if (courseId && !(await localDb.prepare('SELECT 1 FROM courses WHERE id = ?').get(courseId))) courseId = null;
+
+            await localDb.prepare(`
+                INSERT INTO usage_events (user_id, role, course_id, event_type, data) VALUES (?, ?, ?, ?, ?::jsonb)
+            `).run(req.user.id, req.user.role, courseId, type, json);
+            stored += 1;
+        }
+        return res.status(202).json({ stored });
+    } catch (error) {
+        console.error('Error storing usage events:', error);
+        return res.status(500).json({ message: error.message });
+    }
+});
+
+// Admins: which explainers are opened most (where teachers look for help).
+router.get('/explainer-usage', requireAdmin, async (req, res) => {
+    try {
+        const days = Math.min(365, Math.max(1, Number(req.query.days) || 90));
+        const rows = await localDb.prepare(`
+            SELECT data->>'key' AS key, COUNT(*) AS opens, COUNT(DISTINCT user_id) AS people
+            FROM usage_events
+            WHERE event_type = 'explainer_opened' AND created_at >= NOW() - make_interval(days => ?)
+            GROUP BY data->>'key' ORDER BY COUNT(*) DESC LIMIT 50
+        `).all(days);
+        return res.json({ days, explainers: rows.map((r) => ({ key: r.key, opens: Number(r.opens), people: Number(r.people) })) });
+    } catch (error) {
+        console.error('Error reading explainer usage:', error);
+        return res.status(500).json({ message: error.message });
+    }
+});
+
 // Unit Branding endpoints
 router.get('/branding', async (req, res) => {
     try {

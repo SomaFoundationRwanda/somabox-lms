@@ -91,7 +91,7 @@ export default function CourseCalendarPage() {
     <div>
       <Breadcrumbs sectionKey="calendar" />
       <div className="p-4 md:p-6 space-y-6">
-        <PageHeader
+        <PageHeader help="pages.calendar"
           title="Calendar"
           description="Module weeks, openings, due dates and cutoffs, worked out from the course start date."
           actions={noStartDate ? null : downloadButton}

@@ -1,0 +1,197 @@
+// Spanish explainers: mirrors en.js key for key; translations should be reviewed by a native-speaking teacher.
+export default {
+  ui: {
+    whatIsThis: "¿Qué es esto?",
+    useItWhen: "Úsalo cuando",
+    commonMistake: "Error frecuente",
+    shownInEnglish: "Aún sin traducir: se muestra en inglés",
+    close: "Cerrar",
+    learnMore: "Más información",
+  },
+  helper: {
+    button: "¿Qué debo crear?",
+    title: "¿Qué deben hacer los estudiantes?",
+    intro: "Elige lo que quieres que hagan los estudiantes. Abriremos el tipo de elemento adecuado en la semana que elijas.",
+    module: "Añadir a",
+    create: "Crear",
+    cancel: "Cancelar",
+    goals: {
+      read: { label: "Leer o ver algo", hint: "Una página con texto, imágenes o un video" },
+      submit: { label: "Entregar un trabajo escrito o un proyecto", hint: "Una tarea que tú calificas" },
+      quiz: { label: "Responder preguntas que se corrigen solas", hint: "Un cuestionario calificado" },
+      practice: { label: "Practicar sin nota", hint: "Un cuestionario de práctica que no cuenta" },
+      discuss: { label: "Hablar y compartir ideas con los compañeros", hint: "Un debate" },
+      download: { label: "Descargar una ficha o un archivo", hint: "Un archivo" },
+      organise: { label: "Dividir esta semana en partes", hint: "Un subtítulo" },
+    },
+  },
+  items: {
+    page: {
+      title: "Página",
+      what: "Una página de material de estudio: texto, imágenes, enlaces o un video.",
+      when: "Los estudiantes deben leer o ver algo antes de practicar.",
+      mistake: "Poner preguntas en una página. Las preguntas que quieres que respondan y corregir van en un cuestionario o una tarea.",
+    },
+    assignment: {
+      title: "Tarea",
+      what: "Trabajo que los estudiantes entregan y tú calificas: una redacción, un proyecto, una ficha, una foto de su trabajo.",
+      when: "Quieres ver lo que los estudiantes saben hacer y darles una nota y comentarios.",
+      mistake: "Olvidar vincularla a un resultado de aprendizaje. Sin él no muestra el progreso, así que no se puede publicar.",
+    },
+    quiz: {
+      title: "Cuestionario",
+      what: "Preguntas con respuestas que el sistema corrige por ti.",
+      when: "Quieres comprobar rápido lo que entienden, con resultados al instante.",
+      mistake: "Dejar preguntas sin resultado de aprendizaje. Vincula cada pregunta para ver qué resultados dominan los estudiantes.",
+    },
+    file: {
+      title: "Archivo",
+      what: "Un documento que los estudiantes pueden descargar, como una ficha en PDF o diapositivas.",
+      when: "Ya tienes el material en un archivo y los estudiantes necesitan una copia.",
+      mistake: "Subir un trabajo que quieres que te devuelvan. Usa una tarea para eso y adjunta el archivo.",
+    },
+    sub_header: {
+      title: "Subtítulo",
+      what: "Una etiqueta que divide una semana en partes, como \"Lunes\" o \"Trabajo en grupo\". Los estudiantes no la abren.",
+      when: "Una semana tiene muchos elementos y los estudiantes necesitan ayuda para orientarse.",
+      mistake: "Escribir instrucciones en un subtítulo. Pon las instrucciones en una página.",
+    },
+    discussion: {
+      title: "Debate",
+      what: "Una conversación donde los estudiantes publican y se responden entre sí.",
+      when: "Quieres que los estudiantes compartan ideas, expliquen su razonamiento o se ayuden.",
+      mistake: "Hacer una pregunta con una sola respuesta correcta. Usa un cuestionario para eso; los debates funcionan mejor con preguntas abiertas.",
+    },
+  },
+  quizKinds: {
+    graded: {
+      title: "Cuestionario calificado",
+      what: "Cuenta para las calificaciones y el progreso en los resultados de aprendizaje.",
+      when: "Estás comprobando lo que los estudiantes han aprendido.",
+      mistake: "Permitir intentos ilimitados cuando quieres un solo intento honesto. Fija el número de intentos.",
+    },
+    practice: {
+      title: "Cuestionario de práctica",
+      what: "Solo para practicar: no cuenta para las calificaciones ni para el progreso.",
+      when: "Los estudiantes deben intentar, equivocarse y volver a intentar sin preocuparse.",
+      mistake: "Usar un cuestionario de práctica para algo que necesitas calificar.",
+    },
+    baseline: {
+      title: "Cuestionario de evaluación inicial",
+      what: "Una prueba corta antes de la semana 1 que muestra lo que cada estudiante ya sabe, resultado por resultado.",
+      when: "Al principio de todo, para ver después el avance de cada estudiante.",
+      mistake: "Enseñar el tema primero. La evaluación inicial solo sirve si va antes de enseñar.",
+    },
+  },
+  pages: {
+    home: {
+      title: "Inicio del curso",
+      what: "Lo que pasa esta semana, lo que necesita tu atención y cómo van los estudiantes en cada resultado de aprendizaje.",
+      when: "Empieza aquí cada día.",
+    },
+    modules: {
+      title: "Módulos",
+      what: "El curso semana a semana. Cada módulo es una semana y tiene todo lo que los estudiantes hacen esa semana.",
+      when: "Planifica y prepara el curso aquí: cada elemento que creas pertenece a una semana.",
+      mistake: "Dejar elementos en \"Sin asignar\". Muévelos a una semana o el curso no podrá abrirse.",
+    },
+    outcomes: {
+      title: "Resultados de aprendizaje",
+      what: "Lo que los estudiantes deben saber hacer al final del curso. Cada elemento calificado está vinculado a al menos un resultado.",
+      when: "Escríbelos primero, antes de preparar las semanas.",
+      mistake: "Escribir resultados que no se pueden comprobar, como \"entender las fracciones\". Mejor \"sumar fracciones con distinto denominador\".",
+    },
+    baseline: {
+      title: "Evaluación inicial (semana 0)",
+      what: "Una prueba corta y sin nota antes de la semana 1. Cada pregunta está vinculada a un resultado de aprendizaje, para ver desde dónde empieza cada estudiante.",
+      when: "Prepárala antes de abrir el curso. Si no la haces, anota por qué.",
+      mistake: "Usar preguntas que no se corrigen solas. Las preguntas deben ser de opción múltiple con una respuesta correcta.",
+    },
+    unassigned: {
+      title: "Sin asignar",
+      what: "Elementos que aún no están en ninguna semana. Los estudiantes no los ven.",
+      when: "Lo verás después de quitar un elemento de una semana, o después de una actualización que movió aquí elementos sueltos.",
+      mistake: "Dejar elementos aquí. Mueve cada uno a una semana; el curso no puede abrirse mientras haya elementos aquí.",
+    },
+    assignments: {
+      title: "Tareas",
+      what: "Todo el trabajo calificado del curso: tareas, cuestionarios calificados y debates calificados.",
+      when: "Revisar qué hay que entregar y qué falta por calificar.",
+      mistake: "Crear trabajos aquí. Créalos en la semana correcta en la página Módulos.",
+    },
+    quizzes: {
+      title: "Cuestionarios",
+      what: "Todos los cuestionarios del curso y cómo les fue a los estudiantes.",
+      when: "Revisar resultados o dar a un estudiante otro intento.",
+    },
+    pages: {
+      title: "Páginas",
+      what: "Todas las páginas de material de estudio del curso.",
+      when: "Buscar y editar una página. Para añadir una, ve a la semana correcta en la página Módulos.",
+    },
+    discussions: {
+      title: "Debates",
+      what: "Conversaciones donde los estudiantes publican y responden.",
+      when: "Seguir la conversación y responder preguntas.",
+    },
+    rubrics: {
+      title: "Rúbricas",
+      what: "Cada rúbrica pertenece a una tarea y lista lo que vas a revisar, con puntos para cada parte. Vincula cada parte a un resultado de aprendizaje para ver el progreso por resultado.",
+      when: "Quieres calificar de forma justa y constante, con comentarios que los estudiantes entiendan.",
+      mistake: "Hacer un solo criterio enorme. Varios criterios pequeños y claros hacen la calificación más rápida y justa.",
+    },
+    grades: {
+      title: "Calificaciones",
+      what: "La nota de cada estudiante en cada elemento calificado, en puntos y porcentajes.",
+      when: "Ver quién va atrasado y quién no ha entregado su trabajo.",
+      mistake: "Tomar una celda vacía como un cero. Un guion significa que aún no se ha entregado nada.",
+    },
+    calendar: {
+      title: "Calendario",
+      what: "Cuándo empieza cada semana y cuándo se abre, se entrega y se cierra cada trabajo.",
+      when: "Planificar el trimestre, o mover un elemento a otro día.",
+      mistake: "Cambiar las fechas una por una cuando se movió todo el curso. Usa \"Mover fechas\" en \"Configuración\".",
+    },
+    people: {
+      title: "Personas",
+      what: "Quién está en el curso y cuál es su rol.",
+      when: "Añadir estudiantes u otro docente.",
+    },
+    announcements: {
+      title: "Anuncios",
+      what: "Mensajes para todos en el curso.",
+      when: "Los estudiantes necesitan saber algo pronto, como un cambio de planes.",
+    },
+    syllabus: {
+      title: "Programa del curso",
+      what: "El plan del curso: resultados de aprendizaje, calificación y el horario semana a semana.",
+      when: "Los estudiantes o los padres quieren ver todo el curso de un vistazo.",
+    },
+    files: {
+      title: "Archivos",
+      what: "Documentos subidos al curso.",
+      when: "Buscar un archivo, o ver dónde se usa.",
+    },
+    collaborations: {
+      title: "Colaboraciones",
+      what: "Enlaces a espacios de trabajo compartidos, como un documento compartido.",
+      when: "Los estudiantes trabajan juntos fuera del curso.",
+    },
+    settings: {
+      title: "Configuración",
+      what: "Datos del curso, fechas, el menú que ven los estudiantes y la preparación del curso.",
+      when: "Fijar la fecha de inicio, mover todas las fechas o terminar la preparación.",
+    },
+    setup: {
+      title: "Preparación del curso",
+      what: "Todo lo que hay que hacer antes de que el curso pueda abrirse, y lo que conviene revisar.",
+      when: "Antes de abrir el curso. Los pasos obligatorios deben hacerse; los avisos son consejos.",
+    },
+    shiftTimeline: {
+      title: "Mover fechas",
+      what: "Mueve las fechas un número de días: todo el curso, o una semana y todo lo que viene después.",
+      when: "La escuela empezó tarde, o se perdió una semana.",
+      mistake: "Aplicar sin mirar. Primero mira la vista previa para ver todas las fechas que van a cambiar.",
+    },
+  },
+};

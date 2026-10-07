@@ -38,7 +38,7 @@ export default function RubricsPage() {
     <div>
       <Breadcrumbs sectionKey="rubrics" />
       <div className="p-4 md:p-6 space-y-8 max-w-4xl">
-        <PageHeader
+        <PageHeader help="pages.rubrics"
           eyebrow="Rubric library"
           title="Course rubrics"
           description="Rubrics are instantiated directly within assignment forms from course learning outcome mastery levels. Each rubric belongs to one assignment — edit it from that assignment."

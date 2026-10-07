@@ -1,4 +1,7 @@
+import swExplainers from "./explainers/sw";
+
 export default {
+    "explainers": swExplainers,
     "nav": {
         "dashboard": "Nyumbani",
         "lessons": "Masomo",

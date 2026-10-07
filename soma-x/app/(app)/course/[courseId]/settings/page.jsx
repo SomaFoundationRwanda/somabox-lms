@@ -12,6 +12,7 @@ import { moduleWeekLabel } from "@/lib/moduleLabels";
 import SetupChecklist from "@/components/teacher/SetupChecklist";
 import BaselinePanel from "@/components/teacher/BaselinePanel";
 import CourseSetupWizard from "@/components/teacher/CourseSetupWizard";
+import Explainer from "@/components/help/Explainer";
 
 // Settings > Course setup (teachers): the setup checklist, the Week 0 baseline and the guided wizard.
 function CourseSetupSection({ SERVER_URL, courseId, course, userEmail, onCourseChanged }) {
@@ -51,7 +52,7 @@ function CourseSetupSection({ SERVER_URL, courseId, course, userEmail, onCourseC
         />
       )}
 
-      <Section divided title="Baseline (Week 0)">
+      <Section divided title="Baseline (Week 0)" actions={<Explainer k="pages.baseline" />}>
         <BaselinePanel
           key={baselineKey}
           SERVER_URL={SERVER_URL}
@@ -168,7 +169,7 @@ function ShiftTimelinePanel({ SERVER_URL, courseId, startDate, onApplied }) {
 
   return (
     <fieldset className="space-y-3">
-      <legend className="text-sm font-bold text-slate-900 dark:text-white mb-1">Shift timeline (&ldquo;We lost days&rdquo;)</legend>
+      <legend className="text-sm font-bold text-slate-900 dark:text-white mb-1 inline-flex items-center gap-2">Shift timeline (&ldquo;We lost days&rdquo;) <Explainer k="pages.shiftTimeline" variant="icon" /></legend>
       {!hasStartDate ? (
         <p className="text-[11px] text-slate-500">Set and save a start date first.</p>
       ) : (
@@ -405,7 +406,7 @@ export default function CourseSettingsPage() {
     <div>
       <Breadcrumbs sectionKey="settings" />
       <div className="p-4 md:p-6 space-y-6 max-w-2xl">
-        <PageHeader title="Settings" />
+        <PageHeader help="pages.settings" title="Settings" />
 
         <div className="flex items-center gap-1.5 border-b border-slate-200 overflow-x-auto">
           <button onClick={() => setTab("details")} className={`text-sm font-semibold px-3 py-2 border-b-2 ${tab === "details" ? "border-[#203A3A] text-[#203A3A]" : "border-transparent text-slate-500"}`}>Course Details</button>

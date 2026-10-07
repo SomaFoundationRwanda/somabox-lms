@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { AlertTriangle, CheckCircle2, Circle, ChevronRight, Rocket, Settings } from "lucide-react";
 import { useToast } from "@/context/ToastContext";
+import Explainer from "@/components/help/Explainer";
 
 /** True when a teacher still has something to look at: a draft course, an unfinished checklist item, or warnings. */
 export function setupNeedsAttention(status) {
@@ -56,7 +57,7 @@ export default function SetupChecklist({ courseId, SERVER_URL, status, onChanged
     <section aria-labelledby="setup-checklist-title" className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <h2 id="setup-checklist-title" className="text-sm font-bold text-slate-900 dark:text-white">Course setup</h2>
+          <h2 id="setup-checklist-title" className="text-sm font-bold text-slate-900 dark:text-white inline-flex items-center gap-2">Course setup <Explainer k="pages.setup" variant="icon" /></h2>
           <p className="text-xs text-slate-500 mt-0.5">
             {isDraft
               ? "This course is a draft. Learners can't see it until you open it."

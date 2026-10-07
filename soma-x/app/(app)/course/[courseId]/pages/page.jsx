@@ -6,6 +6,7 @@ import { FileText, Plus } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
 import { PageHeader, List, ListRow, EmptyState } from "@/components/layout";
+import { ExplainerText } from "@/components/help/Explainer";
 
 export default function PagesListPage() {
   const { SERVER_URL, courseId, userEmail, isTeacher } = useCourse();
@@ -33,7 +34,7 @@ export default function PagesListPage() {
     <div>
       <Breadcrumbs sectionKey="pages" />
       <div className="p-4 md:p-6 space-y-6 max-w-4xl">
-        <PageHeader
+        <PageHeader help="pages.pages"
           title="Pages"
           description="Pages provide readings and study content bound to module week slots."
           actions={isTeacher ? (
@@ -47,7 +48,7 @@ export default function PagesListPage() {
         />
 
         {pages.length === 0 ? (
-          <EmptyState compact title={loading ? "Loading pages..." : "No pages created yet."} />
+          <EmptyState compact title={loading ? "Loading pages..." : "No pages created yet."} description={loading ? undefined : <ExplainerText k="pages.pages" />} />
         ) : (
           <List label="Pages">
             {pages.map((p) => (

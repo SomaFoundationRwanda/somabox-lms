@@ -1,4 +1,7 @@
+import esExplainers from "./explainers/es";
+
 export default {
+    "explainers": esExplainers,
     "nav": {
         "dashboard": "Tablero",
         "lessons": "Lecciones",

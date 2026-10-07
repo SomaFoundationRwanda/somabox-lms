@@ -39,7 +39,7 @@ export default function FilesPage() {
     <div>
       <Breadcrumbs sectionKey="files" />
       <div className="p-4 md:p-6 space-y-6">
-        <PageHeader
+        <PageHeader help="pages.files"
           title="Files"
           actions={isTeacher ? (
             <label className="flex items-center gap-1.5 text-xs font-semibold text-white bg-[#203A3A] hover:bg-[#162727] rounded-lg px-3 py-2 cursor-pointer focus-within:ring-2 focus-within:ring-[#0D9488]">

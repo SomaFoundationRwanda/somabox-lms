@@ -81,7 +81,7 @@ export default function CourseHomePage() {
       ) : null}
 
       <div className="p-4 md:p-6 space-y-8 max-w-5xl">
-        <PageHeader
+        <PageHeader help="pages.home"
           eyebrow="Course home"
           title={course?.title || "Course"}
           meta={

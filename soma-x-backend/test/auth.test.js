@@ -52,6 +52,8 @@ const POLICY = {
   "GET /analytics/inclusivity-gap": "admin",
   "POST /analytics/branding": "admin",
   "POST /analytics/me-sync": "admin",
+  "POST /analytics/events": "any",
+  "GET /analytics/explainer-usage": "admin",
 
   "GET /content/main-categories": "any",
   "GET /content/levels/summary": "any",

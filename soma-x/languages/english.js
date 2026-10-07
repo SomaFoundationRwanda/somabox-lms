@@ -1,4 +1,7 @@
+import enExplainers from "./explainers/en";
+
 export default {
+    "explainers": enExplainers,
     "nav": {
         "dashboard": "Dashboard",
         "lessons": "Lessons",

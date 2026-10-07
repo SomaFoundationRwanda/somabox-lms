@@ -6,6 +6,7 @@ import { ClipboardList, HelpCircle, MessageSquare, Plus } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
 import { PageHeader, List, ListRow, EmptyState } from "@/components/layout";
+import { ExplainerText } from "@/components/help/Explainer";
 
 const KIND_ICONS = { assignment: ClipboardList, quiz: HelpCircle, discussion: MessageSquare };
 
@@ -35,7 +36,7 @@ export default function AssignmentsPage() {
     <div>
       <Breadcrumbs sectionKey="assignments" />
       <div className="p-4 md:p-6 space-y-6 max-w-4xl">
-        <PageHeader
+        <PageHeader help="pages.assignments"
           title="Assignments"
           description="Assignments belong to module week slots and evaluate tagged outcome mastery."
           actions={isTeacher ? (
@@ -49,7 +50,7 @@ export default function AssignmentsPage() {
         />
 
         {items.length === 0 ? (
-          <EmptyState compact title={loading ? "Loading assignments..." : "No assignments created yet."} />
+          <EmptyState compact title={loading ? "Loading assignments..." : "No assignments created yet."} description={loading ? undefined : <ExplainerText k="pages.assignments" />} />
         ) : (
           <List label="Assignments">
             {items.map((item) => {

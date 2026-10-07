@@ -102,7 +102,7 @@ export default function OutcomesPage() {
     <div>
       <Breadcrumbs sectionKey="outcomes" />
       <div className="p-4 md:p-6 space-y-8 max-w-4xl">
-        <PageHeader
+        <PageHeader help="pages.outcomes"
           title="Learning outcomes & mastery"
           description="Outcomes define mastery standards. Baseline assessment (Week 0) vs real-time student mastery tracking."
           actions={isTeacher ? (

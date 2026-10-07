@@ -47,7 +47,7 @@ export default function AnnouncementsPage() {
     <div>
       <Breadcrumbs sectionKey="announcements" />
       <div className="p-4 md:p-6 space-y-6 max-w-2xl">
-        <PageHeader
+        <PageHeader help="pages.announcements"
           title="Announcements"
           actions={isTeacher ? (
             <Button onClick={() => setCreating((v) => !v)} className="h-9 gap-1.5">

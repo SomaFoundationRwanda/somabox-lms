@@ -15,6 +15,7 @@ import {
 import ModuleItemRow from "./ModuleItemRow";
 import { useToast } from "@/context/ToastContext";
 import { moduleWeekLabel, isUnassignedModule } from "@/lib/moduleLabels";
+import Explainer from "@/components/help/Explainer";
 import { formatRange } from "@/lib/dates";
 
 async function readError(res, fallback) {
@@ -161,6 +162,8 @@ export default function ModuleCard({
           }`}>
             {moduleWeekLabel(moduleRow)}
           </span>
+          {isUnassigned ? <Explainer k="pages.unassigned" variant="icon" /> : null}
+          {moduleRow.kind === "baseline" ? <Explainer k="pages.baseline" variant="icon" /> : null}
           {editingTitle ? (
             <input
               value={titleDraft}
