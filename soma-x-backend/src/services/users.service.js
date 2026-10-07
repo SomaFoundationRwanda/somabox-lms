@@ -495,6 +495,10 @@ router.patch('/profile/password', async (req, res) => {
             return res.status(400).json({ message: 'New password must be at least 6 characters' });
         }
 
+        if (newPassword === currentPassword) {
+            return res.status(400).json({ message: 'New password must be different from the current password' });
+        }
+
         const user = await serverDb
             .prepare('SELECT id, password_hash FROM users WHERE LOWER(email) = LOWER(?) AND LOWER(role) = LOWER(?)')
             .get(currentEmail, currentRole);
@@ -509,7 +513,7 @@ router.patch('/profile/password', async (req, res) => {
         }
 
         const passwordHash = await hashPassword(newPassword);
-        await serverDb.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(passwordHash, user.id);
+        await serverDb.prepare('UPDATE users SET password_hash = ?, must_change_password = 0 WHERE id = ?').run(passwordHash, user.id);
 
         return res.json({ message: 'Password updated successfully' });
     } catch (error) {

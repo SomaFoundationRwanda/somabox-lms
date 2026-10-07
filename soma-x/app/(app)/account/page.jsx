@@ -70,6 +70,16 @@ export default function AccountPage() {
     const [savingDemographics, setSavingDemographics] = useState(false);
     const [editDemographics, setEditDemographics] = useState(false);
     const [activeTab, setActiveTab] = useState("profile");
+    const [mustChangePassword, setMustChangePassword] = useState(false);
+
+    useEffect(() => {
+        let flagged = false;
+        try { flagged = localStorage.getItem("mcp") === "1"; } catch {}
+        if (flagged) {
+            setMustChangePassword(true);
+            setActiveTab("security");
+        }
+    }, []);
     const [status, setStatus] = useState({ type: "", message: "" });
 
     const [profileView, setProfileView] = useState({ email: "", fullName: "" });
@@ -199,6 +209,10 @@ export default function AccountPage() {
             if (!res.ok) throw new Error(data.message || "Failed to update password");
             setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
             setStatus({ type: "success", message: "Password updated successfully." });
+            if (mustChangePassword) {
+                try { localStorage.removeItem("mcp"); } catch {}
+                setMustChangePassword(false);
+            }
         } catch (err) {
             setStatus({ type: "error", message: err.message });
         } finally {
@@ -306,6 +320,13 @@ export default function AccountPage() {
 
             {/* ── Page body ── */}
             <div className="px-4 sm:px-6 pt-4">
+
+                {mustChangePassword && (
+                    <div className="mb-4 flex items-center gap-3 px-4 py-3 rounded-xl border text-[12px] font-medium bg-amber-50 border-amber-200 text-amber-800">
+                        <ShieldAlert size={14} className="shrink-0" />
+                        This account is still using a default password. Set a new password to continue.
+                    </div>
+                )}
 
                 {/* Status */}
                 {status.message && (

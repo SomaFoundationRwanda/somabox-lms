@@ -50,17 +50,7 @@ router.get('/growth-curves', async (req, res) => {
             `).all();
         }
 
-        if (records.length === 0) {
-            records = [
-                { id: 1, scholar_email: scholarEmail || 'scholar@test.com', subject: 'Mathematics', topic: 'Baseline', score: 55, total_possible: 100, created_at: '2026-08-01T08:00:00Z' },
-                { id: 2, scholar_email: scholarEmail || 'scholar@test.com', subject: 'Mathematics', topic: 'Algebra 1', score: 68, total_possible: 100, created_at: '2026-08-02T08:00:00Z' },
-                { id: 3, scholar_email: scholarEmail || 'scholar@test.com', subject: 'Mathematics', topic: 'Geometry Fundamentals', score: 78, total_possible: 100, created_at: '2026-08-03T08:00:00Z' },
-                { id: 4, scholar_email: scholarEmail || 'scholar@test.com', subject: 'Science', topic: 'Baseline', score: 60, total_possible: 100, created_at: '2026-08-01T08:00:00Z' },
-                { id: 5, scholar_email: scholarEmail || 'scholar@test.com', subject: 'Science', topic: 'Physics Motion', score: 75, total_possible: 100, created_at: '2026-08-02T08:00:00Z' },
-                { id: 6, scholar_email: scholarEmail || 'scholar@test.com', subject: 'Science', topic: 'Chemistry Energy', score: 85, total_possible: 100, created_at: '2026-08-03T08:00:00Z' },
-            ];
-        }
-
+        // An empty table means no data yet; never substitute sample records.
         return res.json(records);
     } catch (error) {
         console.error('Error fetching growth curves:', error);
@@ -88,51 +78,56 @@ router.get('/inclusivity-gap', async (req, res) => {
             userScoreMap.get(email).push(pct);
         }
 
-        let ruralMaleCount = 0, ruralMaleSum = 0;
-        let ruralFemaleCount = 0, ruralFemaleSum = 0;
-        let urbanMaleCount = 0, urbanMaleSum = 0;
-        let urbanFemaleCount = 0, urbanFemaleSum = 0;
-        let disabilityCount = 0, disabilitySum = 0;
+        // Learners without any recorded progress are counted but excluded from averages.
+        // Groups with no data report null, never a placeholder value.
+        const groups = {
+            ruralFemale: [], ruralMale: [], urbanFemale: [], urbanMale: [], disability: []
+        };
+        let scholarsWithAccessibilityNeeds = 0;
+        let scholarsWithData = 0;
 
         for (const user of users) {
             const email = user.email.toLowerCase();
-            const scores = userScoreMap.get(email) || [70];
-            const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
-
             const isRural = Number(user.is_rural) === 1;
             const isFemale = user.gender === 'female';
             const hasDisability = user.disability_status && user.disability_status !== 'none';
+            if (hasDisability) scholarsWithAccessibilityNeeds++;
 
-            if (hasDisability) {
-                disabilityCount++;
-                disabilitySum += avgScore;
-            }
+            const scores = userScoreMap.get(email);
+            if (!scores || scores.length === 0) continue;
+            scholarsWithData++;
+            const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
 
-            if (isRural) {
-                if (isFemale) { ruralFemaleCount++; ruralFemaleSum += avgScore; }
-                else { ruralMaleCount++; ruralMaleSum += avgScore; }
-            } else {
-                if (isFemale) { urbanFemaleCount++; urbanFemaleSum += avgScore; }
-                else { urbanMaleCount++; urbanMaleSum += avgScore; }
-            }
+            if (hasDisability) groups.disability.push(avgScore);
+            if (isRural) groups[isFemale ? 'ruralFemale' : 'ruralMale'].push(avgScore);
+            else groups[isFemale ? 'urbanFemale' : 'urbanMale'].push(avgScore);
         }
 
+        const avg = (values) => values.length > 0
+            ? Math.round((values.reduce((a, b) => a + b, 0) / values.length) * 10) / 10
+            : null;
+        const ruralAverage = avg([...groups.ruralFemale, ...groups.ruralMale]);
+        const urbanAverage = avg([...groups.urbanFemale, ...groups.urbanMale]);
+
         const report = {
-            totalScholars: users.length || 24,
+            totalScholars: users.length,
+            scholarsWithData,
             ruralVsUrban: {
-                ruralAverage: ruralMaleCount + ruralFemaleCount > 0 ? Math.round((ruralMaleSum + ruralFemaleSum) / (ruralMaleCount + ruralFemaleCount)) : 68.4,
-                urbanAverage: urbanMaleCount + urbanFemaleCount > 0 ? Math.round((urbanMaleSum + urbanFemaleSum) / (urbanMaleCount + urbanFemaleCount)) : 74.2,
-                gapPercentage: 5.8
+                ruralAverage,
+                urbanAverage,
+                gapPercentage: ruralAverage !== null && urbanAverage !== null
+                    ? Math.round((urbanAverage - ruralAverage) * 10) / 10
+                    : null
             },
             genderBreakdown: {
-                femaleRuralAverage: ruralFemaleCount > 0 ? Math.round(ruralFemaleSum / ruralFemaleCount) : 67.5,
-                maleRuralAverage: ruralMaleCount > 0 ? Math.round(ruralMaleSum / ruralMaleCount) : 69.2,
-                femaleUrbanAverage: urbanFemaleCount > 0 ? Math.round(urbanFemaleSum / urbanFemaleCount) : 73.8,
-                maleUrbanAverage: urbanMaleCount > 0 ? Math.round(urbanMaleSum / urbanMaleCount) : 74.6
+                femaleRuralAverage: avg(groups.ruralFemale),
+                maleRuralAverage: avg(groups.ruralMale),
+                femaleUrbanAverage: avg(groups.urbanFemale),
+                maleUrbanAverage: avg(groups.urbanMale)
             },
             accessibilityMetrics: {
-                scholarsWithAccessibilityNeeds: disabilityCount || 3,
-                averagePerformance: disabilityCount > 0 ? Math.round(disabilitySum / disabilityCount) : 71.0
+                scholarsWithAccessibilityNeeds,
+                averagePerformance: avg(groups.disability)
             }
         };
 
@@ -148,15 +143,28 @@ router.get('/sol-outcomes', async (req, res) => {
     try {
         const scholarEmail = req.query.scholarEmail ? String(req.query.scholarEmail).trim().toLowerCase() : null;
 
+        // Counts come from recorded SoL activity only. Principles with no data
+        // source yet report null instead of a sample number.
+        const scope = scholarEmail ? ' AND LOWER(scholar_email) = LOWER(?)' : '';
+        const params = scholarEmail ? [scholarEmail] : [];
+        const refresherRow = await localDb.prepare(
+            `SELECT COUNT(*) AS c FROM sol_refresher_completions WHERE 1 = 1${scope}`
+        ).get(...params);
+        const spacedRow = await localDb.prepare(
+            `SELECT COUNT(*) AS c FROM sol_spaced_reviews WHERE status = 'completed'${scope}`
+        ).get(...params);
+
+        const principles = [
+            { name: "Retrieval Practice", count: Number(refresherRow?.c || 0), description: "Pre-module Refresher Quizzes completed" },
+            { name: "Spaced Practice", count: Number(spacedRow?.c || 0), description: "3, 7, and 30-day scheduled review sessions done" },
+            { name: "Immediate Feedback", count: null, description: "Real-time error correction explanations viewed (not tracked yet)" },
+            { name: "Scaffolding", count: null, description: "Prerequisite mastery locks cleared (not tracked yet)" },
+            { name: "Interleaving", count: null, description: "Mixed review sessions completed (not tracked yet)" }
+        ];
+
         const outcomes = {
-            activeTrackedOutcomes: 5,
-            principles: [
-                { name: "Retrieval Practice", count: 12, description: "Pre-module Refresher Quizzes completed" },
-                { name: "Spaced Practice", count: 8, description: "3, 7, and 30-day scheduled review sessions done" },
-                { name: "Immediate Feedback", count: 24, description: "Real-time error correction explanations viewed" },
-                { name: "Scaffolding", count: 5, description: "Prerequisite mastery locks cleared" },
-                { name: "Interleaving", count: 6, description: "Mixed Math & Physics review sessions completed" }
-            ]
+            activeTrackedOutcomes: principles.filter((p) => p.count !== null && p.count > 0).length,
+            principles
         };
 
         return res.json(outcomes);

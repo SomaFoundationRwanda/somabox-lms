@@ -4,6 +4,10 @@ import { Globe, RefreshCw, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getInclusivityGap, triggerMeSync } from "@/lib/analytics-service";
 
+const fmtPct = (value) => (value === null || value === undefined ? "No data" : `${value}%`);
+// Positive gap means urban learners score higher than rural learners.
+const fmtGap = (value) => (value === null || value === undefined ? "No data" : `${value > 0 ? "-" : value < 0 ? "+" : ""}${Math.abs(value)}%`);
+
 export default function InclusivityGapReport({ serverUrl }) {
     const [report, setReport] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -71,15 +75,15 @@ export default function InclusivityGapReport({ serverUrl }) {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800 text-center">
                     <span className="text-[10px] text-slate-600 font-bold uppercase">Rural Average</span>
-                    <p className="text-lg font-black text-slate-800 dark:text-slate-200">{report.ruralVsUrban?.ruralAverage}%</p>
+                    <p className="text-lg font-black text-slate-800 dark:text-slate-200">{fmtPct(report.ruralVsUrban?.ruralAverage)}</p>
                 </div>
                 <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800 text-center">
                     <span className="text-[10px] text-slate-600 font-bold uppercase">Urban Average</span>
-                    <p className="text-lg font-black text-slate-800 dark:text-slate-200">{report.ruralVsUrban?.urbanAverage}%</p>
+                    <p className="text-lg font-black text-slate-800 dark:text-slate-200">{fmtPct(report.ruralVsUrban?.urbanAverage)}</p>
                 </div>
                 <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800 text-center">
                     <span className="text-[10px] text-slate-600 font-bold uppercase">Rural/Urban Gap</span>
-                    <p className="text-lg font-black text-teal-600 dark:text-teal-400">-{report.ruralVsUrban?.gapPercentage}%</p>
+                    <p className="text-lg font-black text-teal-600 dark:text-teal-400">{fmtGap(report.ruralVsUrban?.gapPercentage)}</p>
                 </div>
                 <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800 text-center">
                     <span className="text-[10px] text-slate-600 font-bold uppercase">Accessibility Learners</span>
@@ -97,15 +101,15 @@ export default function InclusivityGapReport({ serverUrl }) {
                     <div className="bg-teal-50/50 dark:bg-teal-950/20 p-3 rounded-xl border border-teal-100 dark:border-teal-900">
                         <span className="text-[10px] font-bold text-teal-800 dark:text-teal-300 block mb-1">Rural Female vs. Male</span>
                         <div className="flex justify-between items-center text-slate-700 dark:text-slate-300">
-                            <span>Female: <strong>{report.genderBreakdown?.femaleRuralAverage}%</strong></span>
-                            <span>Male: <strong>{report.genderBreakdown?.maleRuralAverage}%</strong></span>
+                            <span>Female: <strong>{fmtPct(report.genderBreakdown?.femaleRuralAverage)}</strong></span>
+                            <span>Male: <strong>{fmtPct(report.genderBreakdown?.maleRuralAverage)}</strong></span>
                         </div>
                     </div>
                     <div className="bg-indigo-50/50 dark:bg-indigo-950/20 p-3 rounded-xl border border-indigo-100 dark:border-indigo-900">
                         <span className="text-[10px] font-bold text-indigo-800 dark:text-indigo-300 block mb-1">Urban Female vs. Male</span>
                         <div className="flex justify-between items-center text-slate-700 dark:text-slate-300">
-                            <span>Female: <strong>{report.genderBreakdown?.femaleUrbanAverage}%</strong></span>
-                            <span>Male: <strong>{report.genderBreakdown?.maleUrbanAverage}%</strong></span>
+                            <span>Female: <strong>{fmtPct(report.genderBreakdown?.femaleUrbanAverage)}</strong></span>
+                            <span>Male: <strong>{fmtPct(report.genderBreakdown?.maleUrbanAverage)}</strong></span>
                         </div>
                     </div>
                 </div>

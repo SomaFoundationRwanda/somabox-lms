@@ -44,6 +44,15 @@ const AuthComp = () => {
             localStorage.setItem('un', shiftString(data.user?.full_name || ''));
             localStorage.setItem('gh', shiftString(userRole));
 
+            // TODO(phase 1): enforce server-side once real sessions exist.
+            if (data.user?.must_change_password) {
+                localStorage.setItem('mcp', '1');
+                showToast('Please set a new password before continuing.', 'info');
+                setTimeout(() => { window.location.href = '/account'; }, 600);
+                return;
+            }
+            localStorage.removeItem('mcp');
+
             showToast(`Welcome back, ${data.user?.full_name || 'User'}! Login successful.`, 'success');
 
             setTimeout(() => {

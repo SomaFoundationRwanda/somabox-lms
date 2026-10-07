@@ -10,7 +10,12 @@ function initFirebase() {
         db = admin.firestore();
         return;
     }
-    const serviceAccountPath = path.resolve(process.cwd(), 'service-account.json');
+    // The service account key must live outside the repository (see README).
+    if (!process.env.FIREBASE_SERVICE_ACCOUNT_PATH) {
+        console.warn('Firebase Sync: FIREBASE_SERVICE_ACCOUNT_PATH is not set; skipping cloud sync.');
+        return;
+    }
+    const serviceAccountPath = path.resolve(process.env.FIREBASE_SERVICE_ACCOUNT_PATH);
     if (!fs.existsSync(serviceAccountPath)) {
         console.error(`Firebase Sync: Service account file not found at ${serviceAccountPath}`);
         return;

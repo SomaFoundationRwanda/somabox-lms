@@ -195,9 +195,10 @@ export default function OutcomesPage() {
 
                     <div className="flex items-center gap-2 shrink-0">
                       <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
-                        m.status === 'Needs Reteach' ? 'bg-rose-100 text-rose-700' : 'bg-teal-100 text-teal-800'
+                        m.status === null ? 'bg-slate-100 text-slate-600'
+                          : m.status === 'Needs Reteach' ? 'bg-rose-100 text-rose-700' : 'bg-teal-100 text-teal-800'
                       }`}>
-                        {m.status}
+                        {m.status ?? "No data yet"}
                       </span>
                       {isTeacher && (
                         <button onClick={() => removeOutcome(m.id)} className="text-slate-400 hover:text-rose-500 p-1">
@@ -210,13 +211,16 @@ export default function OutcomesPage() {
                   {/* Progress bar comparison */}
                   <div className="space-y-1 pt-1">
                     <div className="flex justify-between text-xs text-slate-600 font-medium">
-                      <span>Baseline (Week 0): <strong>{m.baselineScore}%</strong></span>
-                      <span>Current Mastery: <strong>{m.currentMastery}%</strong> ({m.delta})</span>
+                      <span>Baseline (Week 0): <strong>{m.baselineScore !== null ? `${m.baselineScore}%` : "No data yet"}</strong></span>
+                      <span>
+                        Current Mastery: <strong>{m.currentMastery !== null ? `${m.currentMastery}%` : "No data yet"}</strong>
+                        {m.delta && ` (${m.delta})`}
+                      </span>
                     </div>
 
                     <div className="w-full h-3 bg-slate-200 rounded-full overflow-hidden flex">
-                      <div className="bg-slate-400 h-full" style={{ width: `${m.baselineScore}%` }} title="Week 0 Baseline" />
-                      <div className="bg-[#0D9488] h-full" style={{ width: `${Math.max(0, m.currentMastery - m.baselineScore)}%` }} title="Growth" />
+                      <div className="bg-slate-400 h-full" style={{ width: `${m.baselineScore ?? 0}%` }} title="Week 0 Baseline" />
+                      <div className="bg-[#0D9488] h-full" style={{ width: `${m.currentMastery === null ? 0 : Math.max(0, m.currentMastery - (m.baselineScore ?? 0))}%` }} title="Growth" />
                     </div>
                   </div>
                 </div>

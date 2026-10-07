@@ -697,17 +697,39 @@ export async function initSchemas() {
         ALTER TABLE module_items ADD COLUMN IF NOT EXISTS release_day INTEGER DEFAULT 0;
         ALTER TABLE module_items ADD COLUMN IF NOT EXISTS due_day INTEGER DEFAULT 7;
         ALTER TABLE module_items ADD COLUMN IF NOT EXISTS close_day INTEGER DEFAULT 7;
+
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS must_change_password INTEGER DEFAULT 0;
+
+        -- New courses start unpublished with is_opened = 0. Courses that were already
+        -- active before the setup gate existed are treated as opened.
+        UPDATE courses SET is_opened = 1 WHERE status = 'active' AND COALESCE(is_opened, 0) = 0;
+
+        -- Early AI-stub items only set item_ref_id; readers use content_ref_id.
+        UPDATE module_items
+        SET content_ref_id = item_ref_id,
+            content_ref_table = CASE item_type
+                WHEN 'page' THEN 'course_pages'
+                WHEN 'assignment' THEN 'assignments'
+                WHEN 'quiz' THEN 'quizzes'
+                WHEN 'file' THEN 'course_files'
+                WHEN 'discussion' THEN 'discussions'
+            END
+        WHERE content_ref_id IS NULL AND item_ref_id IS NOT NULL AND item_type <> 'sub_header';
     `);
 
     // Ensure default admin user exists
-    const adminCheck = await pool.query("SELECT id FROM users WHERE LOWER(email) = 'admin@mail.com'");
+    // Ensure default admin user exists; it must change the default password on first login
+    const adminCheck = await pool.query("SELECT id, password_hash FROM users WHERE LOWER(email) = 'admin@mail.com'");
     if (adminCheck.rows.length === 0) {
         const hashedPassword = await bcrypt.hash('admin', 12);
         await pool.query(
-            "INSERT INTO users (email, full_name, password_hash, role) VALUES ($1, $2, $3, $4)",
+            "INSERT INTO users (email, full_name, password_hash, role, must_change_password) VALUES ($1, $2, $3, $4, 1)",
             ['admin@mail.com', 'Administrator', hashedPassword, 'admin']
         );
-        console.log("Created default admin user: admin@mail.com");
+        console.log("Created default admin user: admin@mail.com (password change required on first login)");
+    } else if (await bcrypt.compare('admin', adminCheck.rows[0].password_hash)) {
+        await pool.query("UPDATE users SET must_change_password = 1 WHERE id = $1", [adminCheck.rows[0].id]);
+        console.warn("Default admin still uses the default password; a password change will be required at login.");
     }
 
     // Ensure unit_branding row exists

@@ -197,11 +197,14 @@ export default function CourseHomePage() {
                   <div key={o.id} className="space-y-1">
                     <div className="flex items-center justify-between text-xs">
                       <span className="font-semibold text-slate-800 truncate">{o.title}</span>
-                      <span className="font-bold text-[#0D9488] shrink-0 ml-2">{o.currentMastery}% (Base: {o.baselineScore}%)</span>
+                      <span className="font-bold text-[#0D9488] shrink-0 ml-2">
+                        {o.currentMastery !== null ? `${o.currentMastery}%` : "No data yet"}
+                        {" "}(Base: {o.baselineScore !== null ? `${o.baselineScore}%` : "none"})
+                      </span>
                     </div>
                     <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden flex">
-                      <div className="bg-slate-300 h-full" style={{ width: `${o.baselineScore}%` }} title="Baseline" />
-                      <div className="bg-[#0D9488] h-full" style={{ width: `${Math.max(0, o.currentMastery - o.baselineScore)}%` }} title="Progress" />
+                      <div className="bg-slate-300 h-full" style={{ width: `${o.baselineScore ?? 0}%` }} title="Baseline" />
+                      <div className="bg-[#0D9488] h-full" style={{ width: `${o.currentMastery === null ? 0 : Math.max(0, o.currentMastery - (o.baselineScore ?? 0))}%` }} title="Progress" />
                     </div>
                   </div>
                 ))}

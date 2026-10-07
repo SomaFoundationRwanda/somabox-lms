@@ -199,8 +199,8 @@ router.post("", async (req, res) => {
     const courseId = await generateUniqueCourseCode();
 
     await localDb.prepare(`
-      INSERT INTO courses (id, title, description, grade, start_date, end_date, status, created_by_teacher_email)
-      VALUES (?, ?, ?, ?, ?, ?, 'active', ?)
+      INSERT INTO courses (id, title, description, grade, start_date, end_date, status, is_opened, created_by_teacher_email)
+      VALUES (?, ?, ?, ?, ?, ?, 'unpublished', 0, ?)
     `).run(courseId, title, description || "", grade || "", normalizeDueAt(startDate), normalizeDueAt(endDate), email);
 
     await seedDefaultNavItems(courseId);
@@ -250,7 +250,7 @@ router.get("/public", async (req, res) => {
     const pageSize = Math.min(50, Math.max(1, Number(req.query.pageSize) || 20));
     const offset = (page - 1) * pageSize;
 
-    const total = Number(await localDb.prepare("SELECT COUNT(*) AS c FROM courses WHERE visibility = 'public'").get()?.c || 0);
+    const total = Number((await localDb.prepare("SELECT COUNT(*) AS c FROM courses WHERE visibility = 'public'").get())?.c || 0);
     const rows = await localDb.prepare(`
       SELECT * FROM courses WHERE visibility = 'public' ORDER BY created_at DESC LIMIT ? OFFSET ?
     `).all(pageSize, offset);
@@ -307,7 +307,7 @@ router.get("/:id", async (req, res) => {
     if (!auth) return;
 
     const studentCount = Number(
-      await localDb.prepare("SELECT COUNT(*) AS total FROM enrollments WHERE course_id = ? AND role = 'student' AND status = 'active'").get(courseId)?.total || 0
+      (await localDb.prepare("SELECT COUNT(*) AS total FROM enrollments WHERE course_id = ? AND role = 'student' AND status = 'active'").get(courseId))?.total || 0
     );
 
     return res.json({
@@ -325,10 +325,15 @@ router.get("/:id", async (req, res) => {
 router.patch("/:id", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    const existingCourse = await courseExists(courseId);
+    if (!existingCourse) return res.status(404).json({ message: "Course not found" });
     if (!await requireTeacher(req, res, courseId)) return;
 
     const { title, description, grade, status, homePageType, startDate, endDate, visibility } = req.body;
+    // Opening goes through POST /:id/open-course so the setup checks can't be bypassed.
+    if (status === "active" && Number(existingCourse.is_opened) !== 1) {
+      return res.status(400).json({ message: "Finish course setup and use Open Course to make this course active" });
+    }
     const updates = [];
     const params = [];
 
@@ -634,7 +639,7 @@ router.post("/:id/modules", async (req, res) => {
     const title = String(req.body.title || "").trim();
     if (!title) return res.status(400).json({ message: "title is required" });
 
-    const maxPosition = Number(await localDb.prepare("SELECT COALESCE(MAX(position), -1) AS m FROM modules WHERE course_id = ?").get(courseId)?.m ?? -1);
+    const maxPosition = Number((await localDb.prepare("SELECT COALESCE(MAX(position), -1) AS m FROM modules WHERE course_id = ?").get(courseId))?.m ?? -1);
 
     const info = await localDb.prepare(`
       INSERT INTO modules (course_id, title, description, position, published, due_at, created_by_teacher_email)
@@ -733,7 +738,7 @@ router.post("/:id/modules/:moduleId/items", async (req, res) => {
       return res.status(400).json({ message: "Invalid itemType. Must be: page, assignment, quiz, file, discussion, or sub_header" });
     }
 
-    const maxPosition = Number(await localDb.prepare("SELECT COALESCE(MAX(position), -1) AS m FROM module_items WHERE module_id = ?").get(moduleRow.id)?.m ?? -1);
+    const maxPosition = Number((await localDb.prepare("SELECT COALESCE(MAX(position), -1) AS m FROM module_items WHERE module_id = ?").get(moduleRow.id))?.m ?? -1);
 
     // Sub-header: no content record
     if (itemType === 'sub_header') {
@@ -851,7 +856,7 @@ router.post("/:id/modules/:moduleId/items/file", upload.single("file"), async (r
       `).run(courseId, folder, folder ? `${folder}/${storedName}` : storedName, req.file.originalname, req.file.mimetype || "", auth.email);
       const fileId = Number(fileInfo.lastInsertRowid);
 
-      const maxPosition = Number(await localDb.prepare("SELECT COALESCE(MAX(position), -1) AS m FROM module_items WHERE module_id = ?").get(moduleRow.id)?.m ?? -1);
+      const maxPosition = Number((await localDb.prepare("SELECT COALESCE(MAX(position), -1) AS m FROM module_items WHERE module_id = ?").get(moduleRow.id))?.m ?? -1);
       const itemInfo = await localDb.prepare(`
         INSERT INTO module_items (module_id, item_type, item_ref_id, title, position, indent_level, published, content_ref_table, content_ref_id)
         VALUES (?, 'file', ?, ?, ?, ?, 0, 'course_files', ?)
@@ -2214,9 +2219,9 @@ router.get("/:id/pages/:pageId", async (req, res) => {
 
     let teacherStats = null;
     if (isTeacherRole(auth.enrollment.role)) {
-      const totalEnrolled = Number(await localDb.prepare("SELECT COUNT(*) AS c FROM enrollments WHERE course_id = ? AND role = 'student' AND status = 'active'").get(courseId)?.c || 0);
-      const viewedCount = Number(await localDb.prepare("SELECT COUNT(*) AS c FROM page_views WHERE page_id = ?").get(page.id)?.c || 0);
-      const completedCount = Number(await localDb.prepare("SELECT COUNT(*) AS c FROM page_views WHERE page_id = ? AND completed_at IS NOT NULL").get(page.id)?.c || 0);
+      const totalEnrolled = Number((await localDb.prepare("SELECT COUNT(*) AS c FROM enrollments WHERE course_id = ? AND role = 'student' AND status = 'active'").get(courseId))?.c || 0);
+      const viewedCount = Number((await localDb.prepare("SELECT COUNT(*) AS c FROM page_views WHERE page_id = ?").get(page.id))?.c || 0);
+      const completedCount = Number((await localDb.prepare("SELECT COUNT(*) AS c FROM page_views WHERE page_id = ? AND completed_at IS NOT NULL").get(page.id))?.c || 0);
       teacherStats = { totalEnrolled, viewedCount, completedCount };
     }
 
@@ -2495,6 +2500,7 @@ router.get("/:id/item-outcomes", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
     if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await requireEnrolled(req, res, courseId)) return;
     const rows = await localDb.prepare(`
       SELECT io.*, o.title AS outcome_title, o.code AS outcome_code
       FROM item_outcomes io
@@ -2567,7 +2573,8 @@ router.get("/:id/baseline", async (req, res) => {
     const courseId = String(req.params.id || "").trim();
     const course = await courseExists(courseId);
     if (!course) return res.status(404).json({ message: "Course not found" });
-    
+    if (!await requireEnrolled(req, res, courseId)) return;
+
     const week0Module = await localDb.prepare("SELECT * FROM modules WHERE course_id = ? AND week_offset = 0 LIMIT 1").get(courseId);
     let quiz = null;
     if (week0Module) {
@@ -2591,19 +2598,34 @@ router.post("/:id/baseline/submit", async (req, res) => {
     const auth = await requireEnrolled(req, res, courseId);
     if (!auth) return;
 
+    // TODO(phase 4): compute per-outcome scores server-side from quiz answers instead of
+    // trusting client-sent percentages. Until then, only explicit, valid scores are stored.
     const { answers } = req.body;
     const outcomes = await localDb.prepare("SELECT * FROM outcomes WHERE course_id = ?").all(courseId);
-    
+
+    const scores = [];
     for (const o of outcomes) {
-      const rawScore = answers && answers[o.id] !== undefined ? Number(answers[o.id]) : Math.floor(55 + Math.random() * 30);
+      if (!answers || answers[o.id] === undefined || answers[o.id] === null || answers[o.id] === "") continue;
+      const score = Number(answers[o.id]);
+      if (!Number.isFinite(score) || score < 0 || score > 100) {
+        return res.status(400).json({ message: `Invalid baseline score for outcome ${o.id}: must be between 0 and 100` });
+      }
+      scores.push({ outcomeId: o.id, score });
+    }
+
+    if (scores.length === 0) {
+      return res.status(400).json({ message: "No baseline scores provided" });
+    }
+
+    for (const { outcomeId, score } of scores) {
       await localDb.prepare(`
         INSERT INTO student_outcome_baselines (course_id, scholar_email, outcome_id, baseline_score)
         VALUES (?, ?, ?, ?)
         ON CONFLICT (course_id, scholar_email, outcome_id) DO UPDATE SET baseline_score = EXCLUDED.baseline_score, assessed_at = CURRENT_TIMESTAMP
-      `).run(courseId, auth.email, o.id, rawScore);
+      `).run(courseId, auth.email, outcomeId, score);
     }
 
-    return res.json({ message: "Baseline assessment recorded successfully" });
+    return res.json({ message: "Baseline assessment recorded successfully", recorded: scores.length });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
@@ -2622,68 +2644,68 @@ router.get("/:id/outcome-mastery", async (req, res) => {
 
     const isStudent = auth.enrollment.role === 'student';
 
+    // Only real results are reported. Missing baselines or graded work yield null
+    // ("No data yet"), never a synthesized number. Scores are normalized to percent.
     const masteryList = await Promise.all(outcomes.map(async (o) => {
-      let baselineAvg = 60;
+      let baselineScore = null;
       if (isStudent) {
         const myBase = await localDb.prepare("SELECT baseline_score FROM student_outcome_baselines WHERE course_id = ? AND outcome_id = ? AND LOWER(scholar_email) = LOWER(?)").get(courseId, o.id, auth.email);
-        baselineAvg = myBase ? Math.round(Number(myBase.baseline_score)) : 58;
+        if (myBase && myBase.baseline_score !== null) baselineScore = Math.round(Number(myBase.baseline_score));
       } else {
         const baseRow = await localDb.prepare("SELECT AVG(baseline_score) AS avg_base FROM student_outcome_baselines WHERE course_id = ? AND outcome_id = ?").get(courseId, o.id);
-        baselineAvg = baseRow && baseRow.avg_base ? Math.round(Number(baseRow.avg_base)) : 62;
+        if (baseRow && baseRow.avg_base !== null) baselineScore = Math.round(Number(baseRow.avg_base));
       }
 
       const taggedItems = await localDb.prepare("SELECT item_type, item_id FROM item_outcomes WHERE course_id = ? AND outcome_id = ?").all(courseId, o.id);
-      
-      let currentMastery = baselineAvg;
-      if (taggedItems.length > 0) {
-        let totalScore = 0;
-        let scoreCount = 0;
-        for (const item of taggedItems) {
-          if (item.item_type === 'assignment') {
-            const query = isStudent 
-              ? "SELECT grade FROM assignment_submissions WHERE assignment_id = ? AND LOWER(scholar_email) = LOWER(?)"
-              : "SELECT AVG(grade) AS grade FROM assignment_submissions WHERE assignment_id = ? AND grade IS NOT NULL";
-            const params = isStudent ? [item.item_id, auth.email] : [item.item_id];
-            const subRow = await localDb.prepare(query).get(...params);
-            if (subRow && subRow.grade !== null) {
-              totalScore += Number(subRow.grade);
-              scoreCount++;
-            }
-          } else if (item.item_type === 'quiz') {
-            const query = isStudent 
-              ? "SELECT score FROM quiz_submissions WHERE quiz_id = ? AND LOWER(scholar_email) = LOWER(?)"
-              : "SELECT AVG(score) AS score FROM quiz_submissions WHERE quiz_id = ? AND score IS NOT NULL";
-            const params = isStudent ? [item.item_id, auth.email] : [item.item_id];
-            const quizSub = await localDb.prepare(query).get(...params);
-            if (quizSub && quizSub.score !== null) {
-              totalScore += Number(quizSub.score);
-              scoreCount++;
-            }
-          }
+
+      const percents = [];
+      for (const item of taggedItems) {
+        if (item.item_type === 'assignment') {
+          const assignment = await localDb.prepare("SELECT points_possible FROM assignments WHERE id = ?").get(item.item_id);
+          const possible = Number(assignment?.points_possible) || 0;
+          if (possible <= 0) continue;
+          const rows = isStudent
+            ? await localDb.prepare("SELECT grade FROM assignment_submissions WHERE assignment_id = ? AND LOWER(scholar_email) = LOWER(?) AND grade IS NOT NULL").all(item.item_id, auth.email)
+            : await localDb.prepare("SELECT grade FROM assignment_submissions WHERE assignment_id = ? AND grade IS NOT NULL").all(item.item_id);
+          for (const r of rows) percents.push((Number(r.grade) / possible) * 100);
+        } else if (item.item_type === 'quiz') {
+          const totalRow = await localDb.prepare("SELECT COALESCE(SUM(points), 0) AS total FROM quiz_questions WHERE quiz_id = ?").get(item.item_id);
+          const possible = Number(totalRow?.total) || 0;
+          if (possible <= 0) continue;
+          const rows = isStudent
+            ? await localDb.prepare("SELECT score FROM quiz_submissions WHERE quiz_id = ? AND LOWER(scholar_email) = LOWER(?) AND score IS NOT NULL").all(item.item_id, auth.email)
+            : await localDb.prepare("SELECT score FROM quiz_submissions WHERE quiz_id = ? AND score IS NOT NULL").all(item.item_id);
+          for (const r of rows) percents.push((Number(r.score) / possible) * 100);
         }
-        if (scoreCount > 0) {
-          currentMastery = Math.round(totalScore / scoreCount);
-        } else {
-          currentMastery = Math.min(96, baselineAvg + 18);
-        }
-      } else {
-        currentMastery = Math.min(95, baselineAvg + 15);
       }
 
-      const deltaNum = currentMastery - baselineAvg;
-      let status = "On Track";
-      if (currentMastery < 60) status = "Needs Reteach";
-      else if (currentMastery >= 85) status = "Mastery Achieved";
+      const currentMastery = percents.length > 0
+        ? Math.round(percents.reduce((sum, p) => sum + p, 0) / percents.length)
+        : null;
+
+      let delta = null;
+      if (currentMastery !== null && baselineScore !== null) {
+        const deltaNum = currentMastery - baselineScore;
+        delta = deltaNum >= 0 ? `+${deltaNum}%` : `${deltaNum}%`;
+      }
+
+      let status = null;
+      if (currentMastery !== null) {
+        status = "On Track";
+        if (currentMastery < 60) status = "Needs Reteach";
+        else if (currentMastery >= 85) status = "Mastery Achieved";
+      }
 
       return {
         id: o.id,
         code: o.code || `OUT-${o.id}`,
         title: o.title,
         description: o.description,
-        baselineScore: baselineAvg,
-        currentMastery: currentMastery,
-        delta: deltaNum >= 0 ? `+${deltaNum}%` : `${deltaNum}%`,
+        baselineScore,
+        currentMastery,
+        delta,
         status,
+        resultsCount: percents.length,
         taggedItemsCount: taggedItems.length
       };
     }));
@@ -2695,29 +2717,37 @@ router.get("/:id/outcome-mastery", async (req, res) => {
 });
 
 // Setup status & Course Opening
+// TODO(phase 4): add the full blocking list (baseline, graded items tagged, start date, no orphans).
+async function getSetupRequirements(courseId) {
+  const outcomesCount = Number((await localDb.prepare("SELECT COUNT(*) AS c FROM outcomes WHERE course_id = ?").get(courseId))?.c || 0);
+  const modulesCount = Number((await localDb.prepare("SELECT COUNT(*) AS c FROM modules WHERE course_id = ?").get(courseId))?.c || 0);
+  const itemsCount = Number((await localDb.prepare("SELECT COUNT(*) AS c FROM module_items mi JOIN modules m ON m.id = mi.module_id WHERE m.course_id = ?").get(courseId))?.c || 0);
+
+  const missingRequirements = [];
+  if (outcomesCount === 0) missingRequirements.push("Define course learning outcomes");
+  if (modulesCount === 0) missingRequirements.push("Add at least one module");
+  if (itemsCount === 0) missingRequirements.push("Add items to modules");
+
+  return { outcomesCount, modulesCount, itemsCount, missingRequirements };
+}
+
 router.get("/:id/setup-status", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
     const course = await courseExists(courseId);
     if (!course) return res.status(404).json({ message: "Course not found" });
+    if (!await requireEnrolled(req, res, courseId)) return;
 
-    const outcomes = await localDb.prepare("SELECT COUNT(*) AS c FROM outcomes WHERE course_id = ?").get(courseId)?.c || 0;
-    const modules = await localDb.prepare("SELECT COUNT(*) AS c FROM modules WHERE course_id = ?").get(courseId)?.c || 0;
-    const items = await localDb.prepare("SELECT COUNT(*) AS c FROM module_items mi JOIN modules m ON m.id = mi.module_id WHERE m.course_id = ?").get(courseId)?.c || 0;
-    
-    const missingRequirements = [];
-    if (outcomes === 0) missingRequirements.push("Define course learning outcomes");
-    if (modules === 0) missingRequirements.push("Add at least one module");
-    if (items === 0) missingRequirements.push("Add items to modules");
+    const setup = await getSetupRequirements(courseId);
 
     return res.json({
-      isOpened: Number(course.is_opened) === 1 || course.status === 'active',
+      isOpened: Number(course.is_opened) === 1,
       setupStep: Number(course.setup_step) || 1,
-      outcomesCount: Number(outcomes),
-      modulesCount: Number(modules),
-      itemsCount: Number(items),
-      canOpen: true,
-      missingRequirements
+      outcomesCount: setup.outcomesCount,
+      modulesCount: setup.modulesCount,
+      itemsCount: setup.itemsCount,
+      canOpen: setup.missingRequirements.length === 0,
+      missingRequirements: setup.missingRequirements
     });
   } catch (error) {
     return res.status(500).json({ message: error.message });
@@ -2730,6 +2760,14 @@ router.post("/:id/open-course", async (req, res) => {
     const course = await courseExists(courseId);
     if (!course) return res.status(404).json({ message: "Course not found" });
     if (!await requireTeacher(req, res, courseId)) return;
+
+    const setup = await getSetupRequirements(courseId);
+    if (setup.missingRequirements.length > 0) {
+      return res.status(400).json({
+        message: `This course can't open yet: ${setup.missingRequirements.join("; ")}`,
+        missingRequirements: setup.missingRequirements
+      });
+    }
 
     await localDb.prepare("UPDATE courses SET is_opened = 1, status = 'active', updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(courseId);
     return res.json({ message: "Course successfully opened!", course: await courseExists(courseId) });
@@ -2744,6 +2782,10 @@ router.get("/:id/home-loop", async (req, res) => {
     const courseId = String(req.params.id || "").trim();
     const course = await courseExists(courseId);
     if (!course) return res.status(404).json({ message: "Course not found" });
+    const auth = await requireEnrolled(req, res, courseId);
+    if (!auth) return;
+    // Ungraded counts and missing-tag warnings are class-wide teacher data.
+    const isTeacher = isTeacherRole(auth.enrollment.role);
 
     const startDateIso = course.start_date || course.created_at || new Date().toISOString();
     const startDate = new Date(startDateIso);
@@ -2763,7 +2805,7 @@ router.get("/:id/home-loop", async (req, res) => {
       const items = await localDb.prepare("SELECT * FROM module_items WHERE module_id = ?").all(currentModule.id);
       
       let ungradedCount = 0;
-      for (const item of items) {
+      for (const item of isTeacher ? items : []) {
         if (item.item_type === 'assignment' && item.content_ref_id) {
           const uRow = await localDb.prepare("SELECT COUNT(*) AS c FROM assignment_submissions WHERE assignment_id = ? AND grade IS NULL").get(item.content_ref_id);
           ungradedCount += Number(uRow?.c || 0);
@@ -2794,7 +2836,7 @@ router.get("/:id/home-loop", async (req, res) => {
     }
 
     const needsAttention = [];
-    const itemsWithoutOutcomes = await localDb.prepare(`
+    const itemsWithoutOutcomes = !isTeacher ? [] : await localDb.prepare(`
       SELECT mi.id, mi.title, mi.item_type
       FROM module_items mi
       JOIN modules m ON m.id = mi.module_id
@@ -2909,19 +2951,19 @@ router.post("/:id/ai/fill-module", async (req, res) => {
     // 1. Create Page
     const pageInfo = await localDb.prepare(`
       INSERT INTO course_pages (course_id, title, body, published, created_by_teacher_email)
-      VALUES (?, ?, ?, 1, ?)
+      VALUES (?, ?, ?, 0, ?)
     `).run(courseId, `${mod.title}: Reading & Core Concepts`, `<p>Welcome to <strong>${mod.title}</strong>! In this lesson, we explore foundational concepts and practical applications.</p>`, auth.email);
     const pageId = Number(pageInfo.lastInsertRowid);
 
     await localDb.prepare(`
-      INSERT INTO module_items (module_id, item_type, item_ref_id, title, position, published, release_day, due_day)
-      VALUES (?, 'page', ?, ?, 1, 1, 0, 7)
-    `).run(moduleId, pageId, `${mod.title}: Reading & Core Concepts`);
+      INSERT INTO module_items (module_id, item_type, item_ref_id, content_ref_table, content_ref_id, title, position, published, release_day, due_day)
+      VALUES (?, 'page', ?, 'course_pages', ?, ?, 1, 0, 0, 7)
+    `).run(moduleId, pageId, pageId, `${mod.title}: Reading & Core Concepts`);
 
     // 2. Create Quiz
     const quizInfo = await localDb.prepare(`
       INSERT INTO quizzes (course_id, title, description, published, created_by_teacher_email)
-      VALUES (?, ?, ?, 1, ?)
+      VALUES (?, ?, ?, 0, ?)
     `).run(courseId, `${mod.title} Comprehension Quiz`, `Test your understanding of ${mod.title}`, auth.email);
     const quizId = Number(quizInfo.lastInsertRowid);
 
@@ -2931,28 +2973,28 @@ router.post("/:id/ai/fill-module", async (req, res) => {
     `).run(quizId);
 
     await localDb.prepare(`
-      INSERT INTO module_items (module_id, item_type, item_ref_id, title, position, published, release_day, due_day)
-      VALUES (?, 'quiz', ?, ?, 2, 1, 1, 5)
-    `).run(moduleId, quizId, `${mod.title} Comprehension Quiz`);
+      INSERT INTO module_items (module_id, item_type, item_ref_id, content_ref_table, content_ref_id, title, position, published, release_day, due_day)
+      VALUES (?, 'quiz', ?, 'quizzes', ?, ?, 2, 0, 1, 5)
+    `).run(moduleId, quizId, quizId, `${mod.title} Comprehension Quiz`);
 
     // 3. Create Assignment
     const assignInfo = await localDb.prepare(`
       INSERT INTO assignments (course_id, title, description, points_possible, published, created_by_teacher_email)
-      VALUES (?, ?, ?, 100, 1, ?)
+      VALUES (?, ?, ?, 100, 0, ?)
     `).run(courseId, `${mod.title} Practice Assignment`, `Complete the practical exercise for ${mod.title}. Show all work and explain your reasoning.`, auth.email);
     const assignId = Number(assignInfo.lastInsertRowid);
 
     await localDb.prepare(`
-      INSERT INTO module_items (module_id, item_type, item_ref_id, title, position, published, release_day, due_day)
-      VALUES (?, 'assignment', ?, ?, 3, 1, 1, 6)
-    `).run(moduleId, assignId, `${mod.title} Practice Assignment`);
+      INSERT INTO module_items (module_id, item_type, item_ref_id, content_ref_table, content_ref_id, title, position, published, release_day, due_day)
+      VALUES (?, 'assignment', ?, 'assignments', ?, ?, 3, 0, 1, 6)
+    `).run(moduleId, assignId, assignId, `${mod.title} Practice Assignment`);
 
     if (primaryOutcome) {
       await localDb.prepare("INSERT INTO item_outcomes (course_id, item_type, item_id, outcome_id) VALUES (?, 'assignment', ?, ?) ON CONFLICT DO NOTHING").run(courseId, assignId, primaryOutcome.id);
       await localDb.prepare("INSERT INTO item_outcomes (course_id, item_type, item_id, outcome_id) VALUES (?, 'quiz', ?, ?) ON CONFLICT DO NOTHING").run(courseId, quizId, primaryOutcome.id);
     }
 
-    return res.json({ message: "Successfully populated week module with page, quiz, and assignment!", moduleId });
+    return res.json({ message: "Draft page, quiz, and assignment added to the module. They are unpublished: review and edit them before publishing.", moduleId });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
@@ -2967,28 +3009,33 @@ router.post("/:id/ai/generate-story", async (req, res) => {
 
     const idea = String(req.body.idea || "A student exploring a new subject").trim();
     const moduleId = Number(req.body.moduleId);
+    if (moduleId) {
+      const mod = await localDb.prepare("SELECT id FROM modules WHERE id = ? AND course_id = ?").get(moduleId, courseId);
+      if (!mod) return res.status(404).json({ message: "Module not found" });
+    }
 
+    const safeIdea = idea.replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
     const title = `Story: ${idea.slice(0, 30)}...`;
-    const storyBody = `<div className="prose"><h3>Story Reading</h3><p>Once upon a time, ${idea}. Through this journey, important lessons were discovered about curiosity, logic, and perseverance.</p></div>`;
+    const storyBody = `<div class="prose"><h3>Story Reading</h3><p>Once upon a time, ${safeIdea}. Through this journey, important lessons were discovered about curiosity, logic, and perseverance.</p></div>`;
 
     const pageInfo = await localDb.prepare(`
       INSERT INTO course_pages (course_id, title, body, published, created_by_teacher_email)
-      VALUES (?, ?, ?, 1, ?)
+      VALUES (?, ?, ?, 0, ?)
     `).run(courseId, title, storyBody, auth.email);
     const pageId = Number(pageInfo.lastInsertRowid);
 
     const discInfo = await localDb.prepare(`
       INSERT INTO discussions (course_id, title, body, published, created_by_teacher_email)
-      VALUES (?, ?, ?, 1, ?)
-    `).run(courseId, `Discussion: ${idea.slice(0, 25)}`, `What did you learn from the story about ${idea}? Share your reflection below.`, auth.email);
+      VALUES (?, ?, ?, 0, ?)
+    `).run(courseId, `Discussion: ${idea.slice(0, 25)}`, `What did you learn from the story about ${safeIdea}? Share your reflection below.`, auth.email);
     const discId = Number(discInfo.lastInsertRowid);
 
     if (moduleId) {
-      await localDb.prepare("INSERT INTO module_items (module_id, item_type, item_ref_id, title, position, published) VALUES (?, 'page', ?, ?, 10, 1)").run(moduleId, pageId, title);
-      await localDb.prepare("INSERT INTO module_items (module_id, item_type, item_ref_id, title, position, published) VALUES (?, 'discussion', ?, ?, 11, 1)").run(moduleId, discId, `Discussion: ${idea.slice(0, 25)}`);
+      await localDb.prepare("INSERT INTO module_items (module_id, item_type, item_ref_id, content_ref_table, content_ref_id, title, position, published) VALUES (?, 'page', ?, 'course_pages', ?, ?, 10, 0)").run(moduleId, pageId, pageId, title);
+      await localDb.prepare("INSERT INTO module_items (module_id, item_type, item_ref_id, content_ref_table, content_ref_id, title, position, published) VALUES (?, 'discussion', ?, 'discussions', ?, ?, 11, 0)").run(moduleId, discId, discId, `Discussion: ${idea.slice(0, 25)}`);
     }
 
-    return res.json({ message: "Story, comprehension reading, and discussion generated successfully!", pageId, discId });
+    return res.json({ message: "Draft story page and discussion created. They are unpublished: review and edit them before publishing.", pageId, discId });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }

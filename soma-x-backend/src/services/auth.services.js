@@ -43,7 +43,8 @@ router.post('/login', async (req, res) => {
                 grade_level: row.grade_level,
                 preferred_language: row.preferred_language,
                 role: row.role,
-                created_at: row.created_at
+                created_at: row.created_at,
+                must_change_password: Number(row.must_change_password) === 1
             }
         });
     } catch (error) {

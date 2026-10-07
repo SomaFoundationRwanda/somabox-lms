@@ -44,62 +44,52 @@ export default function GrowthCurvesChart({ serverUrl, scholarEmail }) {
 
             {/* Growth Curves Graph Bars */}
             <div className="space-y-4">
-                <div>
-                    <div className="flex items-center justify-between text-xs font-semibold mb-1.5">
-                        <span className="text-teal-700 dark:text-teal-400 flex items-center gap-1">
-                            <Activity className="w-3.5 h-3.5" /> Mathematics Progression
-                        </span>
-                        <span className="text-slate-500 font-bold">
-                            {mathRecords.length > 0 ? `${mathRecords[mathRecords.length - 1].score}% Mastery` : '78% Avg'}
-                        </span>
-                    </div>
-                    <div className="grid grid-cols-4 gap-2 items-end h-20 bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
-                        {(mathRecords.length > 0 ? mathRecords : [
-                            { topic: "Baseline", score: 55 },
-                            { topic: "Algebra 1", score: 68 },
-                            { topic: "Geometry", score: 78 },
-                            { topic: "Advanced", score: 85 }
-                        ]).map((rec, i) => (
-                            <div key={i} className="flex flex-col items-center gap-1 h-full justify-end">
-                                <span className="text-[9px] font-bold text-slate-600 dark:text-slate-400">{rec.score}%</span>
-                                <div
-                                    className="w-full bg-teal-600 dark:bg-teal-500 rounded-t-md transition-all duration-500"
-                                    style={{ height: `${Math.max(rec.score, 10)}%` }}
-                                />
-                                <span className="text-[8px] text-slate-600 truncate w-full text-center">{rec.topic}</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                <div>
-                    <div className="flex items-center justify-between text-xs font-semibold mb-1.5">
-                        <span className="text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
-                            <Activity className="w-3.5 h-3.5" /> Science Progression
-                        </span>
-                        <span className="text-slate-500 font-bold">
-                            {scienceRecords.length > 0 ? `${scienceRecords[scienceRecords.length - 1].score}% Mastery` : '85% Avg'}
-                        </span>
-                    </div>
-                    <div className="grid grid-cols-4 gap-2 items-end h-20 bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
-                        {(scienceRecords.length > 0 ? scienceRecords : [
-                            { topic: "Baseline", score: 60 },
-                            { topic: "Physics Motion", score: 75 },
-                            { topic: "Chemistry", score: 82 },
-                            { topic: "Biology", score: 88 }
-                        ]).map((rec, i) => (
-                            <div key={i} className="flex flex-col items-center gap-1 h-full justify-end">
-                                <span className="text-[9px] font-bold text-slate-600 dark:text-slate-400">{rec.score}%</span>
-                                <div
-                                    className="w-full bg-indigo-600 dark:bg-indigo-500 rounded-t-md transition-all duration-500"
-                                    style={{ height: `${Math.max(rec.score, 10)}%` }}
-                                />
-                                <span className="text-[8px] text-slate-600 truncate w-full text-center">{rec.topic}</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
+                <SubjectBars label="Mathematics Progression" records={mathRecords} labelClass="text-teal-700 dark:text-teal-400" barClass="bg-teal-600 dark:bg-teal-500" />
+                <SubjectBars label="Science Progression" records={scienceRecords} labelClass="text-indigo-600 dark:text-indigo-400" barClass="bg-indigo-600 dark:bg-indigo-500" />
             </div>
+        </div>
+    );
+}
+
+function toPercent(rec) {
+    const possible = Number(rec.total_possible);
+    return possible > 0 ? Math.round((Number(rec.score) / possible) * 100) : Math.round(Number(rec.score));
+}
+
+// Renders only recorded results; an empty subject shows "No data yet" rather than sample bars.
+function SubjectBars({ label, records, labelClass, barClass }) {
+    const latest = records.length > 0 ? toPercent(records[records.length - 1]) : null;
+    return (
+        <div>
+            <div className="flex items-center justify-between text-xs font-semibold mb-1.5">
+                <span className={`${labelClass} flex items-center gap-1`}>
+                    <Activity className="w-3.5 h-3.5" /> {label}
+                </span>
+                <span className="text-slate-500 font-bold">
+                    {latest !== null ? `${latest}% latest` : "No data yet"}
+                </span>
+            </div>
+            {records.length === 0 ? (
+                <div className="h-20 flex items-center justify-center bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 text-[11px] text-slate-500">
+                    No results recorded yet.
+                </div>
+            ) : (
+                <div className="grid grid-cols-4 gap-2 items-end h-20 bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                    {records.slice(-4).map((rec, i) => {
+                        const pct = toPercent(rec);
+                        return (
+                            <div key={rec.id ?? i} className="flex flex-col items-center gap-1 h-full justify-end">
+                                <span className="text-[9px] font-bold text-slate-600 dark:text-slate-400">{pct}%</span>
+                                <div
+                                    className={`w-full ${barClass} rounded-t-md transition-all duration-500`}
+                                    style={{ height: `${Math.max(pct, 10)}%` }}
+                                />
+                                <span className="text-[8px] text-slate-600 truncate w-full text-center">{rec.topic}</span>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
         </div>
     );
 }

@@ -165,7 +165,7 @@ export default function ModuleCard({
                 onRefetch();
               }}
               className="flex items-center gap-1 text-[11px] font-semibold text-teal-800 bg-teal-50 border border-teal-200 hover:bg-teal-100 px-2.5 py-1 rounded-lg transition-colors"
-              title="AI Fill Week (Generates reading page, quiz, assignment tagged with outcomes)"
+              title="Adds an unpublished draft page, quiz, and assignment to this week. Review and edit them before publishing."
             >
               <Sparkles className="w-3 h-3 text-[#0D9488]" /> AI Fill Week
             </button>
@@ -182,7 +182,7 @@ export default function ModuleCard({
                 }
               }}
               className="flex items-center gap-1 text-[11px] font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-lg transition-colors"
-              title="AI Story Generator (Writes story, comprehension quiz, and discussion prompt)"
+              title="Adds an unpublished draft story page and discussion prompt. Review and edit them before publishing."
             >
               <Sparkles className="w-3 h-3 text-slate-500" /> AI Story
             </button>

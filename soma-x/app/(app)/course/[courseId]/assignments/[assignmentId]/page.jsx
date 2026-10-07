@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { Pencil, Target, Sparkles, CheckCircle2, Award, Calendar, Layers, Clock } from "lucide-react";
+import { Pencil, Target, CheckCircle2, Award, Calendar, Layers, Clock } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
 import PrevNextNav from "@/components/course/navigation/PrevNextNav";
@@ -71,14 +71,6 @@ export default function AssignmentDetailPage() {
       body: JSON.stringify({ teacherEmail: userEmail, grade: Number(gradeVal), feedback: fbVal }),
     });
     loadData();
-  };
-
-  const aiSuggestGrading = (scholarEmail, submissionText) => {
-    setGrading(p => ({ ...p, [scholarEmail]: 88 }));
-    setFeedback(p => ({
-      ...p,
-      [scholarEmail]: "AI Assist Suggestion: Meets mastery on core principles. Clear structure; recommend adding further detail on step 2."
-    }));
   };
 
   const startEditing = () => {
@@ -355,13 +347,6 @@ export default function AssignmentDetailPage() {
                             <p className="text-sm font-bold text-slate-900">{s.fullName}</p>
                             <p className="text-xs text-slate-500">Submitted: {new Date(s.submitted_at).toLocaleString()}</p>
                           </div>
-
-                          <button
-                            onClick={() => aiSuggestGrading(s.scholar_email, s.body)}
-                            className="flex items-center gap-1 text-xs font-semibold text-[#0D9488] bg-teal-50 border border-teal-200 hover:bg-teal-100 px-3 py-1.5 rounded-xl transition-colors"
-                          >
-                            <Sparkles className="w-3.5 h-3.5 text-[#0D9488]" /> AI Pre-fill Rubric & Feedback
-                          </button>
                         </div>
 
                         <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 font-mono">

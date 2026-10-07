@@ -172,6 +172,9 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
       });
       if (res.ok) {
         onCompleted?.();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setError(data.message || "This course can't open yet.");
       }
     } catch (err) {
       setError("Failed to open course");

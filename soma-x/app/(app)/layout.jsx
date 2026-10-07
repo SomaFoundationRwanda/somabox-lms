@@ -4,17 +4,26 @@ import Header from "@/components/global/Header";
 import MandatoryProfileSetupModal from "@/components/onboarding/MandatoryProfileSetupModal";
 import DataContext from "@/context/DataContext";
 import { useContext, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 export default function AppLayout({ children }) {
   const { authLoading, authenticated } = useContext(DataContext);
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (!authLoading && !authenticated) {
       router.replace("/");
     }
   }, [authLoading, authenticated, router]);
+
+  // Accounts flagged at login (e.g. the default admin) must change their password first.
+  useEffect(() => {
+    if (authLoading || !authenticated) return;
+    let mustChange = false;
+    try { mustChange = localStorage.getItem("mcp") === "1"; } catch {}
+    if (mustChange && pathname !== "/account") router.replace("/account");
+  }, [authLoading, authenticated, pathname, router]);
 
   if (authLoading || !authenticated) {
     return (
