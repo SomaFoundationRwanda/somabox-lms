@@ -1,20 +1,28 @@
 import express from 'express';
 import { localDb, serverDb } from '../helpers/db-manager.js';
+import { requireRole } from '../helpers/auth.js';
 
 const router = express.Router();
+const requireAdmin = requireRole('admin');
+
+// Scholars only ever see their own records. Teachers and admins may pick one learner
+// (scholarEmail) or, with no filter, the whole cohort (null).
+// TODO(phase 9): limit teachers to learners in their own courses.
+function analyticsSubject(req) {
+    if (req.user.role === 'scholar') return req.user.email;
+    return req.query.scholarEmail ? String(req.query.scholarEmail).trim().toLowerCase() : null;
+}
 
 // Record longitudinal progress metric
 router.post('/longitudinal', async (req, res) => {
     try {
-        const scholarEmail = String(req.body.scholarEmail || '').trim().toLowerCase();
+        const scholarEmail = req.user.email;
         const subject = String(req.body.subject || 'General').trim();
         const topic = String(req.body.topic || 'General Topic').trim();
         const score = Number(req.body.score || 0);
         const totalPossible = Number(req.body.totalPossible || 100);
         const difficultyLevel = String(req.body.difficultyLevel || 'medium').trim();
         const attemptNumber = Number(req.body.attemptNumber || 1);
-
-        if (!scholarEmail) return res.status(400).json({ message: 'scholarEmail is required' });
 
         const stmt = localDb.prepare(`
             INSERT INTO longitudinal_progress (scholar_email, subject, topic, score, total_possible, difficulty_level, attempt_number)
@@ -32,7 +40,7 @@ router.post('/longitudinal', async (req, res) => {
 // Get Growth Curves (individual scholar or cohort)
 router.get('/growth-curves', async (req, res) => {
     try {
-        const scholarEmail = req.query.scholarEmail ? String(req.query.scholarEmail).trim().toLowerCase() : null;
+        const scholarEmail = analyticsSubject(req);
 
         let records;
         if (scholarEmail) {
@@ -59,7 +67,7 @@ router.get('/growth-curves', async (req, res) => {
 });
 
 // Inclusivity Gap Analysis: Rural vs. Urban performance across Gender lines
-router.get('/inclusivity-gap', async (req, res) => {
+router.get('/inclusivity-gap', requireAdmin, async (req, res) => {
     try {
         const users = await serverDb.prepare(`
             SELECT email, gender, region_province, region_district, is_rural, disability_status
@@ -141,7 +149,7 @@ router.get('/inclusivity-gap', async (req, res) => {
 // Active Science of Learning (SoL) outcomes tracker per learner
 router.get('/sol-outcomes', async (req, res) => {
     try {
-        const scholarEmail = req.query.scholarEmail ? String(req.query.scholarEmail).trim().toLowerCase() : null;
+        const scholarEmail = analyticsSubject(req);
 
         // Counts come from recorded SoL activity only. Principles with no data
         // source yet report null instead of a sample number.
@@ -186,6 +194,11 @@ router.get('/branding', async (req, res) => {
             `).run();
             branding = await localDb.prepare(`SELECT * FROM unit_branding WHERE id = 1`).get();
         }
+        // Public (shown on the login page); sync settings are for admins only.
+        if (req.user?.role !== 'admin' && branding) {
+            const { me_sync_url, last_synced_at, ...publicBranding } = branding;
+            return res.json(publicBranding);
+        }
         return res.json(branding);
     } catch (error) {
         console.error('Error fetching unit branding:', error);
@@ -193,7 +206,7 @@ router.get('/branding', async (req, res) => {
     }
 });
 
-router.post('/branding', async (req, res) => {
+router.post('/branding', requireAdmin, async (req, res) => {
     try {
         const schoolName = String(req.body.schoolName || 'SOMABOX Partner School').trim();
         const logoUrl = String(req.body.logoUrl || '').trim();
@@ -221,7 +234,7 @@ router.post('/branding', async (req, res) => {
 });
 
 // M&E Real-Time Sync endpoint
-router.post('/me-sync', async (req, res) => {
+router.post('/me-sync', requireAdmin, async (req, res) => {
     try {
         await localDb.prepare(`
             UPDATE unit_branding SET last_synced_at = CURRENT_TIMESTAMP WHERE id = 1

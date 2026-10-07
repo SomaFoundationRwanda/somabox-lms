@@ -1,7 +1,7 @@
 "use client"
 import Image from "next/image"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { useContext, useEffect, useState } from "react"
 import DataContext from "@/context/DataContext"
 import MandatoryProfileSetupModal from "@/components/onboarding/MandatoryProfileSetupModal";
@@ -26,9 +26,19 @@ const otherNavItems = [
 
 export default function TeacherUILayout({ children }) {
   const pathname = usePathname()
-  const { logout, isDark } = useContext(DataContext)
+  const router = useRouter()
+  const { logout, isDark, authLoading, authenticated, user } = useContext(DataContext)
   const dm = isDark
   const [collapsed, setCollapsed] = useState(false)
+  const allowed = authenticated && ["teacher", "admin"].includes(user?.role)
+
+  // Teacher pages need a teacher or admin session (the API enforces this too).
+  useEffect(() => {
+    if (authLoading) return
+    if (!authenticated) router.replace("/")
+    else if (user?.mustChangePassword) router.replace("/account")
+    else if (!allowed) router.replace("/manage/auth")
+  }, [authLoading, authenticated, allowed, user, router])
 
   // Same collapse mechanism and localStorage key as the scholar/admin shell
   // (Nav.jsx) — kept in sync so the preference carries over between shells.
@@ -131,6 +141,14 @@ export default function TeacherUILayout({ children }) {
       </div>
     </>
   )
+
+  if (authLoading || !allowed) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#EFEFEF]">
+        <div className="w-8 h-8 rounded-full border-[3px] border-slate-200 border-t-[#203A3A] animate-spin" />
+      </div>
+    )
+  }
 
   return (
     <div className="flex w-full h-screen overflow-hidden" style={{ backgroundColor: sidebarBg }}>

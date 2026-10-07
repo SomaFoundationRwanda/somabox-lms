@@ -1,7 +1,16 @@
 import { Router } from 'express';
 import { localDb, serverDb } from '../helpers/db-manager.js';
+import { requireRole } from '../helpers/auth.js';
 
 const router = Router();
+const requireAdmin = requireRole('admin');
+
+// Notification links must stay inside the app (no external or protocol-relative URLs).
+function safeInternalLink(link) {
+    if (!link) return null;
+    const value = String(link).trim();
+    return value.startsWith('/') && !value.startsWith('//') ? value : undefined;
+}
 
 /**
  * Helper utility to create a system notification
@@ -27,10 +36,7 @@ export async function createNotification({ userEmail, title, message, type = 'sy
  * Returns list of user notifications, unread count, and auto-injects profile reminder if incomplete.
  */
 router.get('/', async (req, res) => {
-    const userEmail = req.query.userEmail?.trim()?.toLowerCase();
-    if (!userEmail) {
-        return res.status(400).json({ message: "userEmail query parameter is required" });
-    }
+    const userEmail = req.user.email;
 
     try {
         // 1. Check if user's profile is incomplete in serverDb
@@ -92,11 +98,13 @@ router.get('/', async (req, res) => {
  * POST /notifications
  * Create a new notification manually
  */
-router.post('/', async (req, res) => {
-    const { userEmail, title, message, type, link } = req.body;
+router.post('/', requireAdmin, async (req, res) => {
+    const { userEmail, title, message, type } = req.body;
     if (!userEmail || !title || !message) {
         return res.status(400).json({ message: "userEmail, title, and message are required" });
     }
+    const link = safeInternalLink(req.body.link);
+    if (link === undefined) return res.status(400).json({ message: "link must be a path inside the app, e.g. /account" });
 
     const id = await createNotification({ userEmail, title, message, type, link });
     if (id) {
@@ -113,7 +121,7 @@ router.post('/', async (req, res) => {
 router.patch('/:id/read', async (req, res) => {
     const { id } = req.params;
     try {
-        await localDb.prepare(`UPDATE user_notifications SET is_read = 1 WHERE id = ?`).run(id);
+        await localDb.prepare(`UPDATE user_notifications SET is_read = 1 WHERE id = ? AND LOWER(user_email) = LOWER(?)`).run(id, req.user.email);
         res.json({ message: "Notification marked as read" });
     } catch (err) {
         console.error("PATCH /notifications/:id/read error:", err);
@@ -126,13 +134,10 @@ router.patch('/:id/read', async (req, res) => {
  * Mark all notifications for a user as read
  */
 router.post('/read-all', async (req, res) => {
-    const { userEmail } = req.body;
-    if (!userEmail) return res.status(400).json({ message: "userEmail is required" });
-
     try {
         await localDb.prepare(`
             UPDATE user_notifications SET is_read = 1 WHERE LOWER(user_email) = LOWER(?)
-        `).run(userEmail.trim().toLowerCase());
+        `).run(req.user.email);
         res.json({ message: "All notifications marked as read" });
     } catch (err) {
         console.error("POST /notifications/read-all error:", err);
@@ -144,22 +149,15 @@ router.post('/read-all', async (req, res) => {
  * POST /notifications/send
  * Allows Admin users to broadcast notifications to students, teachers, admins, or specific users
  */
-router.post('/send', async (req, res) => {
+router.post('/send', requireAdmin, async (req, res) => {
     try {
-        const { senderEmail, targetRole, targetEmail, title, message, type = 'announcement', link = null } = req.body;
-        
-        if (!senderEmail || !title || !message) {
-            return res.status(400).json({ message: "senderEmail, title, and message are required" });
-        }
+        const { targetRole, targetEmail, title, message, type = 'announcement' } = req.body;
 
-        // Verify sender is an Admin
-        const sender = await serverDb.prepare(`
-            SELECT id, role FROM users WHERE LOWER(email) = LOWER(?)
-        `).get(senderEmail.trim().toLowerCase());
-
-        if (!sender || sender.role.toLowerCase() !== 'admin') {
-            return res.status(403).json({ message: "Forbidden: Only Admin users can broadcast notifications" });
+        if (!title || !message) {
+            return res.status(400).json({ message: "title and message are required" });
         }
+        const link = safeInternalLink(req.body.link);
+        if (link === undefined) return res.status(400).json({ message: "link must be a path inside the app, e.g. /account" });
 
         let recipientEmails = [];
 
@@ -190,7 +188,7 @@ router.post('/send', async (req, res) => {
         `);
 
         for (const email of recipientEmails) {
-            await insertStmt.run(email, title.trim(), message.trim(), type, link ? link.trim() : null);
+            await insertStmt.run(email, title.trim(), message.trim(), type, link);
             sentCount++;
         }
 

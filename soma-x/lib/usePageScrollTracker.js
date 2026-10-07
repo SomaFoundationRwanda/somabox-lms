@@ -25,7 +25,7 @@ export function usePageScrollTracker({ SERVER_URL, courseId, pageId, userEmail, 
         const res = await fetch(`${SERVER_URL}/courses/${courseId}/pages/${pageId}/view`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userEmail, scrollPct: pct }),
+          body: JSON.stringify({ scrollPct: pct }),
         });
         const data = await res.json();
         if (res.ok) {

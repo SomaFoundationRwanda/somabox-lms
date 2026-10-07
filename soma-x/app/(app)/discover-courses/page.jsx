@@ -8,17 +8,13 @@ import AsyncListState from "@/components/course/AsyncListState";
 
 export default function DiscoverCoursesPage() {
   const router = useRouter();
-  const { SERVER_URL, unshiftString } = useContext(DataContext);
+  const { SERVER_URL, user } = useContext(DataContext);
   const [courses, setCourses] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [joiningId, setJoiningId] = useState(null);
 
-  const userEmail = useMemo(() => {
-    if (typeof window === "undefined") return "";
-    const stored = localStorage.getItem("al");
-    return stored ? unshiftString(stored) : "";
-  }, [unshiftString]);
+  const userEmail = user?.email || "";
 
   const load = useCallback(async () => {
     if (!SERVER_URL) return;
@@ -45,7 +41,7 @@ export default function DiscoverCoursesPage() {
       const res = await fetch(`${SERVER_URL}/courses/${courseId}/join`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userEmail }),
+        body: JSON.stringify({}),
       });
       if (!res.ok) throw new Error((await res.json()).message || "Failed to join");
       router.push(`/course/${courseId}/home`);

@@ -50,7 +50,7 @@ export default function DiagnosticQuizModal({ isOpen, onClose, serverUrl, schola
                 Literacy: Math.round((breakdown.Literacy / counts.Literacy) * 100),
             };
 
-            await submitDiagnosticQuiz(serverUrl, scholarEmail, overallScore, subjectPct);
+            await submitDiagnosticQuiz(serverUrl, overallScore, subjectPct);
             setIsSubmitting(false);
             setIsFinished(true);
         }

@@ -6,7 +6,7 @@ import DataContext from "@/context/DataContext";
 import { useToast } from "@/context/ToastContext";
 
 export default function SendNotificationModal({ isOpen, onClose }) {
-    const { SERVER_URL, unshiftString } = useContext(DataContext);
+    const { SERVER_URL } = useContext(DataContext);
     const { showToast } = useToast();
 
     const [targetRole, setTargetRole] = useState("all");
@@ -26,21 +26,12 @@ export default function SendNotificationModal({ isOpen, onClose }) {
             return;
         }
 
-        const storedEmail = localStorage.getItem("al");
-        const senderEmail = storedEmail ? unshiftString(storedEmail) : "";
-
-        if (!senderEmail) {
-            showToast("Admin session email not found. Please log in again.", "error");
-            return;
-        }
-
         try {
             setSending(true);
             const res = await fetch(`${SERVER_URL}/notifications/send`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    senderEmail,
                     targetRole,
                     targetEmail: targetRole === "specific" ? targetEmail : undefined,
                     title: title.trim(),

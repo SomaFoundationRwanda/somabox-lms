@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import { X, Upload, FileIcon, CheckCircle } from "lucide-react";
 
-export default function FileUploadModal({ open, onClose, onUpload, courseId, moduleId, SERVER_URL, userEmail }) {
+export default function FileUploadModal({ open, onClose, onUpload, courseId, moduleId, SERVER_URL }) {
   const [file, setFile] = useState(null);
   const [title, setTitle] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -34,7 +34,6 @@ export default function FileUploadModal({ open, onClose, onUpload, courseId, mod
       const formData = new FormData();
       formData.append("file", file);
       formData.append("title", title || file.name);
-      formData.append("teacherEmail", userEmail);
 
       const res = await fetch(`${SERVER_URL}/courses/${courseId}/modules/${moduleId}/items/file`, {
         method: "POST",

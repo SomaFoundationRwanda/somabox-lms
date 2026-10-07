@@ -1,4 +1,6 @@
 import pg from 'pg';
+import { AsyncLocalStorage } from 'node:async_hooks';
+import { runMigrations } from '../db/migrate.js';
 import { config } from '../config/index.js';
 import bcrypt from 'bcrypt';
 
@@ -89,6 +91,14 @@ export function transformSql(sqliteSql) {
     return sql;
 }
 
+// Holds the client of the transaction the current async call chain is running in, so
+// statements issued inside dbClient.transaction() go through that client automatically.
+const txStorage = new AsyncLocalStorage();
+
+function currentExecutor() {
+    return txStorage.getStore() || pool;
+}
+
 /**
  * Creates a prepare-like query interface compatible with better-sqlite3 signature
  * but backed asynchronously by PostgreSQL pool connection.
@@ -99,12 +109,12 @@ function createStatementAdapter(rawSql) {
     return {
         async get(...args) {
             const params = args.flat();
-            const res = await pool.query(transformedSql, params);
+            const res = await currentExecutor().query(transformedSql, params);
             return res.rows[0] || undefined;
         },
         async all(...args) {
             const params = args.flat();
-            const res = await pool.query(transformedSql, params);
+            const res = await currentExecutor().query(transformedSql, params);
             return res.rows;
         },
         async run(...args) {
@@ -116,8 +126,14 @@ function createStatementAdapter(rawSql) {
                 sqlToRun += " RETURNING id";
             }
 
+            const executor = currentExecutor();
+            const inTransaction = executor !== pool;
+            // Inside a transaction a failed statement aborts it, so the RETURNING
+            // fallback below needs a savepoint to recover.
+            if (inTransaction && sqlToRun !== transformedSql) await executor.query('SAVEPOINT returning_id');
             try {
-                const res = await pool.query(sqlToRun, params);
+                const res = await executor.query(sqlToRun, params);
+                if (inTransaction && sqlToRun !== transformedSql) await executor.query('RELEASE SAVEPOINT returning_id');
                 const firstRow = res.rows && res.rows[0];
                 const lastId = firstRow ? (firstRow.id !== undefined ? firstRow.id : Object.values(firstRow)[0]) : null;
                 return {
@@ -125,8 +141,10 @@ function createStatementAdapter(rawSql) {
                     lastInsertRowid: lastId
                 };
             } catch (err) {
+                if (sqlToRun === transformedSql) throw err;
                 // If RETURNING id failed because there's no 'id' column (e.g., text PK), retry original query
-                const res = await pool.query(transformedSql, params);
+                if (inTransaction) await executor.query('ROLLBACK TO SAVEPOINT returning_id');
+                const res = await executor.query(transformedSql, params);
                 return {
                     changes: res.rowCount || 0,
                     lastInsertRowid: null
@@ -145,14 +163,31 @@ export const dbClient = {
     },
     async query(sql, params = []) {
         const transformed = transformSql(sql);
-        return await pool.query(transformed, params);
+        return await currentExecutor().query(transformed, params);
     },
     async exec(sql) {
-        return await pool.query(sql);
+        return await currentExecutor().query(sql);
     },
+    /**
+     * Wraps fn in a real database transaction: every localDb/serverDb statement awaited
+     * inside fn runs on one client between BEGIN and COMMIT, and any thrown error rolls
+     * everything back. Nested calls join the outer transaction.
+     */
     transaction(fn) {
         return async (...args) => {
-            return await fn(...args);
+            if (txStorage.getStore()) return await fn(...args);
+            const client = await pool.connect();
+            try {
+                await client.query('BEGIN');
+                const result = await txStorage.run(client, () => fn(...args));
+                await client.query('COMMIT');
+                return result;
+            } catch (error) {
+                await client.query('ROLLBACK').catch(() => {});
+                throw error;
+            } finally {
+                client.release();
+            }
         };
     }
 };
@@ -697,25 +732,11 @@ export async function initSchemas() {
         ALTER TABLE module_items ADD COLUMN IF NOT EXISTS release_day INTEGER DEFAULT 0;
         ALTER TABLE module_items ADD COLUMN IF NOT EXISTS due_day INTEGER DEFAULT 7;
         ALTER TABLE module_items ADD COLUMN IF NOT EXISTS close_day INTEGER DEFAULT 7;
-
-        ALTER TABLE users ADD COLUMN IF NOT EXISTS must_change_password INTEGER DEFAULT 0;
-
-        -- New courses start unpublished with is_opened = 0. Courses that were already
-        -- active before the setup gate existed are treated as opened.
-        UPDATE courses SET is_opened = 1 WHERE status = 'active' AND COALESCE(is_opened, 0) = 0;
-
-        -- Early AI-stub items only set item_ref_id; readers use content_ref_id.
-        UPDATE module_items
-        SET content_ref_id = item_ref_id,
-            content_ref_table = CASE item_type
-                WHEN 'page' THEN 'course_pages'
-                WHEN 'assignment' THEN 'assignments'
-                WHEN 'quiz' THEN 'quizzes'
-                WHEN 'file' THEN 'course_files'
-                WHEN 'discussion' THEN 'discussions'
-            END
-        WHERE content_ref_id IS NULL AND item_ref_id IS NOT NULL AND item_type <> 'sub_header';
     `);
+
+    // The statements above are the legacy baseline. All schema changes from now on are
+    // versioned files in src/db/migrations; do not add ALTER statements here.
+    await runMigrations(pool);
 
     // Ensure default admin user exists
     // Ensure default admin user exists; it must change the default password on first login
@@ -739,18 +760,14 @@ export async function initSchemas() {
         ON CONFLICT (id) DO NOTHING
     `);
 
-    // Migrate existing course_nav_items so outcomes is position 1 and visible_to_students = 1 for all courses
+    // Add any missing default nav items to existing courses (never changes existing rows)
     try {
         const allCourseIds = await pool.query("SELECT id FROM courses");
         for (const cRow of allCourseIds.rows) {
             await seedDefaultNavItems(cRow.id);
-            await pool.query(
-                "UPDATE course_nav_items SET position = 1, visible_to_students = 1 WHERE course_id = $1 AND nav_key = 'outcomes'",
-                [cRow.id]
-            );
         }
     } catch (mErr) {
-        console.error("Nav items migration error:", mErr);
+        console.error("Nav items seeding error:", mErr);
     }
 
     console.log("PostgreSQL database schemas successfully initialized!");

@@ -57,29 +57,25 @@ function PasswordField({ id, label, placeholder, value, onChange }) {
 }
 
 export default function AccountPage() {
-    const { authenticated, unshiftString, SERVER_URL, isDark } = useContext(DataContext);
+    const { authenticated, SERVER_URL, isDark, user, refreshUser } = useContext(DataContext);
     const ACCENT = isDark ? "#0D9488" : "#203A3A";
     const pageBg = isDark ? "#080B0F" : "#F0F2F5";
     const heroFade = isDark ? "#080B0F" : "#F0F2F5";
 
     const { showToast } = useToast();
-    const [currentEmail, setCurrentEmail] = useState("");
-    const [currentRole,  setCurrentRole]  = useState("");
+    const currentEmail = user?.email || "";
+    const currentRole = user?.role || "";
     const [loadingProfile, setLoadingProfile] = useState(true);
     const [savingPassword,  setSavingPassword]  = useState(false);
     const [savingDemographics, setSavingDemographics] = useState(false);
     const [editDemographics, setEditDemographics] = useState(false);
     const [activeTab, setActiveTab] = useState("profile");
-    const [mustChangePassword, setMustChangePassword] = useState(false);
+    // Set by the server (e.g. the default admin, or after an admin password reset).
+    const mustChangePassword = !!user?.mustChangePassword;
 
     useEffect(() => {
-        let flagged = false;
-        try { flagged = localStorage.getItem("mcp") === "1"; } catch {}
-        if (flagged) {
-            setMustChangePassword(true);
-            setActiveTab("security");
-        }
-    }, []);
+        if (mustChangePassword) setActiveTab("security");
+    }, [mustChangePassword]);
     const [status, setStatus] = useState({ type: "", message: "" });
 
     const [profileView, setProfileView] = useState({ email: "", fullName: "" });
@@ -95,22 +91,13 @@ export default function AccountPage() {
     });
 
     useEffect(() => {
-        const storedEmail = localStorage.getItem("al");
-        const storedRole  = localStorage.getItem("gh");
-        if (!storedEmail || !storedRole) { setLoadingProfile(false); return; }
-        setCurrentEmail(unshiftString(storedEmail));
-        setCurrentRole(unshiftString(storedRole));
-    }, [unshiftString]);
-
-    useEffect(() => {
         const load = async () => {
             if (!SERVER_URL || !currentEmail || !currentRole || !authenticated) {
                 setLoadingProfile(false); return;
             }
             try {
                 setLoadingProfile(true);
-                const params = new URLSearchParams({ email: currentEmail, role: currentRole });
-                const res  = await fetch(`${SERVER_URL}/users/profile/view?${params}`);
+                const res  = await fetch(`${SERVER_URL}/users/profile/view`);
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.message || "Failed to load profile");
                 setProfileView({
@@ -147,7 +134,6 @@ export default function AccountPage() {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    email: currentEmail,
                     gender: demoForm.gender,
                     regionProvince: demoForm.regionProvince || "Not Specified",
                     regionDistrict: demoForm.regionDistrict || "Not Specified",
@@ -203,16 +189,13 @@ export default function AccountPage() {
             const res  = await fetch(`${SERVER_URL}/users/profile/password`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ currentEmail, currentRole, currentPassword, newPassword }),
+                body: JSON.stringify({ currentPassword, newPassword }),
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.message || "Failed to update password");
             setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
             setStatus({ type: "success", message: "Password updated successfully." });
-            if (mustChangePassword) {
-                try { localStorage.removeItem("mcp"); } catch {}
-                setMustChangePassword(false);
-            }
+            if (mustChangePassword) await refreshUser();
         } catch (err) {
             setStatus({ type: "error", message: err.message });
         } finally {

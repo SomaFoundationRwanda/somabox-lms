@@ -2,8 +2,16 @@ import express from 'express';
 import bcrypt from "bcrypt";
 
 import { serverDb, localDb } from '../helpers/db-manager.js';
+import { requireRole, revokeUserSessions } from '../helpers/auth.js';
 
 const router = express.Router();
+const requireAdmin = requireRole('admin');
+const VALID_ROLES = ['admin', 'teacher', 'scholar'];
+
+// Columns safe to return about a user (never password_hash).
+const PUBLIC_USER_COLUMNS = `id, email, full_name, role, phone, school_name, grade_level, preferred_language,
+    gender, region_province, region_district, is_rural, disability_status, accessibility_profile,
+    COALESCE(is_active, 1) AS is_active, created_at`;
 
 export const hashPassword = async (password) => {
     const saltRounds = 12;
@@ -25,7 +33,7 @@ export async function logAdminAuditAction({ adminEmail, action, targetUserId = n
     }
 }
 
-router.get('/', async (req, res) => {
+router.get('/', requireAdmin, async (req, res) => {
     try {
         const search = String(req.query.search || '').trim();
         const roles = String(req.query.role || '').trim(); // e.g. "admin,teacher"
@@ -113,8 +121,7 @@ router.get('/', async (req, res) => {
 
 router.get('/me/assignment-summary', async (req, res) => {
     try {
-        const email = String(req.query.userEmail || '').trim().toLowerCase();
-        if (!email) return res.status(400).json({ message: 'userEmail is required' });
+        const email = req.user.email;
 
         const enrolledCourseRows = await localDb.prepare(
             "SELECT course_id FROM enrollments WHERE LOWER(user_email) = LOWER(?) AND status = 'active'"
@@ -174,8 +181,7 @@ router.get('/me/assignment-summary', async (req, res) => {
 
 router.get('/me/dashboard', async (req, res) => {
     try {
-        const email = String(req.query.userEmail || '').trim().toLowerCase();
-        if (!email) return res.status(400).json({ message: 'userEmail is required' });
+        const email = req.user.email;
 
         const enrolledRows = await localDb.prepare(`
             SELECT c.*, e.role AS my_role, e.status AS my_status
@@ -237,8 +243,10 @@ router.get('/me/dashboard', async (req, res) => {
 
 router.get('/:id', async (req, res) => {
     try {
-        const stmt = serverDb.prepare('SELECT *, COALESCE(is_active, 1) as is_active FROM users WHERE id = ?');
-        const user = await stmt.get(req.params.id);
+        if (req.user.role !== 'admin' && String(req.user.id) !== String(req.params.id)) {
+            return res.status(403).json({ message: 'You do not have permission to do this' });
+        }
+        const user = await serverDb.prepare(`SELECT ${PUBLIC_USER_COLUMNS} FROM users WHERE id = ?`).get(req.params.id);
         if (!user) return res.status(404).json({ message: "User not found" });
         res.json(user);
     } catch (err) {
@@ -248,26 +256,12 @@ router.get('/:id', async (req, res) => {
 
 router.get('/profile/view', async (req, res) => {
     try {
-        const email = String(req.query.email || '').trim().toLowerCase();
-        const role = String(req.query.role || '').trim().toLowerCase();
-
-        if (!email) {
-            return res.status(400).json({ message: 'Email is required' });
-        }
-
-        let query = `
+        const user = await serverDb.prepare(`
             SELECT id, email, full_name, role, phone, school_name, grade_level, preferred_language,
                    gender, region_province, region_district, is_rural, disability_status, accessibility_profile, created_at
             FROM users
-            WHERE LOWER(email) = LOWER(?)
-        `;
-        const params = [email];
-        if (role) {
-            query += ` AND LOWER(role) = LOWER(?)`;
-            params.push(role);
-        }
-
-        const user = await serverDb.prepare(query).get(...params);
+            WHERE id = ?
+        `).get(req.user.id);
 
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
@@ -289,13 +283,21 @@ router.get('/profile/view', async (req, res) => {
     }
 });
 
-router.post('/', async (req, res) => {
+// Admin-created accounts. Self-registration goes through POST /auth/register (scholars only).
+router.post('/', requireAdmin, async (req, res) => {
   try {
-    const { email, password, role, fullName, phone, schoolName, gradeLevel, preferredLanguage, gender, regionProvince, regionDistrict, isRural, disabilityStatus, accessibilityProfile } = req.body;
+    const { email, password, fullName, phone, schoolName, gradeLevel, preferredLanguage, gender, regionProvince, regionDistrict, isRural, disabilityStatus, accessibilityProfile } = req.body;
     const normalizedEmail = String(email || '').trim().toLowerCase();
+    const role = String(req.body.role || '').trim().toLowerCase();
 
     if (!normalizedEmail || !password || !role) {
       return res.status(400).json({ message: 'Email, password, and role are required' });
+    }
+    if (!VALID_ROLES.includes(role)) {
+      return res.status(400).json({ message: 'Role must be admin, teacher, or scholar' });
+    }
+    if (String(password).length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters' });
     }
 
     const existingUser = await serverDb.prepare('SELECT id FROM users WHERE LOWER(email) = LOWER(?)').get(normalizedEmail);
@@ -330,6 +332,13 @@ router.post('/', async (req, res) => {
       accessibility_profile
     );
 
+    await logAdminAuditAction({
+      adminEmail: req.user.email,
+      action: 'CREATE_USER',
+      targetUserEmail: normalizedEmail,
+      details: `Created ${role} account ${normalizedEmail}`
+    });
+
     res.status(201).json({
       message: 'User created successfully',
       user: { email: normalizedEmail, role, full_name: fullName || '' }
@@ -340,7 +349,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.patch('/:id', async (req, res) => {
+router.patch('/:id', requireAdmin, async (req, res) => {
     try {
         const email = req.body.email !== undefined ? String(req.body.email || '').trim().toLowerCase() : undefined;
         const fullName = req.body.fullName !== undefined ? String(req.body.fullName || '').trim() : undefined;
@@ -357,6 +366,16 @@ router.patch('/:id', async (req, res) => {
         const accessibilityProfile = req.body.accessibilityProfile !== undefined ? (typeof req.body.accessibilityProfile === 'object' ? JSON.stringify(req.body.accessibilityProfile) : String(req.body.accessibilityProfile)) : undefined;
         const password = req.body.password;
         const userId = req.params.id;
+
+        if (role !== undefined && !VALID_ROLES.includes(role)) {
+            return res.status(400).json({ message: 'Role must be admin, teacher, or scholar' });
+        }
+        if (String(userId) === String(req.user.id) && role !== undefined && role !== req.user.role) {
+            return res.status(400).json({ message: 'You cannot change your own role' });
+        }
+        if (password && String(password).length < 6) {
+            return res.status(400).json({ message: 'Password must be at least 6 characters' });
+        }
 
         if (
             email === undefined &&
@@ -398,6 +417,8 @@ router.patch('/:id', async (req, res) => {
             const password_hash = await hashPassword(password);
             updates.push('password_hash = ?');
             params.push(password_hash);
+            // An admin-set password is temporary: the user must choose their own.
+            updates.push('must_change_password = 1');
         }
 
         query += updates.join(', ') + ' WHERE id = ?';
@@ -410,6 +431,16 @@ router.patch('/:id', async (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
+        if (password || role !== undefined || email !== undefined) {
+            await revokeUserSessions(userId);
+        }
+        await logAdminAuditAction({
+            adminEmail: req.user.email,
+            action: 'UPDATE_USER',
+            targetUserId: Number(userId),
+            details: `Updated fields: ${updates.map((u) => u.split(' = ')[0]).join(', ')}`
+        });
+
         res.status(200).json({ message: 'User updated successfully' });
     } catch (error) {
         console.error('Error updating user:', error);
@@ -419,7 +450,7 @@ router.patch('/:id', async (req, res) => {
 
 router.patch('/profile/update', async (req, res) => {
     try {
-        const email = String(req.body.email || '').trim().toLowerCase();
+        const email = req.user.email;
         const fullName = req.body.fullName !== undefined ? String(req.body.fullName).trim() : undefined;
         const phone = req.body.phone !== undefined ? String(req.body.phone).trim() : undefined;
         const schoolName = req.body.schoolName !== undefined ? String(req.body.schoolName).trim() : undefined;
@@ -431,14 +462,7 @@ router.patch('/profile/update', async (req, res) => {
         const isRural = req.body.isRural !== undefined ? (req.body.isRural ? 1 : 0) : undefined;
         const disabilityStatus = req.body.disabilityStatus !== undefined ? String(req.body.disabilityStatus).trim() : undefined;
 
-        if (!email) {
-            return res.status(400).json({ message: 'User email is required' });
-        }
-
-        const user = await serverDb.prepare('SELECT id FROM users WHERE LOWER(email) = LOWER(?)').get(email);
-        if (!user) {
-            return res.status(404).json({ message: 'User account not found' });
-        }
+        const user = { id: req.user.id };
 
         let query = 'UPDATE users SET ';
         const params = [];
@@ -482,13 +506,11 @@ router.patch('/profile/update', async (req, res) => {
 
 router.patch('/profile/password', async (req, res) => {
     try {
-        const currentEmail = String(req.body.currentEmail || '').trim().toLowerCase();
-        const currentRole = String(req.body.currentRole || '').trim().toLowerCase();
         const currentPassword = String(req.body.currentPassword || '');
         const newPassword = String(req.body.newPassword || '');
 
-        if (!currentEmail || !currentRole || !currentPassword || !newPassword) {
-            return res.status(400).json({ message: 'Current email, role, and passwords are required' });
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({ message: 'Current and new passwords are required' });
         }
 
         if (newPassword.length < 6) {
@@ -499,9 +521,7 @@ router.patch('/profile/password', async (req, res) => {
             return res.status(400).json({ message: 'New password must be different from the current password' });
         }
 
-        const user = await serverDb
-            .prepare('SELECT id, password_hash FROM users WHERE LOWER(email) = LOWER(?) AND LOWER(role) = LOWER(?)')
-            .get(currentEmail, currentRole);
+        const user = await serverDb.prepare('SELECT id, password_hash FROM users WHERE id = ?').get(req.user.id);
 
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
@@ -514,6 +534,8 @@ router.patch('/profile/password', async (req, res) => {
 
         const passwordHash = await hashPassword(newPassword);
         await serverDb.prepare('UPDATE users SET password_hash = ?, must_change_password = 0 WHERE id = ?').run(passwordHash, user.id);
+        // Sign out every other device; this one stays logged in.
+        await revokeUserSessions(user.id, req.sessionToken);
 
         return res.json({ message: 'Password updated successfully' });
     } catch (error) {
@@ -526,10 +548,15 @@ router.patch('/profile/password', async (req, res) => {
  * PATCH /users/:id/status
  * Soft deactivate or reactivate user account
  */
-router.patch('/:id/status', async (req, res) => {
+router.patch('/:id/status', requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
-        const { isActive, adminEmail } = req.body;
+        const { isActive } = req.body;
+        const adminEmail = req.user.email;
+
+        if (String(id) === String(req.user.id) && !isActive) {
+            return res.status(400).json({ message: 'You cannot deactivate your own account' });
+        }
 
         const user = await serverDb.prepare('SELECT id, email, full_name, is_active FROM users WHERE id = ?').get(id);
         if (!user) {
@@ -538,6 +565,7 @@ router.patch('/:id/status', async (req, res) => {
 
         const newStatus = isActive ? 1 : 0;
         await serverDb.prepare('UPDATE users SET is_active = ? WHERE id = ?').run(newStatus, id);
+        if (newStatus === 0) await revokeUserSessions(user.id);
 
         const actionName = newStatus === 1 ? 'REACTIVATE_USER' : 'DEACTIVATE_USER';
         await logAdminAuditAction({
@@ -562,10 +590,11 @@ router.patch('/:id/status', async (req, res) => {
  * PATCH /users/:id/reset-password
  * Admin password reset
  */
-router.patch('/:id/reset-password', async (req, res) => {
+router.patch('/:id/reset-password', requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
-        const { newPassword, adminEmail } = req.body;
+        const { newPassword } = req.body;
+        const adminEmail = req.user.email;
 
         if (!newPassword || newPassword.length < 6) {
             return res.status(400).json({ message: 'New password must be at least 6 characters' });
@@ -577,7 +606,9 @@ router.patch('/:id/reset-password', async (req, res) => {
         }
 
         const passwordHash = await hashPassword(newPassword);
-        await serverDb.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(passwordHash, id);
+        // The reset password is temporary: the user must choose their own at next login.
+        await serverDb.prepare('UPDATE users SET password_hash = ?, must_change_password = 1 WHERE id = ?').run(passwordHash, id);
+        await revokeUserSessions(user.id);
 
         await logAdminAuditAction({
             adminEmail,
@@ -598,11 +629,16 @@ router.patch('/:id/reset-password', async (req, res) => {
  * POST /users/bulk-action
  * Perform bulk operations (bulk_role, bulk_deactivate, bulk_reactivate, bulk_delete)
  */
-router.post('/bulk-action', async (req, res) => {
+router.post('/bulk-action', requireAdmin, async (req, res) => {
     try {
-        const { userIds, action, newRole, adminEmail } = req.body;
-        if (!Array.isArray(userIds) || userIds.length === 0) {
+        const { action, newRole } = req.body;
+        const adminEmail = req.user.email;
+        const userIds = Array.isArray(req.body.userIds) ? req.body.userIds.map(Number).filter(Number.isInteger) : [];
+        if (userIds.length === 0) {
             return res.status(400).json({ message: 'userIds array is required' });
+        }
+        if (userIds.includes(Number(req.user.id))) {
+            return res.status(400).json({ message: 'Bulk actions cannot include your own account' });
         }
 
         const placeholders = userIds.map(() => '?').join(',');
@@ -612,6 +648,7 @@ router.post('/bulk-action', async (req, res) => {
             const stmt = serverDb.prepare(`UPDATE users SET is_active = 0 WHERE id IN (${placeholders})`);
             const info = await stmt.run(...userIds);
             affected = info.changes;
+            for (const userId of userIds) await revokeUserSessions(userId);
             await logAdminAuditAction({ adminEmail, action: 'BULK_DEACTIVATE', details: `Deactivated ${affected} users` });
         } else if (action === 'bulk_reactivate') {
             const stmt = serverDb.prepare(`UPDATE users SET is_active = 1 WHERE id IN (${placeholders})`);
@@ -625,6 +662,7 @@ router.post('/bulk-action', async (req, res) => {
             const stmt = serverDb.prepare(`UPDATE users SET role = ? WHERE id IN (${placeholders})`);
             const info = await stmt.run(newRole.toLowerCase(), ...userIds);
             affected = info.changes;
+            for (const userId of userIds) await revokeUserSessions(userId);
             await logAdminAuditAction({ adminEmail, action: 'BULK_ROLE_CHANGE', details: `Changed role to ${newRole} for ${affected} users` });
         } else if (action === 'bulk_delete') {
             const stmt = serverDb.prepare(`DELETE FROM users WHERE id IN (${placeholders})`);
@@ -642,10 +680,13 @@ router.post('/bulk-action', async (req, res) => {
     }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
-        const adminEmail = req.body?.adminEmail || req.query?.adminEmail;
+        const adminEmail = req.user.email;
+        if (String(id) === String(req.user.id)) {
+            return res.status(400).json({ message: 'You cannot delete your own account' });
+        }
 
         const user = await serverDb.prepare('SELECT id, email FROM users WHERE id = ?').get(id);
         if (!user) {

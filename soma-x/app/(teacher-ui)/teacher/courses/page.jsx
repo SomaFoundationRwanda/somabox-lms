@@ -8,21 +8,17 @@ import { EmptyState } from "@/components/ui/empty-state"
 import CreateCourseModal from "@/components/teacher/CreateCourseModal"
 
 export default function TeacherCoursesPage() {
-  const { SERVER_URL, unshiftString } = useContext(DataContext)
+  const { SERVER_URL, user } = useContext(DataContext)
   const [courses, setCourses] = useState([])
   const [loading, setLoading] = useState(true)
   const [createOpen, setCreateOpen] = useState(false)
 
-  const teacherEmail = useMemo(() => {
-    if (typeof window === "undefined") return ""
-    const stored = localStorage.getItem("al")
-    return stored ? unshiftString(stored) : ""
-  }, [unshiftString])
+  const teacherEmail = user?.email || "";
 
   const load = async () => {
     if (!SERVER_URL || !teacherEmail) return
     setLoading(true)
-    const res = await fetch(`${SERVER_URL}/courses/mine?userEmail=${encodeURIComponent(teacherEmail)}`)
+    const res = await fetch(`${SERVER_URL}/courses/mine`)
     const data = await res.json()
     if (res.ok) setCourses(Array.isArray(data) ? data : [])
     setLoading(false)
@@ -72,7 +68,6 @@ export default function TeacherCoursesPage() {
       {createOpen && (
         <CreateCourseModal
           SERVER_URL={SERVER_URL}
-          teacherEmail={teacherEmail}
           onClose={() => setCreateOpen(false)}
           onCreated={() => { setCreateOpen(false); load() }}
         />

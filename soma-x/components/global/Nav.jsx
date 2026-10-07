@@ -17,8 +17,8 @@ const COLLAPSED_WIDTH = 64;
 export default function SomaboxNav() {
   const { t } = useLanguage();
   const pathname = usePathname();
-  const { role, unshiftString, logout, isDark } = useContext(DataContext);
-  const currentRole = role ? unshiftString(role) : "scholar";
+  const { role, logout, isDark } = useContext(DataContext);
+  const currentRole = role || "scholar";
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
 

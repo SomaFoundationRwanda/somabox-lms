@@ -6,7 +6,7 @@ import { useCourse } from "@/context/CourseContext";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
 
 export default function CourseSettingsPage() {
-  const { SERVER_URL, courseId, userEmail, course, nav, refresh } = useCourse();
+  const { SERVER_URL, courseId, course, nav, refresh } = useCourse();
   const [tab, setTab] = useState("details");
   const [form, setForm] = useState({ title: "", description: "", grade: "", visibility: "private" });
   const [navItems, setNavItems] = useState([]);
@@ -35,11 +35,10 @@ export default function CourseSettingsPage() {
     await fetch(`${SERVER_URL}/courses/${courseId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ teacherEmail: userEmail, ...form }),
+      body: JSON.stringify({ ...form }),
     });
     if (coverFile) {
       const formData = new FormData();
-      formData.append("teacherEmail", userEmail);
       formData.append("image", coverFile);
       await fetch(`${SERVER_URL}/courses/${courseId}/cover-image`, { method: "POST", body: formData });
     }
@@ -52,7 +51,7 @@ export default function CourseSettingsPage() {
     await fetch(`${SERVER_URL}/courses/${courseId}/shift-timeline`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ teacherEmail: userEmail, shiftDays: days }),
+      body: JSON.stringify({ shiftDays: days }),
     });
     setSaving(false);
     refresh();
@@ -102,7 +101,7 @@ export default function CourseSettingsPage() {
     await fetch(`${SERVER_URL}/courses/${courseId}/nav`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ teacherEmail: userEmail, items }),
+      body: JSON.stringify({ items }),
     });
     setSaving(false);
     refresh();

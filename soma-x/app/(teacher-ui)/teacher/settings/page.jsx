@@ -38,19 +38,14 @@ function Toggle({ enabled, onChange }) {
 }
 
 export default function TeacherSettingsPage() {
-  const { unshiftString, logout } = useContext(DataContext)
+  const { logout, user } = useContext(DataContext)
 
-  const teacherEmail = useMemo(() => {
-    if (typeof window === "undefined") return ""
-    const stored = localStorage.getItem("al")
-    return stored ? unshiftString(stored) : ""
-  }, [unshiftString])
+  const teacherEmail = user?.email || "";
 
   const teacherName = useMemo(() => {
     if (typeof window === "undefined") return ""
-    const stored = localStorage.getItem("un")
-    return stored ? unshiftString(stored) : ""
-  }, [unshiftString])
+    return user?.fullName || ""
+  }, [user])
 
   const [emailNotifications, setEmailNotifications] = useState(true)
   const [assignmentAlerts, setAssignmentAlerts] = useState(true)

@@ -25,7 +25,7 @@ function Modal({ title, onClose, children }) {
 }
 
 export default function TeacherDashboardPage() {
-  const { SERVER_URL, unshiftString } = useContext(DataContext)
+  const { SERVER_URL, user } = useContext(DataContext)
 
   const [courses, setCourses] = useState([])
   const [loading, setLoading] = useState(true)
@@ -37,16 +37,12 @@ export default function TeacherDashboardPage() {
 
   const [createModal, setCreateModal] = useState(false)
 
-  const teacherEmail = useMemo(() => {
-    if (typeof window === "undefined") return ""
-    const stored = localStorage.getItem("al")
-    return stored ? unshiftString(stored) : ""
-  }, [unshiftString])
+  const teacherEmail = user?.email || "";
 
   const load = async () => {
     if (!SERVER_URL || !teacherEmail) return
     try {
-      const res = await fetch(`${SERVER_URL}/courses/mine?userEmail=${encodeURIComponent(teacherEmail)}`)
+      const res = await fetch(`${SERVER_URL}/courses/mine`)
       if (res.ok) setCourses(await res.json())
     } catch (err) {
       console.error(err)
@@ -65,7 +61,7 @@ export default function TeacherDashboardPage() {
       const res = await fetch(`${SERVER_URL}/courses/${studentModal}/people`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ teacherEmail, email: studentEmail.trim(), role: "student" }),
+        body: JSON.stringify({ email: studentEmail.trim(), role: "student" }),
       })
       const data = await res.json()
       if (!res.ok) { setStudentError(data.message || "Failed to add student"); return }
@@ -158,7 +154,6 @@ export default function TeacherDashboardPage() {
       {createModal && (
         <CreateCourseModal
           SERVER_URL={SERVER_URL}
-          teacherEmail={teacherEmail}
           onClose={() => setCreateModal(false)}
           onCreated={() => { setCreateModal(false); load() }}
         />

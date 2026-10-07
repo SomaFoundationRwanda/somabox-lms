@@ -20,9 +20,9 @@ export default function QuizzesListPage() {
     try {
       setLoading(true);
       const [quizRes, modRes, outRes] = await Promise.all([
-        fetch(`${SERVER_URL}/courses/${courseId}/quizzes?userEmail=${encodeURIComponent(userEmail)}`),
-        fetch(`${SERVER_URL}/courses/${courseId}/modules?userEmail=${encodeURIComponent(userEmail)}`),
-        fetch(`${SERVER_URL}/courses/${courseId}/outcomes?userEmail=${encodeURIComponent(userEmail)}`),
+        fetch(`${SERVER_URL}/courses/${courseId}/quizzes`),
+        fetch(`${SERVER_URL}/courses/${courseId}/modules`),
+        fetch(`${SERVER_URL}/courses/${courseId}/outcomes`),
       ]);
 
       if (quizRes.ok) setQuizzes(await quizRes.json());
@@ -54,7 +54,6 @@ export default function QuizzesListPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          teacherEmail: userEmail,
           itemType: "quiz",
           title: form.title.trim(),
           releaseDay: Number(form.releaseDay) || 0,
@@ -68,7 +67,6 @@ export default function QuizzesListPage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            teacherEmail: userEmail,
             itemType: "quiz",
             itemId: data.content_ref_id,
             outcomeIds: [Number(form.outcomeId)]

@@ -1,35 +1,14 @@
 "use client"
 import { createContext, useEffect, useState, useCallback } from "react";
 import { X, AlertCircle, CheckCircle2, Loader2, ChevronDown, ChevronUp } from "lucide-react";
+import { clearSession, getSessionToken, installAuthFetch } from "@/lib/session";
+
+// Attach the session token to every backend request from the first render on.
+installAuthFetch(process.env.NEXT_PUBLIC_SERVER_URL);
 
 const DataContext = createContext();
 
 export default DataContext
-
-// Helper functions for basic obfuscation
-const shiftString = (str) => {
-    if (!str) return '';
-    return str.split('').map(ch => {
-        if (/[a-z]/.test(ch)) {
-            return String.fromCharCode((ch.charCodeAt(0) - 97 + 1) % 26 + 97);
-        } else if (/[A-Z]/.test(ch)) {
-            return String.fromCharCode((ch.charCodeAt(0) - 65 + 1) % 26 + 65);
-        }
-        return ch;
-    }).join('');
-}
-
-const unshiftString = (str) => {
-    if (!str) return '';
-    return str.split('').map(ch => {
-        if (/[a-z]/.test(ch)) {
-            return String.fromCharCode((ch.charCodeAt(0) - 97 + 25) % 26 + 97);
-        } else if (/[A-Z]/.test(ch)) {
-            return String.fromCharCode((ch.charCodeAt(0) - 65 + 25) % 26 + 65);
-        }
-        return ch;
-    }).join('');
-}
 
 // ── Brightness engine ──────────────────────────────────────────────
 // Replaces the old binary dark/light toggle with a continuous 0-100
@@ -77,7 +56,8 @@ export function DataProvider({ children }) {
     const [summaryData, setSummaryData] = useState(null);
     const [mainCategories, setMainCategories] = useState(null);
     const [customContentSummary, setCustomContentSummary] = useState(null);
-    const [role, setRole] = useState("");
+    // The logged-in user from GET /auth/me: { id, email, fullName, role, mustChangePassword }.
+    const [user, setUser] = useState(null);
     const [authenticated, setAuthenticated] = useState(false);
     const [authLoading, setAuthLoading] = useState(true);
     const [isDark, setIsDark] = useState(false);
@@ -130,25 +110,37 @@ export function DataProvider({ children }) {
     // Back-compat shim for existing Light/Dark buttons: true -> darkest, false -> lightest.
     const toggleDark = useCallback((val) => applyBrightness(val ? 0 : 100), [applyBrightness]);
 
+    const refreshUser = useCallback(async () => {
+        if (!getSessionToken()) {
+            setUser(null);
+            setAuthenticated(false);
+            return null;
+        }
+        try {
+            const res = await fetch(`${SERVER_URL}/auth/me`);
+            if (!res.ok) throw new Error("Session expired");
+            const { user: me } = await res.json();
+            const next = {
+                id: me.id,
+                email: String(me.email || "").toLowerCase(),
+                fullName: me.full_name || "",
+                role: me.role,
+                mustChangePassword: !!me.must_change_password,
+            };
+            setUser(next);
+            setAuthenticated(true);
+            return next;
+        } catch {
+            clearSession();
+            setUser(null);
+            setAuthenticated(false);
+            return null;
+        }
+    }, [SERVER_URL]);
+
     // Auth + theme — runs only on the client after mount
     useEffect(() => {
-        const storedAl = localStorage.getItem('al');
-        const storedGh = localStorage.getItem('gh');
-
-        if (storedAl && storedGh) {
-            try {
-                const decryptedRole = unshiftString(storedGh);
-                const allowedRoles = ['admin', 'teacher', 'scholar'];
-                if (allowedRoles.includes(decryptedRole)) {
-                    setRole(storedGh);
-                    setAuthenticated(true);
-                }
-            } catch {
-                // invalid stored value — stay unauthenticated
-            }
-        }
-
-        setAuthLoading(false);
+        refreshUser().finally(() => setAuthLoading(false));
 
         // Resolve initial brightness: prefer the new "brightness" key; fall
         // back to migrating the old binary "theme" key (dark -> 0, light -> 100)
@@ -168,13 +160,17 @@ export function DataProvider({ children }) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const logout = useCallback(() => {
-        localStorage.removeItem('al');
-        localStorage.removeItem('gh');
+    const logout = useCallback(async () => {
+        try {
+            await fetch(`${SERVER_URL}/auth/logout`, { method: "POST" });
+        } catch {
+            // offline: the local session is still cleared below
+        }
+        clearSession();
         setAuthenticated(false);
-        setRole("");
+        setUser(null);
         window.location.href = '/';
-    }, []);
+    }, [SERVER_URL]);
 
     const [uploads, setUploads] = useState([]);
 
@@ -192,6 +188,9 @@ export function DataProvider({ children }) {
 
         const xhr = new XMLHttpRequest();
         xhr.open(method, url);
+        // XHR bypasses the fetch wrapper, so attach the session token here.
+        const sessionToken = getSessionToken();
+        if (sessionToken) xhr.setRequestHeader("Authorization", `Bearer ${sessionToken}`);
 
         xhr.upload.onprogress = (event) => {
             if (event.lengthComputable) {
@@ -268,10 +267,10 @@ export function DataProvider({ children }) {
         toggleDark,
         brightness,
         setBrightness,
-        role,
-        setRole,
-        shiftString,
-        unshiftString,
+        user,
+        // Plain role string ("admin" | "teacher" | "scholar"), or "" when logged out.
+        role: user?.role || "",
+        refreshUser,
         logout,
         SERVER_URL,
         mounted,

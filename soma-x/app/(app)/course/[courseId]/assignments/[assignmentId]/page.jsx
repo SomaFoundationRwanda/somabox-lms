@@ -27,10 +27,10 @@ export default function AssignmentDetailPage() {
     try {
       setLoading(true);
       const [assignRes, modRes, outRes, itemOutRes] = await Promise.all([
-        fetch(`${SERVER_URL}/courses/${courseId}/assignments/${assignmentId}?userEmail=${encodeURIComponent(userEmail)}`),
-        fetch(`${SERVER_URL}/courses/${courseId}/modules?userEmail=${encodeURIComponent(userEmail)}`),
-        fetch(`${SERVER_URL}/courses/${courseId}/outcomes?userEmail=${encodeURIComponent(userEmail)}`),
-        fetch(`${SERVER_URL}/courses/${courseId}/item-outcomes?userEmail=${encodeURIComponent(userEmail)}`),
+        fetch(`${SERVER_URL}/courses/${courseId}/assignments/${assignmentId}`),
+        fetch(`${SERVER_URL}/courses/${courseId}/modules`),
+        fetch(`${SERVER_URL}/courses/${courseId}/outcomes`),
+        fetch(`${SERVER_URL}/courses/${courseId}/item-outcomes`),
       ]);
 
       if (assignRes.ok) setAssignment(await assignRes.json());
@@ -56,7 +56,7 @@ export default function AssignmentDetailPage() {
     await fetch(`${SERVER_URL}/courses/${courseId}/assignments/${assignmentId}/submit`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userEmail, body: submissionBody }),
+      body: JSON.stringify({ body: submissionBody }),
     });
     loadData();
   };
@@ -68,7 +68,7 @@ export default function AssignmentDetailPage() {
     await fetch(`${SERVER_URL}/courses/${courseId}/assignments/${assignmentId}/grade/${encodeURIComponent(scholarEmail)}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ teacherEmail: userEmail, grade: Number(gradeVal), feedback: fbVal }),
+      body: JSON.stringify({ grade: Number(gradeVal), feedback: fbVal }),
     });
     loadData();
   };
@@ -96,7 +96,6 @@ export default function AssignmentDetailPage() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          teacherEmail: userEmail,
           title: editForm.title.trim(),
           description: editForm.description,
           moduleId: editForm.moduleId,
@@ -114,7 +113,6 @@ export default function AssignmentDetailPage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            teacherEmail: userEmail,
             itemType: "assignment",
             itemId: Number(assignmentId),
             outcomeIds: editForm.selectedOutcomeIds

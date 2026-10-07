@@ -1,6 +1,5 @@
 import express from 'express';
 import crypto from 'crypto';
-import { serverDb } from '../helpers/db-manager.js';
 
 const router = express.Router();
 const GATEWAY_URL = process.env.AI_GATEWAY_URL || 'http://127.0.0.1:5000';
@@ -10,9 +9,9 @@ const rateLimitMap = new Map();
 const RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000;
 const MAX_REQUESTS_PER_WINDOW = 20;
 
-function checkRateLimit(userEmail) {
+function checkRateLimit(userId) {
     const now = Date.now();
-    const record = rateLimitMap.get(userEmail) || { count: 0, startTime: now };
+    const record = rateLimitMap.get(userId) || { count: 0, startTime: now };
 
     if (now - record.startTime > RATE_LIMIT_WINDOW_MS) {
         record.count = 1;
@@ -21,58 +20,22 @@ function checkRateLimit(userEmail) {
         record.count++;
     }
 
-    rateLimitMap.set(userEmail, record);
+    rateLimitMap.set(userId, record);
     return record.count <= MAX_REQUESTS_PER_WINDOW;
 }
 
-const unshiftString = (str) => {
-    if (!str) return '';
-    return str.split('').map(ch => {
-        if (/[a-z]/.test(ch)) {
-            return String.fromCharCode((ch.charCodeAt(0) - 97 + 25) % 26 + 97);
-        } else if (/[A-Z]/.test(ch)) {
-            return String.fromCharCode((ch.charCodeAt(0) - 65 + 25) % 26 + 65);
-        }
-        return ch;
-    }).join('');
-};
-
-// Middleware: Verify Teacher / Admin Authorization Server-Side
-async function verifyTeacherOrAdmin(req, res, next) {
-    try {
-        const rawEmail = req.headers['x-user-email'] || req.body.user_email || req.query.user_email || '';
-        const rawRole = req.headers['x-user-role'] || req.body.user_role || '';
-
-        if (!rawEmail && !rawRole) {
-            return res.status(401).json({ message: 'Unauthorized: Auth credentials required' });
-        }
-
-        // Decode plain or obfuscated email & role
-        const emailToTry = rawEmail.includes('@') ? rawEmail : unshiftString(rawEmail);
-        let userRole = ['teacher', 'admin', 'scholar'].includes(rawRole.toLowerCase())
-            ? rawRole
-            : unshiftString(rawRole);
-
-        if (emailToTry) {
-            const user = await serverDb.prepare('SELECT role FROM users WHERE LOWER(email) = LOWER(?) OR LOWER(email) = LOWER(?)').get(emailToTry, rawEmail);
-            if (user) {
-                userRole = user.role;
-            }
-        }
-
-        if (!userRole || !['teacher', 'admin'].includes(userRole.toLowerCase())) {
-            return res.status(403).json({ message: 'Forbidden: AI Assistant is available for Teachers and Admins only.' });
-        }
-
-        // Generate an opaque teacher hash for privacy
-        const hash = crypto.createHash('sha256').update(emailToTry || 'teacher_session').digest('hex').substring(0, 16);
-        req.teacherHash = hash;
-        req.userEmail = emailToTry || 'teacher';
-        next();
-    } catch (err) {
-        console.error('[AI Proxy] Auth verification error:', err);
-        return res.status(500).json({ message: 'Internal authentication error' });
+// Teachers and admins may use the assistant (the admin question is open: guide §12.2).
+// Identity and role come from the session, never from client headers.
+function verifyTeacherOrAdmin(req, res, next) {
+    if (!req.user) return res.status(401).json({ message: 'Please log in to continue' });
+    if (!['teacher', 'admin'].includes(req.user.role)) {
+        return res.status(403).json({ message: 'Forbidden: AI Assistant is available for Teachers and Admins only.' });
     }
+    // Opaque id for the gateway's feedback log. Same input as before (the email) so
+    // existing hashes stay comparable.
+    req.teacherHash = crypto.createHash('sha256').update(req.user.email).digest('hex').substring(0, 16);
+    req.userEmail = req.user.email;
+    next();
 }
 
 // GET /ai/health - Check if AI service is operational
@@ -91,7 +54,7 @@ router.get('/health', async (req, res) => {
 
 // POST /ai/ask - Streamed AI completions for teachers
 router.post('/ask', verifyTeacherOrAdmin, async (req, res) => {
-    if (!checkRateLimit(req.userEmail)) {
+    if (!checkRateLimit(req.user.id)) {
         return res.status(429).json({ message: 'Rate limit exceeded. Please wait a few minutes before asking again.' });
     }
 

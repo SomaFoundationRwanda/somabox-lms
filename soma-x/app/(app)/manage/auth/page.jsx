@@ -3,19 +3,18 @@ import { useContext, useEffect } from "react";
 import DataContext from "@/context/DataContext";
 
 export default function AuthRedirect() {
-    const { authenticated, role, unshiftString } = useContext(DataContext);
+    const { authLoading, authenticated, role } = useContext(DataContext);
 
     useEffect(() => {
-        const storedRole = localStorage.getItem("gh");
-        if (!storedRole) {
+        if (authLoading) return;
+        if (!authenticated) {
             window.location.replace("/");
             return;
         }
-        const decoded = unshiftString(storedRole);
-        if (decoded === "teacher") window.location.replace("/manage/teacher");
-        else if (decoded === "admin") window.location.replace("/manage/admin");
+        if (role === "teacher") window.location.replace("/manage/teacher");
+        else if (role === "admin") window.location.replace("/manage/admin");
         else window.location.replace("/manage/scholar-dashboard");
-    }, [unshiftString]);
+    }, [authLoading, authenticated, role]);
 
     return null;
 }

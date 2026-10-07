@@ -1,7 +1,7 @@
-export async function getPendingSpacedReviews(serverUrl, scholarEmail) {
-    if (!serverUrl || !scholarEmail) return [];
+export async function getPendingSpacedReviews(serverUrl) {
+    if (!serverUrl) return [];
     try {
-        const res = await fetch(`${serverUrl}/sol/spaced/pending?scholarEmail=${encodeURIComponent(scholarEmail)}`);
+        const res = await fetch(`${serverUrl}/sol/spaced/pending`);
         if (!res.ok) return [];
         return await res.json();
     } catch {
@@ -9,12 +9,12 @@ export async function getPendingSpacedReviews(serverUrl, scholarEmail) {
     }
 }
 
-export async function completeSpacedReview(serverUrl, reviewId, scholarEmail) {
+export async function completeSpacedReview(serverUrl, reviewId) {
     try {
         const res = await fetch(`${serverUrl}/sol/spaced/complete`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ reviewId, scholarEmail })
+            body: JSON.stringify({ reviewId })
         });
         return await res.json();
     } catch (err) {
@@ -22,10 +22,10 @@ export async function completeSpacedReview(serverUrl, reviewId, scholarEmail) {
     }
 }
 
-export async function getDiagnosticStatus(serverUrl, scholarEmail) {
-    if (!serverUrl || !scholarEmail) return { isCompleted: true };
+export async function getDiagnosticStatus(serverUrl) {
+    if (!serverUrl) return { isCompleted: true };
     try {
-        const res = await fetch(`${serverUrl}/sol/diagnostic/status?scholarEmail=${encodeURIComponent(scholarEmail)}`);
+        const res = await fetch(`${serverUrl}/sol/diagnostic/status`);
         if (!res.ok) return { isCompleted: true };
         return await res.json();
     } catch {
@@ -33,12 +33,12 @@ export async function getDiagnosticStatus(serverUrl, scholarEmail) {
     }
 }
 
-export async function submitDiagnosticQuiz(serverUrl, scholarEmail, overallScore, subjectBreakdown) {
+export async function submitDiagnosticQuiz(serverUrl, overallScore, subjectBreakdown) {
     try {
         const res = await fetch(`${serverUrl}/sol/diagnostic/submit`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ scholarEmail, overallScore, subjectBreakdown })
+            body: JSON.stringify({ overallScore, subjectBreakdown })
         });
         return await res.json();
     } catch (err) {

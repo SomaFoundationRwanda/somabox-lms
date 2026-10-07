@@ -1,9 +1,8 @@
 const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3002';
 
-export async function fetchNotifications(userEmail) {
-    if (!userEmail) return { notifications: [], unreadCount: 0, isProfileIncomplete: false };
+export async function fetchNotifications() {
     try {
-        const response = await fetch(`${SERVER_URL}/notifications?userEmail=${encodeURIComponent(userEmail)}`);
+        const response = await fetch(`${SERVER_URL}/notifications`);
         if (!response.ok) throw new Error('Failed to fetch notifications');
         return await response.json();
     } catch (error) {
@@ -24,12 +23,12 @@ export async function markNotificationAsRead(id) {
     }
 }
 
-export async function markAllNotificationsAsRead(userEmail) {
+export async function markAllNotificationsAsRead() {
     try {
         const response = await fetch(`${SERVER_URL}/notifications/read-all`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userEmail }),
+            body: JSON.stringify({}),
         });
         if (!response.ok) throw new Error('Failed to mark all notifications as read');
         return await response.json();

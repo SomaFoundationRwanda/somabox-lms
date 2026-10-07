@@ -22,9 +22,9 @@ export default function AssignmentsPage() {
     try {
       setLoading(true);
       const [assignRes, modRes, outRes] = await Promise.all([
-        fetch(`${SERVER_URL}/courses/${courseId}/assignments?userEmail=${encodeURIComponent(userEmail)}`),
-        fetch(`${SERVER_URL}/courses/${courseId}/modules?userEmail=${encodeURIComponent(userEmail)}`),
-        fetch(`${SERVER_URL}/courses/${courseId}/outcomes?userEmail=${encodeURIComponent(userEmail)}`),
+        fetch(`${SERVER_URL}/courses/${courseId}/assignments`),
+        fetch(`${SERVER_URL}/courses/${courseId}/modules`),
+        fetch(`${SERVER_URL}/courses/${courseId}/outcomes`),
       ]);
 
       if (assignRes.ok) setItems(await assignRes.json());
@@ -56,7 +56,6 @@ export default function AssignmentsPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          teacherEmail: userEmail,
           itemType: "assignment",
           title: form.title.trim(),
           releaseDay: Number(form.releaseDay) || 0,
@@ -71,7 +70,6 @@ export default function AssignmentsPage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            teacherEmail: userEmail,
             itemType: "assignment",
             itemId: data.content_ref_id,
             outcomeIds: [Number(form.outcomeId)]

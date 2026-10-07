@@ -10,7 +10,7 @@ import AsyncListState from "@/components/course/AsyncListState";
 const ROLE_OPTIONS = ["teacher", "ta", "student", "observer"];
 
 export default function PeoplePage() {
-  const { SERVER_URL, courseId, userEmail, isTeacher } = useCourse();
+  const { SERVER_URL, courseId, isTeacher } = useCourse();
   const { data: people, loading, error, refetch } = useCourseSection("people");
   const [roleFilter, setRoleFilter] = useState("all");
   const [adding, setAdding] = useState(false);
@@ -23,7 +23,7 @@ export default function PeoplePage() {
     await fetch(`${SERVER_URL}/courses/${courseId}/people`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ teacherEmail: userEmail, email: form.email.trim(), role: form.role }),
+      body: JSON.stringify({ email: form.email.trim(), role: form.role }),
     });
     setForm({ email: "", role: "student" });
     setAdding(false);
@@ -34,7 +34,7 @@ export default function PeoplePage() {
     await fetch(`${SERVER_URL}/courses/${courseId}/people/${enrollmentId}`, {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ teacherEmail: userEmail }),
+      body: JSON.stringify({}),
     });
     refetch();
   };

@@ -33,9 +33,9 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
     try {
       setLoading(true);
       const [outRes, modRes, baseRes] = await Promise.all([
-        fetch(`${SERVER_URL}/courses/${courseId}/outcomes?userEmail=${encodeURIComponent(userEmail)}`),
-        fetch(`${SERVER_URL}/courses/${courseId}/modules?userEmail=${encodeURIComponent(userEmail)}`),
-        fetch(`${SERVER_URL}/courses/${courseId}/baseline?userEmail=${encodeURIComponent(userEmail)}`),
+        fetch(`${SERVER_URL}/courses/${courseId}/outcomes`),
+        fetch(`${SERVER_URL}/courses/${courseId}/modules`),
+        fetch(`${SERVER_URL}/courses/${courseId}/baseline`),
       ]);
       if (outRes.ok) setOutcomes(await outRes.json());
       if (modRes.ok) setModules(await modRes.json());
@@ -59,7 +59,6 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          teacherEmail: userEmail,
           title: setupForm.title,
           startDate: setupForm.startDate,
           lengthWeeks: setupForm.lengthWeeks,
@@ -82,7 +81,6 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          teacherEmail: userEmail,
           title: newOutcomeTitle.trim(),
           description: "Core outcome statement",
         }),
@@ -103,7 +101,7 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
       const res = await fetch(`${SERVER_URL}/courses/${courseId}/ai/propose-outline`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ teacherEmail: userEmail, topic: aiTopic || setupForm.title }),
+        body: JSON.stringify({ topic: aiTopic || setupForm.title }),
       });
       const data = await res.json();
       if (res.ok && data.outcomes) {
@@ -111,7 +109,7 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
           await fetch(`${SERVER_URL}/courses/${courseId}/outcomes`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ teacherEmail: userEmail, title: o.title, description: o.description }),
+            body: JSON.stringify({ title: o.title, description: o.description }),
           });
         }
         await loadWizardData();
@@ -131,7 +129,6 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          teacherEmail: userEmail,
           title: `Week ${weekOffset}: Module Title`,
           weekOffset: weekOffset,
         }),
@@ -151,7 +148,7 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
       await fetch(`${SERVER_URL}/courses/${courseId}/ai/fill-module`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ teacherEmail: userEmail, moduleId }),
+        body: JSON.stringify({ moduleId }),
       });
       await loadWizardData();
     } catch (err) {
@@ -168,7 +165,7 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
       const res = await fetch(`${SERVER_URL}/courses/${courseId}/open-course`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ teacherEmail: userEmail }),
+        body: JSON.stringify({}),
       });
       if (res.ok) {
         onCompleted?.();

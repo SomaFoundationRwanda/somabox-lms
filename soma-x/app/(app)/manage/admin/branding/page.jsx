@@ -8,8 +8,8 @@ import { Button } from "@/components/ui/button";
 import { getUnitBranding, saveUnitBranding } from "@/lib/analytics-service";
 
 export default function BrandingSettingsPage() {
-    const { SERVER_URL, authenticated, role, unshiftString } = useContext(DataContext);
-    const userRole = role ? unshiftString(role) : '';
+    const { SERVER_URL, authenticated, role, user } = useContext(DataContext);
+    const userRole = role || '';
     const [branding, setBranding] = useState({
         school_name: "SOMABOX Partner School",
         logo_url: "",

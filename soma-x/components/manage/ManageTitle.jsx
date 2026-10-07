@@ -6,19 +6,19 @@ import DataContext from "@/context/DataContext";
 import NotificationBellDrawer from "@/components/notifications/NotificationBellDrawer";
 
 const ManageTitle = ({ title }) => {
-    const { unshiftString, isDark } = useContext(DataContext);
+    const { isDark, user } = useContext(DataContext);
     const ACCENT = isDark ? "#0D9488" : "#203B3B";
 
     const [initials, setInitials] = useState("A");
 
     useEffect(() => {
-        const name = unshiftString(localStorage.getItem("un") || "");
+        const name = (user?.fullName || "");
         if (name) {
             setInitials(
                 name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase()
             );
         }
-    }, [unshiftString]);
+    }, [user]);
 
     return (
         <div className="flex items-center justify-between pl-12 pr-4 md:px-4 py-3 bg-white border-b border-slate-100 sticky top-0 z-10 rounded-b-[5px] mb-4">

@@ -10,7 +10,7 @@ import HeaderSection from "@/components/ui/HeaderSection";
 import { Button } from "@/components/ui/button";
 
 export default function ScholarCoursesPage() {
-  const { SERVER_URL, unshiftString } = useContext(DataContext);
+  const { SERVER_URL, user } = useContext(DataContext);
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
@@ -18,16 +18,12 @@ export default function ScholarCoursesPage() {
   const [joinError, setJoinError] = useState("");
   const [joinLoading, setJoinLoading] = useState(false);
 
-  const scholarEmail = useMemo(() => {
-    if (typeof window === "undefined") return "";
-    const stored = localStorage.getItem("al");
-    return stored ? unshiftString(stored) : "";
-  }, [unshiftString]);
+  const scholarEmail = user?.email || "";
 
   const load = async () => {
     if (!SERVER_URL || !scholarEmail) return;
     setLoading(true);
-    const res = await fetch(`${SERVER_URL}/courses/mine?userEmail=${encodeURIComponent(scholarEmail)}`);
+    const res = await fetch(`${SERVER_URL}/courses/mine`);
     if (res.ok) setCourses(await res.json());
     setLoading(false);
   };
@@ -42,7 +38,7 @@ export default function ScholarCoursesPage() {
       const res = await fetch(`${SERVER_URL}/courses/${courseCode.trim()}/enroll`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userEmail: scholarEmail }),
+        body: JSON.stringify({}),
       });
       const data = await res.json();
       if (!res.ok) { setJoinError(data.message || "Failed to join course"); return; }

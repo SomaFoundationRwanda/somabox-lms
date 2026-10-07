@@ -26,7 +26,7 @@ export default function PageDetailPage() {
 
   const load = async () => {
     setLoading(true);
-    const res = await fetch(`${SERVER_URL}/courses/${courseId}/pages/${pageId}?userEmail=${encodeURIComponent(userEmail)}`);
+    const res = await fetch(`${SERVER_URL}/courses/${courseId}/pages/${pageId}`);
     const payload = await res.json();
     if (res.ok) {
       setPage(payload);
@@ -46,7 +46,7 @@ export default function PageDetailPage() {
     await fetch(`${SERVER_URL}/courses/${courseId}/pages/${pageId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ teacherEmail: userEmail, published: nextState }),
+      body: JSON.stringify({ published: nextState }),
     });
     load();
   };
@@ -69,7 +69,6 @@ export default function PageDetailPage() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          teacherEmail: userEmail,
           title,
           body: editorData.html || page?.body || "",
           bodyJson: editorData.json ? JSON.stringify(editorData.json) : page?.body_json || null,

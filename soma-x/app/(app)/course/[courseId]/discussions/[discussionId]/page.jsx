@@ -16,7 +16,7 @@ export default function DiscussionThreadPage() {
 
   const load = async () => {
     setLoading(true);
-    const res = await fetch(`${SERVER_URL}/courses/${courseId}/discussions/${discussionId}?userEmail=${encodeURIComponent(userEmail)}`);
+    const res = await fetch(`${SERVER_URL}/courses/${courseId}/discussions/${discussionId}`);
     const payload = await res.json();
     if (res.ok) {
       setDiscussion(payload);
@@ -31,7 +31,6 @@ export default function DiscussionThreadPage() {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        userEmail,
         graded: !discussion.graded,
         pointsPossible: Number(pointsInput) || 0,
       }),
@@ -47,7 +46,7 @@ export default function DiscussionThreadPage() {
     await fetch(`${SERVER_URL}/courses/${courseId}/discussions/${discussionId}/replies`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userEmail, body: reply.trim() }),
+      body: JSON.stringify({ body: reply.trim() }),
     });
     setReply("");
     load();

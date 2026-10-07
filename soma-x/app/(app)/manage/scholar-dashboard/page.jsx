@@ -14,19 +14,18 @@ import { getDiagnosticStatus } from "@/lib/sol-service";
 import { SOL_QUIZ_ENABLED } from "@/lib/featureFlags";
 
 const ScholarDashboard = () => {
-    const { authenticated, role, unshiftString, SERVER_URL, isDark } = useContext(DataContext);
+    const { authenticated, role, SERVER_URL, isDark, user } = useContext(DataContext);
     const router = useRouter();
     const ACCENT = isDark ? "#0D9488" : "#203A3A";
 
-    const currentRole = useMemo(() => (role ? unshiftString(role) : ""), [role, unshiftString]);
+    const currentRole = useMemo(() => (role || ""), [role]);
 
     const [scholarEmail, setScholarEmail] = useState("");
     const [showDiagnostic, setShowDiagnostic] = useState(false);
 
     useEffect(() => {
-        const stored = localStorage.getItem("al");
-        setScholarEmail(stored ? unshiftString(stored) : "");
-    }, [unshiftString]);
+        setScholarEmail(user?.email || "");
+    }, [user]);
 
     const [enrolledCourses, setEnrolledCourses] = useState([]);
     const [publicCourses, setPublicCourses] = useState([]);
@@ -38,7 +37,7 @@ const ScholarDashboard = () => {
         if (!SERVER_URL || !scholarEmail) return;
         setLoading(true);
         try {
-            const res = await fetch(`${SERVER_URL}/users/me/dashboard?userEmail=${encodeURIComponent(scholarEmail)}`);
+            const res = await fetch(`${SERVER_URL}/users/me/dashboard`);
             if (res.ok) {
                 const data = await res.json();
                 setEnrolledCourses(data.enrolled_courses || []);
@@ -53,7 +52,7 @@ const ScholarDashboard = () => {
         (async () => {
             if (SOL_QUIZ_ENABLED) {
                 try {
-                    const diag = await getDiagnosticStatus(SERVER_URL, scholarEmail);
+                    const diag = await getDiagnosticStatus(SERVER_URL);
                     if (!diag.isCompleted) setShowDiagnostic(true);
                 } catch { /* silent */ }
             }
@@ -69,7 +68,7 @@ const ScholarDashboard = () => {
             const res = await fetch(`${SERVER_URL}/courses/${courseId}/join`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ userEmail: scholarEmail }),
+                body: JSON.stringify({}),
             });
             if (!res.ok) throw new Error((await res.json()).message || "Failed to join");
             router.push(`/course/${courseId}/home`);

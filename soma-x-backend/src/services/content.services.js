@@ -2,30 +2,50 @@ import fs from "fs";
 import express from "express";
 import path from "path";
 import multer from "multer";
-import { serverDb, localDb, initSchemas } from "../helpers/db-manager.js";
+import { serverDb, localDb } from "../helpers/db-manager.js";
 import { config } from "../config/index.js";
 import { mainCategoriesCache, summaryDataCache, hydrateCaches } from "../data/cache/index.js";
+import { requireRole } from "../helpers/auth.js";
 
 const router = express.Router();
 const CONTENT_DIR = config.paths.content;
 const DEFAULT_ROOT = config.defaults.customContentRoot;
+const requireContentManager = requireRole("teacher", "admin");
 
-// Initialize schemas and caches
-await initSchemas();
-await hydrateCaches();
+/**
+ * Resolves a client-supplied folder path to a path_key inside the custom content root.
+ * Returns null for anything that would escape it (e.g. "custom-content/../../etc").
+ */
+function resolveCustomPath(rawPath) {
+    const trimmed = String(rawPath || DEFAULT_ROOT).replace(/^\/+|\/+$/g, "");
+    if (trimmed.split("/").some((segment) => segment === "..")) return null;
+    const joined = trimmed === DEFAULT_ROOT || trimmed.startsWith(`${DEFAULT_ROOT}/`)
+        ? trimmed
+        : path.posix.join(DEFAULT_ROOT, trimmed);
+    const normalized = path.posix.normalize(joined);
+    if (normalized !== DEFAULT_ROOT && !normalized.startsWith(`${DEFAULT_ROOT}/`)) return null;
+    return normalized;
+}
+
+// A single path segment: no separators, no "." or ".." (used for file and folder names).
+function safeName(name) {
+    const base = path.basename(String(name || "").trim());
+    return base && base !== "." && base !== ".." ? base : null;
+}
 
 // Multer storage for custom content
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        const { path: relPath } = req.body;
-        const safePath = (relPath || DEFAULT_ROOT).replace(/^\/+|\/+$/g, "");
-        const fullPath = safePath.startsWith(DEFAULT_ROOT) ? safePath : path.posix.join(DEFAULT_ROOT, safePath);
+        const fullPath = resolveCustomPath(req.body.path);
+        if (!fullPath) return cb(Object.assign(new Error("Invalid folder path"), { status: 400 }));
         const dest = path.join(CONTENT_DIR, fullPath);
         fs.mkdirSync(dest, { recursive: true });
         cb(null, dest);
     },
     filename: function (req, file, cb) {
-        cb(null, file.originalname);
+        const name = safeName(file.originalname);
+        if (!name) return cb(Object.assign(new Error("Invalid file name"), { status: 400 }));
+        cb(null, name);
     }
 });
 const upload = multer({ storage });
@@ -172,10 +192,10 @@ async function breadcrumbsFor(pathKey) {
     return crumbs;
 }
 
-router.get("/manager/list", async (req, res) => {
+router.get("/manager/list", requireContentManager, async (req, res) => {
     try {
-        const pathParam = (req.query.path || DEFAULT_ROOT).toString().replace(/^\/+|\/+$/g, "");
-        const fullPath = pathParam.startsWith(DEFAULT_ROOT) ? pathParam : path.posix.join(DEFAULT_ROOT, pathParam);
+        const fullPath = resolveCustomPath(req.query.path);
+        if (!fullPath) return res.status(400).json({ error: "Out of allowed folders" });
         const cat = await getCategoryByPath(fullPath);
         
         if (!cat || !cat.path_key.startsWith(DEFAULT_ROOT)) {
@@ -197,18 +217,22 @@ router.get("/manager/list", async (req, res) => {
     }
 });
 
-router.post("/manager/create-folder", express.json(), async (req, res) => {
+router.post("/manager/create-folder", requireContentManager, express.json(), async (req, res) => {
     try {
         const { name, path: parentPath } = req.body || {};
-        const safeParent = (parentPath || DEFAULT_ROOT).replace(/^\/+|\/+$/g, "");
-        const fullParentPath = safeParent.startsWith(DEFAULT_ROOT) ? safeParent : path.posix.join(DEFAULT_ROOT, safeParent);
-        
+        const fullParentPath = resolveCustomPath(parentPath);
+        if (!fullParentPath) return res.status(400).json({ error: "Out of allowed folders" });
+
         if (!name) return res.status(400).json({ error: "Name is required" });
-        
+        const folderSlug = safeName(String(name).trim().toLowerCase().replace(/\s+/g, "-"));
+        if (!folderSlug || folderSlug !== String(name).trim().toLowerCase().replace(/\s+/g, "-")) {
+            return res.status(400).json({ error: "Folder name cannot contain / or .." });
+        }
+
         const parent = await getCategoryByPath(fullParentPath);
         if (!parent || !parent.path_key.startsWith(DEFAULT_ROOT)) return res.status(404).json({ error: "Invalid parent" });
         
-        const newPathKey = path.posix.join(parent.path_key, name.trim().toLowerCase().replace(/\s+/g, "-"));
+        const newPathKey = path.posix.join(parent.path_key, folderSlug);
         const exists = await localDb.prepare(`SELECT 1 FROM categories WHERE path_key = ?`).get(newPathKey);
         if (exists) {
             return res.status(409).json({ error: "Already exists" });
@@ -227,17 +251,18 @@ router.post("/manager/create-folder", express.json(), async (req, res) => {
     }
 });
 
-router.post("/manager/upload", upload.single("file"), async (req, res) => {
+// The role check runs before multer so anonymous or scholar uploads never touch disk.
+router.post("/manager/upload", requireContentManager, upload.single("file"), async (req, res) => {
     try {
-        const { path: relPath, type } = req.body;
-        const safePath = (relPath || DEFAULT_ROOT).replace(/^\/+|\/+$/g, "");
-        const fullPath = safePath.startsWith(DEFAULT_ROOT) ? safePath : path.posix.join(DEFAULT_ROOT, safePath);
+        const { type } = req.body;
+        const fullPath = resolveCustomPath(req.body.path);
+        if (!fullPath) return res.status(400).json({ error: "Out of allowed folders" });
         const parent = await getCategoryByPath(fullPath);
         
         if (!parent || !parent.path_key.startsWith(DEFAULT_ROOT)) return res.status(404).json({ error: "Target not found" });
         if (!req.file) return res.status(400).json({ error: "No file" });
         
-        const filename = req.file.originalname;
+        const filename = safeName(req.file.originalname);
         const pathKey = path.posix.join(parent.path_key, filename);
         const physicalPath = path.join(CONTENT_DIR, pathKey);
         
@@ -265,13 +290,14 @@ router.post("/manager/upload", upload.single("file"), async (req, res) => {
     }
 });
 
-router.patch("/manager/toggle", express.json(), async (req, res) => {
+router.patch("/manager/toggle", requireContentManager, express.json(), async (req, res) => {
     try {
         const { target, path_key, id, is_disabled } = req.body || {};
         const flag = is_disabled ? 1 : 0;
         
         if (target === "category") {
-            const fullPath = (path_key || "").startsWith(DEFAULT_ROOT) ? path_key : path.posix.join(DEFAULT_ROOT, path_key || "");
+            const fullPath = resolveCustomPath(path_key);
+            if (!fullPath) return res.status(404).json({ error: "Not found" });
             const cat = await getCategoryByPath(fullPath);
             if (!cat || !cat.path_key.startsWith(DEFAULT_ROOT)) return res.status(404).json({ error: "Not found" });
             await localDb.prepare(`UPDATE categories SET is_disabled = ? WHERE id = ?`).run(flag, cat.id);

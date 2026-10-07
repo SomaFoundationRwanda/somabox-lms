@@ -11,7 +11,7 @@ export default function SpacedPracticeWidget({ serverUrl, scholarEmail }) {
     const fetchReviews = async () => {
         if (!serverUrl || !scholarEmail) return;
         setLoading(true);
-        const data = await getPendingSpacedReviews(serverUrl, scholarEmail);
+        const data = await getPendingSpacedReviews(serverUrl);
         setReviews(data);
         setLoading(false);
     };
@@ -21,7 +21,7 @@ export default function SpacedPracticeWidget({ serverUrl, scholarEmail }) {
     }, [serverUrl, scholarEmail]);
 
     const handleComplete = async (reviewId) => {
-        await completeSpacedReview(serverUrl, reviewId, scholarEmail);
+        await completeSpacedReview(serverUrl, reviewId);
         setReviews(prev => prev.filter(r => r.id !== reviewId));
     };
 

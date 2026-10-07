@@ -1,12 +1,12 @@
 "use client"
-import DataContext from "@/context/DataContext";
-import { useContext, useState } from "react";
+import { useState } from "react";
 import { useLanguage } from '@/context/LanguageContext';
 import { ChevronDown, Eye, EyeOff, Globe, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import Image from "next/image";
 import { useToast } from "@/context/ToastContext";
+import { setSessionToken } from "@/lib/session";
 
 const AuthComp = () => {
     const { t, setLang, lang } = useLanguage();
@@ -14,8 +14,6 @@ const AuthComp = () => {
     const [showLangMenu, setShowLangMenu] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const languages = ["en", "fr", "rw", "sw", "es"];
-
-    const { shiftString } = useContext(DataContext);
     const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL;
 
     const [formData, setFormData] = useState({ email: '', password: '' });
@@ -39,19 +37,14 @@ const AuthComp = () => {
             }
 
             const userRole = String(data.user?.role || 'scholar').toLowerCase();
+            setSessionToken(data.token);
 
-            localStorage.setItem('al', shiftString(formData.email));
-            localStorage.setItem('un', shiftString(data.user?.full_name || ''));
-            localStorage.setItem('gh', shiftString(userRole));
-
-            // TODO(phase 1): enforce server-side once real sessions exist.
+            // The backend blocks everything else until the password is changed.
             if (data.user?.must_change_password) {
-                localStorage.setItem('mcp', '1');
                 showToast('Please set a new password before continuing.', 'info');
                 setTimeout(() => { window.location.href = '/account'; }, 600);
                 return;
             }
-            localStorage.removeItem('mcp');
 
             showToast(`Welcome back, ${data.user?.full_name || 'User'}! Login successful.`, 'success');
 

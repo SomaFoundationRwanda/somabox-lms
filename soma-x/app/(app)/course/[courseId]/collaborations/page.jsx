@@ -28,7 +28,7 @@ export default function CollaborationsPage() {
       await fetch(`${SERVER_URL}/courses/${courseId}/collaborations`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userEmail, title: form.title.trim(), url: form.url.trim(), memberEmails }),
+        body: JSON.stringify({ title: form.title.trim(), url: form.url.trim(), memberEmails }),
       });
       setForm({ title: "", url: "" });
       setMemberEmails([]);
@@ -43,7 +43,7 @@ export default function CollaborationsPage() {
     await fetch(`${SERVER_URL}/courses/${courseId}/collaborations/${id}`, {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userEmail }),
+      body: JSON.stringify({}),
     });
     refetch();
   };

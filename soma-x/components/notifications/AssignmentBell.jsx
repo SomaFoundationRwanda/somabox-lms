@@ -6,21 +6,19 @@ import { ClipboardList, AlertTriangle } from "lucide-react";
 import DataContext from "@/context/DataContext";
 
 export default function AssignmentBell({ className = "" }) {
-    const { authenticated, unshiftString, isDark, SERVER_URL } = useContext(DataContext);
+    const { authenticated, isDark, SERVER_URL, user } = useContext(DataContext);
     const [open, setOpen] = useState(false);
     const [outstanding, setOutstanding] = useState([]);
     const [outstandingCount, setOutstandingCount] = useState(0);
     const [loading, setLoading] = useState(false);
 
-    const userEmail = typeof window !== "undefined" && localStorage.getItem("al")
-        ? unshiftString(localStorage.getItem("al"))
-        : "";
+    const userEmail = user?.email || "";
 
     const load = useCallback(async () => {
         if (!userEmail || !SERVER_URL) return;
         try {
             setLoading(true);
-            const res = await fetch(`${SERVER_URL}/users/me/assignment-summary?userEmail=${encodeURIComponent(userEmail)}`);
+            const res = await fetch(`${SERVER_URL}/users/me/assignment-summary`);
             if (!res.ok) return;
             const data = await res.json();
             setOutstanding(data.outstanding || []);

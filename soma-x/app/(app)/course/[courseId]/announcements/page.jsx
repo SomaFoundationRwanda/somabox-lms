@@ -9,7 +9,7 @@ import AsyncListState from "@/components/course/AsyncListState";
 import { Button } from "@/components/ui/button";
 
 export default function AnnouncementsPage() {
-  const { SERVER_URL, courseId, userEmail, isTeacher } = useCourse();
+  const { SERVER_URL, courseId, isTeacher } = useCourse();
   const { data: announcements, loading, error, refetch } = useCourseSection("announcements");
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({ title: "", body: "" });
@@ -19,7 +19,7 @@ export default function AnnouncementsPage() {
     await fetch(`${SERVER_URL}/courses/${courseId}/announcements`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ teacherEmail: userEmail, title: form.title.trim(), body: form.body }),
+      body: JSON.stringify({ title: form.title.trim(), body: form.body }),
     });
     setForm({ title: "", body: "" });
     setCreating(false);
@@ -30,7 +30,7 @@ export default function AnnouncementsPage() {
     await fetch(`${SERVER_URL}/courses/${courseId}/announcements/${a.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ teacherEmail: userEmail, pinned: !a.pinned }),
+      body: JSON.stringify({ pinned: !a.pinned }),
     });
     refetch();
   };

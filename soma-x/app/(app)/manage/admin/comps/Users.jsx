@@ -27,7 +27,7 @@ function formatDate(raw) {
 
 export default function Users() {
     const { t } = useLanguage();
-    const { isDark, SERVER_URL, unshiftString } = useContext(DataContext);
+    const { isDark, SERVER_URL } = useContext(DataContext);
     const { showToast } = useToast();
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -136,12 +136,6 @@ export default function Users() {
         }
     };
 
-    // Admin Session Email helper for Audit Logs
-    const getAdminEmail = () => {
-        const stored = localStorage.getItem("al");
-        return stored ? unshiftString(stored) : "admin@mail.com";
-    };
-
     // User Lifecycle Handlers
     const handleToggleStatus = async (user) => {
         const newStatus = user.is_active === 0;
@@ -149,7 +143,7 @@ export default function Users() {
             const res = await fetch(`${SERVER_URL}/users/${user.id}/status`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ isActive: newStatus, adminEmail: getAdminEmail() })
+                body: JSON.stringify({ isActive: newStatus })
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.message || "Failed to update status");
@@ -167,7 +161,7 @@ export default function Users() {
             const res = await fetch(`${SERVER_URL}/users/${deleteModalUser.id}`, {
                 method: "DELETE",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ adminEmail: getAdminEmail() })
+                body: JSON.stringify({})
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.message || "Failed to delete user");
@@ -191,7 +185,7 @@ export default function Users() {
             const res = await fetch(`${SERVER_URL}/users/${resetPassUser.id}/reset-password`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ newPassword, adminEmail: getAdminEmail() })
+                body: JSON.stringify({ newPassword })
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.message || "Failed to reset password");
@@ -215,7 +209,6 @@ export default function Users() {
                 body: JSON.stringify({
                     userIds: ids,
                     action,
-                    adminEmail: getAdminEmail(),
                     ...extraData
                 })
             });

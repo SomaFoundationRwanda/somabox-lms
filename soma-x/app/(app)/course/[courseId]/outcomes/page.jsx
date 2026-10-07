@@ -20,8 +20,8 @@ export default function OutcomesPage() {
     try {
       setLoading(true);
       const [outRes, mastRes] = await Promise.all([
-        fetch(`${SERVER_URL}/courses/${courseId}/outcomes?userEmail=${encodeURIComponent(userEmail)}`),
-        fetch(`${SERVER_URL}/courses/${courseId}/outcome-mastery?userEmail=${encodeURIComponent(userEmail)}`),
+        fetch(`${SERVER_URL}/courses/${courseId}/outcomes`),
+        fetch(`${SERVER_URL}/courses/${courseId}/outcome-mastery`),
       ]);
 
       if (outRes.ok) setOutcomes(await outRes.json());
@@ -45,7 +45,6 @@ export default function OutcomesPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          teacherEmail: userEmail,
           title: form.title.trim(),
           description: form.description,
         }),
@@ -65,7 +64,7 @@ export default function OutcomesPage() {
       const res = await fetch(`${SERVER_URL}/courses/${courseId}/ai/rewrite-outcomes`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ teacherEmail: userEmail, goal: aiGoal }),
+        body: JSON.stringify({ goal: aiGoal }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -83,7 +82,7 @@ export default function OutcomesPage() {
     await fetch(`${SERVER_URL}/courses/${courseId}/outcomes/${id}`, {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ teacherEmail: userEmail }),
+      body: JSON.stringify({}),
     });
     loadData();
   };

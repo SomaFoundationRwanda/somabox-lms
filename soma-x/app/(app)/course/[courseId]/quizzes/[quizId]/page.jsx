@@ -34,9 +34,9 @@ export default function QuizDetailPage() {
     try {
       setLoading(true);
       const [quizRes, modRes, itemOutRes] = await Promise.all([
-        fetch(`${SERVER_URL}/courses/${courseId}/quizzes/${quizId}?userEmail=${encodeURIComponent(userEmail)}`),
-        fetch(`${SERVER_URL}/courses/${courseId}/modules?userEmail=${encodeURIComponent(userEmail)}`),
-        fetch(`${SERVER_URL}/courses/${courseId}/item-outcomes?userEmail=${encodeURIComponent(userEmail)}`),
+        fetch(`${SERVER_URL}/courses/${courseId}/quizzes/${quizId}`),
+        fetch(`${SERVER_URL}/courses/${courseId}/modules`),
+        fetch(`${SERVER_URL}/courses/${courseId}/item-outcomes`),
       ]);
 
       if (quizRes.ok) setQuiz(await quizRes.json());
@@ -61,7 +61,7 @@ export default function QuizDetailPage() {
     const res = await fetch(`${SERVER_URL}/courses/${courseId}/quizzes/${quizId}/submit`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userEmail, answers }),
+      body: JSON.stringify({ answers }),
     });
     const payload = await res.json();
     if (res.ok) setSubmitted(payload.score);

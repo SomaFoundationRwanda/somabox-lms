@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useCourse } from "@/context/CourseContext";
 
-// Fetches GET /courses/:id/<path> with userEmail attached, shared by every course content page.
+// Fetches GET /courses/:id/<path>, shared by every course content page.
 export function useCourseSection(path) {
   const { SERVER_URL, courseId, userEmail } = useCourse();
   const [data, setData] = useState(null);
@@ -15,8 +15,7 @@ export function useCourseSection(path) {
     try {
       setLoading(true);
       setError("");
-      const separator = path.includes("?") ? "&" : "?";
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/${path}${separator}userEmail=${encodeURIComponent(userEmail)}`);
+      const res = await fetch(`${SERVER_URL}/courses/${courseId}/${path}`);
       const payload = await res.json();
       if (!res.ok) throw new Error(payload.message || "Failed to load");
       setData(payload);

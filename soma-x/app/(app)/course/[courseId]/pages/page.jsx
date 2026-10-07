@@ -20,8 +20,8 @@ export default function PagesListPage() {
     try {
       setLoading(true);
       const [pageRes, modRes] = await Promise.all([
-        fetch(`${SERVER_URL}/courses/${courseId}/pages?userEmail=${encodeURIComponent(userEmail)}`),
-        fetch(`${SERVER_URL}/courses/${courseId}/modules?userEmail=${encodeURIComponent(userEmail)}`),
+        fetch(`${SERVER_URL}/courses/${courseId}/pages`),
+        fetch(`${SERVER_URL}/courses/${courseId}/modules`),
       ]);
 
       if (pageRes.ok) setPages(await pageRes.json());
@@ -47,7 +47,7 @@ export default function PagesListPage() {
       await fetch(`${SERVER_URL}/courses/${courseId}/modules/${selectedModuleId}/items`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ teacherEmail: userEmail, itemType: "page", title: title.trim() }),
+        body: JSON.stringify({ itemType: "page", title: title.trim() }),
       });
       setTitle("");
       setCreating(false);

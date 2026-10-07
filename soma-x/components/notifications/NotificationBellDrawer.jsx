@@ -13,7 +13,7 @@ import {
 } from '@/lib/notification-service';
 
 export default function NotificationBellDrawer({ className = "" }) {
-    const { authenticated, unshiftString, isDark } = useContext(DataContext);
+    const { authenticated, isDark, user } = useContext(DataContext);
     const [open, setOpen] = useState(false);
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
@@ -21,14 +21,12 @@ export default function NotificationBellDrawer({ className = "" }) {
     const [loading, setLoading] = useState(false);
     const [filter, setFilter] = useState('all');
 
-    const userEmail = typeof window !== 'undefined' && localStorage.getItem('al')
-        ? unshiftString(localStorage.getItem('al'))
-        : '';
+    const userEmail = user?.email || "";
 
     const loadNotifications = useCallback(async () => {
         if (!userEmail) return;
         try {
-            const data = await fetchNotifications(userEmail);
+            const data = await fetchNotifications();
             setNotifications(data.notifications || []);
             setUnreadCount(data.unreadCount || 0);
             setIsProfileIncomplete(data.isProfileIncomplete || false);
@@ -53,7 +51,7 @@ export default function NotificationBellDrawer({ className = "" }) {
     };
 
     const handleMarkAllRead = async () => {
-        await markAllNotificationsAsRead(userEmail);
+        await markAllNotificationsAsRead();
         setNotifications(prev => prev.map(n => ({ ...n, is_read: 1 })));
         setUnreadCount(0);
     };

@@ -7,7 +7,7 @@ import { useContext, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 export default function AppLayout({ children }) {
-  const { authLoading, authenticated } = useContext(DataContext);
+  const { authLoading, authenticated, user } = useContext(DataContext);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -17,13 +17,12 @@ export default function AppLayout({ children }) {
     }
   }, [authLoading, authenticated, router]);
 
-  // Accounts flagged at login (e.g. the default admin) must change their password first.
+  // Accounts flagged by the server (e.g. the default admin) must change their password
+  // first. The backend enforces this too; this just avoids a screen full of errors.
   useEffect(() => {
     if (authLoading || !authenticated) return;
-    let mustChange = false;
-    try { mustChange = localStorage.getItem("mcp") === "1"; } catch {}
-    if (mustChange && pathname !== "/account") router.replace("/account");
-  }, [authLoading, authenticated, pathname, router]);
+    if (user?.mustChangePassword && pathname !== "/account") router.replace("/account");
+  }, [authLoading, authenticated, user, pathname, router]);
 
   if (authLoading || !authenticated) {
     return (

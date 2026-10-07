@@ -6,17 +6,13 @@ import DataContext from "./DataContext";
 const CourseContext = createContext(null);
 
 export function CourseProvider({ courseId, children }) {
-  const { SERVER_URL, unshiftString } = useContext(DataContext);
+  const { SERVER_URL, user } = useContext(DataContext);
   const [course, setCourse] = useState(null);
   const [nav, setNav] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const userEmail = useMemo(() => {
-    if (typeof window === "undefined") return "";
-    const stored = localStorage.getItem("al");
-    return stored ? unshiftString(stored) : "";
-  }, [unshiftString]);
+  const userEmail = user?.email || "";
 
   const refresh = useCallback(async () => {
     if (!SERVER_URL || !courseId || !userEmail) return;
@@ -24,8 +20,8 @@ export function CourseProvider({ courseId, children }) {
       setLoading(true);
       setError("");
       const [courseRes, navRes] = await Promise.all([
-        fetch(`${SERVER_URL}/courses/${courseId}?userEmail=${encodeURIComponent(userEmail)}`),
-        fetch(`${SERVER_URL}/courses/${courseId}/nav?userEmail=${encodeURIComponent(userEmail)}`),
+        fetch(`${SERVER_URL}/courses/${courseId}`),
+        fetch(`${SERVER_URL}/courses/${courseId}/nav`),
       ]);
       const coursePayload = await courseRes.json();
       const navPayload = await navRes.json();

@@ -7,17 +7,15 @@ import DataContext from '@/context/DataContext';
 import { fetchNotifications } from '@/lib/notification-service';
 
 export default function ProfileCompletionBanner() {
-    const { authenticated, unshiftString } = useContext(DataContext);
+    const { authenticated, user } = useContext(DataContext);
     const [isIncomplete, setIsIncomplete] = useState(false);
     const [dismissed, setDismissed] = useState(false);
 
-    const userEmail = typeof window !== 'undefined' && localStorage.getItem('al')
-        ? unshiftString(localStorage.getItem('al'))
-        : '';
+    const userEmail = user?.email || "";
 
     useEffect(() => {
         if (!authenticated || !userEmail) return;
-        fetchNotifications(userEmail).then(data => {
+        fetchNotifications().then(data => {
             if (data?.isProfileIncomplete) {
                 setIsIncomplete(true);
             }

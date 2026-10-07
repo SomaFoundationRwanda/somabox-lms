@@ -3,106 +3,48 @@
 //
 // Runs against a throwaway PostgreSQL database created for this run and dropped after.
 // Connection settings come from the usual PG* environment variables.
+// Runs against a throwaway PostgreSQL database (see test/helpers.js).
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import pg from "pg";
+import { startTestServer, USERS } from "./helpers.js";
 
-const TEST_DB = `somabox_test_${process.pid}_${Date.now()}`;
-const host = process.env.PGHOST || "localhost";
-const port = process.env.PGPORT || "5432";
-const user = process.env.PGUSER || process.env.USER || "postgres";
-const password = process.env.PGPASSWORD || "";
+const TEACHER = USERS.teacher.email;
+const STUDENT = USERS.student.email;
 
-function adminClient() {
-  return new pg.Client({ host, port: Number(port), user, password, database: "postgres" });
-}
-
-const TEACHER = "teacher@test.local";
-const STUDENT = "student@test.local";
-const OUTSIDER = "outsider@test.local";
-
-let server;
-let baseUrl;
-let pool;
+let ctx;
 let db;
-
-async function api(method, path, body) {
-  const res = await fetch(`${baseUrl}${path}`, {
-    method,
-    headers: { "Content-Type": "application/json" },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const text = await res.text();
-  let json = null;
-  try { json = text ? JSON.parse(text) : null; } catch { json = text; }
-  return { status: res.status, body: json };
-}
-
-async function createCourse(title = "Algebra") {
-  const res = await api("POST", "/courses", { title, teacherEmail: TEACHER });
-  assert.equal(res.status, 201, JSON.stringify(res.body));
-  const courseId = res.body.id;
-  await db.prepare("INSERT INTO enrollments (course_id, user_email, role, status) VALUES (?, ?, 'student', 'active')").run(courseId, STUDENT);
-  return courseId;
-}
+let tokens;
+// as(role) -> request helper carrying that user's session token.
+const as = (who) => (method, path, body) => ctx.api(method, path, { token: who ? tokens[who] : undefined, body });
+const asTeacher = as("teacher");
+const asStudent = as("student");
+const asOutsider = as("outsider");
+const anon = as(null);
+const createCourse = (title) => ctx.createCourse(title);
 
 before(async () => {
-  const admin = adminClient();
-  await admin.connect();
-  await admin.query(`CREATE DATABASE ${TEST_DB}`);
-  await admin.end();
-
-  // Must be set before db-manager is imported; dotenv does not override existing vars.
-  const auth = password ? `${encodeURIComponent(user)}:${encodeURIComponent(password)}` : encodeURIComponent(user);
-  process.env.DATABASE_URL = `postgresql://${auth}@${host}:${port}/${TEST_DB}`;
-  process.env.PGMAXCONNECTIONS = "5";
-  delete process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
-
-  const dbManager = await import("../src/helpers/db-manager.js");
-  pool = dbManager.pool;
-  db = dbManager.localDb;
-  await dbManager.initSchemas();
-
-  const express = (await import("express")).default;
-  const courses = (await import("../src/services/courses.services.js")).default;
-  const analytics = (await import("../src/services/analytics.services.js")).default;
-  const authRoutes = (await import("../src/services/auth.services.js")).default;
-  const users = (await import("../src/services/users.service.js")).default;
-
-  const app = express();
-  app.use(express.json());
-  app.use("/courses", courses);
-  app.use("/analytics", analytics);
-  app.use("/auth", authRoutes);
-  app.use("/users", users);
-
-  await new Promise((resolve) => {
-    server = app.listen(0, resolve);
-  });
-  baseUrl = `http://127.0.0.1:${server.address().port}`;
+  ctx = await startTestServer();
+  db = ctx.db;
+  tokens = ctx.tokens;
 });
 
 after(async () => {
-  if (server) await new Promise((resolve) => server.close(resolve));
-  if (pool) await pool.end();
-  const admin = adminClient();
-  await admin.connect();
-  await admin.query(`DROP DATABASE IF EXISTS ${TEST_DB} WITH (FORCE)`);
-  await admin.end();
+  await ctx.stop();
 });
 
 // ---------- P0-1: no fabricated metrics on an empty database ----------
 
 test("growth-curves returns an empty list on an empty database", async () => {
-  const res = await api("GET", "/analytics/growth-curves");
+  const res = await asTeacher("GET", "/analytics/growth-curves");
   assert.equal(res.status, 200);
   assert.deepEqual(res.body, []);
 });
 
 test("inclusivity-gap reports null averages when there is no progress data", async () => {
-  const res = await api("GET", "/analytics/inclusivity-gap");
+  const res = await as("admin")("GET", "/analytics/inclusivity-gap");
   assert.equal(res.status, 200);
-  assert.equal(res.body.totalScholars, 0);
+  // Two seeded test scholars exist, but neither has any progress data.
+  assert.equal(res.body.totalScholars, 2);
   assert.equal(res.body.scholarsWithData, 0);
   assert.equal(res.body.ruralVsUrban.ruralAverage, null);
   assert.equal(res.body.ruralVsUrban.urbanAverage, null);
@@ -113,7 +55,7 @@ test("inclusivity-gap reports null averages when there is no progress data", asy
 });
 
 test("sol-outcomes reports zero or null counts when nothing was recorded", async () => {
-  const res = await api("GET", "/analytics/sol-outcomes");
+  const res = await asTeacher("GET", "/analytics/sol-outcomes");
   assert.equal(res.status, 200);
   assert.equal(res.body.activeTrackedOutcomes, 0);
   for (const p of res.body.principles) assert.ok(p.count === 0 || p.count === null, `${p.name}: ${p.count}`);
@@ -123,8 +65,8 @@ test("outcome-mastery returns null baseline and mastery when nothing was assesse
   const courseId = await createCourse();
   await db.prepare("INSERT INTO outcomes (course_id, title) VALUES (?, 'Solve linear equations')").run(courseId);
 
-  for (const email of [TEACHER, STUDENT]) {
-    const res = await api("GET", `/courses/${courseId}/outcome-mastery?userEmail=${encodeURIComponent(email)}`);
+  for (const [email, call] of [[TEACHER, asTeacher], [STUDENT, asStudent]]) {
+    const res = await call("GET", `/courses/${courseId}/outcome-mastery`);
     assert.equal(res.status, 200);
     assert.equal(res.body.outcomes.length, 1);
     const [o] = res.body.outcomes;
@@ -142,7 +84,7 @@ test("outcome-mastery normalizes graded work to percent", async () => {
   await db.prepare("INSERT INTO item_outcomes (course_id, item_type, item_id, outcome_id) VALUES (?, 'assignment', ?, ?)").run(courseId, assignment.id, outcome.id);
   await db.prepare("INSERT INTO assignment_submissions (assignment_id, scholar_email, grade) VALUES (?, ?, 40)").run(assignment.id, STUDENT);
 
-  const res = await api("GET", `/courses/${courseId}/outcome-mastery?userEmail=${encodeURIComponent(STUDENT)}`);
+  const res = await asStudent("GET", `/courses/${courseId}/outcome-mastery`);
   assert.equal(res.status, 200);
   const [o] = res.body.outcomes;
   assert.equal(o.currentMastery, 80);
@@ -154,15 +96,15 @@ test("baseline/submit never invents scores", async () => {
   const courseId = await createCourse();
   const outcome = await db.prepare("INSERT INTO outcomes (course_id, title) VALUES (?, 'Fractions') RETURNING id").get(courseId);
 
-  const empty = await api("POST", `/courses/${courseId}/baseline/submit`, { userEmail: STUDENT, answers: {} });
+  const empty = await asStudent("POST", `/courses/${courseId}/baseline/submit`, { answers: {} });
   assert.equal(empty.status, 400);
-  const invalid = await api("POST", `/courses/${courseId}/baseline/submit`, { userEmail: STUDENT, answers: { [outcome.id]: 150 } });
+  const invalid = await asStudent("POST", `/courses/${courseId}/baseline/submit`, { answers: { [outcome.id]: 150 } });
   assert.equal(invalid.status, 400);
 
   const rows = await db.prepare("SELECT * FROM student_outcome_baselines WHERE course_id = ?").all(courseId);
   assert.equal(rows.length, 0);
 
-  const ok = await api("POST", `/courses/${courseId}/baseline/submit`, { userEmail: STUDENT, answers: { [outcome.id]: 45 } });
+  const ok = await asStudent("POST", `/courses/${courseId}/baseline/submit`, { answers: { [outcome.id]: 45 } });
   assert.equal(ok.status, 200);
   const stored = await db.prepare("SELECT baseline_score FROM student_outcome_baselines WHERE course_id = ?").all(courseId);
   assert.equal(stored.length, 1);
@@ -174,11 +116,12 @@ test("baseline/submit never invents scores", async () => {
 test("course read endpoints reject anonymous and non-enrolled callers", async () => {
   const courseId = await createCourse();
   for (const path of ["home-loop", "setup-status", "baseline", "item-outcomes"]) {
-    const anon = await api("GET", `/courses/${courseId}/${path}`);
-    assert.equal(anon.status, 400, `${path} anonymous`);
-    const outsider = await api("GET", `/courses/${courseId}/${path}?userEmail=${encodeURIComponent(OUTSIDER)}`);
+    const anonymous = await anon("GET", `/courses/${courseId}/${path}`);
+    assert.equal(anonymous.status, 401, `${path} anonymous`);
+    // A client-supplied email is ignored: the outsider can't borrow the student's identity.
+    const outsider = await asOutsider("GET", `/courses/${courseId}/${path}?userEmail=${encodeURIComponent(STUDENT)}`);
     assert.equal(outsider.status, 403, `${path} outsider`);
-    const student = await api("GET", `/courses/${courseId}/${path}?userEmail=${encodeURIComponent(STUDENT)}`);
+    const student = await asStudent("GET", `/courses/${courseId}/${path}`);
     assert.equal(student.status, 200, `${path} student`);
   }
 });
@@ -189,11 +132,11 @@ test("home-loop hides class-wide attention items from students", async () => {
   const assignment = await db.prepare("INSERT INTO assignments (course_id, title) VALUES (?, 'Untagged') RETURNING id").get(courseId);
   await db.prepare("INSERT INTO module_items (module_id, item_type, item_ref_id, content_ref_table, content_ref_id, title, position) VALUES (?, 'assignment', ?, 'assignments', ?, 'Untagged', 0)").run(mod.id, assignment.id, assignment.id);
 
-  const teacher = await api("GET", `/courses/${courseId}/home-loop?userEmail=${encodeURIComponent(TEACHER)}`);
+  const teacher = await asTeacher("GET", `/courses/${courseId}/home-loop`);
   assert.equal(teacher.status, 200);
   assert.equal(teacher.body.needsAttention.length, 1);
 
-  const student = await api("GET", `/courses/${courseId}/home-loop?userEmail=${encodeURIComponent(STUDENT)}`);
+  const student = await asStudent("GET", `/courses/${courseId}/home-loop`);
   assert.equal(student.status, 200);
   assert.equal(student.body.needsAttention.length, 0);
 });
@@ -202,16 +145,16 @@ test("home-loop hides class-wide attention items from students", async () => {
 
 test("a new course starts unopened and cannot open with missing requirements", async () => {
   const courseId = await createCourse();
-  const status = await api("GET", `/courses/${courseId}/setup-status?userEmail=${encodeURIComponent(TEACHER)}`);
+  const status = await asTeacher("GET", `/courses/${courseId}/setup-status`);
   assert.equal(status.status, 200);
   assert.equal(status.body.isOpened, false);
   assert.equal(status.body.canOpen, false);
   assert.ok(status.body.missingRequirements.length > 0);
 
-  const open = await api("POST", `/courses/${courseId}/open-course`, { teacherEmail: TEACHER });
+  const open = await asTeacher("POST", `/courses/${courseId}/open-course`, {});
   assert.equal(open.status, 400);
 
-  const patch = await api("PATCH", `/courses/${courseId}`, { teacherEmail: TEACHER, status: "active" });
+  const patch = await asTeacher("PATCH", `/courses/${courseId}`, { status: "active" });
   assert.equal(patch.status, 400);
 
   const course = await db.prepare("SELECT status, is_opened FROM courses WHERE id = ?").get(courseId);
@@ -225,15 +168,16 @@ test("a course with outcomes, a module, and an item can open", async () => {
   const mod = await db.prepare("INSERT INTO modules (course_id, title) VALUES (?, 'Week 1') RETURNING id").get(courseId);
   await db.prepare("INSERT INTO module_items (module_id, item_type, title, position) VALUES (?, 'sub_header', 'Intro', 0)").run(mod.id);
 
-  const open = await api("POST", `/courses/${courseId}/open-course`, { teacherEmail: TEACHER });
+  const open = await asTeacher("POST", `/courses/${courseId}/open-course`, {});
   assert.equal(open.status, 200, JSON.stringify(open.body));
-  const status = await api("GET", `/courses/${courseId}/setup-status?userEmail=${encodeURIComponent(TEACHER)}`);
+  const status = await asTeacher("GET", `/courses/${courseId}/setup-status`);
   assert.equal(status.body.isOpened, true);
 });
 
 test("open-course requires the teacher role", async () => {
   const courseId = await createCourse();
-  const res = await api("POST", `/courses/${courseId}/open-course`, { teacherEmail: STUDENT });
+  // Even claiming the teacher's email in the body, a student is still a student.
+  const res = await asStudent("POST", `/courses/${courseId}/open-course`, { teacherEmail: TEACHER });
   assert.equal(res.status, 403);
 });
 
@@ -243,7 +187,7 @@ test("fill-module creates unpublished items readable through content_ref_id", as
   const courseId = await createCourse();
   const mod = await db.prepare("INSERT INTO modules (course_id, title) VALUES (?, 'Week 1') RETURNING id").get(courseId);
 
-  const res = await api("POST", `/courses/${courseId}/ai/fill-module`, { teacherEmail: TEACHER, moduleId: mod.id });
+  const res = await asTeacher("POST", `/courses/${courseId}/ai/fill-module`, { moduleId: mod.id });
   assert.equal(res.status, 200, JSON.stringify(res.body));
 
   const items = await db.prepare("SELECT * FROM module_items WHERE module_id = ?").all(mod.id);
@@ -263,10 +207,10 @@ test("generate-story creates unpublished, escaped content in the course's own mo
   const mod = await db.prepare("INSERT INTO modules (course_id, title) VALUES (?, 'Week 1') RETURNING id").get(courseId);
   const foreignMod = await db.prepare("INSERT INTO modules (course_id, title) VALUES (?, 'Foreign') RETURNING id").get(otherCourseId);
 
-  const foreign = await api("POST", `/courses/${courseId}/ai/generate-story`, { teacherEmail: TEACHER, moduleId: foreignMod.id, idea: "x" });
+  const foreign = await asTeacher("POST", `/courses/${courseId}/ai/generate-story`, { moduleId: foreignMod.id, idea: "x" });
   assert.equal(foreign.status, 404);
 
-  const res = await api("POST", `/courses/${courseId}/ai/generate-story`, { teacherEmail: TEACHER, moduleId: mod.id, idea: "<script>alert(1)</script>" });
+  const res = await asTeacher("POST", `/courses/${courseId}/ai/generate-story`, { moduleId: mod.id, idea: "<script>alert(1)</script>" });
   assert.equal(res.status, 200, JSON.stringify(res.body));
 
   const page = await db.prepare("SELECT body, published FROM course_pages WHERE id = ?").get(res.body.pageId);
@@ -284,22 +228,25 @@ test("generate-story creates unpublished, escaped content in the course's own mo
 
 // ---------- P0-4: default admin must change password ----------
 
-test("default admin is flagged to change password until it does", async () => {
-  const login = await api("POST", "/auth/login", { email: "admin@mail.com", password: "admin" });
+test("default admin must change password before using anything else", async () => {
+  const login = await anon("POST", "/auth/login", { email: "admin@mail.com", password: "admin" });
   assert.equal(login.status, 200);
   assert.equal(login.body.user.must_change_password, true);
+  const token = login.body.token;
+  const call = (method, path, body) => ctx.api(method, path, { token, body });
 
-  const same = await api("PATCH", "/users/profile/password", {
-    currentEmail: "admin@mail.com", currentRole: "admin", currentPassword: "admin", newPassword: "admin",
-  });
+  const blocked = await call("GET", "/users");
+  assert.equal(blocked.status, 403);
+  assert.equal(blocked.body.code, "PASSWORD_CHANGE_REQUIRED");
+  assert.equal((await call("GET", "/auth/me")).status, 200);
+
+  const same = await call("PATCH", "/users/profile/password", { currentPassword: "admin", newPassword: "admin" });
   assert.equal(same.status, 400);
-
-  const change = await api("PATCH", "/users/profile/password", {
-    currentEmail: "admin@mail.com", currentRole: "admin", currentPassword: "admin", newPassword: "a-new-password",
-  });
+  const change = await call("PATCH", "/users/profile/password", { currentPassword: "admin", newPassword: "a-new-password" });
   assert.equal(change.status, 200);
 
-  const relogin = await api("POST", "/auth/login", { email: "admin@mail.com", password: "a-new-password" });
+  assert.equal((await call("GET", "/users")).status, 200);
+  const relogin = await anon("POST", "/auth/login", { email: "admin@mail.com", password: "a-new-password" });
   assert.equal(relogin.status, 200);
   assert.equal(relogin.body.user.must_change_password, false);
 });
@@ -308,10 +255,27 @@ test("default admin is flagged to change password until it does", async () => {
 
 test("new modules get increasing positions", async () => {
   const courseId = await createCourse();
-  const first = await api("POST", `/courses/${courseId}/modules`, { teacherEmail: TEACHER, title: "Week 1" });
-  const second = await api("POST", `/courses/${courseId}/modules`, { teacherEmail: TEACHER, title: "Week 2" });
+  const first = await asTeacher("POST", `/courses/${courseId}/modules`, { title: "Week 1" });
+  const second = await asTeacher("POST", `/courses/${courseId}/modules`, { title: "Week 2" });
   assert.equal(first.status, 201, JSON.stringify(first.body));
   assert.equal(second.status, 201, JSON.stringify(second.body));
   const rows = await db.prepare("SELECT title, position FROM modules WHERE course_id = ? ORDER BY id").all(courseId);
   assert.deepEqual(rows.map((r) => Number(r.position)), [0, 1]);
+});
+
+test("modules and items can be reordered", async () => {
+  const courseId = await createCourse();
+  const a = await db.prepare("INSERT INTO modules (course_id, title, position) VALUES (?, 'A', 0) RETURNING id").get(courseId);
+  const b = await db.prepare("INSERT INTO modules (course_id, title, position) VALUES (?, 'B', 1) RETURNING id").get(courseId);
+  const res = await asTeacher("PATCH", `/courses/${courseId}/modules/reorder`, { moduleIds: [b.id, a.id] });
+  assert.equal(res.status, 200, JSON.stringify(res.body));
+  const mods = await db.prepare("SELECT id FROM modules WHERE course_id = ? ORDER BY position").all(courseId);
+  assert.deepEqual(mods.map((m) => m.id), [b.id, a.id]);
+
+  const i1 = await db.prepare("INSERT INTO module_items (module_id, item_type, title, position) VALUES (?, 'sub_header', 'one', 0) RETURNING id").get(a.id);
+  const i2 = await db.prepare("INSERT INTO module_items (module_id, item_type, title, position) VALUES (?, 'sub_header', 'two', 1) RETURNING id").get(a.id);
+  const itemRes = await asTeacher("PATCH", `/courses/${courseId}/modules/${a.id}/items/reorder`, { itemIds: [i2.id, i1.id] });
+  assert.equal(itemRes.status, 200, JSON.stringify(itemRes.body));
+  const items = await db.prepare("SELECT id FROM module_items WHERE module_id = ? ORDER BY position").all(a.id);
+  assert.deepEqual(items.map((i) => i.id), [i2.id, i1.id]);
 });

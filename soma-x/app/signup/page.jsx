@@ -4,10 +4,10 @@ import { ChevronDown, Eye, EyeOff, Globe } from "lucide-react";
 import { useLanguage } from '@/context/LanguageContext';
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { useState, useContext } from "react";
+import { useState } from "react";
 import Image from "next/image";
-import DataContext from "@/context/DataContext";
 import { useToast } from "@/context/ToastContext";
+import { setSessionToken } from "@/lib/session";
 
 export default function SignupPage() {
   const { t, setLang, lang } = useLanguage();
@@ -19,7 +19,6 @@ export default function SignupPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const languages = ["en", "fr", "rw", "sw", "es"];
-  const { shiftString } = useContext(DataContext);
 
   // Child-friendly password strength calculator
   const calculateStrength = (pwd) => {
@@ -61,23 +60,22 @@ export default function SignupPage() {
 
     try {
       setLoading(true);
-      const response = await fetch(`${SERVER_URL}/users`, {
+      // Self-registration always creates a learner account and returns a session.
+      const response = await fetch(`${SERVER_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: normalizedEmail, fullName: formData.name, password: formData.password, role: 'scholar' }),
+        body: JSON.stringify({ email: normalizedEmail, fullName: formData.name, password: formData.password }),
       });
 
+      const data = await response.json();
       if (!response.ok) {
-        const errorData = await response.json();
-        const msg = errorData.message || 'Failed to create account';
+        const msg = data.message || 'Failed to create account';
         setError(msg);
         showToast(`Signup failed: ${msg}`, 'error');
         return;
       }
 
-      localStorage.setItem('al', shiftString(normalizedEmail));
-      localStorage.setItem('un', shiftString(formData.name));
-      localStorage.setItem('gh', shiftString('scholar'));
+      setSessionToken(data.token);
       showToast('Account created successfully! Redirecting to your dashboard...', 'success');
       setTimeout(() => {
         window.location.href = '/manage/scholar-dashboard';

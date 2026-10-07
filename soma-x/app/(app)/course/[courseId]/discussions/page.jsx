@@ -10,7 +10,7 @@ import AsyncListState from "@/components/course/AsyncListState";
 import { Button } from "@/components/ui/button";
 
 export default function DiscussionsListPage() {
-  const { SERVER_URL, courseId, userEmail } = useCourse();
+  const { SERVER_URL, courseId } = useCourse();
   const { data: discussions, loading, error, refetch } = useCourseSection("discussions");
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({ title: "", body: "" });
@@ -20,7 +20,7 @@ export default function DiscussionsListPage() {
     await fetch(`${SERVER_URL}/courses/${courseId}/discussions`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userEmail, title: form.title.trim(), body: form.body }),
+      body: JSON.stringify({ title: form.title.trim(), body: form.body }),
     });
     setForm({ title: "", body: "" });
     setCreating(false);

@@ -1,15 +1,15 @@
 import express from 'express';
 import { localDb } from '../helpers/db-manager.js';
+import { subjectEmail } from '../helpers/auth.js';
 
 const router = express.Router();
 
 // 2. Spaced Practice: Get pending spaced reviews (3, 7, 30 days)
 router.get('/spaced/pending', async (req, res) => {
     try {
-        const scholarEmail = String(req.query.scholarEmail || '').trim().toLowerCase();
-        if (!scholarEmail) {
-            return res.status(400).json({ message: 'scholarEmail is required' });
-        }
+        // Admins can view a learner's reviews from the user detail page.
+        const scholarEmail = subjectEmail(req, req.query.scholarEmail);
+        if (!scholarEmail) return res.status(403).json({ message: 'You can only view your own reviews' });
 
         const reviews = await localDb.prepare(`
             SELECT id, topic_id, topic_title, interval_days, due_at, status, created_at
@@ -28,9 +28,10 @@ router.get('/spaced/pending', async (req, res) => {
 // Complete Spaced Practice Review
 router.post('/spaced/complete', async (req, res) => {
     try {
-        const { reviewId, scholarEmail } = req.body;
-        if (!reviewId || !scholarEmail) {
-            return res.status(400).json({ message: 'reviewId and scholarEmail are required' });
+        const { reviewId } = req.body;
+        const scholarEmail = req.user.email;
+        if (!reviewId) {
+            return res.status(400).json({ message: 'reviewId is required' });
         }
 
         await localDb.prepare(`
@@ -49,10 +50,9 @@ router.post('/spaced/complete', async (req, res) => {
 // 4. Interleaving
 router.get('/interleaving/session', async (req, res) => {
     try {
-        const scholarEmail = String(req.query.scholarEmail || '').trim().toLowerCase();
-        if (!scholarEmail) {
-            return res.status(400).json({ message: 'scholarEmail is required' });
-        }
+        // Admins can view a learner's reviews from the user detail page.
+        const scholarEmail = subjectEmail(req, req.query.scholarEmail);
+        if (!scholarEmail) return res.status(403).json({ message: 'You can only view your own reviews' });
 
         const rows = await localDb.prepare(`
             SELECT qq.id AS question_id, qq.prompt, qq.question_type, qq.options,
@@ -133,8 +133,8 @@ router.get('/interleaving/session', async (req, res) => {
 // 5. Baseline Diagnostic Quiz endpoints
 router.get('/diagnostic/status', async (req, res) => {
     try {
-        const scholarEmail = String(req.query.scholarEmail || '').trim().toLowerCase();
-        if (!scholarEmail) return res.status(400).json({ message: 'scholarEmail is required' });
+        const scholarEmail = subjectEmail(req, req.query.scholarEmail, ['admin', 'teacher']);
+        if (!scholarEmail) return res.status(403).json({ message: 'You can only view your own diagnostic' });
 
         const result = await localDb.prepare(`
             SELECT * FROM diagnostic_results WHERE LOWER(scholar_email) = LOWER(?)
@@ -152,11 +152,10 @@ router.get('/diagnostic/status', async (req, res) => {
 
 router.post('/diagnostic/submit', async (req, res) => {
     try {
-        const scholarEmail = String(req.body.scholarEmail || '').trim().toLowerCase();
+        const scholarEmail = req.user.email;
         const overallScore = Number(req.body.overallScore || 0);
         const subjectBreakdown = req.body.subjectBreakdown ? JSON.stringify(req.body.subjectBreakdown) : '{}';
 
-        if (!scholarEmail) return res.status(400).json({ message: 'scholarEmail is required' });
 
         await localDb.prepare(`
             INSERT INTO diagnostic_results (scholar_email, overall_score, subject_breakdown, completed_at)

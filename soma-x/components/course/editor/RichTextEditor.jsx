@@ -25,7 +25,7 @@ const RichTextEditor = forwardRef(function RichTextEditor(
   { content, onUpdate, placeholder = "Start writing...", minHeight = "200px" },
   ref
 ) {
-  const { SERVER_URL, courseId, userEmail } = useCourse();
+  const { SERVER_URL, courseId } = useCourse();
 
   const handleFileUploadAndInsert = useCallback(
     async (file, editorInstance) => {
@@ -57,8 +57,6 @@ const RichTextEditor = forwardRef(function RichTextEditor(
       try {
         const formData = new FormData();
         formData.append("file", file);
-        formData.append("userEmail", userEmail);
-        formData.append("teacherEmail", userEmail);
 
         const res = await fetch(`${SERVER_URL}/courses/${courseId}/files/upload`, {
           method: "POST",
@@ -186,7 +184,7 @@ const RichTextEditor = forwardRef(function RichTextEditor(
         }
       }
     },
-    [SERVER_URL, courseId, userEmail]
+    [SERVER_URL, courseId]
   );
 
   const editor = useEditor({

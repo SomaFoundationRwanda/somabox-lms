@@ -9,15 +9,14 @@ import ProfileCard from "@/components/ui/ProfileCard";
 // renders on every page, not just the dashboard. Shares the sidebar's
 // background with no divider (see Nav.jsx) so the two read as one surface.
 export default function Header() {
-  const { role, unshiftString, isDark } = useContext(DataContext);
-  const currentRole = role ? unshiftString(role) : "scholar";
+  const { role, isDark, user } = useContext(DataContext);
+  const currentRole = role || "scholar";
   const [firstName, setFirstName] = useState("");
 
   useEffect(() => {
-    const stored = localStorage.getItem("un");
-    const name = stored ? unshiftString(stored) : "";
+    const name = user?.fullName || "";
     setFirstName(name ? name.split(" ")[0] : "");
-  }, [unshiftString]);
+  }, [user]);
 
   const dm = isDark;
   const bg = dm ? "#080B0F" : "#ffffff";

@@ -19,7 +19,6 @@ export default function ModuleCard({
   courseId,
   isTeacher,
   SERVER_URL,
-  userEmail,
   onRefetch,
   onAddItem,
   onEditItem,
@@ -52,7 +51,7 @@ export default function ModuleCard({
     await fetch(`${SERVER_URL}/courses/${courseId}/modules/${moduleRow.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ teacherEmail: userEmail, published: !moduleRow.published }),
+      body: JSON.stringify({ published: !moduleRow.published }),
     });
     onRefetch();
   };
@@ -62,7 +61,7 @@ export default function ModuleCard({
     await fetch(`${SERVER_URL}/courses/${courseId}/modules/${moduleRow.id}`, {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ teacherEmail: userEmail }),
+      body: JSON.stringify({}),
     });
     onRefetch();
   };
@@ -72,7 +71,7 @@ export default function ModuleCard({
       await fetch(`${SERVER_URL}/courses/${courseId}/modules/${moduleRow.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ teacherEmail: userEmail, title: titleDraft.trim() }),
+        body: JSON.stringify({ title: titleDraft.trim() }),
       });
       onRefetch();
     }
@@ -83,7 +82,7 @@ export default function ModuleCard({
     await fetch(`${SERVER_URL}/courses/${courseId}/modules/${moduleRow.id}/items/${item.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ teacherEmail: userEmail, published: !item.published }),
+      body: JSON.stringify({ published: !item.published }),
     });
     onRefetch();
   };
@@ -99,7 +98,7 @@ export default function ModuleCard({
     await fetch(`${SERVER_URL}/courses/${courseId}/modules/${moduleRow.id}/items/reorder`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ teacherEmail: userEmail, itemIds: newItems.map((i) => i.id) }),
+      body: JSON.stringify({ itemIds: newItems.map((i) => i.id) }),
     });
     onRefetch();
   };
@@ -160,7 +159,7 @@ export default function ModuleCard({
                 await fetch(`${SERVER_URL}/courses/${courseId}/ai/fill-module`, {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ teacherEmail: userEmail, moduleId: moduleRow.id }),
+                  body: JSON.stringify({ moduleId: moduleRow.id }),
                 });
                 onRefetch();
               }}
@@ -176,7 +175,7 @@ export default function ModuleCard({
                   await fetch(`${SERVER_URL}/courses/${courseId}/ai/generate-story`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ teacherEmail: userEmail, moduleId: moduleRow.id, idea: idea.trim() }),
+                    body: JSON.stringify({ moduleId: moduleRow.id, idea: idea.trim() }),
                   });
                   onRefetch();
                 }

@@ -9,10 +9,15 @@ import EPub from 'epub';
 import sharp from 'sharp';
 import { pdfToPng } from 'pdf-to-png-converter';
 
+import crypto from 'crypto';
 import { serverDb } from '../helpers/db-manager.js';
 import { config } from '../config/index.js';
+import { requireRole } from '../helpers/auth.js';
 
 const router = express.Router();
+const requireAdmin = requireRole('admin');
+// Book ids become file names, so only plain numeric ids are accepted.
+const isBookId = (id) => /^\d+$/.test(String(id));
 const CLOUD_URL = config.cloudUrl;
 const LIBRARY_DIR = config.paths.library;
 const COVERS_DIR = config.paths.libraryCovers;
@@ -21,8 +26,9 @@ const storage = multer.diskStorage({
     destination: function (req, file, cb) {
         cb(null, LIBRARY_DIR);
     },
+    // Temporary random name; the upload route renames it to <bookId>.<ext>.
     filename: function (req, file, cb) {
-        cb(null, file.originalname);
+        cb(null, `upload-${crypto.randomUUID()}`);
     }
 });
 const upload = multer({ storage });
@@ -106,6 +112,7 @@ async function generatePDFCover(filePath, bookId) {
 }
 
 async function downloadBook(book) {
+    if (!isBookId(book?.id)) throw new Error(`Invalid book id: ${book?.id}`);
     const bookUrl = `${CLOUD_URL}/content/library/${book.id}.epub`;
     const localPath = path.join(LIBRARY_DIR, `${book.id}.epub`);
 
@@ -134,7 +141,7 @@ async function downloadBook(book) {
     return { id: book.id, status: 'downloaded' };
 }
 
-router.get('/available-books', async (req, res) => {
+router.get('/available-books', requireAdmin, async (req, res) => {
     try {
         console.log(`Fetching available books from ${CLOUD_URL}/library-metadata`);
         const cloudRes = await fetch(`${CLOUD_URL}/library-metadata`);
@@ -149,12 +156,15 @@ router.get('/available-books', async (req, res) => {
     }
 });
 
-router.post('/download', async (req, res) => {
+router.post('/download', requireAdmin, async (req, res) => {
     if (downloading) return res.status(400).json({ message: 'Another download is in progress' });
 
     const { books } = req.body;
     if (!Array.isArray(books) || !books.length) {
         return res.status(400).json({ error: 'No books specified' });
+    }
+    if (!books.every((book) => isBookId(book?.id))) {
+        return res.status(400).json({ error: 'Invalid book id' });
     }
 
     downloading = true;
@@ -177,12 +187,17 @@ router.post('/download', async (req, res) => {
     res.status(202).json({ message: 'Download started' });
 });
 
-router.post('/upload', upload.single('file'), async (req, res) => {
+// The role check runs before multer so unauthorized uploads never touch disk.
+router.post('/upload', requireAdmin, upload.single('file'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
-        const originalName = req.file.originalname;
+        const originalName = path.basename(req.file.originalname);
         const ext = path.extname(originalName).toLowerCase();
+        if (!['.pdf', '.epub'].includes(ext)) {
+            fs.unlinkSync(req.file.path);
+            return res.status(400).json({ error: 'Only PDF and EPUB files can be uploaded' });
+        }
         const bookName = req.body.bookName || originalName.replace(/\.(epub|pdf)$/i, '').replace(/[-_]/g, ' ');
 
         const maxRow = await serverDb.prepare('SELECT MAX(id) as "maxId" FROM books').get();
@@ -212,7 +227,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     }
 });
 
-router.get('/download-status', (req, res) => {
+router.get('/download-status', requireAdmin, (req, res) => {
     res.json({ status: downloadStatus });
 });
 
@@ -232,7 +247,9 @@ router.get('/books', async (req, res) => {
     }
 });
 
+// Public: opened directly by the PDF/EPUB viewer, which can't send a bearer token.
 router.get('/file/:id', (req, res) => {
+    if (!isBookId(req.params.id)) return res.status(404).json({ error: 'Book not found' });
     const epubPath = path.join(LIBRARY_DIR, `${req.params.id}.epub`);
     const pdfPath = path.join(LIBRARY_DIR, `${req.params.id}.pdf`);
     
@@ -264,8 +281,9 @@ router.get('/categories', async (req, res) => {
     }
 });
 
-router.delete('/book/:id', async (req, res) => {
+router.delete('/book/:id', requireAdmin, async (req, res) => {
     const id = req.params.id;
+    if (!isBookId(id)) return res.status(404).json({ error: 'Book not found' });
     const epubPath = path.join(LIBRARY_DIR, `${id}.epub`);
     const pdfPath = path.join(LIBRARY_DIR, `${id}.pdf`);
     const coverPath = path.join(COVERS_DIR, `${id}.avif`);

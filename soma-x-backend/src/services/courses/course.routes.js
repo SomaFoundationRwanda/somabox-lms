@@ -1,0 +1,234 @@
+// Course CRUD, course lists, joining, and cover images.
+import express from "express";
+import fs from "fs";
+import path from "path";
+import { localDb, seedDefaultNavItems } from "../../helpers/db-manager.js";
+import { config } from "../../config/index.js";
+import {
+  normalizeEmail,
+  generateUniqueCourseCode,
+  getEnrollment,
+  requireTeacher,
+  requireEnrolled,
+  courseExists,
+  normalizeDueAt,
+  upload,
+} from "./shared.js";
+
+const router = express.Router();
+
+// ===== Course CRUD =====
+
+router.post("", async (req, res) => {
+  try {
+    if (!["teacher", "admin"].includes(req.user?.role)) {
+      return res.status(403).json({ message: "Only teachers can create courses" });
+    }
+    const { title, description, grade, startDate, endDate } = req.body;
+    const email = req.user.email;
+
+    if (!title) {
+      return res.status(400).json({ message: "title is required" });
+    }
+
+    const courseId = await generateUniqueCourseCode();
+
+    await localDb.prepare(`
+      INSERT INTO courses (id, title, description, grade, start_date, end_date, status, is_opened, created_by_teacher_email)
+      VALUES (?, ?, ?, ?, ?, ?, 'unpublished', 0, ?)
+    `).run(courseId, title, description || "", grade || "", normalizeDueAt(startDate), normalizeDueAt(endDate), email);
+
+    await seedDefaultNavItems(courseId);
+
+    await localDb.prepare(`
+      INSERT INTO enrollments (course_id, user_email, role, status)
+      VALUES (?, ?, 'teacher', 'active')
+    `).run(courseId, email);
+
+    const created = await courseExists(courseId);
+    return res.status(201).json(created);
+  } catch (error) {
+    console.error("Error creating course:", error);
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+router.get("/mine", async (req, res) => {
+  try {
+    // Admins may look up another user's courses (admin user detail page).
+    const requested = normalizeEmail(req.query.userEmail);
+    if (requested && requested !== req.user.email && req.user.role !== "admin") {
+      return res.status(403).json({ message: "You can only view your own courses" });
+    }
+    const email = requested || req.user.email;
+
+    const rows = await localDb.prepare(`
+      SELECT c.*, e.role AS my_role, e.status AS my_status
+      FROM courses c
+      JOIN enrollments e ON e.course_id = c.id
+      WHERE LOWER(e.user_email) = LOWER(?) AND e.status IN ('active', 'invited')
+      ORDER BY c.created_at DESC
+    `).all(email);
+
+    const withCounts = await Promise.all(rows.map(async (course) => {
+      const cnt = await localDb.prepare("SELECT COUNT(*) AS total FROM enrollments WHERE course_id = ? AND role = 'student' AND status IN ('active', 'invited')").get(course.id);
+      const studentCount = Number(cnt?.total || 0);
+      return { ...course, studentCount, coverImageUrl: course.cover_image ? `/course-covers/${course.cover_image}` : null };
+    }));
+
+    return res.json(withCounts);
+  } catch (error) {
+    console.error("Error listing courses:", error);
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+router.get("/public", async (req, res) => {
+  try {
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const pageSize = Math.min(50, Math.max(1, Number(req.query.pageSize) || 20));
+    const offset = (page - 1) * pageSize;
+
+    const total = Number((await localDb.prepare("SELECT COUNT(*) AS c FROM courses WHERE visibility = 'public'").get())?.c || 0);
+    const rows = await localDb.prepare(`
+      SELECT * FROM courses WHERE visibility = 'public' ORDER BY created_at DESC LIMIT ? OFFSET ?
+    `).all(pageSize, offset);
+
+    const courses = await Promise.all(rows.map(async (course) => {
+      const cnt = await localDb.prepare("SELECT COUNT(*) AS total FROM enrollments WHERE course_id = ? AND role = 'student' AND status = 'active'").get(course.id);
+      const studentCount = Number(cnt?.total || 0);
+      return { ...course, studentCount, coverImageUrl: course.cover_image ? `/course-covers/${course.cover_image}` : null };
+    }));
+
+    return res.json({ courses, page, pageSize, total });
+  } catch (error) {
+    console.error("Error listing public courses:", error);
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+router.post("/:id/join", async (req, res) => {
+  try {
+    const courseId = String(req.params.id || "").trim();
+    const course = await courseExists(courseId);
+    if (!course) return res.status(404).json({ message: "Course not found" });
+    if (course.visibility !== "public") return res.status(403).json({ message: "This course is private and requires an invite" });
+
+    const email = req.user.email;
+
+    const existing = await getEnrollment(courseId, email);
+    if (existing) {
+      if (existing.status !== "active") {
+        await localDb.prepare("UPDATE enrollments SET status = 'active' WHERE course_id = ? AND LOWER(user_email) = LOWER(?)").run(courseId, email);
+      }
+    } else {
+      await localDb.prepare(`
+        INSERT INTO enrollments (course_id, user_email, role, status)
+        VALUES (?, ?, 'student', 'active')
+      `).run(courseId, email);
+    }
+
+    return res.status(200).json({ message: "Joined course", course: await courseExists(courseId) });
+  } catch (error) {
+    console.error("Error joining course:", error);
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+router.get("/:id", async (req, res) => {
+  try {
+    const courseId = String(req.params.id || "").trim();
+    const course = await courseExists(courseId);
+    if (!course) return res.status(404).json({ message: "Course not found" });
+
+    const auth = await requireEnrolled(req, res, courseId);
+    if (!auth) return;
+
+    const studentCount = Number(
+      (await localDb.prepare("SELECT COUNT(*) AS total FROM enrollments WHERE course_id = ? AND role = 'student' AND status = 'active'").get(courseId))?.total || 0
+    );
+
+    return res.json({
+      ...course,
+      coverImageUrl: course.cover_image ? `/course-covers/${course.cover_image}` : null,
+      studentCount,
+      myRole: auth.enrollment.role,
+    });
+  } catch (error) {
+    console.error("Error fetching course:", error);
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+router.patch("/:id", async (req, res) => {
+  try {
+    const courseId = String(req.params.id || "").trim();
+    const existingCourse = await courseExists(courseId);
+    if (!existingCourse) return res.status(404).json({ message: "Course not found" });
+    if (!await requireTeacher(req, res, courseId)) return;
+
+    const { title, description, grade, status, homePageType, startDate, endDate, visibility } = req.body;
+    // Opening goes through POST /:id/open-course so the setup checks can't be bypassed.
+    if (status === "active" && Number(existingCourse.is_opened) !== 1) {
+      return res.status(400).json({ message: "Finish course setup and use Open Course to make this course active" });
+    }
+    const updates = [];
+    const params = [];
+
+    if (title !== undefined) { updates.push("title = ?"); params.push(title); }
+    if (description !== undefined) { updates.push("description = ?"); params.push(description); }
+    if (grade !== undefined) { updates.push("grade = ?"); params.push(grade); }
+    if (status !== undefined && ["unpublished", "active", "completed"].includes(status)) { updates.push("status = ?"); params.push(status); }
+    if (homePageType !== undefined && ["modules", "activity", "page"].includes(homePageType)) { updates.push("home_page_type = ?"); params.push(homePageType); }
+    if (startDate !== undefined) { updates.push("start_date = ?"); params.push(normalizeDueAt(startDate)); }
+    if (endDate !== undefined) { updates.push("end_date = ?"); params.push(normalizeDueAt(endDate)); }
+    if (visibility !== undefined && ["private", "public"].includes(visibility)) { updates.push("visibility = ?"); params.push(visibility); }
+
+    if (updates.length === 0) return res.status(400).json({ message: "No fields to update" });
+
+    updates.push("updated_at = CURRENT_TIMESTAMP");
+    params.push(courseId);
+
+    await localDb.prepare(`UPDATE courses SET ${updates.join(", ")} WHERE id = ?`).run(...params);
+    return res.json(await courseExists(courseId));
+  } catch (error) {
+    console.error("Error updating course:", error);
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+router.delete("/:id", async (req, res) => {
+  try {
+    const courseId = String(req.params.id || "").trim();
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await requireTeacher(req, res, courseId)) return;
+
+    await localDb.prepare("DELETE FROM courses WHERE id = ?").run(courseId);
+    return res.status(204).end();
+  } catch (error) {
+    console.error("Error deleting course:", error);
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+router.post("/:id/cover-image", upload.single("image"), async (req, res) => {
+  try {
+    const courseId = String(req.params.id || "").trim();
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await requireTeacher(req, res, courseId)) return;
+    if (!req.file) return res.status(400).json({ message: "No image file provided" });
+
+    fs.mkdirSync(config.paths.courseCovers, { recursive: true });
+    const filename = `${courseId}.jpg`;
+    const sharp = (await import("sharp")).default;
+    await sharp(req.file.buffer).resize(1200, 400, { fit: "cover" }).jpeg({ quality: 85 }).toFile(path.join(config.paths.courseCovers, filename));
+
+    await localDb.prepare("UPDATE courses SET cover_image = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(filename, courseId);
+    return res.json({ message: "Cover image updated", cover_image: filename });
+  } catch (error) {
+    console.error("Error uploading course cover image:", error);
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+export default router;

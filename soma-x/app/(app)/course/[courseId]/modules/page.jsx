@@ -63,7 +63,7 @@ export default function ModulesPage() {
     await fetch(`${SERVER_URL}/courses/${courseId}/modules`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ teacherEmail: userEmail, title: newTitle.trim() }),
+      body: JSON.stringify({ title: newTitle.trim() }),
     });
     setNewTitle("");
     setCreating(false);
@@ -81,7 +81,7 @@ export default function ModulesPage() {
     await fetch(`${SERVER_URL}/courses/${courseId}/modules/reorder`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ teacherEmail: userEmail, moduleIds: newModules.map((m) => m.id) }),
+      body: JSON.stringify({ moduleIds: newModules.map((m) => m.id) }),
     });
     refetch();
   };
@@ -139,7 +139,7 @@ export default function ModulesPage() {
     await fetch(`${SERVER_URL}/courses/${courseId}/modules/${moduleId}/items`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ teacherEmail: userEmail, itemType: "sub_header", title }),
+      body: JSON.stringify({ itemType: "sub_header", title }),
     });
     setAddingItemFor(null);
     setSubHeaderTitle("");
@@ -150,7 +150,7 @@ export default function ModulesPage() {
     await fetch(`${SERVER_URL}/courses/${courseId}/modules/${moduleId}/items`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ teacherEmail: userEmail, itemType, title }),
+      body: JSON.stringify({ itemType, title }),
     });
     setAddingItemFor(null);
     refetch();
@@ -163,14 +163,14 @@ export default function ModulesPage() {
       await fetch(`${SERVER_URL}/courses/${courseId}/modules/${pageModal.moduleId}/items/${pageModal.itemId}/content`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ teacherEmail: userEmail, ...data }),
+        body: JSON.stringify({ ...data }),
       });
     } else {
       // Create new
       await fetch(`${SERVER_URL}/courses/${courseId}/modules/${pageModal.moduleId}/items`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ teacherEmail: userEmail, itemType: "page", ...data }),
+        body: JSON.stringify({ itemType: "page", ...data }),
       });
     }
     refetch();
@@ -181,13 +181,13 @@ export default function ModulesPage() {
       await fetch(`${SERVER_URL}/courses/${courseId}/modules/${assignmentModal.moduleId}/items/${assignmentModal.itemId}/content`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ teacherEmail: userEmail, ...data }),
+        body: JSON.stringify({ ...data }),
       });
     } else {
       await fetch(`${SERVER_URL}/courses/${courseId}/modules/${assignmentModal.moduleId}/items`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ teacherEmail: userEmail, itemType: "assignment", ...data }),
+        body: JSON.stringify({ itemType: "assignment", ...data }),
       });
     }
     refetch();
@@ -198,13 +198,13 @@ export default function ModulesPage() {
       await fetch(`${SERVER_URL}/courses/${courseId}/modules/${quizModal.moduleId}/items/${quizModal.itemId}/content`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ teacherEmail: userEmail, ...data }),
+        body: JSON.stringify({ ...data }),
       });
     } else {
       await fetch(`${SERVER_URL}/courses/${courseId}/modules/${quizModal.moduleId}/items`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ teacherEmail: userEmail, itemType: "quiz", ...data }),
+        body: JSON.stringify({ itemType: "quiz", ...data }),
       });
     }
     refetch();
@@ -218,7 +218,7 @@ export default function ModulesPage() {
         await fetch(`${SERVER_URL}/courses/${courseId}/modules/${moduleRow.id}/items/${item.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ teacherEmail: userEmail, title: newTitle.trim() }),
+          body: JSON.stringify({ title: newTitle.trim() }),
         });
         refetch();
       }
@@ -230,15 +230,15 @@ export default function ModulesPage() {
     if (!contentId) return;
 
     if (item.item_type === "page") {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/pages/${contentId}?userEmail=${encodeURIComponent(userEmail)}`);
+      const res = await fetch(`${SERVER_URL}/courses/${courseId}/pages/${contentId}`);
       const data = await res.json();
       setPageModal({ open: true, moduleId: moduleRow.id, data, itemId: item.id });
     } else if (item.item_type === "assignment") {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/assignments/${contentId}?userEmail=${encodeURIComponent(userEmail)}`);
+      const res = await fetch(`${SERVER_URL}/courses/${courseId}/assignments/${contentId}`);
       const data = await res.json();
       setAssignmentModal({ open: true, moduleId: moduleRow.id, data, itemId: item.id });
     } else if (item.item_type === "quiz") {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/quizzes/${contentId}?userEmail=${encodeURIComponent(userEmail)}`);
+      const res = await fetch(`${SERVER_URL}/courses/${courseId}/quizzes/${contentId}`);
       const data = await res.json();
       setQuizModal({ open: true, moduleId: moduleRow.id, data, itemId: item.id });
     }
@@ -251,7 +251,7 @@ export default function ModulesPage() {
 
   const removeFromModule = async () => {
     const { module: m, item } = deleteTarget;
-    await fetch(`${SERVER_URL}/courses/${courseId}/modules/${m.id}/items/${item.id}?mode=remove_from_module&teacherEmail=${encodeURIComponent(userEmail)}`, {
+    await fetch(`${SERVER_URL}/courses/${courseId}/modules/${m.id}/items/${item.id}?mode=remove_from_module`, {
       method: "DELETE",
     });
     refetch();
@@ -259,7 +259,7 @@ export default function ModulesPage() {
 
   const deletePermanently = async () => {
     const { module: m, item } = deleteTarget;
-    await fetch(`${SERVER_URL}/courses/${courseId}/modules/${m.id}/items/${item.id}?mode=delete_permanently&teacherEmail=${encodeURIComponent(userEmail)}`, {
+    await fetch(`${SERVER_URL}/courses/${courseId}/modules/${m.id}/items/${item.id}?mode=delete_permanently`, {
       method: "DELETE",
     });
     refetch();
@@ -331,7 +331,6 @@ export default function ModulesPage() {
                       courseId={courseId}
                       isTeacher={isTeacher}
                       SERVER_URL={SERVER_URL}
-                      userEmail={userEmail}
                       onRefetch={refetch}
                       onAddItem={handleAddItem}
                       onEditItem={handleEditItem}
@@ -350,7 +349,6 @@ export default function ModulesPage() {
                   courseId={courseId}
                   isTeacher={false}
                   SERVER_URL={SERVER_URL}
-                  userEmail={userEmail}
                   onRefetch={refetch}
                   onAddItem={() => {}}
                   onEditItem={() => {}}
@@ -452,7 +450,6 @@ export default function ModulesPage() {
         courseId={courseId}
         moduleId={fileModal.moduleId}
         SERVER_URL={SERVER_URL}
-        userEmail={userEmail}
       />
 
       <DeleteItemDialog

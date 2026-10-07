@@ -16,8 +16,8 @@ export default function SyllabusPage() {
     try {
       setLoading(true);
       const [modRes, outRes] = await Promise.all([
-        fetch(`${SERVER_URL}/courses/${courseId}/modules?userEmail=${encodeURIComponent(userEmail)}`),
-        fetch(`${SERVER_URL}/courses/${courseId}/outcomes?userEmail=${encodeURIComponent(userEmail)}`),
+        fetch(`${SERVER_URL}/courses/${courseId}/modules`),
+        fetch(`${SERVER_URL}/courses/${courseId}/outcomes`),
       ]);
       if (modRes.ok) setModules(await modRes.json());
       if (outRes.ok) setOutcomes(await outRes.json());

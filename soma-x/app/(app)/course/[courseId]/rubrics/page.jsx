@@ -16,8 +16,8 @@ export default function RubricsPage() {
     try {
       setLoading(true);
       const [rubRes, outRes] = await Promise.all([
-        fetch(`${SERVER_URL}/courses/${courseId}/rubrics?userEmail=${encodeURIComponent(userEmail)}`),
-        fetch(`${SERVER_URL}/courses/${courseId}/outcomes?userEmail=${encodeURIComponent(userEmail)}`),
+        fetch(`${SERVER_URL}/courses/${courseId}/rubrics`),
+        fetch(`${SERVER_URL}/courses/${courseId}/outcomes`),
       ]);
       if (rubRes.ok) setRubrics(await rubRes.json());
       if (outRes.ok) setOutcomes(await outRes.json());

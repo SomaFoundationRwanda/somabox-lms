@@ -65,31 +65,10 @@ export default function AIAssistantWidget({ courseId = "", lessonId = "", onInse
     setShowCommentBox(false);
 
     try {
-      const unshiftString = (str) => {
-        if (!str) return '';
-        return str.split('').map(ch => {
-          if (/[a-z]/.test(ch)) {
-            return String.fromCharCode((ch.charCodeAt(0) - 97 + 25) % 26 + 97);
-          } else if (/[A-Z]/.test(ch)) {
-            return String.fromCharCode((ch.charCodeAt(0) - 65 + 25) % 26 + 65);
-          }
-          return ch;
-        }).join('');
-      };
-
-      const storedGh = typeof window !== "undefined" ? localStorage.getItem("gh") : null;
-      const storedAl = typeof window !== "undefined" ? localStorage.getItem("al") : null;
-
-      const unshiftedEmail = unshiftString(storedAl);
-      const unshiftedRole = unshiftString(storedGh) || unshiftString(role);
-
       const res = await fetch(`${SERVER_URL}/ai/ask`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-user-role": unshiftedRole || "teacher",
-          "x-user-email": unshiftedEmail || "teacher@somabox.org"
-        },
+        // Identity comes from the session token added by the fetch wrapper.
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           mode,
           question,
@@ -159,14 +138,9 @@ export default function AIAssistantWidget({ courseId = "", lessonId = "", onInse
     setPendingRating(rating);
 
     try {
-      const storedAl = typeof window !== "undefined" ? localStorage.getItem("al") : null;
       await fetch(`${SERVER_URL}/ai/feedback`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-user-role": role || "teacher",
-          "x-user-email": storedAl || "teacher@somabox.org"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           response_id: responseId,
           rating,

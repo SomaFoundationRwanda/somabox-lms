@@ -6,7 +6,7 @@ import DataContext from "@/context/DataContext";
 import { Button } from "@/components/ui/button";
 
 export default function InterleavedReviewPage() {
-    const { SERVER_URL, unshiftString } = useContext(DataContext);
+    const { SERVER_URL, user } = useContext(DataContext);
     const [sessionData, setSessionData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [currentIdx, setCurrentIdx] = useState(0);
@@ -15,17 +15,13 @@ export default function InterleavedReviewPage() {
     const [reviewedCount, setReviewedCount] = useState(0);
     const [isFinished, setIsFinished] = useState(false);
 
-    const scholarEmail = useMemo(() => {
-        if (typeof window === "undefined") return "";
-        const stored = localStorage.getItem("al");
-        return stored ? unshiftString(stored) : "";
-    }, [unshiftString]);
+    const scholarEmail = user?.email || "";
 
     useEffect(() => {
         if (!SERVER_URL || !scholarEmail) return;
         const load = async () => {
             try {
-                const res = await fetch(`${SERVER_URL}/sol/interleaving/session?scholarEmail=${encodeURIComponent(scholarEmail)}`);
+                const res = await fetch(`${SERVER_URL}/sol/interleaving/session`);
                 if (res.ok) {
                     const data = await res.json();
                     setSessionData(data);

@@ -15,8 +15,8 @@ import Link from "next/link";
 
 const AdminPortal = () => {
     const { t } = useLanguage();
-    const { authenticated, role, unshiftString, isDark, SERVER_URL } = useContext(DataContext);
-    const userRole = unshiftString(role);
+    const { authenticated, role, isDark, SERVER_URL, user } = useContext(DataContext);
+    const userRole = role;
     const dm = isDark;
 
     const ACCENT          = dm ? "#0D9488"                   : "#203B3B";
@@ -35,9 +35,9 @@ const AdminPortal = () => {
     const [sendNotifModal, setSendNotifModal] = useState(false);
 
     useEffect(() => {
-        const name = unshiftString(localStorage.getItem("un") || "");
+        const name = (user?.fullName || "");
         if (name) setInitials(name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase());
-    }, [unshiftString]);
+    }, [user]);
 
     const options = useMemo(() => [
         {

@@ -9,13 +9,25 @@ import sharp from 'sharp';
 import { pdfToPng } from 'pdf-to-png-converter';
 
 import { config } from '../config/index.js';
+import { requireRole } from '../helpers/auth.js';
 
 const router = express.Router();
+// Content sync manages files on the box: admins only.
+router.use(requireRole('admin'));
 const CLOUD_URL = config.cloudUrl;
 const normalizedCloudUrl = CLOUD_URL.replace(/\/$/, '');
 const CLOUD_CONTENT_ROOT = `${normalizedCloudUrl}/content`;
 const LOCAL_STORAGE_ROOT = config.paths.rwandanEducation;
 const LOCAL_STORAGE_ROOT_PDF_COVERS = config.paths.rwandanPdfCovers;
+
+// A relative content path that stays strictly inside LOCAL_STORAGE_ROOT (no "..",
+// absolute paths, or the root itself).
+function isSafeRelPath(relPath) {
+    if (typeof relPath !== 'string' || !relPath.trim()) return false;
+    if (path.isAbsolute(relPath) || relPath.split(/[\\/]/).includes('..')) return false;
+    const resolved = path.resolve(LOCAL_STORAGE_ROOT, relPath);
+    return resolved.startsWith(path.resolve(LOCAL_STORAGE_ROOT) + path.sep);
+}
 
 router.get('/available-content', async (req, res) => {
     try {
@@ -243,6 +255,9 @@ router.post('/download', (req, res) => {
     if (!Array.isArray(files) || !files.length) {
         return res.status(400).json({ error: 'No files specified' });
     }
+    if (!files.every(isSafeRelPath)) {
+        return res.status(400).json({ error: 'Invalid file path' });
+    }
 
     // Start download in the background, immediately respond
     startDownload(files);
@@ -257,6 +272,9 @@ router.post('/delete', async (req, res) => {
     const { paths } = req.body;
     if (!Array.isArray(paths) || !paths.length) {
         return res.status(400).json({ error: 'No paths specified' });
+    }
+    if (!paths.every(isSafeRelPath)) {
+        return res.status(400).json({ error: 'Invalid path' });
     }
 
     try {

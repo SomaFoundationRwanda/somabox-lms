@@ -17,8 +17,17 @@ cp soma-x-backend/.env.example soma-x-backend/.env   # then fill in the values
 npm run setup:db                                     # creates/updates tables
 ```
 
-The schema lives in `initSchemas()` in `src/helpers/db-manager.js` and is applied
-idempotently by `npm run setup` and on startup.
+On startup (and with `npm run setup`) the server applies the legacy baseline schema in
+`initSchemas()` (`src/helpers/db-manager.js`), then every pending migration in
+`src/db/migrations/`. **All schema changes go in a new migration file**
+(`NNNN_description.js` exporting `async up(client)`); never edit a shipped migration or add
+ALTERs to `initSchemas()`.
+
+### Authentication
+`POST /auth/login` returns a bearer token; send it as `Authorization: Bearer <token>`.
+Every API route requires a session except the short allowlist in `src/helpers/auth.js`.
+When adding a route, also add it to the access-policy table in `test/auth.test.js`; the
+test suite fails for routes without a policy.
 
 ### Default admin
 Setup creates `admin@mail.com` / `admin`. That account must set a new password on

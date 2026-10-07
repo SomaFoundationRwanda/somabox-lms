@@ -22,7 +22,7 @@ export default function PrevNextNav({ courseId, itemType, contentRefId, moduleIt
           : `itemType=${encodeURIComponent(itemType)}&contentRefId=${contentRefId}`;
 
         const res = await fetch(
-          `${SERVER_URL}/courses/${courseId}/module-items/sequence-position?${query}&userEmail=${encodeURIComponent(userEmail)}`
+          `${SERVER_URL}/courses/${courseId}/module-items/sequence-position?${query}`
         );
         if (res.ok) {
           const data = await res.json();
@@ -50,7 +50,7 @@ export default function PrevNextNav({ courseId, itemType, contentRefId, moduleIt
       fetch(`${SERVER_URL}/courses/${courseId}/module-items/${current.module_item_id}/progress`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userEmail }),
+        body: JSON.stringify({}),
       }).catch(console.error);
     }
 

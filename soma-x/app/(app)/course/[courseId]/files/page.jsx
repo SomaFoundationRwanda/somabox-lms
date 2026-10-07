@@ -8,7 +8,7 @@ import Breadcrumbs from "@/components/course/Breadcrumbs";
 import AsyncListState from "@/components/course/AsyncListState";
 
 export default function FilesPage() {
-  const { SERVER_URL, courseId, userEmail, isTeacher } = useCourse();
+  const { SERVER_URL, courseId, isTeacher } = useCourse();
   const { data: files, loading, error, refetch } = useCourseSection("files");
   const [uploading, setUploading] = useState(false);
 
@@ -17,7 +17,6 @@ export default function FilesPage() {
     setUploading(true);
     try {
       const formData = new FormData();
-      formData.append("teacherEmail", userEmail);
       formData.append("file", file);
       await fetch(`${SERVER_URL}/courses/${courseId}/files`, { method: "POST", body: formData });
       refetch();
@@ -30,7 +29,7 @@ export default function FilesPage() {
     await fetch(`${SERVER_URL}/courses/${courseId}/files/${id}`, {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ teacherEmail: userEmail }),
+      body: JSON.stringify({}),
     });
     refetch();
   };

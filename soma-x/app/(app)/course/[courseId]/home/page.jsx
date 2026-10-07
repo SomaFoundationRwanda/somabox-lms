@@ -23,9 +23,9 @@ export default function CourseHomePage() {
     try {
       setLoading(true);
       const [statusRes, loopRes, outcomeRes] = await Promise.all([
-        fetch(`${SERVER_URL}/courses/${courseId}/setup-status?userEmail=${encodeURIComponent(userEmail)}`),
-        fetch(`${SERVER_URL}/courses/${courseId}/home-loop?userEmail=${encodeURIComponent(userEmail)}`),
-        fetch(`${SERVER_URL}/courses/${courseId}/outcome-mastery?userEmail=${encodeURIComponent(userEmail)}`),
+        fetch(`${SERVER_URL}/courses/${courseId}/setup-status`),
+        fetch(`${SERVER_URL}/courses/${courseId}/home-loop`),
+        fetch(`${SERVER_URL}/courses/${courseId}/outcome-mastery`),
       ]);
 
       if (statusRes.ok) setSetupStatus(await statusRes.json());

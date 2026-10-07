@@ -49,7 +49,7 @@ const GRADE_LEVELS = [
 ];
 
 export default function MandatoryProfileSetupModal() {
-    const { authenticated, unshiftString, shiftString, role } = useContext(DataContext);
+    const { authenticated, role, user, refreshUser } = useContext(DataContext);
     const { lang, setLang } = useLanguage();
     const { showToast } = useToast();
 
@@ -83,11 +83,9 @@ export default function MandatoryProfileSetupModal() {
 
     const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3002';
 
-    const userEmail = typeof window !== 'undefined' && localStorage.getItem('al')
-        ? unshiftString(localStorage.getItem('al'))
-        : '';
+    const userEmail = user?.email || "";
 
-    const currentRole = role ? unshiftString(role) : 'scholar';
+    const currentRole = role || 'scholar';
 
     useEffect(() => {
         if (!authenticated || !userEmail) {
@@ -99,9 +97,7 @@ export default function MandatoryProfileSetupModal() {
             try {
                 // Check if user already marked it completed locally
                 const isLocallyComplete = typeof window !== 'undefined' && localStorage.getItem(`somabox_profile_completed_${userEmail}`) === 'true';
-
-                const params = new URLSearchParams({ email: userEmail, role: currentRole });
-                const res = await fetch(`${SERVER_URL}/users/profile/view?${params}`);
+                const res = await fetch(`${SERVER_URL}/users/profile/view`);
                 if (!res.ok) {
                     setCheckingStatus(false);
                     return;
@@ -234,7 +230,6 @@ export default function MandatoryProfileSetupModal() {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    email: userEmail,
                     fullName: fullName.trim(),
                     phone: phone.trim(),
                     gender,
@@ -256,10 +251,9 @@ export default function MandatoryProfileSetupModal() {
             // Persist completion flag so it never prompts again
             if (typeof window !== 'undefined') {
                 localStorage.setItem(`somabox_profile_completed_${userEmail}`, 'true');
-                if (fullName.trim()) {
-                    localStorage.setItem('un', shiftString(fullName.trim()));
-                }
             }
+            // Pick up the new name in the header and menus.
+            await refreshUser();
             if (preferredLanguage) {
                 setLang(preferredLanguage);
             }

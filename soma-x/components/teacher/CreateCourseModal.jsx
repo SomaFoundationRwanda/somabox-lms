@@ -19,7 +19,7 @@ const GRADE_OPTIONS = [
 ]
 
 // Shared by every entry point that creates a course, so there's exactly one create-course UX.
-export default function CreateCourseModal({ SERVER_URL, teacherEmail, onClose, onCreated }) {
+export default function CreateCourseModal({ SERVER_URL, onClose, onCreated }) {
   const [form, setForm] = useState({ title: "", grade: "", gradeOther: "", description: "" })
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
@@ -37,7 +37,6 @@ export default function CreateCourseModal({ SERVER_URL, teacherEmail, onClose, o
           title: form.title.trim(),
           grade: resolvedGrade,
           description: form.description,
-          teacherEmail,
         }),
       })
       const data = await res.json()

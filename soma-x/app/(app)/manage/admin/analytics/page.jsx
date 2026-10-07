@@ -10,8 +10,8 @@ import GrowthCurvesChart from '@/components/analytics/GrowthCurvesChart';
 import NotificationBellDrawer from '@/components/notifications/NotificationBellDrawer';
 
 export default function AdminAnalyticsPage() {
-    const { authenticated, role, unshiftString, SERVER_URL, isDark } = useContext(DataContext);
-    const userRole = role ? unshiftString(role) : '';
+    const { authenticated, role, SERVER_URL, isDark, user } = useContext(DataContext);
+    const userRole = role || '';
     const dm = isDark;
 
     const topBarBg     = dm ? "#080B0F"                   : "#ffffff";
