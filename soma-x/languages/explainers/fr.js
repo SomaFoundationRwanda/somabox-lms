@@ -146,6 +146,12 @@ export default {
       when: "Voir qui est en retard et qui n'a pas rendu son travail.",
       mistake: "Prendre une case vide pour un zéro. Un tiret veut dire que rien n'a encore été rendu.",
     },
+    insights: {
+      title: "Statistiques",
+      what: "Comment la classe progresse, calculé uniquement à partir des travaux et quiz notés. Les activités d'entraînement ne comptent pas. La progression compare chaque objectif à son niveau de départ (semaine 0) ; le gain normalisé est la part de l'amélioration possible atteinte (du niveau de départ jusqu'à 100 %).",
+      when: "Repérer les objectifs à retravailler, les apprenants à suivre de près et les éléments que beaucoup ont manqués.",
+      mistake: "Prendre un tiret pour un zéro. Un tiret veut dire qu'il n'y a pas encore de résultats, et chaque chiffre indique sur combien d'apprenants il repose.",
+    },
     calendar: {
       title: "Calendrier",
       what: "Quand chaque semaine commence, et quand chaque travail ouvre, est à rendre et se ferme.",

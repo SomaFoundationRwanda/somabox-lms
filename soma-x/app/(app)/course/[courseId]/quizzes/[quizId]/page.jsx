@@ -9,6 +9,7 @@ import { PageHeader, Section, DataTable, EmptyState } from "@/components/layout"
 import { useToast } from "@/context/ToastContext";
 import PrevNextNav from "@/components/course/navigation/PrevNextNav";
 import { moduleWeekLabel } from "@/lib/moduleLabels";
+import { useItemOpened } from "@/lib/usage";
 
 function getOptionText(opt) {
   if (opt === null || opt === undefined) return "";
@@ -24,6 +25,7 @@ function getOptionId(opt, idx) {
 
 export default function QuizDetailPage() {
   const { courseId, quizId } = useParams();
+  useItemOpened("quiz", quizId, courseId);
   const { SERVER_URL, userEmail, isTeacher } = useCourse();
   const [quiz, setQuiz] = useState(null);
   const [modules, setModules] = useState([]);

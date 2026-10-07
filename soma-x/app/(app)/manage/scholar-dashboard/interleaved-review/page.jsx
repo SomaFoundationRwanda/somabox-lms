@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowLeft, Shuffle, Sparkles } from "lucide-react";
 import DataContext from "@/context/DataContext";
 import { Button } from "@/components/ui/button";
+import PracticeLabel from "@/components/sol/PracticeLabel";
 
 export default function InterleavedReviewPage() {
     const { SERVER_URL, user } = useContext(DataContext);
@@ -90,6 +91,7 @@ export default function InterleavedReviewPage() {
                             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                                 {sessionData?.description}
                             </p>
+                            <PracticeLabel className="mt-1.5" />
                         </div>
                     </div>
 
@@ -150,6 +152,7 @@ export default function InterleavedReviewPage() {
                     <p className="text-xs text-slate-500 dark:text-slate-400 mb-6">
                         You revisited {reviewedCount} question{reviewedCount === 1 ? "" : "s"} across your completed lessons.
                     </p>
+                    <p className="-mt-4 mb-6"><PracticeLabel /></p>
                     <Link href="/manage/scholar-dashboard">
                         <Button className="bg-[#203A3A] hover:bg-[#162727] text-white text-xs font-bold px-8 h-10 rounded-xl">
                             Return to Dashboard

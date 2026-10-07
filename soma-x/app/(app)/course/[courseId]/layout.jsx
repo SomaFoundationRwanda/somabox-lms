@@ -1,11 +1,21 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useContext } from "react";
+import { useParams, usePathname } from "next/navigation";
+import DataContext from "@/context/DataContext";
 import { CourseProvider, useCourse } from "@/context/CourseContext";
 import CourseSidebar, { CourseMenuButton } from "@/components/course/CourseSidebar";
+import { useCourseOpened } from "@/lib/usage";
 
 function CourseShell({ children }) {
-  const { loading, error, course } = useCourse();
+  const { loading, error, course, courseId } = useCourse();
+  const { role } = useContext(DataContext);
+  const pathname = usePathname() || "";
+  useCourseOpened(courseId, !!course);
+
+  // Admins who aren't members of the course can still open its Insights (the insights API
+  // allows admins); the rest of the course stays members-only.
+  const adminInsights = role === "admin" && /^\/course\/[^/]+\/insights(\/|$)/.test(pathname);
 
   if (loading && !course) {
     return (
@@ -13,6 +23,10 @@ function CourseShell({ children }) {
         <div className="w-8 h-8 rounded-full border-[3px] border-slate-200 border-t-[#203A3A] animate-spin" />
       </div>
     );
+  }
+
+  if (error && adminInsights && !course) {
+    return <div className="min-h-full bg-white dark:bg-transparent">{children}</div>;
   }
 
   if (error) {

@@ -7,6 +7,7 @@ import { ItemError } from "../courses/items.js";
 import { generateStructured, AiError } from "./gateway.js";
 import { buildContext } from "./context.js";
 import { createDraft, toPayload } from "./drafts.js";
+import { courseInsights, classSummaryStats } from "../insights/metrics.js";
 
 const MAX_SOURCE = 4000;
 const concurrency = () => Math.max(1, Number(process.env.AI_JOB_CONCURRENCY) || 1);
@@ -20,6 +21,7 @@ export const JOB_KINDS = {
   outcome_rewrite: { total: 1 },
   rubric: { total: 1, needsAssignment: true },
   grading: { total: 1, needsAssignment: true },
+  class_summary: { total: 1 },
 };
 
 class Cancelled extends Error {}
@@ -54,6 +56,11 @@ export async function enqueueJob({ courseId, kind, moduleId, assignmentId, schol
     if (!submission) throw new ItemError(400, "There's no submission to suggest a grade for");
     const rubric = await localDb.prepare("SELECT id FROM rubrics WHERE assignment_id = ?").get(assignmentId);
     if (!rubric) throw new ItemError(400, "Grading suggestions need a rubric on the assignment");
+  }
+
+  if (kind === "class_summary") {
+    const any = await localDb.prepare("SELECT 1 FROM outcome_results WHERE course_id = ? AND source_type <> 'baseline' LIMIT 1").get(courseId);
+    if (!any) throw new ItemError(400, "There are no results to summarise yet");
   }
 
   const job = await localDb.prepare(`
@@ -181,6 +188,17 @@ async function execute(job) {
       await step();
       const result = await suggestGrade(job, ctx, run);
       await draft("grading", result.payload, { assignmentId: result.assignmentId, scholarEmail: input.scholarEmail });
+      await progress();
+    } else if (job.kind === "class_summary") {
+      // Only outcome codes and class numbers go to the model: no names, no individual results.
+      await step();
+      const insights = await courseInsights(job.course_id);
+      const result = await run("class_summary", {
+        language: ctx.language, courseTitle: ctx.courseTitle, gradeLevel: ctx.gradeLevel,
+        outcomes: ctx.outcomes,
+        stats: classSummaryStats(insights, (id) => ctx.outcomes.find((o) => Number(o.id) === Number(id))?.code),
+      });
+      await localDb.prepare("UPDATE ai_jobs SET result = ?::jsonb WHERE id = ?").run(JSON.stringify({ summary: result.summary, suggestions: result.suggestions, basedOn: { learners: insights.class.learners, learnersWithData: insights.class.learnersWithData } }), job.id);
       await progress();
     }
 

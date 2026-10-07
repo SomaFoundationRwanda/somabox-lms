@@ -1,6 +1,7 @@
 import express from 'express';
 import { localDb } from '../helpers/db-manager.js';
 import { subjectEmail } from '../helpers/auth.js';
+import { canViewLearner } from './insights/scope.js';
 
 const router = express.Router();
 
@@ -133,8 +134,10 @@ router.get('/interleaving/session', async (req, res) => {
 // 5. Baseline Diagnostic Quiz endpoints
 router.get('/diagnostic/status', async (req, res) => {
     try {
-        const scholarEmail = subjectEmail(req, req.query.scholarEmail, ['admin', 'teacher']);
-        if (!scholarEmail) return res.status(403).json({ message: 'You can only view your own diagnostic' });
+        // Teachers may look at learners they teach; admins at anyone.
+        const requested = String(req.query.scholarEmail || '').trim().toLowerCase() || req.user.email;
+        if (!await canViewLearner(req.user, requested)) return res.status(403).json({ message: 'You can only view your own diagnostic' });
+        const scholarEmail = requested;
 
         const result = await localDb.prepare(`
             SELECT * FROM diagnostic_results WHERE LOWER(scholar_email) = LOWER(?)

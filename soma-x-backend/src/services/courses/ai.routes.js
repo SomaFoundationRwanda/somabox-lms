@@ -28,7 +28,7 @@ async function jobView(job) {
   return {
     id: job.id, kind: job.kind, status: job.status, progress: job.progress, total: job.total,
     error: job.error, moduleId: job.module_id, createdAt: job.created_at, finishedAt: job.finished_at,
-    requestedBy: job.requested_by, position: await queuePosition(job), drafts,
+    requestedBy: job.requested_by, position: await queuePosition(job), drafts, result: job.result ?? null,
   };
 }
 

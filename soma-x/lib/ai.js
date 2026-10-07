@@ -13,6 +13,7 @@ export const JOB_KIND_LABELS = {
   outcome_rewrite: "Outcome rewrite",
   rubric: "Rubric",
   grading: "Grading suggestion",
+  class_summary: "Class summary",
 };
 
 export const DRAFT_TYPE_LABELS = {

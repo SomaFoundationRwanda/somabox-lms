@@ -146,6 +146,12 @@ export default {
       when: "Ver quién va atrasado y quién no ha entregado su trabajo.",
       mistake: "Tomar una celda vacía como un cero. Un guion significa que aún no se ha entregado nada.",
     },
+    insights: {
+      title: "Análisis",
+      what: "Cómo va la clase, calculado solo a partir de trabajos y cuestionarios calificados. Las actividades de práctica no cuentan. El progreso compara cada resultado de aprendizaje con su punto de partida (semana 0); la ganancia normalizada es la parte de la mejora posible que se logró (desde el punto de partida hasta el 100 %).",
+      when: "Encontrar resultados que hay que volver a enseñar, estudiantes que necesitan seguimiento y elementos que muchos no entregaron.",
+      mistake: "Tomar un guion como un cero. Un guion significa que aún no hay resultados, y cada cifra indica en cuántos estudiantes se basa.",
+    },
     calendar: {
       title: "Calendario",
       what: "Cuándo empieza cada semana y cuándo se abre, se entrega y se cierra cada trabajo.",

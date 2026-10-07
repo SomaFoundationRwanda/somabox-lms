@@ -146,6 +146,12 @@ export default {
       when: "Angalia nani yuko nyuma na nani hajawasilisha kazi.",
       mistake: "Kudhani kisanduku kitupu ni sifuri. Kistari kinamaanisha bado hakuna kilichowasilishwa.",
     },
+    insights: {
+      title: "Takwimu",
+      what: "Jinsi darasa linavyoendelea, kwa kutumia kazi na majaribio yenye alama pekee. Mazoezi hayahesabiwi. Ukuaji unalinganisha kila lengo sasa na kiwango cha mwanzo (Wiki 0); faida iliyosawazishwa ni sehemu ya maendeleo yanayowezekana ambayo mwanafunzi amefikia (kutoka kiwango cha mwanzo hadi 100%).",
+      when: "Tafuta malengo ya kufundisha upya, wanafunzi wanaohitaji kufuatiliwa, na vipengele ambavyo wengi hawakuwasilisha.",
+      mistake: "Kudhani kistari ni sifuri. Kistari kinamaanisha bado hakuna matokeo, na kila takwimu inasema imetokana na wanafunzi wangapi.",
+    },
     calendar: {
       title: "Kalenda",
       what: "Kila wiki inaanza lini, na kila kazi inafunguliwa, inatakiwa na inafungwa lini.",

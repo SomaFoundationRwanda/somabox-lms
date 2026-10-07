@@ -15,6 +15,7 @@ import { recordBaselineResults } from "./setup.js";
 import { recordQuizAttemptResults, recordSubmissionResults, rubricGrade } from "./results.js";
 import { contentDeadlines } from "./schedule.js";
 import { saveRubric } from "./rubrics.js";
+import { recordEditAfterPublish } from "../insights/events.js";
 import {
   OUTCOME_REQUIRED_MESSAGE,
   deleteContent,
@@ -143,6 +144,7 @@ router.patch("/:id/assignments/:assignmentId", async (req, res) => {
       if (published !== undefined) await syncListingPublished("assignment", existing.id, published);
       await updateItemDays(courseId, "assignment", existing.id, req.body);
     })();
+    await recordEditAfterPublish(req, courseId, "assignment", existing.id, existing.published);
     const row = await localDb.prepare("SELECT * FROM assignments WHERE id = ?").get(existing.id);
     return res.json({ ...row, module: await moduleSummary(row.module_id) });
   } catch (error) {
@@ -452,6 +454,7 @@ router.patch("/:id/quizzes/:quizId", async (req, res) => {
       if (published !== undefined) await syncListingPublished("quiz", existing.id, published);
       await updateItemDays(courseId, "quiz", existing.id, req.body);
     })();
+    await recordEditAfterPublish(req, courseId, "quiz", existing.id, existing.published);
     const row = await localDb.prepare("SELECT * FROM quizzes WHERE id = ?").get(existing.id);
     return res.json({ ...row, module: await moduleSummary(row.module_id) });
   } catch (error) {

@@ -1,94 +1,123 @@
 "use client"
 import { useEffect, useState } from "react";
-import { Activity, TrendingUp } from "lucide-react";
+import { TrendingUp } from "lucide-react";
 import { getGrowthCurves } from "@/lib/analytics-service";
+import { formatDate } from "@/lib/dates";
 
-export default function GrowthCurvesChart({ serverUrl, scholarEmail }) {
-    const [data, setData] = useState([]);
+const W = 600;
+const H = 220;
+const PAD = { top: 12, right: 12, bottom: 28, left: 36 };
+
+const shortDate = (d) => formatDate(d, { day: "numeric", month: "short" });
+
+// Weekly average of outcome results (graded work and quizzes; baseline excluded), with the
+// baseline average as a dashed reference line. Only recorded results: no data, no line.
+export default function GrowthCurvesChart({ serverUrl, scholarEmail, weeks: weeksBack = 26, title = "Growth over time" }) {
+    const [data, setData] = useState(null);
+    const [error, setError] = useState("");
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         if (!serverUrl) return;
-        const load = async () => {
+        let alive = true;
+        (async () => {
             setLoading(true);
-            const curves = await getGrowthCurves(serverUrl, scholarEmail);
-            setData(curves);
+            const r = await getGrowthCurves(serverUrl, scholarEmail, weeksBack);
+            if (!alive) return;
+            setData(r.data);
+            setError(r.ok ? "" : r.message);
             setLoading(false);
-        };
-        load();
-    }, [serverUrl, scholarEmail]);
+        })();
+        return () => { alive = false; };
+    }, [serverUrl, scholarEmail, weeksBack]);
 
-    if (loading) {
-        return <div className="p-6 text-center text-xs text-slate-600">Loading Longitudinal Growth Curves...</div>;
-    }
+    const weeks = (data?.weeks || []).filter((w) => w.averagePct != null);
+    const baseline = data?.baselineAverage ?? null;
 
-    const mathRecords = data.filter(d => d.subject === "Mathematics");
-    const scienceRecords = data.filter(d => d.subject === "Science");
+    const innerW = W - PAD.left - PAD.right;
+    const innerH = H - PAD.top - PAD.bottom;
+    const x = (i) => PAD.left + (weeks.length <= 1 ? innerW / 2 : (i / (weeks.length - 1)) * innerW);
+    const y = (pct) => PAD.top + innerH - (Math.max(0, Math.min(100, pct)) / 100) * innerH;
+    const path = weeks.map((w, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${y(w.averagePct).toFixed(1)}`).join(" ");
+    const labelEvery = Math.max(1, Math.ceil(weeks.length / 6));
+    const latest = weeks.length ? weeks[weeks.length - 1] : null;
+
+    const summary = weeks.length === 0
+        ? "No results yet."
+        : `${weeks.length} weeks with results. Latest week (${shortDate(latest.weekStart)}): ${latest.averagePct}% average from ${latest.learners} learners.${baseline != null ? ` Baseline average ${baseline}%.` : ""}`;
 
     return (
-        <div className="bg-white dark:bg-[#0f1318] border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                    <span className="p-2 bg-teal-50 dark:bg-teal-950/50 text-teal-700 dark:text-teal-400 rounded-xl">
-                        <TrendingUp className="w-4 h-4" />
-                    </span>
-                    <div>
-                        <h3 className="text-sm font-bold text-slate-900 dark:text-white">Longitudinal Progress Engine</h3>
-                        <p className="text-[10px] text-slate-600">Individual & Cohort growth curves over time</p>
-                    </div>
+        <div className="min-w-0 space-y-3">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="min-w-0">
+                    <h3 className="flex items-center gap-1.5 text-sm font-bold text-slate-900 dark:text-white">
+                        <TrendingUp className="w-4 h-4 text-teal-600" aria-hidden="true" /> {title}
+                    </h3>
+                    <p className="text-xs text-slate-500">Weekly average of marked outcome results over the last {weeksBack} weeks. Practice doesn&apos;t count.</p>
                 </div>
-                <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                    V2.1 Analytics
-                </span>
+                {latest ? (
+                    <p className="text-xs text-slate-600 dark:text-slate-300 text-right">
+                        Latest <strong className="text-slate-900 dark:text-white">{latest.averagePct}%</strong>
+                        {baseline != null ? <> · baseline <strong className="text-slate-900 dark:text-white">{baseline}%</strong></> : null}
+                    </p>
+                ) : null}
             </div>
 
-            {/* Growth Curves Graph Bars */}
-            <div className="space-y-4">
-                <SubjectBars label="Mathematics Progression" records={mathRecords} labelClass="text-teal-700 dark:text-teal-400" barClass="bg-teal-600 dark:bg-teal-500" />
-                <SubjectBars label="Science Progression" records={scienceRecords} labelClass="text-indigo-600 dark:text-indigo-400" barClass="bg-indigo-600 dark:bg-indigo-500" />
-            </div>
-        </div>
-    );
-}
-
-function toPercent(rec) {
-    const possible = Number(rec.total_possible);
-    return possible > 0 ? Math.round((Number(rec.score) / possible) * 100) : Math.round(Number(rec.score));
-}
-
-// Renders only recorded results; an empty subject shows "No data yet" rather than sample bars.
-function SubjectBars({ label, records, labelClass, barClass }) {
-    const latest = records.length > 0 ? toPercent(records[records.length - 1]) : null;
-    return (
-        <div>
-            <div className="flex items-center justify-between text-xs font-semibold mb-1.5">
-                <span className={`${labelClass} flex items-center gap-1`}>
-                    <Activity className="w-3.5 h-3.5" /> {label}
-                </span>
-                <span className="text-slate-500 font-bold">
-                    {latest !== null ? `${latest}% latest` : "No data yet"}
-                </span>
-            </div>
-            {records.length === 0 ? (
-                <div className="h-20 flex items-center justify-center bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 text-[11px] text-slate-500">
-                    No results recorded yet.
+            {loading && !data ? (
+                <div className="h-40 rounded-xl bg-slate-100 dark:bg-slate-800 animate-pulse" aria-label="Loading" />
+            ) : error ? (
+                <p role="alert" className="text-xs text-rose-600">{error}</p>
+            ) : weeks.length === 0 ? (
+                <div className="flex h-32 items-center justify-center rounded-xl border border-dashed border-slate-200 dark:border-slate-800 text-xs text-slate-500">
+                    No results yet.{baseline != null ? ` Baseline average ${baseline}% (${data.baselineLearners} learners).` : ""}
                 </div>
             ) : (
-                <div className="grid grid-cols-4 gap-2 items-end h-20 bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
-                    {records.slice(-4).map((rec, i) => {
-                        const pct = toPercent(rec);
-                        return (
-                            <div key={rec.id ?? i} className="flex flex-col items-center gap-1 h-full justify-end">
-                                <span className="text-[9px] font-bold text-slate-600 dark:text-slate-400">{pct}%</span>
-                                <div
-                                    className={`w-full ${barClass} rounded-t-md transition-all duration-500`}
-                                    style={{ height: `${Math.max(pct, 10)}%` }}
-                                />
-                                <span className="text-[8px] text-slate-600 truncate w-full text-center">{rec.topic}</span>
-                            </div>
-                        );
-                    })}
-                </div>
+                <>
+                    <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto" role="img" aria-label={`${title}. ${summary}`}>
+                        {[0, 25, 50, 75, 100].map((t) => (
+                            <g key={t}>
+                                <line x1={PAD.left} x2={W - PAD.right} y1={y(t)} y2={y(t)} className="stroke-slate-200 dark:stroke-slate-800" strokeWidth="1" />
+                                <text x={PAD.left - 6} y={y(t) + 3} textAnchor="end" className="fill-slate-500" fontSize="10">{t}%</text>
+                            </g>
+                        ))}
+                        {baseline != null ? (
+                            <g>
+                                <line x1={PAD.left} x2={W - PAD.right} y1={y(baseline)} y2={y(baseline)} className="stroke-slate-500" strokeWidth="1.5" strokeDasharray="5 4" />
+                                <text x={W - PAD.right} y={y(baseline) - 4} textAnchor="end" className="fill-slate-600 dark:fill-slate-300" fontSize="10">Baseline {baseline}%</text>
+                            </g>
+                        ) : null}
+                        <path d={path} fill="none" className="stroke-teal-600" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+                        {weeks.map((w, i) => (
+                            <circle key={w.weekStart} cx={x(i)} cy={y(w.averagePct)} r="3.5" className="fill-teal-600">
+                                <title>{`Week of ${shortDate(w.weekStart)}: ${w.averagePct}% from ${w.learners} learners (${w.results} results)`}</title>
+                            </circle>
+                        ))}
+                        {weeks.map((w, i) => (i % labelEvery === 0 || i === weeks.length - 1 ? (
+                            <text key={`l-${w.weekStart}`} x={x(i)} y={H - 8} textAnchor="middle" className="fill-slate-500" fontSize="10">{shortDate(w.weekStart)}</text>
+                        ) : null))}
+                    </svg>
+                    <details className="text-xs text-slate-600 dark:text-slate-300">
+                        <summary className="cursor-pointer font-semibold text-slate-700 dark:text-slate-200">Show the numbers</summary>
+                        <div className="mt-2 overflow-x-auto">
+                            <table className="min-w-full text-left">
+                                <thead className="text-[10px] uppercase text-slate-500">
+                                    <tr><th scope="col" className="py-1 pr-3">Week of</th><th scope="col" className="py-1 pr-3 text-right">Average</th><th scope="col" className="py-1 pr-3 text-right">Learners</th><th scope="col" className="py-1 text-right">Results</th></tr>
+                                </thead>
+                                <tbody>
+                                    {weeks.map((w) => (
+                                        <tr key={w.weekStart} className="border-t border-slate-100 dark:border-slate-800">
+                                            <td className="py-1 pr-3 whitespace-nowrap">{shortDate(w.weekStart)}</td>
+                                            <td className="py-1 pr-3 text-right">{w.averagePct}%</td>
+                                            <td className="py-1 pr-3 text-right">{w.learners}</td>
+                                            <td className="py-1 text-right">{w.results}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </details>
+                    {baseline != null ? <p className="text-[11px] text-slate-500">Dashed line: baseline average, from {data.baselineLearners} learners.</p> : null}
+                </>
             )}
         </div>
     );

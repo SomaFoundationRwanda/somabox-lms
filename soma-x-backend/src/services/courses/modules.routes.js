@@ -1,5 +1,6 @@
 // Modules, module items, item sequence, and progress.
 import express from "express";
+import { recordEditAfterPublish } from "../insights/events.js";
 import fs from "fs";
 import path from "path";
 import { localDb } from "../../helpers/db-manager.js";
@@ -457,6 +458,7 @@ router.patch("/:id/modules/:moduleId/items/:itemId/content", async (req, res) =>
     }
     // Release/due/close days live on the listing, whatever the content type.
     await updateItemDays(courseId, item.item_type, contentId, req.body);
+    await recordEditAfterPublish(req, courseId, item.item_type, contentId, item.published);
 
     if (item.item_type === 'page') {
       const { title, body, bodyJson, bodyHtml, published } = req.body;

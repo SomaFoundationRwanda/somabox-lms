@@ -1,12 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronRight, Clock, Sparkles } from "lucide-react";
 import { useToast } from "@/context/ToastContext";
 import { rubricGradePreview, fmtPoints, pctOf } from "@/lib/rubric";
 import useAiStatus from "@/lib/useAiStatus";
 import { aiFetch, startAiJob, rejectDraft, useAiJob } from "@/lib/ai";
 import { AiDraftLabel, JobProgress } from "@/components/ai/AiBits";
+import { trackEvent } from "@/lib/usage";
+
+// Gradings that take longer than this were left open, not worked on: don't report them.
+const MAX_GRADING_MS = 2 * 60 * 60 * 1000;
 
 export function LateBadge() {
   return (
@@ -38,6 +42,12 @@ export default function SubmissionGrader({ SERVER_URL, courseId, assignmentId, s
   const [error, setError] = useState("");
 
   const criteria = rubric?.criteria || [];
+
+  // When this learner's grading panel was opened (for the grading_time usage event).
+  const openedAt = useRef(defaultOpen ? Date.now() : null);
+  useEffect(() => {
+    openedAt.current = open ? Date.now() : null;
+  }, [open]);
 
   // ---- AI grading help (rubric grading only) ----
   const aiStatus = useAiStatus();
@@ -74,7 +84,8 @@ export default function SubmissionGrader({ SERVER_URL, courseId, assignmentId, s
       if (sc.points != null && Number.isFinite(Number(sc.points))) nextScores[id] = String(sc.points);
       if (sc.reason) reasons[id] = sc.reason;
     }
-    setAiApplied({ draftId: sug.id, reasons, before: { scores, feedback } });
+    const appliedFeedback = sug.payload?.feedback ? sug.payload.feedback : feedback;
+    setAiApplied({ draftId: sug.id, reasons, before: { scores, feedback }, applied: { scores: nextScores, feedback: appliedFeedback } });
     setScores(nextScores);
     if (sug.payload?.feedback) setFeedback(sug.payload.feedback);
     setError("");
@@ -163,6 +174,17 @@ export default function SubmissionGrader({ SERVER_URL, courseId, assignmentId, s
         return;
       }
       showToast(`Grade saved for ${s.fullName || s.scholar_email}`, "success");
+      if (openedAt.current) {
+        const ms = Date.now() - openedAt.current;
+        if (ms > 0 && ms <= MAX_GRADING_MS) trackEvent("grading_time", { ms, itemType: "assignment", rubric: !!rubric }, courseId);
+        openedAt.current = Date.now();
+      }
+      if (rubric && aiApplied) {
+        const a = aiApplied.applied || { scores: {}, feedback: "" };
+        const edited = String(a.feedback || "") !== String(feedback || "")
+          || criteria.some((c) => String(a.scores?.[c.id] ?? "") !== String(scores[c.id] ?? ""));
+        trackEvent("ai_suggestion_used", { edited }, courseId);
+      }
       onSaved?.();
     } catch (err) {
       setError(err.message || "Could not save the grade.");

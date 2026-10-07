@@ -6,8 +6,11 @@ import DataContext from "@/context/DataContext";
 import { useLanguage } from "@/context/LanguageContext";
 import {
     ArrowLeft, Building2, Calendar, CheckCircle2, Globe2, GraduationCap,
-    Mail, MapPin, Phone, User, Activity, BrainCircuit
+    Mail, MapPin, Phone, User, Activity, BrainCircuit, Download
 } from "lucide-react";
+import { useToast } from "@/context/ToastContext";
+import { downloadFile } from "@/lib/download";
+import PracticeLabel from "@/components/sol/PracticeLabel";
 import Link from "next/link";
 import { PageHeader, Section, List, ListRow, DataTable, EmptyState } from "@/components/layout";
 
@@ -28,6 +31,8 @@ export default function UserProfilePage() {
     const router = useRouter();
     const { SERVER_URL, isDark } = useContext(DataContext);
     const { t } = useLanguage();
+    const { showToast } = useToast();
+    const [downloading, setDownloading] = useState(false);
     
     const [user, setUser] = useState(null);
     const [classes, setClasses] = useState([]);
@@ -72,7 +77,8 @@ export default function UserProfilePage() {
 
                     if (spacedRes && spacedRes.ok) {
                         const spacedData = await spacedRes.json();
-                        setSpacedPractice(spacedData.pendingReviews || []);
+                        // The endpoint returns an array of pending reviews.
+                        setSpacedPractice(Array.isArray(spacedData) ? spacedData : spacedData?.pendingReviews || []);
                     }
                 }
                 
@@ -106,6 +112,19 @@ export default function UserProfilePage() {
             </div>
         );
     }
+
+    const downloadData = async () => {
+        setDownloading(true);
+        try {
+            const safe = String(user.email || `user-${userId}`).replace(/[^a-z0-9]+/gi, "-");
+            await downloadFile(`${SERVER_URL}/analytics/users/${encodeURIComponent(userId)}/data`, `somabox-data-${safe}.json`);
+            showToast("Data downloaded", "success");
+        } catch (err) {
+            showToast(err.message || "Download failed", "error");
+        } finally {
+            setDownloading(false);
+        }
+    };
 
     const isInactive = user.is_active === 0;
     const initials = getInitials(user.full_name, user.email);
@@ -201,6 +220,17 @@ export default function UserProfilePage() {
                                 )}
                             </>
                         }
+                        actions={
+                            <button
+                                type="button"
+                                onClick={downloadData}
+                                disabled={downloading}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50"
+                            >
+                                <Download className="w-3.5 h-3.5" aria-hidden="true" />
+                                {downloading ? "Preparing…" : "Download this person's data"}
+                            </button>
+                        }
                     />
                 </div>
             </div>
@@ -243,15 +273,16 @@ export default function UserProfilePage() {
                             <div className="bg-gradient-to-br from-teal-900 to-slate-900 rounded-2xl border border-teal-800/40 p-5 text-white relative overflow-hidden">
                                 <BrainCircuit className="absolute -right-4 -bottom-4 w-24 h-24 text-teal-800/30 opacity-50" />
                                 <h3 className="text-xs font-black uppercase tracking-wider text-teal-400 flex items-center gap-2 relative z-10">
-                                    <Activity className="w-4 h-4" /> Learning Outcomes
+                                    <Activity className="w-4 h-4" /> Practice activity
                                 </h3>
                                 <div className="relative z-10 mt-3">
-                                    <p className="text-3xl font-black">{analytics?.activeTrackedOutcomes || 0}</p>
-                                    <p className="text-xs font-medium text-teal-200/70 mt-1">Tracked active outcomes</p>
+                                    <p className="text-3xl font-black">{analytics?.activeTrackedOutcomes ?? "—"}</p>
+                                    <p className="text-xs font-medium text-teal-200/70 mt-1">Learning-science practice types used</p>
+                                    <PracticeLabel className="mt-2 text-teal-100 border-teal-700 bg-teal-950/40" />
                                 </div>
                             </div>
 
-                            <Section title="Spaced Practice Status">
+                            <Section title="Spaced Practice Status" description={<PracticeLabel />}>
                                 {spacedPractice?.length > 0 ? (
                                     <List label="Pending spaced practice reviews">
                                         {spacedPractice.map((sp, idx) => (

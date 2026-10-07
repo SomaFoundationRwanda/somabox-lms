@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Calendar, Check, Clock, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { completeSpacedReview, getPendingSpacedReviews } from "@/lib/sol-service";
+import PracticeLabel from "@/components/sol/PracticeLabel";
 
 export default function SpacedPracticeWidget({ serverUrl, scholarEmail }) {
     const [reviews, setReviews] = useState([]);
@@ -42,6 +43,7 @@ export default function SpacedPracticeWidget({ serverUrl, scholarEmail }) {
                     <div>
                         <h3 className="text-sm font-bold tracking-tight">Topics to Revisit</h3>
                         <p className="text-[10px] text-teal-200/70">A few past topics are due for a quick review</p>
+                        <PracticeLabel className="mt-1 text-teal-100 border-teal-700 bg-teal-950/40 dark:text-teal-100 dark:border-teal-700 dark:bg-teal-950/40" />
                     </div>
                 </div>
                 <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30">

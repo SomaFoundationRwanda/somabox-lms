@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Award, BookOpen, Brain, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { submitDiagnosticQuiz } from "@/lib/sol-service";
+import PracticeLabel from "@/components/sol/PracticeLabel";
 
 const DIAGNOSTIC_QUESTIONS = [
     { id: 1, subject: "Mathematics", question: "What is 15% of 200?", options: ["20", "25", "30", "35"], correct: 2 },
@@ -78,6 +79,7 @@ export default function DiagnosticQuizModal({ isOpen, onClose, serverUrl, schola
                         <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
                             Welcome to SOMABOX! A few quick questions to get a sense of where you're starting from.
                         </p>
+                        <p className="mb-4"><PracticeLabel /></p>
 
                         <div className="flex items-center justify-between text-xs font-bold text-slate-500 mb-2">
                             <span>Subject: {currentQ.subject}</span>

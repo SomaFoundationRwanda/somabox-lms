@@ -34,10 +34,10 @@ after(async () => {
 
 // ---------- P0-1: no fabricated metrics on an empty database ----------
 
-test("growth-curves returns an empty list on an empty database", async () => {
+test("growth-curves is empty on an empty database", async () => {
   const res = await asTeacher("GET", "/analytics/growth-curves");
   assert.equal(res.status, 200);
-  assert.deepEqual(res.body, []);
+  assert.deepEqual(res.body, { weeks: [], baselineAverage: null, baselineLearners: 0 });
 });
 
 test("inclusivity-gap reports null averages when there is no progress data", async () => {

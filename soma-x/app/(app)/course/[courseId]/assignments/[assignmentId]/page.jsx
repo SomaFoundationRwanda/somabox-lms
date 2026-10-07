@@ -14,11 +14,13 @@ import PrevNextNav from "@/components/course/navigation/PrevNextNav";
 import { moduleWeekLabel } from "@/lib/moduleLabels";
 import { formatDate } from "@/lib/dates";
 import ScheduleFields, { initialScheduleValues, scheduleError, schedulePayload } from "@/components/course/modules/editors/ScheduleFields";
+import { useItemOpened } from "@/lib/usage";
 
 const itemDaysOf = (item) => ({ release_day: item.release_day, due_day: item.due_day, close_day: item.close_day });
 
 export default function AssignmentDetailPage() {
   const { courseId, assignmentId } = useParams();
+  useItemOpened("assignment", assignmentId, courseId);
   const { SERVER_URL, userEmail, isTeacher } = useCourse();
   const [assignment, setAssignment] = useState(null);
   const [modules, setModules] = useState([]);

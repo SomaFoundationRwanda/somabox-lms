@@ -1,12 +1,30 @@
-export async function getGrowthCurves(serverUrl, scholarEmail) {
-    if (!serverUrl) return [];
+const EMPTY_GROWTH = { weeks: [], baselineAverage: null, baselineLearners: 0 };
+
+/**
+ * Weekly average of outcome results (baseline excluded) plus the baseline average:
+ * { ok, message, data: { weeks: [{ weekStart, averagePct, learners, results }], baselineAverage, baselineLearners } }.
+ * Admins get the whole school, teachers the learners they teach, learners themselves.
+ */
+export async function getGrowthCurves(serverUrl, scholarEmail, weeks = 26) {
+    if (!serverUrl) return { ok: false, message: "No server configured", data: EMPTY_GROWTH };
     try {
-        const query = scholarEmail ? `?scholarEmail=${encodeURIComponent(scholarEmail)}` : '';
-        const res = await fetch(`${serverUrl}/analytics/growth-curves${query}`);
-        if (!res.ok) return [];
-        return await res.json();
-    } catch {
-        return [];
+        const params = new URLSearchParams();
+        if (scholarEmail) params.set('scholarEmail', scholarEmail);
+        if (weeks) params.set('weeks', String(weeks));
+        const res = await fetch(`${serverUrl}/analytics/growth-curves?${params.toString()}`);
+        const payload = await res.json().catch(() => ({}));
+        if (!res.ok) return { ok: false, message: payload.message || "Couldn't load growth over time", data: EMPTY_GROWTH };
+        return {
+            ok: true,
+            message: "",
+            data: {
+                weeks: Array.isArray(payload.weeks) ? payload.weeks : [],
+                baselineAverage: payload.baselineAverage ?? null,
+                baselineLearners: Number(payload.baselineLearners || 0),
+            },
+        };
+    } catch (err) {
+        return { ok: false, message: err?.message || "Couldn't reach the server", data: EMPTY_GROWTH };
     }
 }
 

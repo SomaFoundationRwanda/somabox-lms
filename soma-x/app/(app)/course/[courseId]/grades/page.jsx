@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Clock } from "lucide-react";
+import { Clock, TrendingUp } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
 import { useCourseSection } from "@/lib/useCourseSection";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
@@ -82,6 +82,14 @@ export default function GradesPage() {
             </span>
           ) : data?.role === "student" ? (
             <span>Your average: No data yet</span>
+          ) : null}
+          actions={data?.role === "student" ? (
+            <Link
+              href={`/course/${courseId}/progress`}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0D9488] border border-teal-200 dark:border-teal-900 hover:bg-teal-50 dark:hover:bg-teal-950/30 rounded-lg px-3 py-1.5"
+            >
+              <TrendingUp className="w-3.5 h-3.5" aria-hidden="true" /> My progress
+            </Link>
           ) : null}
         />
 

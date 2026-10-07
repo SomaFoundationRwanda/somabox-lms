@@ -3,10 +3,44 @@
 import { useContext, useEffect, useState } from "react";
 import {
     BookOpen, CheckCircle2, GraduationCap,
-    KeyRound, Lock, Mail, MapPin, Pencil, Save, ShieldAlert, User, X
+    Download, KeyRound, Lock, Mail, MapPin, Pencil, Save, ShieldAlert, User, X
 } from "lucide-react";
 import DataContext from "@/context/DataContext";
 import { useToast } from "@/context/ToastContext";
+import { downloadFile } from "@/lib/download";
+
+// "Download my data": everything the box holds about the signed-in person, as a JSON file.
+function DownloadMyData({ SERVER_URL }) {
+    const { showToast } = useToast();
+    const [busy, setBusy] = useState(false);
+    const download = async () => {
+        setBusy(true);
+        try {
+            await downloadFile(`${SERVER_URL}/analytics/my-data`, `somabox-my-data-${new Date().toISOString().slice(0, 10)}.json`);
+            showToast("Your data was downloaded", "success");
+        } catch (err) {
+            showToast(err.message || "Download failed", "error");
+        } finally {
+            setBusy(false);
+        }
+    };
+    return (
+        <section aria-labelledby="my-data-title" className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-5">
+            <div className="min-w-0">
+                <h2 id="my-data-title" className="text-[13px] font-bold text-slate-800">Your data</h2>
+                <p className="text-[11px] text-slate-600 max-w-xl">Download a file with everything this box holds about you: your profile, courses, work, results, and usage logs.</p>
+            </div>
+            <button
+                type="button"
+                onClick={download}
+                disabled={busy || !SERVER_URL}
+                className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl border border-slate-200 bg-white text-[12px] font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+            >
+                <Download size={13} aria-hidden="true" /> {busy ? "Preparing…" : "Download my data"}
+            </button>
+        </section>
+    );
+}
 
 
 const AVATAR_GRADIENTS = [
@@ -585,6 +619,8 @@ export default function AccountPage() {
                         </div>
                     </div>
                 )}
+
+                <DownloadMyData SERVER_URL={SERVER_URL} />
             </div>
         </div>
     );

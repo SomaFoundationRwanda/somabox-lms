@@ -107,7 +107,38 @@ export async function recordSubmissionResults({ courseId, assignmentId, submissi
   await writeResults(submission.user_id, courseId, "assignment_submission", submissionId, pcts);
 }
 
-const statusFor = (pct) => (pct == null ? null : pct < 60 ? "Needs Reteach" : pct >= 85 ? "Mastery Achieved" : "On Track");
+export const MASTERY_THRESHOLD = 85;
+export const RETEACH_THRESHOLD = 60;
+export const statusFor = (pct) => (pct == null ? null : pct < RETEACH_THRESHOLD ? "Needs Reteach" : pct >= MASTERY_THRESHOLD ? "Mastery Achieved" : "On Track");
+
+/**
+ * Each learner's value per outcome: current = mean of their latest result per piece of work
+ * (latest attempt per quiz; one per assignment submission), baseline = mean of their baseline
+ * results. Returns { current: [{ outcome_id, user_id, pct, n }], baseline: [{ outcome_id, user_id, pct }] }.
+ */
+export async function learnerOutcomeValues(courseId, userIds) {
+  if (!userIds.length) return { current: [], baseline: [] };
+  const placeholders = userIds.map(() => "?").join(",");
+  const current = await localDb.prepare(`
+    WITH r AS (
+      SELECT o.user_id, o.outcome_id, o.pct, o.assessed_at, qa.attempt_number,
+             CASE WHEN o.source_type = 'quiz_attempt' THEN 'quiz:' || qa.quiz_id ELSE o.source_type || ':' || o.source_id END AS item_key
+      FROM outcome_results o
+      LEFT JOIN quiz_attempts qa ON o.source_type = 'quiz_attempt' AND qa.id = o.source_id
+      WHERE o.course_id = ? AND o.source_type <> 'baseline' AND o.user_id IN (${placeholders})
+    ), latest AS (
+      SELECT DISTINCT ON (user_id, outcome_id, item_key) user_id, outcome_id, pct
+      FROM r ORDER BY user_id, outcome_id, item_key, attempt_number DESC NULLS LAST, assessed_at DESC
+    )
+    SELECT outcome_id, user_id, AVG(pct) AS pct, COUNT(*) AS n FROM latest GROUP BY outcome_id, user_id
+  `).all(courseId, ...userIds);
+  const baseline = await localDb.prepare(`
+    SELECT outcome_id, user_id, AVG(pct) AS pct FROM outcome_results
+    WHERE course_id = ? AND source_type = 'baseline' AND user_id IN (${placeholders})
+    GROUP BY outcome_id, user_id
+  `).all(courseId, ...userIds);
+  return { current, baseline };
+}
 
 /**
  * Mastery per outcome from outcome_results only.
@@ -126,25 +157,7 @@ export async function computeMastery(courseId, { userId = null } = {}) {
   const scope = userId ? [Number(userId)] : learnerIds;
   if (scope.length === 0) return outcomes.map((o) => emptyRow(o));
 
-  const placeholders = scope.map(() => "?").join(",");
-  const current = await localDb.prepare(`
-    WITH r AS (
-      SELECT o.user_id, o.outcome_id, o.pct, o.assessed_at, qa.attempt_number,
-             CASE WHEN o.source_type = 'quiz_attempt' THEN 'quiz:' || qa.quiz_id ELSE o.source_type || ':' || o.source_id END AS item_key
-      FROM outcome_results o
-      LEFT JOIN quiz_attempts qa ON o.source_type = 'quiz_attempt' AND qa.id = o.source_id
-      WHERE o.course_id = ? AND o.source_type <> 'baseline' AND o.user_id IN (${placeholders})
-    ), latest AS (
-      SELECT DISTINCT ON (user_id, outcome_id, item_key) user_id, outcome_id, pct
-      FROM r ORDER BY user_id, outcome_id, item_key, attempt_number DESC NULLS LAST, assessed_at DESC
-    )
-    SELECT outcome_id, user_id, AVG(pct) AS pct, COUNT(*) AS n FROM latest GROUP BY outcome_id, user_id
-  `).all(courseId, ...scope);
-  const baseline = await localDb.prepare(`
-    SELECT outcome_id, user_id, AVG(pct) AS pct FROM outcome_results
-    WHERE course_id = ? AND source_type = 'baseline' AND user_id IN (${placeholders})
-    GROUP BY outcome_id, user_id
-  `).all(courseId, ...scope);
+  const { current, baseline } = await learnerOutcomeValues(courseId, scope);
 
   const mean = (rows) => (rows.length ? rows.reduce((s, r) => s + Number(r.pct), 0) / rows.length : null);
   return outcomes.map((o) => {

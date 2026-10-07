@@ -1,5 +1,6 @@
 // Activity feed, announcements, syllabus, files, collaborations, pages, discussions.
 import express from "express";
+import { recordEditAfterPublish } from "../insights/events.js";
 import fs from "fs";
 import path from "path";
 import { localDb } from "../../helpers/db-manager.js";
@@ -510,6 +511,7 @@ router.patch("/:id/pages/:pageId", async (req, res) => {
     if (title !== undefined) await localDb.prepare("UPDATE module_items SET title = ? WHERE item_type = 'page' AND content_id = ?").run(title, existing.id);
     if (published !== undefined) await syncListingPublished("page", existing.id, published);
 
+    await recordEditAfterPublish(req, courseId, "page", existing.id, existing.published);
     return res.json(await localDb.prepare("SELECT * FROM course_pages WHERE id = ?").get(req.params.pageId));
   } catch (error) {
     console.error("Error updating page:", error);
@@ -703,6 +705,7 @@ router.patch("/:id/discussions/:discussionId", async (req, res) => {
         await localDb.prepare("UPDATE assignments SET published = ? WHERE id = ?").run(published ? 1 : 0, current.linked_assignment_id);
       }
     }
+    await recordEditAfterPublish(req, courseId, "discussion", discussion.id, discussion.published);
     return res.json(await localDb.prepare("SELECT * FROM discussions WHERE id = ?").get(req.params.discussionId));
   } catch (error) {
     if (sendItemError(res, error)) return;

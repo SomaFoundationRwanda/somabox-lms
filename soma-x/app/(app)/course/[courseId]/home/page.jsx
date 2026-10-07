@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
-  ChevronDown, ChevronRight, Clock, AlertTriangle, Target, CheckCircle2, Play, Calendar,
+  ChevronDown, ChevronRight, Clock, AlertTriangle, Target, CheckCircle2, Play, Calendar, TrendingUp,
 } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
@@ -88,6 +88,14 @@ export default function CourseHomePage() {
             <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-[#0D9488] px-2.5 py-0.5 rounded-full">
               {courseLifecycleLabel(course)}
             </span>
+          }
+          actions={
+            <Link
+              href={`/course/${courseId}/${isTeacher ? "insights" : "progress"}`}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0D9488] border border-teal-200 dark:border-teal-900 hover:bg-teal-50 dark:hover:bg-teal-950/30 rounded-lg px-3 py-1.5"
+            >
+              <TrendingUp className="w-3.5 h-3.5" aria-hidden="true" /> {isTeacher ? "Insights" : "My progress"}
+            </Link>
           }
         />
 

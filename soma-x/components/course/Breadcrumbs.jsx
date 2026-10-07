@@ -22,6 +22,8 @@ const SECTION_LABELS = {
   discussions: "Discussions",
   settings: "Settings",
   ai: "AI drafts",
+  insights: "Insights",
+  progress: "My progress",
 };
 
 export default function Breadcrumbs({ sectionKey, itemName }) {

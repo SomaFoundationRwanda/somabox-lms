@@ -54,6 +54,11 @@ const POLICY = {
   "POST /analytics/me-sync": "admin",
   "POST /analytics/events": "any",
   "GET /analytics/explainer-usage": "admin",
+  "GET /analytics/school": "admin",
+  "GET /analytics/settings": "admin",
+  "PUT /analytics/settings": "admin",
+  "GET /analytics/my-data": "any",
+  "GET /analytics/users/:userId/data": "admin",
 
   "GET /content/main-categories": "any",
   "GET /content/levels/summary": "any",
@@ -345,13 +350,16 @@ test("notifications are scoped to their owner and links stay inside the app", as
   assert.ok(outsiderList.body.notifications.every((n) => n.user_email === USERS.outsider.email));
 });
 
-test("scholars only see their own analytics", async () => {
-  await ctx.db.prepare("INSERT INTO longitudinal_progress (scholar_email, subject, topic, score) VALUES (?, 'Mathematics', 'T', 50)").run(USERS.outsider.email);
-  const res = await ctx.api("GET", `/analytics/growth-curves?scholarEmail=${encodeURIComponent(USERS.outsider.email)}`, { token: ctx.tokens.student });
-  assert.equal(res.status, 200);
-  assert.deepEqual(res.body, []);
-  const teacherView = await ctx.api("GET", `/analytics/growth-curves?scholarEmail=${encodeURIComponent(USERS.outsider.email)}`, { token: ctx.tokens.teacher });
-  assert.equal(teacherView.body.length, 1);
+test("scholars only see their own analytics; teachers only learners they teach", async () => {
+  const outsider = encodeURIComponent(USERS.outsider.email);
+  const res = await ctx.api("GET", `/analytics/growth-curves?scholarEmail=${outsider}`, { token: ctx.tokens.student });
+  assert.equal(res.status, 403);
+  const own = await ctx.api("GET", "/analytics/growth-curves", { token: ctx.tokens.student });
+  assert.equal(own.status, 200);
+  const teacherView = await ctx.api("GET", `/analytics/growth-curves?scholarEmail=${outsider}`, { token: ctx.tokens.teacher });
+  assert.equal(teacherView.status, 403, "the outsider isn't in any of this teacher's courses");
+  const adminView = await ctx.api("GET", `/analytics/growth-curves?scholarEmail=${outsider}`, { token: ctx.tokens.admin });
+  assert.equal(adminView.status, 200);
 });
 
 test("file routes reject paths outside their folders", async () => {

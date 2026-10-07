@@ -148,6 +148,12 @@ export default {
       when: "Check who is behind and who hasn't handed in work.",
       mistake: "Reading a blank cell as zero. A dash means nothing was handed in yet.",
     },
+    insights: {
+      title: "Insights",
+      what: "How the class is doing, worked out from graded work and graded quizzes only. Practice activities don't count. Growth is each outcome now compared with its baseline (Week 0); normalized gain is the share of the possible improvement a learner achieved (from the baseline up to 100%).",
+      when: "Find outcomes to reteach, learners who need a check-in, and items many learners missed.",
+      mistake: "Reading a dash as zero. A dash means there are no results yet, and every figure says how many learners it is based on.",
+    },
     calendar: {
       title: "Calendar",
       what: "When each week starts and when work opens, is due, and closes.",

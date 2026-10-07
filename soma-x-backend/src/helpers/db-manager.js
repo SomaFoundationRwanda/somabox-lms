@@ -217,6 +217,7 @@ export const DEFAULT_NAV_ITEMS = [
     { nav_key: 'collaborations', label: 'Collaborations', visible_to_students: 0 },
     { nav_key: 'settings', label: 'Settings', visible_to_students: 0 },
     { nav_key: 'calendar', label: 'Calendar', visible_to_students: 1 },
+    { nav_key: 'insights', label: 'Insights', visible_to_students: 0 },
 ];
 
 export async function seedDefaultNavItems(courseId) {

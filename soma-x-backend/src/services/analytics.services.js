@@ -1,19 +1,27 @@
 import express from 'express';
 import { localDb, serverDb } from '../helpers/db-manager.js';
 import { requireRole } from '../helpers/auth.js';
+import { analyticsScope } from './insights/scope.js';
+import { courseInsights } from './insights/metrics.js';
+import { SCHOOL_TIMEZONE } from './courses/schedule.js';
 
 const router = express.Router();
 const requireAdmin = requireRole('admin');
 
-// Scholars only ever see their own records. Teachers and admins may pick one learner
-// (scholarEmail) or, with no filter, the whole cohort (null).
-// TODO(phase 9): limit teachers to learners in their own courses.
-function analyticsSubject(req) {
-    if (req.user.role === 'scholar') return req.user.email;
-    return req.query.scholarEmail ? String(req.query.scholarEmail).trim().toLowerCase() : null;
+// Groups smaller than this are not reported in demographic breakdowns, so no figure can point
+// at a handful of identifiable learners.
+export const MIN_GROUP_SIZE = 5;
+export const DEFAULT_RETENTION_DAYS = 365;
+
+/** SQL filter + params for an analyticsScope result on a users table alias `u`. */
+function scopeFilter(scope) {
+    if (scope.all) return { sql: '', params: [] };
+    if (!scope.emails.length) return { sql: ' AND FALSE', params: [] };
+    return { sql: ` AND LOWER(u.email) IN (${scope.emails.map(() => '?').join(',')})`, params: scope.emails };
 }
 
-// Record longitudinal progress metric
+// Science-of-Learning practice records (spaced reviews, refreshers, the diagnostic). These are a
+// separate practice stream: they never count toward outcome mastery.
 router.post('/longitudinal', async (req, res) => {
     try {
         const scholarEmail = req.user.email;
@@ -24,11 +32,10 @@ router.post('/longitudinal', async (req, res) => {
         const difficultyLevel = String(req.body.difficultyLevel || 'medium').trim();
         const attemptNumber = Number(req.body.attemptNumber || 1);
 
-        const stmt = localDb.prepare(`
+        await localDb.prepare(`
             INSERT INTO longitudinal_progress (scholar_email, subject, topic, score, total_possible, difficulty_level, attempt_number)
             VALUES (?, ?, ?, ?, ?, ?, ?)
-        `);
-        await stmt.run(scholarEmail, subject, topic, score, totalPossible, difficultyLevel, attemptNumber);
+        `).run(scholarEmail, subject, topic, score, totalPossible, difficultyLevel, attemptNumber);
 
         return res.status(201).json({ message: 'Longitudinal record added' });
     } catch (error) {
@@ -37,130 +44,124 @@ router.post('/longitudinal', async (req, res) => {
     }
 });
 
-// Get Growth Curves (individual scholar or cohort)
+// Growth over time from outcome results (the only source for mastery): the mean result per
+// school week for one learner (scholarEmail) or for everyone the caller may see.
+// { weeks: [{ weekStart, averagePct, learners, results }], baselineAverage, learners }
 router.get('/growth-curves', async (req, res) => {
     try {
-        const scholarEmail = analyticsSubject(req);
-
-        let records;
-        if (scholarEmail) {
-            records = await localDb.prepare(`
-                SELECT id, scholar_email, subject, topic, score, total_possible, difficulty_level, created_at
-                FROM longitudinal_progress
-                WHERE LOWER(scholar_email) = LOWER(?)
-                ORDER BY created_at ASC
-            `).all(scholarEmail);
-        } else {
-            records = await localDb.prepare(`
-                SELECT id, scholar_email, subject, topic, score, total_possible, difficulty_level, created_at
-                FROM longitudinal_progress
-                ORDER BY created_at ASC
-            `).all();
-        }
-
+        const scope = await analyticsScope(req.user, req.query.scholarEmail);
+        if (scope.forbidden) return res.status(403).json({ message: 'You can only see learners you teach' });
+        const weeksBack = Math.min(104, Math.max(1, Number(req.query.weeks) || 26));
+        const filter = scopeFilter(scope);
+        const weeks = await localDb.prepare(`
+            SELECT to_char(date_trunc('week', o.assessed_at AT TIME ZONE ?), 'YYYY-MM-DD') AS week_start,
+                   AVG(o.pct) AS avg_pct, COUNT(DISTINCT o.user_id) AS learners, COUNT(*) AS results
+            FROM outcome_results o JOIN users u ON u.id = o.user_id
+            WHERE o.source_type <> 'baseline' AND o.assessed_at >= NOW() - make_interval(weeks => ?)${filter.sql}
+            GROUP BY 1 ORDER BY 1
+        `).all(SCHOOL_TIMEZONE, weeksBack, ...filter.params);
+        const baseline = await localDb.prepare(`
+            SELECT AVG(o.pct) AS avg_pct, COUNT(DISTINCT o.user_id) AS learners
+            FROM outcome_results o JOIN users u ON u.id = o.user_id
+            WHERE o.source_type = 'baseline'${filter.sql}
+        `).get(...filter.params);
         // An empty table means no data yet; never substitute sample records.
-        return res.json(records);
+        return res.json({
+            weeks: weeks.map((w) => ({ weekStart: w.week_start, averagePct: Math.round(Number(w.avg_pct)), learners: Number(w.learners), results: Number(w.results) })),
+            baselineAverage: baseline?.avg_pct != null ? Math.round(Number(baseline.avg_pct)) : null,
+            baselineLearners: Number(baseline?.learners || 0),
+        });
     } catch (error) {
         console.error('Error fetching growth curves:', error);
         return res.status(500).json({ message: error.message });
     }
 });
 
-// Inclusivity Gap Analysis: Rural vs. Urban performance across Gender lines
+// Inclusivity gap: average outcome result by rural/urban, gender, and accessibility needs.
+// Admins only, aggregates only, and any group with fewer than MIN_GROUP_SIZE learners with
+// results is reported as null (listed in `suppressed`).
 router.get('/inclusivity-gap', requireAdmin, async (req, res) => {
     try {
         const users = await serverDb.prepare(`
-            SELECT email, gender, region_province, region_district, is_rural, disability_status
-            FROM users WHERE role = 'scholar'
+            SELECT id, gender, is_rural, disability_status FROM users WHERE role = 'scholar'
         `).all();
-
-        const progressRecords = await localDb.prepare(`
-            SELECT scholar_email, score, total_possible FROM longitudinal_progress
+        const averages = await localDb.prepare(`
+            SELECT user_id, AVG(pct) AS pct FROM outcome_results WHERE source_type <> 'baseline' GROUP BY user_id
         `).all();
+        const scoreOf = new Map(averages.map((r) => [Number(r.user_id), Number(r.pct)]));
 
-        const userScoreMap = new Map();
-        for (const p of progressRecords) {
-            const email = String(p.scholar_email).toLowerCase();
-            if (!userScoreMap.has(email)) userScoreMap.set(email, []);
-            const pct = p.total_possible > 0 ? (p.score / p.total_possible) * 100 : p.score;
-            userScoreMap.get(email).push(pct);
-        }
-
-        // Learners without any recorded progress are counted but excluded from averages.
-        // Groups with no data report null, never a placeholder value.
-        const groups = {
-            ruralFemale: [], ruralMale: [], urbanFemale: [], urbanMale: [], disability: []
-        };
+        const groups = { rural: [], urban: [], ruralFemale: [], ruralMale: [], urbanFemale: [], urbanMale: [], disability: [] };
         let scholarsWithAccessibilityNeeds = 0;
         let scholarsWithData = 0;
-
         for (const user of users) {
-            const email = user.email.toLowerCase();
             const isRural = Number(user.is_rural) === 1;
             const isFemale = user.gender === 'female';
+            const isMale = user.gender === 'male';
             const hasDisability = user.disability_status && user.disability_status !== 'none';
             if (hasDisability) scholarsWithAccessibilityNeeds++;
-
-            const scores = userScoreMap.get(email);
-            if (!scores || scores.length === 0) continue;
+            const score = scoreOf.get(Number(user.id));
+            if (score == null) continue;
             scholarsWithData++;
-            const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
-
-            if (hasDisability) groups.disability.push(avgScore);
-            if (isRural) groups[isFemale ? 'ruralFemale' : 'ruralMale'].push(avgScore);
-            else groups[isFemale ? 'urbanFemale' : 'urbanMale'].push(avgScore);
+            if (hasDisability) groups.disability.push(score);
+            groups[isRural ? 'rural' : 'urban'].push(score);
+            if (isFemale) groups[isRural ? 'ruralFemale' : 'urbanFemale'].push(score);
+            if (isMale) groups[isRural ? 'ruralMale' : 'urbanMale'].push(score);
         }
 
-        const avg = (values) => values.length > 0
-            ? Math.round((values.reduce((a, b) => a + b, 0) / values.length) * 10) / 10
-            : null;
-        const ruralAverage = avg([...groups.ruralFemale, ...groups.ruralMale]);
-        const urbanAverage = avg([...groups.urbanFemale, ...groups.urbanMale]);
-
-        const report = {
+        const suppressed = [];
+        const avg = (name) => {
+            const values = groups[name];
+            if (values.length === 0) return null;
+            if (values.length < MIN_GROUP_SIZE) { suppressed.push(name); return null; }
+            return Math.round((values.reduce((a, b) => a + b, 0) / values.length) * 10) / 10;
+        };
+        const ruralAverage = avg('rural');
+        const urbanAverage = avg('urban');
+        return res.json({
+            source: 'outcome_results',
+            minGroupSize: MIN_GROUP_SIZE,
             totalScholars: users.length,
             scholarsWithData,
             ruralVsUrban: {
                 ruralAverage,
                 urbanAverage,
-                gapPercentage: ruralAverage !== null && urbanAverage !== null
-                    ? Math.round((urbanAverage - ruralAverage) * 10) / 10
-                    : null
+                gapPercentage: ruralAverage !== null && urbanAverage !== null ? Math.round((urbanAverage - ruralAverage) * 10) / 10 : null,
             },
             genderBreakdown: {
-                femaleRuralAverage: avg(groups.ruralFemale),
-                maleRuralAverage: avg(groups.ruralMale),
-                femaleUrbanAverage: avg(groups.urbanFemale),
-                maleUrbanAverage: avg(groups.urbanMale)
+                femaleRuralAverage: avg('ruralFemale'),
+                maleRuralAverage: avg('ruralMale'),
+                femaleUrbanAverage: avg('urbanFemale'),
+                maleUrbanAverage: avg('urbanMale'),
             },
             accessibilityMetrics: {
-                scholarsWithAccessibilityNeeds,
-                averagePerformance: avg(groups.disability)
-            }
-        };
-
-        return res.json(report);
+                scholarsWithAccessibilityNeeds: scholarsWithAccessibilityNeeds > 0 && scholarsWithAccessibilityNeeds < MIN_GROUP_SIZE ? null : scholarsWithAccessibilityNeeds,
+                averagePerformance: avg('disability'),
+            },
+            suppressed,
+        });
     } catch (error) {
         console.error('Error generating gap analysis:', error);
         return res.status(500).json({ message: error.message });
     }
 });
 
-// Active Science of Learning (SoL) outcomes tracker per learner
+// Science-of-Learning practice activity (a separate practice stream; not outcome mastery).
 router.get('/sol-outcomes', async (req, res) => {
     try {
-        const scholarEmail = analyticsSubject(req);
+        const scope = await analyticsScope(req.user, req.query.scholarEmail);
+        if (scope.forbidden) return res.status(403).json({ message: 'You can only see learners you teach' });
 
         // Counts come from recorded SoL activity only. Principles with no data
         // source yet report null instead of a sample number.
-        const scope = scholarEmail ? ' AND LOWER(scholar_email) = LOWER(?)' : '';
-        const params = scholarEmail ? [scholarEmail] : [];
+        const scoped = scope.all ? { sql: '', params: [] }
+            : scope.emails.length ? { sql: ` AND LOWER(scholar_email) IN (${scope.emails.map(() => '?').join(',')})`, params: scope.emails }
+            : { sql: ' AND FALSE', params: [] };
         const refresherRow = await localDb.prepare(
-            `SELECT COUNT(*) AS c FROM sol_refresher_completions WHERE 1 = 1${scope}`
-        ).get(...params);
+            `SELECT COUNT(*) AS c FROM sol_refresher_completions WHERE 1 = 1${scoped.sql}`
+        ).get(...scoped.params);
         const spacedRow = await localDb.prepare(
-            `SELECT COUNT(*) AS c FROM sol_spaced_reviews WHERE status = 'completed'${scope}`
-        ).get(...params);
+            `SELECT COUNT(*) AS c FROM sol_spaced_reviews WHERE status = 'completed'${scoped.sql}`
+        ).get(...scoped.params);
 
         const principles = [
             { name: "Retrieval Practice", count: Number(refresherRow?.c || 0), description: "Pre-module Refresher Quizzes completed" },
@@ -170,12 +171,12 @@ router.get('/sol-outcomes', async (req, res) => {
             { name: "Interleaving", count: null, description: "Mixed review sessions completed (not tracked yet)" }
         ];
 
-        const outcomes = {
+        return res.json({
+            stream: 'practice',
+            countsTowardMastery: false,
             activeTrackedOutcomes: principles.filter((p) => p.count !== null && p.count > 0).length,
-            principles
-        };
-
-        return res.json(outcomes);
+            principles,
+        });
     } catch (error) {
         console.error('Error fetching SoL outcomes:', error);
         return res.status(500).json({ message: error.message });
@@ -184,8 +185,13 @@ router.get('/sol-outcomes', async (req, res) => {
 
 // ===== Usage events =====
 // Append-only, batched from the browser. Only known event types are stored, and a course is
-// only attached if the caller belongs to it (or is an admin).
-const USAGE_EVENT_TYPES = new Set(["explainer_opened", "create_helper_used"]);
+// only attached if the caller belongs to it (or is an admin). The server records its own events
+// too (item_edited_after_publish; AI decisions live in ai_drafts).
+export const USAGE_EVENT_TYPES = new Set([
+    "explainer_opened", "create_helper_used",
+    "course_opened", "item_opened", "insights_viewed", "progress_viewed",
+    "grading_time", "ai_suggestion_used",
+]);
 const MAX_EVENTS_PER_BATCH = 50;
 const MAX_EVENT_DATA_BYTES = 2000;
 
@@ -239,6 +245,193 @@ router.get('/explainer-usage', requireAdmin, async (req, res) => {
         return res.json({ days, explainers: rows.map((r) => ({ key: r.key, opens: Number(r.opens), people: Number(r.people) })) });
     } catch (error) {
         console.error('Error reading explainer usage:', error);
+        return res.status(500).json({ message: error.message });
+    }
+});
+
+// ===== School-wide view (admins) =====
+// One row per open or closed course, from the same metrics as course Insights, plus how
+// teachers use the product (time to grade, edits after publishing).
+router.get('/school', requireAdmin, async (req, res) => {
+    try {
+        const days = Math.min(365, Math.max(1, Number(req.query.days) || 30));
+        const courses = await localDb.prepare(`
+            SELECT id, title, lifecycle FROM courses WHERE lifecycle IN ('open', 'closed') ORDER BY title
+        `).all();
+        const rows = [];
+        const activeLearners = new Set();
+        const learnersWithData = new Set();
+        for (const c of courses) {
+            const insights = await courseInsights(c.id);
+            for (const l of insights.learners) {
+                if (l.engagement.activeDays7 > 0) activeLearners.add(l.id);
+                if (l.overall != null) learnersWithData.add(l.id);
+            }
+            const teachers = await localDb.prepare(`
+                SELECT COALESCE(u.full_name, e.user_email) AS name FROM enrollments e
+                LEFT JOIN users u ON LOWER(u.email) = LOWER(e.user_email)
+                WHERE e.course_id = ? AND e.role IN ('teacher', 'ta') AND e.status = 'active' ORDER BY 1
+            `).all(c.id);
+            rows.push({
+                id: c.id, title: c.title, lifecycle: c.lifecycle, teachers: teachers.map((t) => t.name),
+                ...insights.class,
+            });
+        }
+        const counts = await localDb.prepare(`
+            SELECT
+              (SELECT COUNT(*) FROM users WHERE role = 'scholar' AND is_active IS DISTINCT FROM 0) AS learners,
+              (SELECT COUNT(*) FROM users WHERE role IN ('teacher', 'ta') AND is_active IS DISTINCT FROM 0) AS teachers,
+              (SELECT COUNT(*) FROM courses WHERE lifecycle = 'draft') AS draft_courses
+        `).get();
+        const grading = await localDb.prepare(`
+            SELECT COUNT(*) AS n, percentile_cont(0.5) WITHIN GROUP (ORDER BY (data->>'ms')::numeric) AS median_ms
+            FROM usage_events WHERE event_type = 'grading_time' AND created_at >= NOW() - make_interval(days => ?)
+              AND (data->>'ms') ~ '^[0-9]+(\\.[0-9]+){0,1}$'
+        `).get(days);
+        const edits = await localDb.prepare(`
+            SELECT COUNT(*) AS n FROM usage_events WHERE event_type = 'item_edited_after_publish' AND created_at >= NOW() - make_interval(days => ?)
+        `).get(days);
+        const events = await localDb.prepare(`
+            SELECT event_type, COUNT(*) AS n, COUNT(DISTINCT user_id) AS people FROM usage_events
+            WHERE created_at >= NOW() - make_interval(days => ?) GROUP BY event_type ORDER BY 2 DESC
+        `).all(days);
+        return res.json({
+            days,
+            totals: {
+                learners: Number(counts.learners), teachers: Number(counts.teachers),
+                courses: courses.length, draftCourses: Number(counts.draft_courses),
+                activeLearnersLast7Days: activeLearners.size, learnersWithResults: learnersWithData.size,
+            },
+            courses: rows,
+            teaching: {
+                gradingsTimed: Number(grading?.n || 0),
+                medianGradingSeconds: grading?.median_ms != null ? Math.round(Number(grading.median_ms) / 1000) : null,
+                editsAfterPublish: Number(edits?.n || 0),
+            },
+            events: events.map((e) => ({ type: e.event_type, count: Number(e.n), people: Number(e.people) })),
+        });
+    } catch (error) {
+        console.error('Error building school analytics:', error);
+        return res.status(500).json({ message: error.message });
+    }
+});
+
+// ===== Retention =====
+export async function retentionDays() {
+    const row = await localDb.prepare("SELECT value FROM system_settings WHERE key = 'usage_retention_days'").get();
+    const days = Number(row?.value);
+    return Number.isFinite(days) && days >= 30 ? days : DEFAULT_RETENTION_DAYS;
+}
+
+/** Deletes usage logs (usage_events, ai_calls) older than the retention setting. */
+export async function purgeOldUsage() {
+    const days = await retentionDays();
+    const events = await localDb.prepare("DELETE FROM usage_events WHERE created_at < NOW() - make_interval(days => ?)").run(days);
+    const calls = await localDb.prepare("DELETE FROM ai_calls WHERE created_at < NOW() - make_interval(days => ?)").run(days);
+    return { days, usageEvents: events?.changes ?? 0, aiCalls: calls?.changes ?? 0 };
+}
+
+let purgeTimer = null;
+export function scheduleUsagePurge() {
+    const run = () => purgeOldUsage().catch((error) => console.error('Usage purge failed:', error.message));
+    run();
+    if (!purgeTimer) {
+        purgeTimer = setInterval(run, 24 * 60 * 60 * 1000);
+        purgeTimer.unref?.();
+    }
+}
+
+router.get('/settings', requireAdmin, async (req, res) => {
+    try {
+        return res.json({ usageRetentionDays: await retentionDays(), minGroupSize: MIN_GROUP_SIZE });
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+});
+
+router.put('/settings', requireAdmin, async (req, res) => {
+    try {
+        const days = Number(req.body?.usageRetentionDays);
+        if (!Number.isInteger(days) || days < 30 || days > 3650) {
+            return res.status(400).json({ message: 'Keep usage logs for between 30 and 3650 days' });
+        }
+        await localDb.prepare(`
+            INSERT INTO system_settings (key, value, updated_by, updated_at) VALUES ('usage_retention_days', ?::jsonb, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_by = EXCLUDED.updated_by, updated_at = CURRENT_TIMESTAMP
+        `).run(JSON.stringify(days), req.user.email);
+        const purged = await purgeOldUsage();
+        return res.json({ usageRetentionDays: days, purged });
+    } catch (error) {
+        console.error('Error saving analytics settings:', error);
+        return res.status(500).json({ message: error.message });
+    }
+});
+
+// ===== Personal data export =====
+// Everything the box holds about one person's learning and use, as JSON. People can download
+// their own; admins can download anyone's (e.g. for a family's request).
+async function personalData(userId) {
+    const user = await localDb.prepare(`
+        SELECT id, email, full_name, phone, school_name, grade_level, preferred_language, role, gender,
+               region_province, region_district, is_rural, disability_status, accessibility_profile, created_at
+        FROM users WHERE id = ?
+    `).get(userId);
+    if (!user) return null;
+    const email = user.email;
+    const q = (sql, ...params) => localDb.prepare(sql).all(...params);
+    return {
+        exportedAt: new Date().toISOString(),
+        profile: user,
+        enrollments: await q(`SELECT e.course_id, c.title AS course_title, e.role, e.status, e.joined_at FROM enrollments e
+            LEFT JOIN courses c ON c.id = e.course_id WHERE LOWER(e.user_email) = LOWER(?) ORDER BY e.joined_at`, email),
+        assignmentSubmissions: await q(`SELECT s.assignment_id, a.title AS assignment_title, a.course_id, s.body, s.submitted_at, s.is_late,
+            s.grade, a.points_possible, s.feedback, s.graded_at FROM assignment_submissions s JOIN assignments a ON a.id = s.assignment_id
+            WHERE LOWER(s.scholar_email) = LOWER(?) ORDER BY s.submitted_at`, email),
+        rubricScores: await q(`SELECT ss.submission_id, c.title AS criterion, ss.points, c.points AS max_points, ss.source
+            FROM submission_scores ss JOIN rubric_criteria c ON c.id = ss.criterion_id
+            JOIN assignment_submissions s ON s.id = ss.submission_id WHERE LOWER(s.scholar_email) = LOWER(?)`, email),
+        quizAttempts: await q(`SELECT qa.quiz_id, q.title AS quiz_title, q.course_id, qa.attempt_number, qa.answers, qa.started_at,
+            qa.submitted_at, qa.score_points, qa.score_pct, qa.is_late FROM quiz_attempts qa JOIN quizzes q ON q.id = qa.quiz_id
+            WHERE qa.user_id = ? ORDER BY qa.started_at`, userId),
+        outcomeResults: await q(`SELECT o.course_id, oc.code AS outcome_code, oc.title AS outcome_title, o.source_type, o.source_id, o.pct, o.assessed_at
+            FROM outcome_results o JOIN outcomes oc ON oc.id = o.outcome_id WHERE o.user_id = ? ORDER BY o.assessed_at`, userId),
+        pageViews: await q(`SELECT v.page_id, p.title AS page_title, p.course_id, v.first_viewed_at, v.last_viewed_at, v.scroll_pct_reached, v.completed_at
+            FROM page_views v JOIN course_pages p ON p.id = v.page_id WHERE LOWER(v.user_email) = LOWER(?)`, email),
+        discussionReplies: await q(`SELECT r.discussion_id, d.title AS discussion_title, d.course_id, r.body, r.created_at
+            FROM discussion_replies r JOIN discussions d ON d.id = r.discussion_id WHERE LOWER(r.author_email) = LOWER(?) ORDER BY r.created_at`, email),
+        practice: {
+            longitudinalProgress: await q(`SELECT subject, topic, score, total_possible, difficulty_level, attempt_number, created_at
+                FROM longitudinal_progress WHERE LOWER(scholar_email) = LOWER(?) ORDER BY created_at`, email),
+            diagnostic: await q(`SELECT overall_score, subject_breakdown, completed_at FROM diagnostic_results WHERE LOWER(scholar_email) = LOWER(?)`, email),
+        },
+        usageEvents: await q(`SELECT event_type, course_id, data, created_at FROM usage_events WHERE user_id = ? ORDER BY created_at`, userId),
+    };
+}
+
+function sendExport(res, data) {
+    const name = `somabox-data-${String(data.profile.email).replace(/[^a-z0-9]+/gi, '-')}.json`;
+    res.setHeader('Content-Disposition', `attachment; filename="${name}"`);
+    return res.json(data);
+}
+
+router.get('/my-data', async (req, res) => {
+    try {
+        const data = await personalData(req.user.id);
+        if (!data) return res.status(404).json({ message: 'User not found' });
+        return sendExport(res, data);
+    } catch (error) {
+        console.error('Error exporting personal data:', error);
+        return res.status(500).json({ message: error.message });
+    }
+});
+
+router.get('/users/:userId/data', requireAdmin, async (req, res) => {
+    try {
+        const data = await personalData(Number(req.params.userId));
+        if (!data) return res.status(404).json({ message: 'User not found' });
+        return sendExport(res, data);
+    } catch (error) {
+        console.error('Error exporting personal data:', error);
         return res.status(500).json({ message: error.message });
     }
 });

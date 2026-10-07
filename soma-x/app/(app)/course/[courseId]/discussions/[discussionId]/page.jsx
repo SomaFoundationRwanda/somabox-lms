@@ -5,9 +5,11 @@ import { useParams } from "next/navigation";
 import { useCourse } from "@/context/CourseContext";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
 import { PageHeader, Section, List } from "@/components/layout";
+import { useItemOpened } from "@/lib/usage";
 
 export default function DiscussionThreadPage() {
   const { courseId, discussionId } = useParams();
+  useItemOpened("discussion", discussionId, courseId);
   const { SERVER_URL, userEmail, isTeacher } = useCourse();
   const [discussion, setDiscussion] = useState(null);
   const [loading, setLoading] = useState(true);

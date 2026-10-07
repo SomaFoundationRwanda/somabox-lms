@@ -9,9 +9,11 @@ import TeacherPageChrome from "@/components/course/pages/TeacherPageChrome";
 import StudentPageChrome from "@/components/course/pages/StudentPageChrome";
 import PrevNextNav from "@/components/course/navigation/PrevNextNav";
 import { AlertCircle } from "lucide-react";
+import { useItemOpened } from "@/lib/usage";
 
 export default function PageDetailPage() {
   const { courseId, pageId } = useParams();
+  useItemOpened("page", pageId, courseId);
   const { SERVER_URL, userEmail, isTeacher } = useCourse();
   const [page, setPage] = useState(null);
   const [loading, setLoading] = useState(true);
