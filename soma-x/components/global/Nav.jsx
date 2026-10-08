@@ -112,7 +112,7 @@ export default function SomaboxNav() {
           <div className="p-1.5 rounded-full" style={on ? { backgroundColor: isDark ? "rgba(13,148,136,0.12)" : "rgba(32,58,58,0.10)" } : {}}>
             <Icon size={19} strokeWidth={1.75} />
           </div>
-          <span className="text-[9.5px] font-semibold truncate max-w-[48px] text-center leading-tight">{label}</span>
+          <span className="text-[11px] font-semibold truncate max-w-[48px] text-center leading-tight">{label}</span>
         </div>
       </Link>
     );
@@ -178,7 +178,7 @@ export default function SomaboxNav() {
       <div className={`shrink-0 pt-6 pb-5 space-y-5 ${iconOnly ? "px-2" : "px-4"}`} style={{ borderTop: `1px solid ${borderColor}` }}>
         {!iconOnly && (
           <div className="space-y-3">
-            <p className="text-[9.5px] font-bold uppercase tracking-widest" style={{ color: labelColor }}>Brightness</p>
+            <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: labelColor }}>Brightness</p>
             <BrightnessSlider labelColor={labelColor} trackAccent={dm ? ACCENT_DARK : ACCENT_LIGHT} />
           </div>
         )}
@@ -186,6 +186,7 @@ export default function SomaboxNav() {
         <button
           onClick={logout}
           title={iconOnly ? "Logout" : undefined}
+          aria-label={iconOnly ? "Logout" : undefined}
           className={`flex items-center w-full py-2.5 rounded-full transition-colors ${iconOnly ? "justify-center px-2.5" : "gap-3 px-3"}`}
           style={{ color: logoutColor }}
           onMouseEnter={e => { e.currentTarget.style.backgroundColor = logoutHover; }}
@@ -255,7 +256,7 @@ export default function SomaboxNav() {
             <div className="p-1.5 rounded-full hover:bg-slate-100">
               <LogOut size={19} strokeWidth={1.75} />
             </div>
-            <span className="text-[9.5px] font-semibold leading-tight">Logout</span>
+            <span className="text-[11px] font-semibold leading-tight">Logout</span>
           </button>
         </div>
       </nav>

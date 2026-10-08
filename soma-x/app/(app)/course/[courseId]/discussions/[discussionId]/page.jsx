@@ -86,7 +86,7 @@ export default function DiscussionThreadPage() {
                   onChange={(e) => setPointsInput(e.target.value)}
                   placeholder="Points possible"
                   aria-label="Points possible"
-                  className="w-28 text-sm border border-slate-200 rounded-lg px-2 py-1.5 outline-none"
+                  className="w-28 text-sm border border-slate-200 rounded-lg px-2 py-1.5 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]"
                 />
               ) : null}
               <button

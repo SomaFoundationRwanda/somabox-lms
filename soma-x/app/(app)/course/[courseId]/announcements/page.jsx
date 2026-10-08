@@ -58,8 +58,8 @@ export default function AnnouncementsPage() {
 
         {creating ? (
           <div className="space-y-2">
-            <input value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} placeholder="Title" aria-label="Announcement title" className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none" />
-            <textarea value={form.body} onChange={(e) => setForm((p) => ({ ...p, body: e.target.value }))} rows={3} placeholder="Message" aria-label="Announcement message" className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none" />
+            <input value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} placeholder="Title" aria-label="Announcement title" className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]" />
+            <textarea value={form.body} onChange={(e) => setForm((p) => ({ ...p, body: e.target.value }))} rows={3} placeholder="Message" aria-label="Announcement message" className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]" />
             <div className="flex justify-end gap-2">
               <button onClick={() => setCreating(false)} className="text-xs font-medium text-slate-500 px-3 py-2">Cancel</button>
               <button onClick={create} className="text-xs font-semibold text-white bg-[#203A3A] rounded-lg px-3 py-2">Post</button>

@@ -221,7 +221,7 @@ export default function AIAssistantWidget({ courseId = "", lessonId = "", onInse
               {/* Request Prompt */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">Teacher Instructions</label>
-                <textarea
+                <textarea aria-label="Teacher Instructions"
                   rows={2}
                   value={question}
                   onChange={(e) => setQuestion(e.target.value)}
@@ -240,7 +240,7 @@ export default function AIAssistantWidget({ courseId = "", lessonId = "", onInse
                   {showSourceBox ? "- Hide optional source text" : "+ Add source text / lesson reference"}
                 </button>
                 {showSourceBox && (
-                  <textarea
+                  <textarea aria-label="Paste reference textbook excerpt or raw notes here"
                     rows={3}
                     value={sourceText}
                     onChange={(e) => setSourceText(e.target.value)}

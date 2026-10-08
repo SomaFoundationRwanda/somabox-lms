@@ -26,3 +26,6 @@ Thumbs.db
 # Secrets
 service-account.json
 *service-account*.json
+
+# Local backups (npm run backup)
+soma-x-backend/backups/

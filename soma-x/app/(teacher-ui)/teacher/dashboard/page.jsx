@@ -14,7 +14,7 @@ function Modal({ title, onClose, children }) {
       <div className="bg-white dark:bg-[#0f1318] border border-transparent dark:border-slate-700/50 rounded-2xl shadow-xl w-full max-w-sm mx-4 p-6" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-base font-semibold text-slate-800 dark:text-white">{title}</h3>
-          <button onClick={onClose} className="text-slate-600 hover:text-slate-600 transition-colors">
+          <button aria-label="Close" onClick={onClose} className="text-slate-600 hover:text-slate-600 transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -132,7 +132,7 @@ export default function TeacherDashboardPage() {
 
       {studentModal && (
         <Modal title={`Add Student to ${courses.find(c => c.id === studentModal)?.title}`} onClose={() => setStudentModal(null)}>
-          <input
+          <input aria-label="Student email address"
             type="email"
             placeholder="Student email address"
             value={studentEmail}

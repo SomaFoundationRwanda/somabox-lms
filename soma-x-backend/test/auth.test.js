@@ -17,7 +17,7 @@ const POLICY = {
   "GET /auth/verify-auth": "any",
   "POST /auth/logout": "any",
   "GET /analytics/branding": "public",
-  "GET /ai/health": "public",
+  "GET /ai/health": "any",
   "GET /library/file/:id": "public",
 
   "GET /users": "admin",

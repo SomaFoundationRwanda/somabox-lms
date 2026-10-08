@@ -257,7 +257,7 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
             <div className="space-y-4 max-w-md pt-2">
               <div>
                 <label className="text-xs font-bold text-slate-700 block mb-1">Course Title *</label>
-                <input
+                <input aria-label="Course Title"
                   type="text"
                   value={setupForm.title}
                   onChange={(e) => setSetupForm((p) => ({ ...p, title: e.target.value }))}
@@ -268,7 +268,7 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
 
               <div>
                 <label className="text-xs font-bold text-slate-700 block mb-1">Start Date (Date Anchor) *</label>
-                <input
+                <input aria-label="Start Date (Date Anchor)"
                   type="date"
                   value={setupForm.startDate}
                   onChange={(e) => setSetupForm((p) => ({ ...p, startDate: e.target.value }))}
@@ -279,7 +279,7 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
 
               <div>
                 <label className="text-xs font-bold text-slate-700 block mb-1">Duration (Length in Weeks)</label>
-                <input
+                <input aria-label="Duration (Length in Weeks)"
                   type="number"
                   min={1}
                   max={52}
@@ -323,7 +323,7 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
                     aria-label="Course topic for the AI"
                     value={aiTopic}
                     onChange={(e) => setAiTopic(e.target.value)}
-                    className="text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none"
+                    className="text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]"
                   />
                   <button
                     onClick={proposeAiOutcomes}
@@ -351,7 +351,7 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
             ) : null}
 
             <div className="flex gap-2 max-w-md pt-2">
-              <input
+              <input aria-label="Enter outcome title (e.g. Can solve linear equations)"
                 type="text"
                 value={newOutcomeTitle}
                 onChange={(e) => setNewOutcomeTitle(e.target.value)}

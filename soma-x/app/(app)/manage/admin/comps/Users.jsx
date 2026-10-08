@@ -499,7 +499,7 @@ export default function Users() {
                     {/* Live Search */}
                     <div className="relative flex-1">
                         <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 pointer-events-none" />
-                        <input
+                        <input aria-label="Search by full name or email address"
                             type="text"
                             placeholder="Search by full name or email address..."
                             value={searchQuery}
@@ -507,7 +507,7 @@ export default function Users() {
                             className="w-full h-10 pl-10 pr-9 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-900 dark:text-white placeholder:text-slate-500 outline-none focus:border-accent-dark transition-colors"
                         />
                         {searchQuery && (
-                            <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-600">
+                            <button aria-label="Clear search" onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-600">
                                 <X className="w-3.5 h-3.5" />
                             </button>
                         )}
@@ -519,9 +519,9 @@ export default function Users() {
                         <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 rounded-xl px-2.5 h-10">
                             <Filter className="w-3.5 h-3.5 text-slate-600" />
                             <select
-                                value={roleFilter}
+                                aria-label="Filter by role" value={roleFilter}
                                 onChange={(e) => { setRoleFilter(e.target.value); setPage(1); }}
-                                className="bg-transparent text-xs font-bold text-slate-800 dark:text-slate-200 outline-none cursor-pointer"
+                                className="bg-transparent text-xs font-bold text-slate-800 dark:text-slate-200 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488] cursor-pointer"
                             >
                                 <option value="all">All Roles</option>
                                 <option value="scholar">Scholar (Student)</option>
@@ -534,9 +534,9 @@ export default function Users() {
                         <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 rounded-xl px-2.5 h-10">
                             <span className="text-[11px] font-bold text-slate-600 uppercase">Status:</span>
                             <select
-                                value={statusFilter}
+                                aria-label="Filter by status" value={statusFilter}
                                 onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-                                className="bg-transparent text-xs font-bold text-slate-800 dark:text-slate-200 outline-none cursor-pointer"
+                                className="bg-transparent text-xs font-bold text-slate-800 dark:text-slate-200 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488] cursor-pointer"
                             >
                                 <option value="all">All Status</option>
                                 <option value="active">Active Only</option>
@@ -547,9 +547,9 @@ export default function Users() {
                         {/* Joined Date */}
                         <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 rounded-xl px-2.5 h-10">
                             <select
-                                value={dateFilter}
+                                aria-label="Filter by date joined" value={dateFilter}
                                 onChange={(e) => { setDateFilter(e.target.value); setPage(1); }}
-                                className="bg-transparent text-xs font-bold text-slate-800 dark:text-slate-200 outline-none cursor-pointer"
+                                className="bg-transparent text-xs font-bold text-slate-800 dark:text-slate-200 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488] cursor-pointer"
                             >
                                 <option value="all">All Time</option>
                                 <option value="7days">Joined Last 7 Days</option>
@@ -723,7 +723,7 @@ export default function Users() {
                             <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
                                 Type <span className="font-mono text-rose-600 font-extrabold">{deleteModalUser.full_name || deleteModalUser.email}</span> to confirm:
                             </label>
-                            <input
+                            <input aria-label="Type to confirm"
                                 type="text"
                                 placeholder="Type name or email to confirm..."
                                 value={typedConfirmName}
@@ -760,7 +760,7 @@ export default function Users() {
                                 <KeyRound className="w-5 h-5 text-amber-500" />
                                 <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">Reset User Password</h3>
                             </div>
-                            <button onClick={() => setResetPassUser(null)} className="text-slate-600 hover:text-slate-600">
+                            <button aria-label="Close" onClick={() => setResetPassUser(null)} className="text-slate-600 hover:text-slate-600">
                                 <X className="w-4 h-4" />
                             </button>
                         </div>
@@ -772,7 +772,7 @@ export default function Users() {
                         <form onSubmit={handleResetPasswordSubmit} className="space-y-4">
                             <div className="space-y-1">
                                 <label className="text-xs font-bold text-slate-700 dark:text-slate-300">New Password (min 6 characters)</label>
-                                <input
+                                <input aria-label="New Password (min 6 characters)"
                                     type="password"
                                     placeholder="Enter new password..."
                                     value={newPassword}
@@ -812,9 +812,9 @@ export default function Users() {
                         </p>
 
                         <select
-                            value={selectedBulkRole}
+                            aria-label="New role for selected users" value={selectedBulkRole}
                             onChange={(e) => setSelectedBulkRole(e.target.value)}
-                            className="w-full h-10 px-3 rounded-xl border-2 border-slate-300 text-xs font-semibold text-slate-900 bg-white outline-none"
+                            className="w-full h-10 px-3 rounded-xl border-2 border-slate-300 text-xs font-semibold text-slate-900 bg-white outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]"
                         >
                             <option value="scholar">Scholar (Student)</option>
                             <option value="teacher">Teacher / M&E Officer</option>

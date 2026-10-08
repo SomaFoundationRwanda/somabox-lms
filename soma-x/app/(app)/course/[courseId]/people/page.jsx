@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
+import { useToast } from "@/context/ToastContext";
 import { useCourseSection } from "@/lib/useCourseSection";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
 import AsyncListState from "@/components/course/AsyncListState";
@@ -19,24 +20,35 @@ export default function PeoplePage() {
 
   const filtered = Array.isArray(people) ? people.filter((p) => roleFilter === "all" || p.role === roleFilter) : people;
 
+  const { showToast } = useToast();
+  // The server refuses some changes (e.g. removing the last teacher): show why.
+  const failed = async (res, fallback) => {
+    if (res.ok) return false;
+    const body = await res.json().catch(() => ({}));
+    showToast(body.message || fallback, "error");
+    return true;
+  };
+
   const addPerson = async () => {
     if (!form.email.trim()) return;
-    await fetch(`${SERVER_URL}/courses/${courseId}/people`, {
+    const res = await fetch(`${SERVER_URL}/courses/${courseId}/people`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email: form.email.trim(), role: form.role }),
     });
+    if (await failed(res, "Couldn't add this person")) return;
     setForm({ email: "", role: "student" });
     setAdding(false);
     refetch();
   };
 
   const removePerson = async (enrollmentId) => {
-    await fetch(`${SERVER_URL}/courses/${courseId}/people/${enrollmentId}`, {
+    const res = await fetch(`${SERVER_URL}/courses/${courseId}/people/${enrollmentId}`, {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({}),
     });
+    if (await failed(res, "Couldn't remove this person")) return;
     refetch();
   };
 
@@ -78,7 +90,7 @@ export default function PeoplePage() {
               rows={list}
               columns={[
                 { key: "fullName", header: "Name", className: "font-medium text-slate-700 dark:text-slate-200" },
-                { key: "email", header: "Email", hideOnMobile: true, className: "text-slate-600 dark:text-slate-400" },
+                ...(isTeacher ? [{ key: "email", header: "Email", hideOnMobile: true, className: "text-slate-600 dark:text-slate-400" }] : []),
                 { key: "role", header: "Role", className: "capitalize text-slate-600 dark:text-slate-400" },
                 { key: "status", header: "Status", className: "capitalize text-slate-600 dark:text-slate-400" },
                 ...(isTeacher ? [{

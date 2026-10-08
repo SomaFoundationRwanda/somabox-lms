@@ -30,7 +30,7 @@ function QuestionBuilder({ question, index, onChange, onRemove, outcomes }) {
       <div className="flex items-start justify-between gap-2">
         <span className="text-[10px] font-bold uppercase text-slate-400">Question {index + 1}</span>
         <div className="flex items-center gap-2">
-          <button type="button" onClick={() => onRemove(index)} className="p-1 rounded hover:bg-rose-50 text-rose-400 hover:text-rose-600">
+          <button type="button" onClick={() => onRemove(index)} aria-label={`Remove question ${index + 1}`} title="Remove question" className="p-1 rounded hover:bg-rose-50 text-rose-400 hover:text-rose-600">
             <Trash2 className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -40,6 +40,7 @@ function QuestionBuilder({ question, index, onChange, onRemove, outcomes }) {
         value={question.prompt || ""}
         onChange={(e) => updateField("prompt", e.target.value)}
         placeholder="Question prompt..."
+        aria-label={`Question ${index + 1} prompt`}
         className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[#0D9488] bg-white"
       />
 
@@ -61,7 +62,7 @@ function QuestionBuilder({ question, index, onChange, onRemove, outcomes }) {
             min="1"
             value={question.points || 1}
             onChange={(e) => updateField("points", Number(e.target.value) || 1)}
-            className="w-16 text-xs border border-slate-200 rounded-lg px-2 py-1.5 bg-white outline-none"
+            className="w-16 text-xs border border-slate-200 rounded-lg px-2 py-1.5 bg-white outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]"
           />
         </div>
         <div className="flex items-center gap-1.5 min-w-0 flex-1 basis-48">
@@ -85,7 +86,7 @@ function QuestionBuilder({ question, index, onChange, onRemove, outcomes }) {
       {question.questionType !== "open" && (
         <div className="space-y-2 pt-1">
           <div className="flex items-center gap-1">
-            <label className="text-[10px] font-bold uppercase text-slate-400">Options (click ✓ to mark correct)</label>
+            <p className="text-[10px] font-bold uppercase text-slate-400">Options (click ✓ to mark correct)</p>
             <InfoTooltip text="Click the circle beside a choice to mark it as correct." />
           </div>
           {options.map((opt, optIdx) => (
@@ -94,6 +95,7 @@ function QuestionBuilder({ question, index, onChange, onRemove, outcomes }) {
                 type="button"
                 onClick={() => updateField("correctOption", opt.id || String(optIdx))}
                 aria-pressed={question.correctOption === (opt.id || String(optIdx))}
+                aria-label={`Mark option ${optIdx + 1} as correct`}
                 className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
                   question.correctOption === (opt.id || String(optIdx))
                     ? "border-emerald-500 bg-emerald-500 text-white"
@@ -106,9 +108,10 @@ function QuestionBuilder({ question, index, onChange, onRemove, outcomes }) {
                 value={opt.text || ""}
                 onChange={(e) => updateOptionText(optIdx, e.target.value)}
                 placeholder={`Option ${optIdx + 1}`}
+                aria-label={`Question ${index + 1}, option ${optIdx + 1}`}
                 className="flex-1 text-sm border border-slate-200 rounded-lg px-3 py-1.5 outline-none focus:border-[#0D9488] bg-white"
               />
-              <button type="button" onClick={() => removeOption(optIdx)} className="p-1 text-slate-300 hover:text-rose-500">
+              <button type="button" onClick={() => removeOption(optIdx)} aria-label={`Remove option ${optIdx + 1}`} title="Remove option" className="p-1 text-slate-300 hover:text-rose-500">
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -205,7 +208,7 @@ export default function QuizEditorModal({ open, onClose, onSave, initialData, in
           <h2 className="text-base font-bold text-slate-900">
             {isEdit ? "Edit Quiz" : "New Quiz"}
           </h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400">
+          <button aria-label="Close" onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -213,7 +216,7 @@ export default function QuizEditorModal({ open, onClose, onSave, initialData, in
         <div className="px-6 py-4 space-y-4 max-h-[70vh] overflow-y-auto">
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1.5">Quiz Title *</label>
-            <input
+            <input aria-label="Quiz Title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Quiz title"
@@ -223,7 +226,7 @@ export default function QuizEditorModal({ open, onClose, onSave, initialData, in
 
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1.5">Description (optional)</label>
-            <textarea
+            <textarea aria-label="Description (optional)"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={2}
@@ -239,7 +242,7 @@ export default function QuizEditorModal({ open, onClose, onSave, initialData, in
                 <label className="block text-xs font-semibold text-slate-600">Quiz Type</label>
                 <Explainer k={`quizKinds.${kind}`} variant="icon" />
               </div>
-              <select
+              <select aria-label="Quiz Type"
                 value={kind}
                 onChange={(e) => setKind(e.target.value)}
                 className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[#0D9488] bg-white"
@@ -256,7 +259,7 @@ export default function QuizEditorModal({ open, onClose, onSave, initialData, in
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1.5">Attempts Allowed</label>
-              <input
+              <input aria-label="Attempts Allowed"
                 type="number"
                 min="1"
                 value={attemptsAllowed}

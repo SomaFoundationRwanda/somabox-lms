@@ -45,7 +45,7 @@ function QuizAnalysis({ quizId, title, onClose }) {
   return (
     <Section
       divided
-      title={<span ref={headingRef} tabIndex={-1} className="focus:outline-none">Question analysis: {data?.quiz?.title || title}</span>}
+      title={<span ref={headingRef} tabIndex={-1} className="focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]">Question analysis: {data?.quiz?.title || title}</span>}
       description={data ? `Each learner's latest attempt. ${data.learnersAnswered} learner${data.learnersAnswered === 1 ? "" : "s"} answered.` : undefined}
       actions={
         <button type="button" onClick={onClose} className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-slate-800 px-2 py-1">

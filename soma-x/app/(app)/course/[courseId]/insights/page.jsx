@@ -120,7 +120,7 @@ function TeacherInsights() {
           })}
         </div>
 
-        <div role="tabpanel" id={`insights-panel-${tab}`} aria-labelledby={`insights-tab-${tab}`} tabIndex={0} className="focus:outline-none">
+        <div role="tabpanel" id={`insights-panel-${tab}`} aria-labelledby={`insights-tab-${tab}`} tabIndex={0} className="focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]">
           {loading && !data ? (
             <LoadingRows count={4} />
           ) : error ? (

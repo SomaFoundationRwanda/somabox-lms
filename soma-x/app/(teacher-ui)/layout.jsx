@@ -123,7 +123,7 @@ export default function TeacherUILayout({ children }) {
       <div className={`shrink-0 pt-6 pb-5 space-y-5 ${iconOnly ? "px-2" : "px-4"}`} style={{ borderTop: `1px solid ${borderColor}` }}>
         {!iconOnly && (
           <div className="space-y-3">
-            <p className="text-[9.5px] font-bold uppercase tracking-widest" style={{ color: labelColor }}>Brightness</p>
+            <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: labelColor }}>Brightness</p>
             <BrightnessSlider labelColor={labelColor} trackAccent={dm ? ACCENT_DARK : ACCENT_LIGHT} />
           </div>
         )}

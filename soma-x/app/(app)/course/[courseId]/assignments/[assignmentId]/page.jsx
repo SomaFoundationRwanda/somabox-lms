@@ -330,7 +330,7 @@ export default function AssignmentDetailPage() {
                   id="assignment-module"
                   value={editForm.moduleId}
                   onChange={(e) => setEditForm((p) => ({ ...p, moduleId: Number(e.target.value) }))}
-                  className="w-full text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white outline-none"
+                  className="w-full text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]"
                 >
                   {modules.map((m) => (
                     <option key={m.id} value={m.id}>

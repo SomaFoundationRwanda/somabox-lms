@@ -21,6 +21,32 @@ export async function saveRubric(courseId, assignment, { title, criteria }) {
 
   return await localDb.transaction(async () => {
     const name = String(title || "").trim() || `${assignment.title} rubric`;
+    // Once learners have been scored on this rubric, replacing its criteria would delete those
+    // scores. Wording can still change in place; anything that changes the scoring can't.
+    const existing = await localDb.prepare("SELECT id FROM rubrics WHERE assignment_id = ?").get(assignment.id);
+    if (existing) {
+      const scored = await localDb.prepare(`
+        SELECT 1 FROM submission_scores ss JOIN rubric_criteria c ON c.id = ss.criterion_id WHERE c.rubric_id = ? LIMIT 1
+      `).get(existing.id);
+      if (scored) {
+        const current = await localDb.prepare("SELECT * FROM rubric_criteria WHERE rubric_id = ? ORDER BY position").all(existing.id);
+        const sameScoring = current.length === criteria.length && current.every((c, i) => {
+          const n = criteria[i];
+          return Number(c.points) === (n.points === undefined ? 4 : Number(n.points))
+            && Number(c.weight) === (Number(n.weight) > 0 ? Number(n.weight) : 1)
+            && Number(c.outcome_id || 0) === Number(n.outcomeId || 0);
+        });
+        if (!sameScoring) {
+          throw new ItemError(409, "Learners have already been graded with this rubric, so its criteria, points, weights, and outcomes can't change. You can still edit the wording.", "RUBRIC_IN_USE");
+        }
+        await localDb.prepare("UPDATE rubrics SET title = ? WHERE id = ?").run(name, existing.id);
+        for (const [i, c] of current.entries()) {
+          await localDb.prepare("UPDATE rubric_criteria SET title = ?, description = ? WHERE id = ?")
+            .run(String(criteria[i].title).trim(), String(criteria[i].description || ""), c.id);
+        }
+        return existing.id;
+      }
+    }
     const saved = await localDb.prepare(`
       INSERT INTO rubrics (course_id, assignment_id, title) VALUES (?, ?, ?)
       ON CONFLICT (assignment_id) DO UPDATE SET title = excluded.title

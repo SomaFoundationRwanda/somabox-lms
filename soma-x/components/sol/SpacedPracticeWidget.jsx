@@ -59,7 +59,7 @@ export default function SpacedPracticeWidget({ serverUrl, scholarEmail }) {
                     >
                         <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2 mb-0.5">
-                                <span className="text-[9px] font-black uppercase px-2 py-0.2 rounded bg-teal-400/20 text-teal-300">
+                                <span className="text-[11px] font-black uppercase px-2 py-0.2 rounded bg-teal-400/20 text-teal-300">
                                     {item.interval_days}-Day Interval
                                 </span>
                                 <span className="text-[10px] text-slate-500 flex items-center gap-1">

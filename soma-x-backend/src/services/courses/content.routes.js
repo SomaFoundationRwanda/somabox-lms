@@ -330,8 +330,16 @@ router.delete("/:id/files/:fileId", async (req, res) => {
       });
     }
 
+    const file = await localDb.prepare("SELECT filename FROM course_files WHERE id = ? AND course_id = ?").get(req.params.fileId, courseId);
     await localDb.prepare("DELETE FROM page_file_references WHERE file_id = ?").run(req.params.fileId);
     await localDb.prepare("DELETE FROM course_files WHERE id = ? AND course_id = ?").run(req.params.fileId, courseId);
+    // Remove the upload from disk too, unless it's shared lesson content or another record uses it.
+    if (file?.filename && !file.filename.startsWith("lessons/")) {
+      const stillUsed = await localDb.prepare("SELECT 1 FROM course_files WHERE course_id = ? AND filename = ?").get(courseId, file.filename);
+      const courseDir = path.resolve(config.paths.courseFiles, courseId);
+      const target = path.resolve(courseDir, file.filename);
+      if (!stillUsed && target.startsWith(courseDir + path.sep)) fs.rmSync(target, { force: true });
+    }
     return res.status(204).end();
   } catch (error) {
     console.error("Error deleting file:", error);

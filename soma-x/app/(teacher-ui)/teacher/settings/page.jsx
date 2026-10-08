@@ -26,9 +26,13 @@ function Row({ label, description, children }) {
   )
 }
 
-function Toggle({ enabled, onChange }) {
+function Toggle({ enabled, onChange, label }) {
   return (
     <button
+      type="button"
+      role="switch"
+      aria-checked={enabled}
+      aria-label={label}
       onClick={() => onChange(!enabled)}
       className={`relative w-10 h-6 rounded-full transition-colors ${enabled ? "bg-[#2E8282]" : "bg-slate-200 dark:bg-slate-700"}`}
     >
@@ -74,6 +78,7 @@ export default function TeacherSettingsPage() {
         </Row>
         <Row label="Language" description="Interface language">
           <select
+            aria-label="Language"
             value={language}
             onChange={(e) => setLanguage(e.target.value)}
             className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none focus:border-[#2E8282]"
@@ -88,13 +93,13 @@ export default function TeacherSettingsPage() {
 
       <Section title="Notifications">
         <Row label="Email notifications" description="Receive updates via email">
-          <Toggle enabled={emailNotifications} onChange={setEmailNotifications} />
+          <Toggle enabled={emailNotifications} onChange={setEmailNotifications} label="Email notifications" />
         </Row>
         <Row label="Assignment alerts" description="Notify when students complete assignments">
-          <Toggle enabled={assignmentAlerts} onChange={setAssignmentAlerts} />
+          <Toggle enabled={assignmentAlerts} onChange={setAssignmentAlerts} label="Assignment alerts" />
         </Row>
         <Row label="Student join alerts" description="Notify when a student joins your class">
-          <Toggle enabled={studentJoinAlerts} onChange={setStudentJoinAlerts} />
+          <Toggle enabled={studentJoinAlerts} onChange={setStudentJoinAlerts} label="Student join alerts" />
         </Row>
       </Section>
 

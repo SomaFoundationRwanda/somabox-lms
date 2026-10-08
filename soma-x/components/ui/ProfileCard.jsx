@@ -1,5 +1,4 @@
 "use client";
-import { PersonOutline } from "@mui/icons-material";
 import useUser from "../../hooks/useUser"; 
 import AvatarFallback from "./AvatarFallBack";
 import Avatar from "./Avatar";
@@ -50,7 +49,7 @@ const ProfileCard = () => {
 
     return (
         <DropdownMenu>
-            <DropdownMenuTrigger className="outline-none">
+            <DropdownMenuTrigger className="outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488] rounded-full">
                 <section
                     className={`relative hover:opacity-90 cursor-pointer shadow-sm border border-transparent flex items-center rounded-full w-[11rem] h-10 px-2 gap-2.5 transition-opacity`}
                     style={{ backgroundColor: "#203A3A" }}>
@@ -71,7 +70,7 @@ const ProfileCard = () => {
                             <p className="text-xs font-bold leading-tight truncate w-24 text-white">
                                 {getDisplayName()}
                             </p>
-                            <p className="text-[9px] leading-tight capitalize text-slate-400 font-medium">
+                            <p className="text-[11px] leading-tight capitalize text-slate-400 font-medium">
                                 {role}
                             </p>
                         </div>

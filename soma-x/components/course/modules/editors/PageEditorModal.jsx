@@ -55,7 +55,7 @@ export default function PageEditorModal({ open, onClose, onSave, initialData }) 
           <h2 className="text-base font-bold text-slate-900">
             {isEdit ? "Edit Page" : "New Page"}
           </h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400">
+          <button aria-label="Close" onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -64,7 +64,7 @@ export default function PageEditorModal({ open, onClose, onSave, initialData }) 
         <div className="px-6 py-4 space-y-4">
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1.5">Title</label>
-            <input
+            <input aria-label="Title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Page title"

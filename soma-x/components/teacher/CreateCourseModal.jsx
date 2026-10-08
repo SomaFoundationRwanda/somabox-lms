@@ -55,7 +55,7 @@ export default function CreateCourseModal({ SERVER_URL, onClose, onCreated }) {
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 p-6" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-base font-semibold text-slate-800">Create New Course</h3>
-          <button onClick={onClose} className="text-slate-500 hover:text-slate-700 transition-colors">
+          <button aria-label="Close" onClick={onClose} className="text-slate-500 hover:text-slate-700 transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -63,7 +63,7 @@ export default function CreateCourseModal({ SERVER_URL, onClose, onCreated }) {
         <div className="flex flex-col gap-3">
           <div>
             <label className="text-xs text-slate-600 mb-1 block">Course Title *</label>
-            <input
+            <input aria-label="Course Title"
               type="text"
               placeholder="e.g. Grade 5 Mathematics"
               value={form.title}
@@ -73,7 +73,7 @@ export default function CreateCourseModal({ SERVER_URL, onClose, onCreated }) {
           </div>
           <div>
             <label className="text-xs text-slate-600 mb-1 block">Grade *</label>
-            <select
+            <select aria-label="Grade"
               value={form.grade}
               onChange={(e) => setForm((p) => ({ ...p, grade: e.target.value }))}
               className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2.5 outline-none focus:border-[#2E8282] bg-white"
@@ -84,7 +84,7 @@ export default function CreateCourseModal({ SERVER_URL, onClose, onCreated }) {
               ))}
             </select>
             {form.grade === "other" && (
-              <input
+              <input aria-label="Describe the grade/level"
                 type="text"
                 placeholder="Describe the grade/level"
                 value={form.gradeOther}
@@ -95,7 +95,7 @@ export default function CreateCourseModal({ SERVER_URL, onClose, onCreated }) {
           </div>
           <div>
             <label className="text-xs text-slate-600 mb-1 block">Description</label>
-            <textarea
+            <textarea aria-label="Description"
               value={form.description}
               onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
               rows={3}

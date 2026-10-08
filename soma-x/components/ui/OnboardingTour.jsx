@@ -150,7 +150,7 @@ function TourCard({ step, stepIndex, total, onNext, onPrev, onSkip }) {
                     {/* Top row: tag + skip */}
                     <div className="flex items-center justify-between mb-5">
                         <span
-                            className="text-[9px] font-black tracking-[0.15em] px-2.5 py-1 rounded-full"
+                            className="text-[11px] font-black tracking-[0.15em] px-2.5 py-1 rounded-full"
                             style={{ backgroundColor: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.5)" }}
                         >
                             {step.tag}

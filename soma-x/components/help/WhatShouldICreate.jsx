@@ -61,7 +61,7 @@ export default function WhatShouldICreate({ open, onClose, modules, defaultModul
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="w-full sm:max-w-lg max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-white dark:bg-slate-900 p-5 outline-none"
+        className="w-full sm:max-w-lg max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-white dark:bg-slate-900 p-5 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]"
       >
         <div className="flex items-start justify-between gap-3">
           <div>

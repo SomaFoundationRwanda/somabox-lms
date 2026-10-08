@@ -41,6 +41,8 @@ interface InputProps {
     border?: boolean;
     prefix?: React.ReactNode;
     suffix?: React.ReactNode;
+    /** Accessible name when there is no visible `label`. */
+    ariaLabel?: string;
 }
 
 export default function Input({
@@ -60,7 +62,8 @@ export default function Input({
     border = true,
     className: inputClassName,
     prefix,
-    suffix
+    suffix,
+    ariaLabel
 }: InputProps) {
     const generatedId = useId();
     const inputId = id || generatedId;
@@ -99,6 +102,7 @@ export default function Input({
             placeholder={placeholder}
             disabled={disabled}
             required={required}
+            aria-label={ariaLabel}
             className={`${mergedClasses}`}
             {...(variant === "textarea" ? { rows: 4 } : {})}
         />
@@ -125,6 +129,7 @@ export default function Input({
                 <Select2 value={value} id={inputId} onValueChange={onChange}>
                     <SelectTrigger
                         id={inputId}
+                        aria-label={ariaLabel}
                         className={cn(
                             "border border-gray-300 p-2 rounded-md text-sm flex justify-between items-center w-full text-gray-600 font-medium ring-0 border-none",
                             !border && "border-0",

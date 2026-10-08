@@ -38,6 +38,22 @@ module.exports = {
       error_file: './logs/frontend-error.log',
       out_file: './logs/frontend-out.log',
       time: true
+    },
+    {
+      // Nightly backup at 02:30, keeping the last 14. Set BACKUP_DIR to a disk other than the
+      // one the database lives on (ideally removable/USB), so a failed disk doesn't take both.
+      name: 'soma-x-backup',
+      cwd: './soma-x-backend',
+      script: 'src/scripts/backup.js',
+      args: 'backup --keep 14',
+      cron_restart: '30 2 * * *',
+      autorestart: false,
+      instances: 1,
+      exec_mode: 'fork',
+      env: { NODE_ENV: 'production' },
+      error_file: './logs/backup-error.log',
+      out_file: './logs/backup-out.log',
+      time: true
     }
   ]
 };

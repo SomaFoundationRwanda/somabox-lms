@@ -1,8 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
 import {
   FileText, ClipboardList, HelpCircle, Upload, MessageSquare, Minus,
   Eye, EyeOff, Pencil, Trash2, GripVertical,
@@ -48,19 +46,15 @@ const ITEM_ICONS = {
   sub_header: Minus,
 };
 
-export default function ModuleItemRow({ item, courseId, isTeacher, onTogglePublish, onEdit, onDelete }) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: item.id });
+// dnd: from SortableItemList (teachers only); without it the row is static.
+export default function ModuleItemRow({ item, courseId, isTeacher, onTogglePublish, onEdit, onDelete, dnd = null }) {
+  const setNodeRef = dnd?.setNodeRef;
+  const attributes = dnd?.attributes || {};
+  const listeners = dnd?.listeners || {};
+  const isDragging = Boolean(dnd?.isDragging);
 
   const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
+    ...(dnd?.style || {}),
     paddingLeft: `${(item.indent_level || 0) * 24 + 16}px`,
   };
 
@@ -89,7 +83,7 @@ export default function ModuleItemRow({ item, courseId, isTeacher, onTogglePubli
       >
         <div className="flex items-center gap-2 min-w-0">
           {isTeacher && (
-            <button {...listeners} className="cursor-grab active:cursor-grabbing p-0.5 text-slate-300 hover:text-slate-500 shrink-0">
+            <button {...listeners} aria-label="Drag to reorder sub-header" className="cursor-grab active:cursor-grabbing p-0.5 text-slate-300 hover:text-slate-500 shrink-0">
               <GripVertical className="w-3.5 h-3.5" />
             </button>
           )}
@@ -99,10 +93,10 @@ export default function ModuleItemRow({ item, courseId, isTeacher, onTogglePubli
         </div>
         {isTeacher && (
           <div className="flex items-center gap-0.5 shrink-0">
-            <button onClick={onEdit} className="p-1 rounded hover:bg-white text-slate-400" title="Edit">
+            <button onClick={onEdit} className="p-1 rounded hover:bg-white text-slate-400" title="Edit" aria-label={`Edit ${item.title}`}>
               <Pencil className="w-3 h-3" />
             </button>
-            <button onClick={onDelete} className="p-1 rounded hover:bg-white text-rose-400" title="Delete">
+            <button onClick={onDelete} className="p-1 rounded hover:bg-white text-rose-400" title="Delete" aria-label={`Delete ${item.title}`}>
               <Trash2 className="w-3 h-3" />
             </button>
           </div>
@@ -167,7 +161,7 @@ export default function ModuleItemRow({ item, courseId, isTeacher, onTogglePubli
           </button>
         )}
         {href ? (
-          <Link href={href} className="flex items-center gap-2 min-w-0 flex-1 hover:text-[#203A3A]">
+          <Link href={href} className="flex items-center gap-2 min-w-0 flex-1 hover:text-[#203A3A] rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]">
             {TitleContent}
           </Link>
         ) : (
@@ -177,13 +171,13 @@ export default function ModuleItemRow({ item, courseId, isTeacher, onTogglePubli
 
       {isTeacher && (
         <div className="flex items-center gap-0.5 shrink-0 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100 transition-opacity">
-          <button onClick={onTogglePublish} className="p-1 rounded hover:bg-white" title={item.published ? "Unpublish" : "Publish"}>
+          <button onClick={onTogglePublish} className="p-1 rounded hover:bg-white" title={item.published ? "Unpublish" : "Publish"} aria-label={`${item.published ? "Unpublish" : "Publish"} ${item.title}`}>
             {item.published ? <Eye className="w-3.5 h-3.5 text-emerald-600" /> : <EyeOff className="w-3.5 h-3.5 text-slate-400" />}
           </button>
-          <button onClick={onEdit} className="p-1 rounded hover:bg-white text-slate-400" title="Edit">
+          <button onClick={onEdit} className="p-1 rounded hover:bg-white text-slate-400" title="Edit" aria-label={`Edit ${item.title}`}>
             <Pencil className="w-3.5 h-3.5" />
           </button>
-          <button onClick={onDelete} className="p-1 rounded hover:bg-white text-rose-400" title="Delete">
+          <button onClick={onDelete} className="p-1 rounded hover:bg-white text-rose-400" title="Delete" aria-label={`Delete ${item.title}`}>
             <Trash2 className="w-3.5 h-3.5" />
           </button>
         </div>

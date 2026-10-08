@@ -288,8 +288,8 @@ export async function importBundle(bundle, user) {
     const usedCodes = new Set();
     for (const [i, o] of (bundle.outcomes || []).entries()) {
       let code = String(o.code || `OUT-${i + 1}`).slice(0, 40);
-      while (usedCodes.has(code)) code = `${code}-${i + 1}`;
-      usedCodes.add(code);
+      while (usedCodes.has(code.toLowerCase())) code = `${code}-${i + 1}`;
+      usedCodes.add(code.toLowerCase());
       const scale = ["4pt", "percent", "pass_fail"].includes(o.masteryScale) ? o.masteryScale : "4pt";
       const row = await localDb.prepare(`
         INSERT INTO outcomes (course_id, code, title, description, mastery_scale, mastery_levels) VALUES (?, ?, ?, ?, ?, ?) RETURNING id

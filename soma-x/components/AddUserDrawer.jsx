@@ -158,7 +158,7 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
                                 </div>
                             </div>
                             {!loading && (
-                                <button
+                                <button aria-label="Close"
                                     onClick={handleClose}
                                     className="w-7 h-7 flex items-center justify-center rounded-[5px] text-slate-600 hover:bg-slate-100 transition-colors"
                                 >
@@ -224,7 +224,7 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
                                         <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest block mb-2">
                                             Full Name
                                         </label>
-                                        <input
+                                        <input aria-label="Full Name"
                                             type="text"
                                             value={fullName}
                                             onChange={(e) => setFullName(e.target.value)}
@@ -245,11 +245,11 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
                                         <div className="grid grid-cols-2 gap-2">
                                             <div>
                                                 <label className="text-[10px] font-bold text-slate-500 block mb-1">Gender</label>
-                                                <select
+                                                <select aria-label="Gender"
                                                     value={gender}
                                                     onChange={(e) => setGender(e.target.value)}
                                                     disabled={loading}
-                                                    className="w-full h-9 px-2 rounded-[5px] border border-slate-200 bg-slate-50 text-xs text-slate-800 outline-none"
+                                                    className="w-full h-9 px-2 rounded-[5px] border border-slate-200 bg-slate-50 text-xs text-slate-800 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]"
                                                 >
                                                     <option value="prefer_not_to_say">Prefer Not To Say</option>
                                                     <option value="female">Female</option>
@@ -260,11 +260,11 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
 
                                             <div>
                                                 <label className="text-[10px] font-bold text-slate-500 block mb-1">Accessibility / Disability</label>
-                                                <select
+                                                <select aria-label="Accessibility / Disability"
                                                     value={disabilityStatus}
                                                     onChange={(e) => setDisabilityStatus(e.target.value)}
                                                     disabled={loading}
-                                                    className="w-full h-9 px-2 rounded-[5px] border border-slate-200 bg-slate-50 text-xs text-slate-800 outline-none"
+                                                    className="w-full h-9 px-2 rounded-[5px] border border-slate-200 bg-slate-50 text-xs text-slate-800 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]"
                                                 >
                                                     <option value="none">None</option>
                                                     <option value="visual">Visual Impairment</option>
@@ -279,24 +279,24 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
                                         <div className="grid grid-cols-2 gap-2">
                                             <div>
                                                 <label className="text-[10px] font-bold text-slate-500 block mb-1">Province</label>
-                                                <input
+                                                <input aria-label="Province"
                                                     type="text"
                                                     value={regionProvince}
                                                     onChange={(e) => setRegionProvince(e.target.value)}
                                                     placeholder="e.g. Kigali / Northern"
                                                     disabled={loading}
-                                                    className="w-full h-9 px-2.5 rounded-[5px] border border-slate-200 bg-slate-50 text-xs text-slate-800 outline-none"
+                                                    className="w-full h-9 px-2.5 rounded-[5px] border border-slate-200 bg-slate-50 text-xs text-slate-800 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]"
                                                 />
                                             </div>
                                             <div>
                                                 <label className="text-[10px] font-bold text-slate-500 block mb-1">District</label>
-                                                <input
+                                                <input aria-label="District"
                                                     type="text"
                                                     value={regionDistrict}
                                                     onChange={(e) => setRegionDistrict(e.target.value)}
                                                     placeholder="e.g. Gasabo / Musanze"
                                                     disabled={loading}
-                                                    className="w-full h-9 px-2.5 rounded-[5px] border border-slate-200 bg-slate-50 text-xs text-slate-800 outline-none"
+                                                    className="w-full h-9 px-2.5 rounded-[5px] border border-slate-200 bg-slate-50 text-xs text-slate-800 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]"
                                                 />
                                             </div>
                                         </div>
@@ -322,7 +322,7 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
                                     <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest block mb-2">
                                         Email
                                     </label>
-                                    <input
+                                    <input aria-label="Email"
                                         type="email"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
@@ -341,6 +341,7 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
                                     <div className="relative">
                                         <input
                                             type={showPassword ? "text" : "password"}
+                                            aria-label="Password"
                                             value={password}
                                             onChange={(e) => setPassword(e.target.value)}
                                             placeholder={user ? "Leave blank to keep current" : "••••••••"}
@@ -350,6 +351,8 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
                                         <button
                                             type="button"
                                             onClick={() => setShowPassword(s => !s)}
+                                            aria-label={showPassword ? "Hide password" : "Show password"}
+                                            aria-pressed={showPassword}
                                             className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-600 transition-colors"
                                             tabIndex={-1}
                                         >

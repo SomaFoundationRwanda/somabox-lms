@@ -5,6 +5,7 @@
 import { localDb } from "../../helpers/db-manager.js";
 import { ItemError, createModuleContent } from "../courses/items.js";
 import { saveRubric } from "../courses/rubrics.js";
+import { freeOutcomeCode } from "../courses/shared.js";
 import { outcomeIdFor } from "./context.js";
 
 const escapeHtml = (text) => String(text ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
@@ -140,7 +141,7 @@ export async function applyDraft(draft, actorEmail) {
   if (draft.type === "outline") {
     const outcomes = [];
     for (const o of p.outcomes) {
-      const row = await localDb.prepare("INSERT INTO outcomes (course_id, title, description, code) VALUES (?, ?, ?, ?) RETURNING id").get(courseId, o.title, o.description || "", o.code || null);
+      const row = await localDb.prepare("INSERT INTO outcomes (course_id, title, description, code) VALUES (?, ?, ?, ?) RETURNING id").get(courseId, o.title, o.description || "", await freeOutcomeCode(courseId, o.code));
       outcomes.push(row.id);
     }
     const last = await localDb.prepare("SELECT COALESCE(MAX(week_offset), 0) AS w, COALESCE(MAX(position) FILTER (WHERE kind <> 'unassigned'), -1) AS p FROM modules WHERE course_id = ? AND kind = 'regular'").get(courseId);
@@ -161,7 +162,7 @@ export async function applyDraft(draft, actorEmail) {
       await localDb.prepare("UPDATE outcomes SET title = ?, description = ?, mastery_levels = ? WHERE id = ?").run(p.title, p.description || "", levels, targetId);
       return { outcomes: [targetId] };
     }
-    const row = await localDb.prepare("INSERT INTO outcomes (course_id, title, description, mastery_levels) VALUES (?, ?, ?, ?) RETURNING id").get(courseId, p.title, p.description || "", levels);
+    const row = await localDb.prepare("INSERT INTO outcomes (course_id, code, title, description, mastery_levels) VALUES (?, ?, ?, ?, ?) RETURNING id").get(courseId, await freeOutcomeCode(courseId), p.title, p.description || "", levels);
     return { outcomes: [row.id] };
   }
   if (draft.type === "rubric") {

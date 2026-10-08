@@ -29,7 +29,7 @@ const Library = () => {
                     {filterPanelOpen ? <X size={13} /> : <Filter size={13} />}
                     Filters
                     {activeFilterCount > 0 && (
-                        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center">
+                        <span className="absolute -top-2 -right-2 min-w-5 h-5 px-1 rounded-full bg-rose-500 text-white text-[11px] font-bold flex items-center justify-center">
                             {activeFilterCount}
                         </span>
                     )}
@@ -40,7 +40,7 @@ const Library = () => {
             <div className="px-3 sm:px-5 pt-4">
                 <div className="relative">
                     <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-600 pointer-events-none" />
-                    <input
+                    <input aria-label="Search books by title"
                         type="text"
                         placeholder="Search books by title…"
                         value={searchQuery}
@@ -48,7 +48,7 @@ const Library = () => {
                         className="w-full h-10 pl-9 pr-4 rounded-xl border border-slate-200 bg-white text-[13px] text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-slate-300 shadow-sm"
                     />
                     {searchQuery && (
-                        <button
+                        <button aria-label="Clear search"
                             type="button"
                             onClick={() => setSearchQuery("")}
                             className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-600"

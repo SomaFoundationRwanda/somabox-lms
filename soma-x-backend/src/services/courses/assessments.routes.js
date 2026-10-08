@@ -12,7 +12,7 @@ import {
   userFullName,
 } from "./shared.js";
 import { recordBaselineResults } from "./setup.js";
-import { recordQuizAttemptResults, recordSubmissionResults, rubricGrade } from "./results.js";
+import { recordQuizAttemptResults, recordSubmissionResults, rubricGrade, autoMarked } from "./results.js";
 import { contentDeadlines } from "./schedule.js";
 import { saveRubric } from "./rubrics.js";
 import { recordEditAfterPublish } from "../insights/events.js";
@@ -502,17 +502,18 @@ router.post("/:id/quizzes/:quizId/submit", async (req, res) => {
 
     let score = 0;
     let possible = 0;
-    for (const question of questions) {
+    // Open questions aren't marked automatically yet, so they don't count toward the score.
+    for (const question of questions.filter(autoMarked)) {
       possible += Number(question.points) || 0;
-      const given = answers[String(question.id)];
-      if (question.question_type === "multiple_choice" && question.correct_option && given === question.correct_option) {
-        score += Number(question.points) || 0;
-      }
+      if (answers[String(question.id)] === question.correct_option) score += Number(question.points) || 0;
     }
     const scorePct = possible > 0 ? Math.round((score / possible) * 10000) / 100 : null;
 
     // Every submission is kept as a new attempt; the limit (if any) is per learner.
     const attempt = await localDb.transaction(async () => {
+      // One submit at a time per learner and quiz: a double-tap or two open tabs must not race
+      // for the same attempt number or slip past the attempt limit.
+      await localDb.prepare("SELECT pg_advisory_xact_lock(?::int, ?::int)").get(quiz.id, req.user.id);
       const used = await localDb.prepare("SELECT COALESCE(MAX(attempt_number), 0) AS n FROM quiz_attempts WHERE quiz_id = ? AND user_id = ?").get(quiz.id, req.user.id);
       const attemptNumber = Number(used?.n || 0) + 1;
       if (allowed != null && attemptNumber > allowed) return null;

@@ -425,7 +425,7 @@ export default function AccountPage() {
                                     {/* Gender */}
                                     <div className="space-y-1">
                                         <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">Gender</label>
-                                        <select
+                                        <select aria-label="Gender"
                                             value={demoForm.gender}
                                             onChange={e => setDemoForm({ ...demoForm, gender: e.target.value })}
                                             className="w-full h-10 px-3 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 bg-white outline-none focus:border-accent-dark"
@@ -440,7 +440,7 @@ export default function AccountPage() {
                                     {/* Province */}
                                     <div className="space-y-1">
                                         <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">Province / State</label>
-                                        <input
+                                        <input aria-label="Province / State"
                                             type="text"
                                             placeholder="e.g. Kigali, Northern Province, Eastern Province"
                                             value={demoForm.regionProvince}
@@ -452,7 +452,7 @@ export default function AccountPage() {
                                     {/* District */}
                                     <div className="space-y-1">
                                         <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">District / Region</label>
-                                        <input
+                                        <input aria-label="District / Region"
                                             type="text"
                                             placeholder="e.g. Gasabo, Nyarugenge, Musanze, Huye"
                                             value={demoForm.regionDistrict}
@@ -478,7 +478,7 @@ export default function AccountPage() {
                                     {/* Disability status */}
                                     <div className="space-y-1 pt-1">
                                         <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">Accessibility Options</label>
-                                        <select
+                                        <select aria-label="Accessibility Options"
                                             value={demoForm.disabilityStatus}
                                             onChange={e => setDemoForm({ ...demoForm, disabilityStatus: e.target.value })}
                                             className="w-full h-10 px-3 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 bg-white outline-none focus:border-accent-dark"

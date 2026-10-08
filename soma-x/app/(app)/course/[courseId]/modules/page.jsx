@@ -1,13 +1,8 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, lazy, Suspense } from "react";
 import Link from "next/link";
-import {
-  DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors,
-} from "@dnd-kit/core";
-import {
-  SortableContext, verticalListSortingStrategy, arrayMove,
-} from "@dnd-kit/sortable";
+import dynamic from "next/dynamic";
 import { Plus, Sparkles } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
 import { useToast } from "@/context/ToastContext";
@@ -20,12 +15,16 @@ import { useLanguage } from "@/context/LanguageContext";
 import InfoTooltip from "@/components/ui/InfoTooltip";
 import ModuleCard from "@/components/course/modules/ModuleCard";
 import DeleteItemDialog from "@/components/course/modules/DeleteItemDialog";
-import PageEditorModal from "@/components/course/modules/editors/PageEditorModal";
-import AssignmentEditorModal from "@/components/course/modules/editors/AssignmentEditorModal";
-import QuizEditorModal from "@/components/course/modules/editors/QuizEditorModal";
-import FileUploadModal from "@/components/course/modules/editors/FileUploadModal";
 import useAiStatus from "@/lib/useAiStatus";
 import { AiStatusNote } from "@/components/ai/AiBits";
+
+// Teacher-only code is loaded on demand so learners on low-end devices don't download it:
+// the editor modals (TipTap etc.) when one is opened, and drag-and-drop for teachers.
+const PageEditorModal = dynamic(() => import("@/components/course/modules/editors/PageEditorModal"), { ssr: false });
+const AssignmentEditorModal = dynamic(() => import("@/components/course/modules/editors/AssignmentEditorModal"), { ssr: false });
+const QuizEditorModal = dynamic(() => import("@/components/course/modules/editors/QuizEditorModal"), { ssr: false });
+const FileUploadModal = dynamic(() => import("@/components/course/modules/editors/FileUploadModal"), { ssr: false });
+const SortableModuleList = lazy(() => import("@/components/course/modules/sortable").then((m) => ({ default: m.SortableModuleList })));
 
 const ITEM_TYPE_OPTIONS = [
   { value: "page", label: "Page" },
@@ -107,12 +106,6 @@ export default function ModulesPage() {
   // Delete flow
   const [deleteTarget, setDeleteTarget] = useState({ open: false, module: null, item: null });
 
-  // DnD sensors
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(KeyboardSensor)
-  );
-
   // ===== Module CRUD =====
   const createModule = async () => {
     if (!newTitle.trim()) return;
@@ -131,18 +124,11 @@ export default function ModulesPage() {
     refetch();
   };
 
-  const handleModuleReorder = async (event) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id || !modules) return;
-
-    const oldIndex = modules.findIndex((m) => m.id === active.id);
-    const newIndex = modules.findIndex((m) => m.id === over.id);
-    const newModules = arrayMove(modules, oldIndex, newIndex);
-
+  const handleModuleReorder = async (moduleIds) => {
     await fetch(`${SERVER_URL}/courses/${courseId}/modules/reorder`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ moduleIds: newModules.map((m) => m.id) }),
+      body: JSON.stringify({ moduleIds }),
     });
     refetch();
   };
@@ -349,14 +335,28 @@ export default function ModulesPage() {
     refetch();
   };
 
-  const moduleIds = (modules || []).map((m) => m.id);
-
   const chooseFromHelper = ({ moduleId, itemType, kind }) => {
     const moduleRow = (modules || []).find((m) => Number(m.id) === Number(moduleId));
     setHelperOpen(false);
     if (moduleRow) openCreator(moduleRow, itemType, kind);
   };
   const selectedExplainer = explain(`items.${selectedItemType}`).entry;
+
+  const renderTeacherModule = (moduleRow, dnd = null) => (
+    <ModuleCard
+      key={moduleRow.id}
+      module={moduleRow}
+      courseId={courseId}
+      isTeacher={isTeacher}
+      SERVER_URL={SERVER_URL}
+      onRefetch={refetch}
+      onAddItem={handleAddItem}
+      onEditItem={handleEditItem}
+      onDeleteItem={handleDeleteItem}
+      ai={aiProps}
+      dnd={dnd}
+    />
+  );
 
   return (
     <div>
@@ -435,30 +435,11 @@ export default function ModulesPage() {
         {/* Module list with drag-and-drop */}
         {modules && modules.length > 0 && (
           isTeacher ? (
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleModuleReorder}
-            >
-              <SortableContext items={moduleIds} strategy={verticalListSortingStrategy}>
-                <div className="space-y-8">
-                  {modules.map((moduleRow) => (
-                    <ModuleCard
-                      key={moduleRow.id}
-                      module={moduleRow}
-                      courseId={courseId}
-                      isTeacher={isTeacher}
-                      SERVER_URL={SERVER_URL}
-                      onRefetch={refetch}
-                      onAddItem={handleAddItem}
-                      onEditItem={handleEditItem}
-                      onDeleteItem={handleDeleteItem}
-                      ai={aiProps}
-                    />
-                  ))}
-                </div>
-              </SortableContext>
-            </DndContext>
+            <div className="space-y-8">
+              <Suspense fallback={modules.map((moduleRow) => renderTeacherModule(moduleRow))}>
+                <SortableModuleList modules={modules} onReorder={handleModuleReorder} renderModule={renderTeacherModule} />
+              </Suspense>
+            </div>
           ) : (
             <div className="space-y-8">
               {modules.map((moduleRow) => (
@@ -487,7 +468,7 @@ export default function ModulesPage() {
               </h3>
               <div className="space-y-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1.5">Item Type</label>
+                  <p className="block text-xs font-semibold text-slate-600 mb-1.5">Item Type</p>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
                     {ITEM_TYPE_OPTIONS.map((opt) => (
                       <div key={opt.value} className="flex items-center gap-1">
@@ -516,8 +497,9 @@ export default function ModulesPage() {
 
                 {selectedItemType === "sub_header" && (
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">Sub-header Title</label>
+                    <label htmlFor="new-subheader-title" className="block text-xs font-semibold text-slate-600 mb-1.5">Sub-header Title</label>
                     <input
+                      id="new-subheader-title"
                       value={subHeaderTitle}
                       onChange={(e) => setSubHeaderTitle(e.target.value)}
                       onKeyDown={(e) => { if (e.key === "Enter") startItemCreation(); }}
@@ -557,15 +539,15 @@ export default function ModulesPage() {
       />
 
       {/* ===== Modals ===== */}
-      <PageEditorModal
+      {pageModal.open && <PageEditorModal
         key={`page-${pageModal.open}-${pageModal.moduleId}-${pageModal.itemId}`}
         open={pageModal.open}
         onClose={() => setPageModal({ open: false, moduleId: null, data: null, itemId: null })}
         onSave={handlePageSave}
         initialData={pageModal.data}
-      />
+      />}
 
-      <AssignmentEditorModal
+      {assignmentModal.open && <AssignmentEditorModal
         key={`assignment-${assignmentModal.open}-${assignmentModal.moduleId}-${assignmentModal.itemId}`}
         open={assignmentModal.open}
         onClose={() => setAssignmentModal({ open: false, moduleId: null, data: null, itemId: null })}
@@ -573,9 +555,9 @@ export default function ModulesPage() {
         initialData={assignmentModal.data}
         initialDays={assignmentModal.days}
         moduleStartDate={assignmentModal.startDate}
-      />
+      />}
 
-      <QuizEditorModal
+      {quizModal.open && <QuizEditorModal
         key={`quiz-${quizModal.open}-${quizModal.moduleId}-${quizModal.itemId}`}
         open={quizModal.open}
         onClose={() => setQuizModal({ open: false, moduleId: null, data: null, itemId: null })}
@@ -583,16 +565,16 @@ export default function ModulesPage() {
         initialData={quizModal.data}
         initialDays={quizModal.days}
         moduleStartDate={quizModal.startDate}
-      />
+      />}
 
-      <FileUploadModal
+      {fileModal.open && <FileUploadModal
         open={fileModal.open}
         onClose={() => setFileModal({ open: false, moduleId: null })}
         onUpload={() => refetch()}
         courseId={courseId}
         moduleId={fileModal.moduleId}
         SERVER_URL={SERVER_URL}
-      />
+      />}
 
       <DeleteItemDialog
         open={deleteTarget.open}

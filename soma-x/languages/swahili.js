@@ -99,13 +99,11 @@ export default {
     "auth": {
         "authTitle": "Karibu Tena",
         "authSubtitle": "Ingia ili kudhibiti akaunti yako",
-        "authUsername": "Jina la mtumiaji",
         "authPassword": "Nenosiri",
         "authTeacher": "Mwalimu",
         "authAdmin": "Msimamizi",
         "authLogin": "Ingia"
     },
-    "authScholar": "Mwanafunzi",
     "AdminManageOptions": {
         "syncTitle": "Sawazisha maudhui",
         "contentTitle": "Dhibiti Maudhui",
@@ -130,6 +128,9 @@ export default {
         "scholar": "Mwanafunzi"
     },
     "notFound": "Maudhui hayajapatikana",
+    "loadingCategories": "Inapakia kategoria...",
+    "exploreTopics": "Chunguza mada zilizo hapa chini",
+    "notContent": "Bado hakuna maudhui hapa.",
     "noContent": "Maudhui uliyoomba hayakuweza kupakiwa",
     "thePath": "Njia",
     "doesNotExist": "Haipo",

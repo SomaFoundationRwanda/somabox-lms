@@ -30,7 +30,7 @@ export default function DataTable({ columns, rows, rowKey = (r) => r.id, caption
                       className={`inline-flex items-center gap-1 uppercase tracking-wide hover:text-slate-900 dark:hover:text-white ${active ? "text-slate-900 dark:text-white" : ""}`}
                     >
                       {c.header}
-                      <span aria-hidden="true" className="text-[9px]">{active ? (sort.dir === "asc" ? "▲" : "▼") : "↕"}</span>
+                      <span aria-hidden="true" className="text-[11px]">{active ? (sort.dir === "asc" ? "▲" : "▼") : "↕"}</span>
                     </button>
                   ) : c.header}
                 </th>
@@ -45,7 +45,9 @@ export default function DataTable({ columns, rows, rowKey = (r) => r.id, caption
             <tr
               key={rowKey(row)}
               onClick={onRowClick ? () => onRowClick(row) : undefined}
-              className={`${onRowClick ? "cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900/40" : ""} ${rowClassName ? rowClassName(row) || "" : ""}`}
+              tabIndex={onRowClick ? 0 : undefined}
+              onKeyDown={onRowClick ? (e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onRowClick(row); } } : undefined}
+              className={`${onRowClick ? "cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900/40 focus-visible:outline-none focus-visible:bg-slate-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0D9488]" : ""} ${rowClassName ? rowClassName(row) || "" : ""}`}
             >
               {columns.map((c) => (
                 <td key={c.key} className={`px-3 py-2 align-middle ${alignClass[c.align || "left"]} ${c.hideOnMobile ? "hidden md:table-cell" : ""} ${c.className || ""}`}>

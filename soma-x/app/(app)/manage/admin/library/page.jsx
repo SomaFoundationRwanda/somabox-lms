@@ -9,7 +9,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { BookOpen, CheckCircle2, Loader2, Trash2, X, Upload, File, AlertCircle, Eye } from "lucide-react";
 import { useCallback } from "react";
 import UniversalPlayerModal from "@/components/ui/UniversalPlayerModal";
-import EpubReader from "@/components/ui/library/EpubReader";
+import dynamic from "next/dynamic";
+import { clickableProps } from "@/lib/a11y";
+
+// react-reader (epub.js) loads only when a book is opened.
+const EpubReader = dynamic(() => import("@/components/ui/library/EpubReader"), { ssr: false });
 
 function formatBytes(bytes) {
     if (!bytes) return '';
@@ -85,7 +89,7 @@ function LibraryUploadModal({ onClose, onSubmit }) {
                     <h2 className="text-[14px] font-black text-slate-900">Upload Content</h2>
                 </div>
                 {status !== 'uploading' && (
-                    <button
+                    <button aria-label="Close"
                         onClick={onClose}
                         className="w-7 h-7 flex items-center justify-center rounded-[5px] text-slate-600 hover:bg-slate-100 transition-colors"
                     >
@@ -97,11 +101,11 @@ function LibraryUploadModal({ onClose, onSubmit }) {
             <form onSubmit={handleSubmit}>
                 <div className="px-5 py-5 space-y-5">
                     <div>
-                        <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest block mb-2">
+                        <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest block mb-2">
                             File
-                        </label>
+                        </p>
                         <div
-                            onClick={() => fileInputRef.current?.click()}
+                            {...clickableProps(() => fileInputRef.current?.click(), "Choose a file, or drop one here")}
                             onDrop={handleDrop}
                             onDragOver={handleDragOver}
                             onDragLeave={handleDragLeave}
@@ -155,7 +159,7 @@ function LibraryUploadModal({ onClose, onSubmit }) {
                             <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest block mb-2">
                                 Book Name
                             </label>
-                            <input
+                            <input aria-label="Book Name"
                                 type="text"
                                 value={bookName}
                                 onChange={(e) => setBookName(e.target.value)}
@@ -247,7 +251,7 @@ const Banner = ({ type, message, onDismiss }) => {
         <div className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-[5px] border text-[12px] font-medium ${styles[type]}`}>
             <span className="flex-1">{message}</span>
             {onDismiss && (
-                <button onClick={onDismiss} className="shrink-0 opacity-60 hover:opacity-100">
+                <button aria-label="Dismiss message" onClick={onDismiss} className="shrink-0 opacity-60 hover:opacity-100">
                     <X className="w-3.5 h-3.5" />
                 </button>
             )}
@@ -407,7 +411,7 @@ const ManageLibrary = () => {
                         <div className="flex items-center gap-2 flex-wrap">
                             <p className="text-[12px] font-medium text-slate-800 dark:text-slate-100">{book.book_name}</p>
                             {isLocal && (
-                                <span className="text-[9px] bg-green-50 text-green-600 px-2 py-0.5 rounded-full font-bold border border-green-100">
+                                <span className="text-[11px] bg-green-50 text-green-600 px-2 py-0.5 rounded-full font-bold border border-green-100">
                                     Downloaded
                                 </span>
                             )}

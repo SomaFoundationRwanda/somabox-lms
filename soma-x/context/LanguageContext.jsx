@@ -27,6 +27,12 @@ export function LanguageProvider({ children }) {
         try { localStorage.setItem(STORAGE_KEY, next); } catch { /* ignore */ }
     }, []);
 
+    // Keep <html lang> in step with the chosen UI language (screen readers pick the voice
+    // from it). The language codes are BCP 47 already ("rw" is Kinyarwanda).
+    useEffect(() => {
+        if (typeof document !== "undefined") document.documentElement.lang = lang;
+    }, [lang]);
+
     // Missing translations fall back to English instead of showing nothing.
     const t = useCallback((keyPath) => lookup(lang, keyPath) ?? lookup("en", keyPath) ?? null, [lang]);
 

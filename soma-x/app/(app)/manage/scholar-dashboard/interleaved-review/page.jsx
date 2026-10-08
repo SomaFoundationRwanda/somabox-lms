@@ -110,7 +110,7 @@ export default function InterleavedReviewPage() {
 
                     <div className="mb-4">
                         <label className="text-xs font-semibold text-slate-600 mb-1.5 block">Try answering it again from memory:</label>
-                        <textarea
+                        <textarea aria-label="Try answering it again from memory"
                             value={recallText}
                             onChange={(e) => setRecallText(e.target.value)}
                             rows={3}

@@ -232,10 +232,10 @@ const ScholarDashboard = () => {
                                                         <div className="space-y-1">
                                                             <div className="flex items-center justify-between text-[10px] text-slate-500">
                                                                 <span>Progress</span>
-                                                                <span className="font-semibold text-slate-700">{course.progress}%</span>
+                                                                <span className="font-semibold text-slate-700">{course.progress == null ? "No graded work yet" : `${course.progress}%`}</span>
                                                             </div>
                                                             <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                                                                <div className="h-full rounded-full transition-all duration-700" style={{ width: `${course.progress}%`, backgroundColor: ACCENT }} />
+                                                                <div className="h-full rounded-full transition-all duration-700" style={{ width: `${course.progress ?? 0}%`, backgroundColor: ACCENT }} />
                                                             </div>
                                                         </div>
                                                         <Link href={`/course/${course.id}/home`} className="mt-auto">
@@ -270,7 +270,7 @@ const ScholarDashboard = () => {
                                                     <div className="p-3 flex flex-col gap-1.5 flex-1">
                                                         <p className="text-[12px] font-bold text-slate-900 truncate">{course.title}</p>
                                                         {course.grade ? (
-                                                            <span className="text-[9px] font-semibold uppercase text-slate-500 bg-slate-100 rounded-full px-2 py-0.5 w-fit">{course.grade}</span>
+                                                            <span className="text-[11px] font-semibold uppercase text-slate-500 bg-slate-100 rounded-full px-2 py-0.5 w-fit">{course.grade}</span>
                                                         ) : null}
                                                         {course.description ? (
                                                             <p className="text-[11px] text-slate-600 line-clamp-2">{course.description}</p>
@@ -316,7 +316,7 @@ const ScholarDashboard = () => {
                                         </div>
                                         <div className="min-w-0">
                                             <p className="text-[11px] sm:text-[12px] font-semibold text-slate-800 group-hover:text-[#203A3A] transition-colors truncate">{label}</p>
-                                            <p className="text-[9px] sm:text-[10px] text-slate-600 truncate">{sub}</p>
+                                            <p className="text-[11px] text-slate-600 truncate">{sub}</p>
                                         </div>
                                     </div>
                                 </Link>

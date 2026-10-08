@@ -72,7 +72,7 @@ const HeaderSection = ({
                     <Button
                       variant="ghost"
                       onClick={() => onBreadcrumbClick?.(crumb.path)}
-                      className="cursor-pointer hover:text-white p-0 h-auto font-bold underline-offset-4 hover:underline transition-all ring-0 focus:ring-0 opacity-90 hover:opacity-100"
+                      className="cursor-pointer hover:text-white p-0 h-auto font-bold underline-offset-4 hover:underline transition-all ring-0 opacity-90 hover:opacity-100"
                     >
                       {crumb.name}
                     </Button>
@@ -109,6 +109,7 @@ const HeaderSection = ({
               prefix={<Globe className="w-4 h-4 mr-2" />}
               value={lang}
               id="language-select"
+              ariaLabel="Language"
               variant="select"
               options={languages.map((l) => ({ value: l, label: l.toUpperCase() }))}
               onChange={(value) => setLang(value)}

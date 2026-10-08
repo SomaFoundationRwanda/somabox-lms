@@ -20,7 +20,8 @@
     "pm2:restart": "pm2 restart ecosystem.config.cjs",
     "pm2:status": "pm2 status",
     "pm2:logs": "pm2 logs",
-    "test": "npm test --workspaces --if-present"
+    "test": "npm test --workspaces --if-present && npm test --prefix ai/gateway",
+    "backup": "npm run backup --workspace=soma-x-backend --"
   },
   "devDependencies": {
     "concurrently": "^9.2.4",

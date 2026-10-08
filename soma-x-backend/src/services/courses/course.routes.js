@@ -69,8 +69,8 @@ router.get("/mine", async (req, res) => {
       FROM courses c
       JOIN enrollments e ON e.course_id = c.id
       WHERE LOWER(e.user_email) = LOWER(?) AND e.status IN ('active', 'invited')
-        -- learners don't see courses that are still being set up
-        AND (e.role IN ('teacher', 'ta') OR c.lifecycle <> 'draft')
+        -- learners don't see courses that are still being set up, or archived ones
+        AND (e.role IN ('teacher', 'ta') OR c.lifecycle NOT IN ('draft', 'archived'))
       ORDER BY c.created_at DESC
     `).all(email);
 
@@ -257,9 +257,30 @@ router.delete("/:id", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
     if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
-    if (!await requireTeacher(req, res, courseId)) return;
+    const isAdmin = req.user?.role === "admin";
+    if (!isAdmin && !await requireTeacher(req, res, courseId)) return;
 
+    // Deleting can't be undone. A course holding learners' work is archived instead, unless an
+    // admin deliberately forces it.
+    const learnerWork = await localDb.prepare(`
+      SELECT (SELECT COUNT(*) FROM assignment_submissions s JOIN assignments a ON a.id = s.assignment_id WHERE a.course_id = ?)
+           + (SELECT COUNT(*) FROM quiz_attempts qa JOIN quizzes q ON q.id = qa.quiz_id WHERE q.course_id = ?)
+           + (SELECT COUNT(*) FROM outcome_results WHERE course_id = ?) AS n
+    `).get(courseId, courseId, courseId);
+    if (Number(learnerWork.n) > 0 && !(isAdmin && req.query.force === "true")) {
+      return res.status(409).json({
+        message: "This course has learners' work in it, so it can't be deleted. Archive it instead: learners no longer see it in their course list, and grades and results are kept.",
+        code: "HAS_LEARNER_WORK",
+      });
+    }
+
+    const course = await localDb.prepare("SELECT cover_image FROM courses WHERE id = ?").get(courseId);
     await localDb.prepare("DELETE FROM courses WHERE id = ?").run(courseId);
+    // Its uploaded files and cover go too.
+    fs.rmSync(path.join(config.paths.courseFiles, courseId), { recursive: true, force: true });
+    if (course?.cover_image && !course.cover_image.includes("/")) {
+      fs.rmSync(path.join(config.paths.courseCovers, course.cover_image), { force: true });
+    }
     return res.status(204).end();
   } catch (error) {
     console.error("Error deleting course:", error);

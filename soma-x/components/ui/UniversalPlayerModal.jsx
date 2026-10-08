@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useContext } from 'react';
-import { X, Play, Pause, Volume2, VolumeX, Maximize, Minimize, SkipBack, SkipForward, RotateCcw, RotateCw, ZoomIn, ZoomOut, FileText, ExternalLink } from 'lucide-react';
+import { X, Play, Pause, Volume2, VolumeX, Maximize, Minimize, SkipBack, SkipForward, FileText, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const UniversalPlayerModal = ({
@@ -104,6 +104,16 @@ const UniversalPlayerModal = ({
         }
     };
 
+    // Skip back/forward 10 seconds in the audio player.
+    const skipBy = (seconds) => {
+        const mediaElement = mediaItem?.type === 'video' ? videoRef.current : audioRef.current;
+        if (mediaElement) {
+            const max = Number.isFinite(mediaElement.duration) ? mediaElement.duration : Infinity;
+            mediaElement.currentTime = Math.min(max, Math.max(0, mediaElement.currentTime + seconds));
+            setCurrentTime(mediaElement.currentTime);
+        }
+    };
+
     const formatTime = (time) => {
         const minutes = Math.floor(time / 60);
         const seconds = Math.floor(time % 60);
@@ -145,13 +155,13 @@ const UniversalPlayerModal = ({
                             onPause={() => setIsPlaying(false)}
                         />
                         {/* Video Controls Overlay */}
-                        <div className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity duration-300">
-                            <Button variant="ghost" onClick={togglePlay} className="p-3 absolute left-1/2 -translate-x-1/2 -translate-y-1/2 top-1/2 bg-accent-light text-white border border-white/20 rounded-full transition-colors hover:bg-accent-light/80 ring-0 h-16 w-16">
+                        <div className="absolute inset-0 opacity-0 hover:opacity-100 focus-within:opacity-100 transition-opacity duration-300">
+                            <Button variant="ghost" onClick={togglePlay} aria-label={isPlaying ? "Pause" : "Play"} className="p-3 absolute left-1/2 -translate-x-1/2 -translate-y-1/2 top-1/2 bg-accent-light text-white border border-white/20 rounded-full transition-colors hover:bg-accent-light/80 ring-0 h-16 w-16">
                                 {isPlaying ? <Pause size={30} /> : <Play size={30} />}
                             </Button>
                             <div className="absolute bottom-0 left-0 right-0 p-6">
                                 <div className="flex items-center space-x-4 text-white">
-                                    <Button variant="ghost" onClick={togglePlay} className="p-2 hover:bg-white/20 rounded-full transition-colors ring-0 h-10 w-10">
+                                    <Button variant="ghost" onClick={togglePlay} aria-label={isPlaying ? "Pause" : "Play"} className="p-2 hover:bg-white/20 rounded-full transition-colors ring-0 h-10 w-10">
                                         {isPlaying ? <Pause size={24} /> : <Play size={24} />}
                                     </Button>
                                     <div className="flex-1">
@@ -161,11 +171,13 @@ const UniversalPlayerModal = ({
                                             max="100"
                                             value={(currentTime / duration) * 100 || 0}
                                             onChange={handleSeek}
+                                            aria-label="Seek"
+                                    aria-label="Seek"
                                             className="w-full h-2 bg-white/30 rounded-lg appearance-none cursor-pointer slider"
                                         />
                                     </div>
                                     <span className="text-sm">{formatTime(currentTime)} / {formatTime(duration)}</span>
-                                    <Button variant="ghost" onClick={toggleMute} className="p-2 hover:bg-white/20 rounded-full transition-colors ring-0 h-10 w-10">
+                                    <Button variant="ghost" onClick={toggleMute} aria-label={isMuted ? "Unmute" : "Mute"} aria-pressed={isMuted} className="p-2 hover:bg-white/20 rounded-full transition-colors ring-0 h-10 w-10">
                                         {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
                                     </Button>
                                     <input
@@ -175,9 +187,11 @@ const UniversalPlayerModal = ({
                                         step="0.1"
                                         value={volume}
                                         onChange={handleVolumeChange}
+                                        aria-label="Volume"
+                                    aria-label="Volume"
                                         className="w-20 h-2 bg-white/30 rounded-lg appearance-none cursor-pointer"
                                     />
-                                    <Button variant="ghost" onClick={toggleFullscreen} className="p-2 hover:bg-white/20 rounded-full transition-colors ring-0 h-10 w-10">
+                                    <Button variant="ghost" onClick={toggleFullscreen} aria-label={isFullscreen ? "Exit full screen" : "Full screen"} className="p-2 hover:bg-white/20 rounded-full transition-colors ring-0 h-10 w-10">
                                         {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
                                     </Button>
                                 </div>
@@ -209,13 +223,13 @@ const UniversalPlayerModal = ({
 
                         <div className="w-full max-w-md space-y-6">
                             <div className="flex justify-center space-x-4">
-                                <Button variant="ghost" className="p-3 hover:bg-white/20 rounded-full transition-colors ring-0 h-12 w-12">
+                                <Button variant="ghost" onClick={() => skipBy(-10)} aria-label="Back 10 seconds" title="Back 10 seconds" className="p-3 hover:bg-white/20 rounded-full transition-colors ring-0 h-12 w-12">
                                     <SkipBack size={24} />
                                 </Button>
-                                <Button variant="ghost" onClick={togglePlay} className="p-4 bg-white/20 hover:bg-white/30 rounded-full transition-colors ring-0 h-16 w-16">
+                                <Button variant="ghost" onClick={togglePlay} aria-label={isPlaying ? "Pause" : "Play"} className="p-4 bg-white/20 hover:bg-white/30 rounded-full transition-colors ring-0 h-16 w-16">
                                     {isPlaying ? <Pause size={28} /> : <Play size={28} />}
                                 </Button>
-                                <Button variant="ghost" className="p-3 hover:bg-white/20 rounded-full transition-colors ring-0 h-12 w-12">
+                                <Button variant="ghost" onClick={() => skipBy(10)} aria-label="Forward 10 seconds" title="Forward 10 seconds" className="p-3 hover:bg-white/20 rounded-full transition-colors ring-0 h-12 w-12">
                                     <SkipForward size={24} />
                                 </Button>
                             </div>
@@ -227,6 +241,7 @@ const UniversalPlayerModal = ({
                                     max="100"
                                     value={(currentTime / duration) * 100 || 0}
                                     onChange={handleSeek}
+                                    aria-label="Seek"
                                     className="w-full h-2 bg-white/30 rounded-lg appearance-none cursor-pointer"
                                 />
                                 <div className="flex justify-between text-sm text-white/70">
@@ -236,7 +251,7 @@ const UniversalPlayerModal = ({
                             </div>
 
                             <div className="flex items-center justify-center space-x-3">
-                                <Button variant="ghost" onClick={toggleMute} className="p-2 hover:bg-white/20 rounded-full transition-colors ring-0 h-10 w-10">
+                                <Button variant="ghost" onClick={toggleMute} aria-label={isMuted ? "Unmute" : "Mute"} aria-pressed={isMuted} className="p-2 hover:bg-white/20 rounded-full transition-colors ring-0 h-10 w-10">
                                     {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
                                 </Button>
                                 <input
@@ -246,6 +261,7 @@ const UniversalPlayerModal = ({
                                     step="0.1"
                                     value={volume}
                                     onChange={handleVolumeChange}
+                                    aria-label="Volume"
                                     className="w-32 h-2 bg-white/30 rounded-lg appearance-none cursor-pointer"
                                 />
                             </div>
@@ -259,30 +275,6 @@ const UniversalPlayerModal = ({
                 return (
                     <div className="h-full bg-black overflow-hidden">
                         <div className="h-full flex flex-col">
-                            {/* <div className="bg-white border-b border-gray-200 p-2 flex items-center justify-between">
-                                <h3 className="text-lg font-semibold text-gray-800">{mediaItem.title}</h3>
-                                <div className="flex items-center space-x-2">
-                                    <button
-                                        onClick={() => setPdfZoom(Math.max(0.5, pdfZoom - 0.25))}
-                                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                                    >
-                                        <ZoomOut size={20} />
-                                    </button>
-                                    <span className="text-sm text-gray-600">{Math.round(pdfZoom * 100)}%</span>
-                                    <button
-                                        onClick={() => setPdfZoom(Math.min(2, pdfZoom + 0.25))}
-                                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                                    >
-                                        <ZoomIn size={20} />
-                                    </button>
-                                    <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                                        <RotateCcw size={20} />
-                                    </button>
-                                    <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                                        <RotateCw size={20} />
-                                    </button>
-                                </div>
-                            </div> */}
                             <div className="flex-1 bg-gray-50 flex items-center justify-center">
                                 {mediaItem.url ? (
                                     <iframe
@@ -362,6 +354,9 @@ const UniversalPlayerModal = ({
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-2 border">
             <div
                 ref={modalRef}
+                role="dialog"
+                aria-modal="true"
+                aria-label={mediaItem?.title || 'Media Player'}
                 className={`bg-black border border-primary-400/50 rounded-sm shadow-2xl transition-all duration-300 ${isFullscreen ? 'w-full h-full' : 'w-[85vw] h-[85vh]'
                     } max-w-8xl max-h-full overflow-hidden`}
                 style={{
@@ -377,6 +372,7 @@ const UniversalPlayerModal = ({
                             onClick={toggleFullscreen}
                             className="p-2 hover:bg-white/20 rounded-lg transition-colors ring-0 h-10 w-10"
                             title="Toggle Fullscreen"
+                            aria-label={isFullscreen ? "Exit full screen" : "Full screen"}
                         >
                             {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
                         </Button>
@@ -385,6 +381,7 @@ const UniversalPlayerModal = ({
                             onClick={handleClose}
                             className="p-2 hover:bg-white/20 rounded-lg transition-colors ring-0 h-10 w-10"
                             title="Close"
+                            aria-label="Close"
                         >
                             <X size={24} />
                         </Button>

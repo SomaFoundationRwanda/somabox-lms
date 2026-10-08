@@ -98,13 +98,11 @@ export default {
     "auth": {
         "authTitle": "Bon retour",
         "authSubtitle": "Connectez-vous pour gérer votre compte",
-        "authUsername": "Nom d'utilisateur",
         "authPassword": "Mot de passe",
         "authTeacher": "Enseignant",
         "authAdmin": "Administrateur",
         "authLogin": "Connexion"
     },
-    "authScholar": "Élève",
     "AdminManageOptions": {
         "syncTitle": "Synchroniser le contenu",
         "contentTitle": "Gérer le contenu",
@@ -129,6 +127,9 @@ export default {
         "scholar": "Apprenant"
     },
     "notFound": "Contenu introuvable",
+    "loadingCategories": "Chargement des catégories...",
+    "exploreTopics": "Explorez les sujets ci-dessous",
+    "notContent": "Il n'y a pas encore de contenu ici.",
     "noContent": "Le contenu demandé n’a pas pu être chargé",
     "thePath": "Le chemin",
     "doesNotExist": "N’existe pas",

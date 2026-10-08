@@ -5,6 +5,9 @@ import { localDb } from "../../helpers/db-manager.js";
 
 const clampPct = (n) => Math.round(Math.min(100, Math.max(0, n)) * 100) / 100;
 
+/** A question the box can mark by itself (multiple choice with a correct option). */
+export const autoMarked = (q) => q.question_type === "multiple_choice" && !!q.correct_option;
+
 /**
  * Per-outcome percentages for a quiz attempt: questions tagged with an outcome score that
  * outcome; untagged questions (or the whole quiz, if nothing is tagged) score the quiz's own
@@ -16,8 +19,11 @@ export function quizOutcomePcts(questions, answers, itemOutcomeIds) {
   let earnedAll = 0;
   let possibleAll = 0;
   for (const q of questions) {
+    // Only auto-marked questions count: an open question can't be marked yet, so counting its
+    // points would understate what the learner knows.
+    if (!autoMarked(q)) continue;
     const points = Number(q.points) || 0;
-    const right = q.question_type === "multiple_choice" && q.correct_option && answers[String(q.id)] === q.correct_option;
+    const right = answers[String(q.id)] === q.correct_option;
     possibleAll += points;
     if (right) earnedAll += points;
     const key = q.outcome_id ? Number(q.outcome_id) : null;

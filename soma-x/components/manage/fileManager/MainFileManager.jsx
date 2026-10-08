@@ -3,12 +3,16 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import FileTable from './fileTable';
 import { getFileMediaType } from './fileRow';
 import UniversalPlayerModal from '@/components/ui/UniversalPlayerModal';
-import EpubReader from '@/components/ui/library/EpubReader';
+import dynamic from "next/dynamic";
 import { Button } from '@/components/ui/button';
+import { clickableProps } from "@/lib/a11y";
 import {
     Check, ChevronDown, ChevronRight, File, FolderPlus, Loader2, Search,
     Upload, X, CheckCircle2, AlertCircle, Music, Video, BookOpen, FolderOpen
 } from 'lucide-react';
+
+// react-reader (epub.js) loads only when a book is opened.
+const EpubReader = dynamic(() => import("@/components/ui/library/EpubReader"), { ssr: false });
 
 const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL;
 
@@ -154,7 +158,7 @@ function NewFolderModal({ onClose, onSubmit }) {
                     <h2 className="text-[14px] font-black text-slate-900">New Folder</h2>
                 </div>
                 {status !== 'loading' && (
-                    <button
+                    <button aria-label="Close"
                         onClick={onClose}
                         className="w-7 h-7 flex items-center justify-center rounded-[5px] text-slate-600 hover:bg-slate-100 transition-colors"
                     >
@@ -198,13 +202,13 @@ function NewFolderModal({ onClose, onSubmit }) {
                                 {remaining}
                             </span>
                         </div>
-                        <input
+                        <input aria-label="Folder name"
                             ref={inputRef}
                             type="text"
                             value={name}
                             onChange={(e) => setName(e.target.value.slice(0, MAX_FOLDER_NAME))}
                             placeholder="e.g. Mathematics Grade 4"
-                            className={`w-full h-10 px-3 rounded-[5px] border text-[13px] text-slate-800 placeholder:text-slate-400 outline-none transition-all ${
+                            className={`w-full h-10 px-3 rounded-[5px] border text-[13px] text-slate-800 placeholder:text-slate-400 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488] transition-all ${
                                 isOverLimit
                                     ? 'border-red-300 bg-red-50 focus:border-red-400'
                                     : 'border-slate-200 bg-slate-50 focus:border-slate-400 focus:bg-white'
@@ -322,7 +326,7 @@ function UploadModal({ onClose, onSubmit }) {
                     <h2 className="text-[14px] font-black text-slate-900">Upload Content</h2>
                 </div>
                 {status !== 'uploading' && (
-                    <button
+                    <button aria-label="Close"
                         onClick={onClose}
                         className="w-7 h-7 flex items-center justify-center rounded-[5px] text-slate-600 hover:bg-slate-100 transition-colors"
                     >
@@ -336,11 +340,11 @@ function UploadModal({ onClose, onSubmit }) {
 
                     {/* Drop zone */}
                     <div>
-                        <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest block mb-2">
+                        <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest block mb-2">
                             File
-                        </label>
+                        </p>
                         <div
-                            onClick={() => fileInputRef.current?.click()}
+                            {...clickableProps(() => fileInputRef.current?.click(), "Choose a file, or drop one here")}
                             onDrop={handleDrop}
                             onDragOver={handleDragOver}
                             onDragLeave={handleDragLeave}
@@ -602,12 +606,12 @@ const FileManager = () => {
                     {/* Search */}
                     <div className="flex items-center gap-2 px-3 h-8 rounded-[5px] border border-slate-200 bg-slate-50 focus-within:bg-white focus-within:border-slate-400 transition-all flex-1 min-w-[180px] max-w-[280px]">
                         <Search className="w-3.5 h-3.5 text-slate-600 shrink-0" />
-                        <input
+                        <input aria-label="Search files/folders"
                             type="text"
                             placeholder="Search files/folders…"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="flex-1 text-[12px] text-slate-700 placeholder:text-slate-400 bg-transparent outline-none border-none min-w-0"
+                            className="flex-1 text-[12px] text-slate-700 placeholder:text-slate-400 bg-transparent outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488] border-none min-w-0"
                         />
                     </div>
 

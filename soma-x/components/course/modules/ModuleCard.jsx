@@ -1,15 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import Link from "next/link";
-import { useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import {
-  DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors,
-} from "@dnd-kit/core";
-import {
-  SortableContext, verticalListSortingStrategy, arrayMove,
-} from "@dnd-kit/sortable";
 import {
   Eye, EyeOff, Trash2, GripVertical, Plus, ChevronDown, ChevronRight, Pencil, Sparkles,
 } from "lucide-react";
@@ -18,6 +10,9 @@ import { useToast } from "@/context/ToastContext";
 import { moduleWeekLabel, isUnassignedModule } from "@/lib/moduleLabels";
 import Explainer from "@/components/help/Explainer";
 import { formatRange } from "@/lib/dates";
+
+// Teacher-only drag-and-drop, loaded on demand so learners never download dnd-kit.
+const SortableItemList = lazy(() => import("./sortable").then((m) => ({ default: m.SortableItemList })));
 
 async function readError(res, fallback) {
   const payload = await res.json().catch(() => ({}));
@@ -35,6 +30,7 @@ export default function ModuleCard({
   onEditItem,
   onDeleteItem,
   ai,
+  dnd = null, // from SortableModuleList (teachers only): makes the module draggable
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
@@ -84,25 +80,6 @@ export default function ModuleCard({
     }
   };
 
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: moduleRow.id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor)
-  );
-
   const togglePublish = async () => {
     const res = await fetch(`${SERVER_URL}/courses/${courseId}/modules/${moduleRow.id}`, {
       method: "PATCH",
@@ -149,23 +126,27 @@ export default function ModuleCard({
     onRefetch();
   };
 
-  const handleItemReorder = async (event) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-
-    const oldIndex = moduleRow.items.findIndex((i) => i.id === active.id);
-    const newIndex = moduleRow.items.findIndex((i) => i.id === over.id);
-    const newItems = arrayMove(moduleRow.items, oldIndex, newIndex);
-
+  const handleItemReorder = async (itemIds) => {
     await fetch(`${SERVER_URL}/courses/${courseId}/modules/${moduleRow.id}/items/reorder`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ itemIds: newItems.map((i) => i.id) }),
+      body: JSON.stringify({ itemIds }),
     });
     onRefetch();
   };
 
-  const itemIds = moduleRow.items.map((i) => i.id);
+  const renderItem = (item, itemDnd = null) => (
+    <ModuleItemRow
+      key={item.id}
+      item={item}
+      courseId={courseId}
+      isTeacher={isTeacher}
+      dnd={itemDnd}
+      onTogglePublish={() => toggleItemPublish(item)}
+      onEdit={() => onEditItem(moduleRow, item)}
+      onDelete={() => onDeleteItem(moduleRow, item)}
+    />
+  );
 
   const hasDates = !isUnassigned && Boolean(moduleRow.startDate);
   const listBorder = isUnassigned
@@ -178,17 +159,17 @@ export default function ModuleCard({
   // its items as rows in ONE list. Not a card: the only bordered box is the item list.
   return (
     <section
-      ref={setNodeRef}
-      style={style}
+      ref={dnd?.setNodeRef}
+      style={dnd?.style}
       aria-label={`${moduleWeekLabel(moduleRow)}: ${moduleRow.title}`}
-      className={`space-y-2 ${isDragging ? "opacity-50" : ""}`}
-      {...attributes}
+      className={`space-y-2 ${dnd?.isDragging ? "opacity-50" : ""}`}
+      {...(dnd?.attributes || {})}
     >
       {/* Section header row */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0 flex-1 flex-wrap">
           {isTeacher && (
-            <button {...listeners} aria-label="Drag to reorder module" className="cursor-grab active:cursor-grabbing p-0.5 text-slate-300 hover:text-slate-500 shrink-0">
+            <button {...(dnd?.listeners || {})} aria-label="Drag to reorder module" className="cursor-grab active:cursor-grabbing p-0.5 text-slate-300 hover:text-slate-500 shrink-0 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]">
               <GripVertical className="w-4 h-4" />
             </button>
           )}
@@ -232,17 +213,17 @@ export default function ModuleCard({
             </span>
           )}
           {!isUnassigned && moduleRow.status === "current" && (
-            <span className="text-[9px] font-bold uppercase text-white bg-[#0D9488] px-1.5 py-0.5 rounded shrink-0">
+            <span className="text-[11px] font-bold uppercase text-white bg-[#0D9488] px-1.5 py-0.5 rounded shrink-0">
               Current
             </span>
           )}
           {!isUnassigned && moduleRow.status === "past" && (
-            <span className="text-[9px] font-semibold uppercase text-slate-400 border border-slate-200 px-1.5 py-0.5 rounded shrink-0">
+            <span className="text-[11px] font-semibold uppercase text-slate-400 border border-slate-200 px-1.5 py-0.5 rounded shrink-0">
               Past
             </span>
           )}
           {!moduleRow.published && isTeacher && (
-            <span className="text-[9px] font-bold uppercase text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded shrink-0">
+            <span className="text-[11px] font-bold uppercase text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded shrink-0">
               Draft
             </span>
           )}
@@ -346,37 +327,11 @@ export default function ModuleCard({
           )}
 
           {isTeacher ? (
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleItemReorder}
-            >
-              <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
-                {moduleRow.items.map((item) => (
-                  <ModuleItemRow
-                    key={item.id}
-                    item={item}
-                    courseId={courseId}
-                    isTeacher={isTeacher}
-                    onTogglePublish={() => toggleItemPublish(item)}
-                    onEdit={() => onEditItem(moduleRow, item)}
-                    onDelete={() => onDeleteItem(moduleRow, item)}
-                  />
-                ))}
-              </SortableContext>
-            </DndContext>
+            <Suspense fallback={moduleRow.items.map((item) => renderItem(item))}>
+              <SortableItemList items={moduleRow.items} onReorder={handleItemReorder} renderItem={renderItem} />
+            </Suspense>
           ) : (
-            moduleRow.items.map((item) => (
-              <ModuleItemRow
-                key={item.id}
-                item={item}
-                courseId={courseId}
-                isTeacher={false}
-                onTogglePublish={() => {}}
-                onEdit={() => {}}
-                onDelete={() => {}}
-              />
-            ))
+            moduleRow.items.map((item) => renderItem(item))
           )}
 
           {/* Add item row */}

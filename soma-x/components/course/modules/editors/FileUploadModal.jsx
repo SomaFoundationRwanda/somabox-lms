@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import { X, Upload, FileIcon, CheckCircle } from "lucide-react";
+import { clickableProps } from "@/lib/a11y";
 
 export default function FileUploadModal({ open, onClose, onUpload, courseId, moduleId, SERVER_URL }) {
   const [file, setFile] = useState(null);
@@ -69,7 +70,7 @@ export default function FileUploadModal({ open, onClose, onUpload, courseId, mod
       <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl mx-4 animate-in fade-in slide-in-from-bottom-2 duration-200">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
           <h2 className="text-base font-bold text-slate-900">Upload File</h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400">
+          <button aria-label="Close" onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -79,8 +80,8 @@ export default function FileUploadModal({ open, onClose, onUpload, courseId, mod
           <div
             onDrop={handleDrop}
             onDragOver={(e) => e.preventDefault()}
-            onClick={() => inputRef.current?.click()}
-            className="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center cursor-pointer hover:border-[#203A3A] hover:bg-slate-50/50 transition-colors"
+            {...clickableProps(() => inputRef.current?.click(), "Choose a file, or drop one here")}
+            className="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center cursor-pointer hover:border-[#203A3A] hover:bg-slate-50/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]"
           >
             {file ? (
               <div className="flex flex-col items-center gap-2">
@@ -106,7 +107,7 @@ export default function FileUploadModal({ open, onClose, onUpload, courseId, mod
           {file && (
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1.5">Display Title</label>
-              <input
+              <input aria-label="Display Title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[#203A3A]"

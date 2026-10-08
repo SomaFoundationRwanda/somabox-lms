@@ -14,7 +14,7 @@ export default function DeleteItemDialog({ open, onClose, item, onRemove, onDele
             <AlertTriangle className="w-4 h-4 text-amber-500" />
             <h2 className="text-sm font-bold text-slate-900">Delete Item</h2>
           </div>
-          <button onClick={onClose} className="p-1 rounded-lg hover:bg-slate-100 text-slate-400">
+          <button aria-label="Close" onClick={onClose} className="p-1 rounded-lg hover:bg-slate-100 text-slate-400">
             <X className="w-4 h-4" />
           </button>
         </div>

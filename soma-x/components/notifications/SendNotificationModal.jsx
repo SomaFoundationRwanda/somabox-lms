@@ -72,7 +72,7 @@ export default function SendNotificationModal({ isOpen, onClose }) {
                             <p className="text-[10px] text-slate-500 font-medium">Send announcements to students, teachers & admins</p>
                         </div>
                     </div>
-                    <button
+                    <button aria-label="Close"
                         onClick={onClose}
                         className="text-slate-600 hover:text-white transition-colors p-1 rounded-lg hover:bg-slate-800"
                     >
@@ -86,7 +86,7 @@ export default function SendNotificationModal({ isOpen, onClose }) {
                     {/* Target Recipient Selection */}
                     <div className="space-y-1">
                         <label className="text-[11px] font-bold text-slate-800 uppercase tracking-wide">Target Recipients</label>
-                        <select
+                        <select aria-label="Target Recipients"
                             value={targetRole}
                             onChange={(e) => setTargetRole(e.target.value)}
                             className="w-full h-10 px-3 rounded-xl border-2 border-slate-300 text-xs font-semibold text-slate-900 bg-white outline-none focus:border-accent-dark"
@@ -103,7 +103,7 @@ export default function SendNotificationModal({ isOpen, onClose }) {
                     {targetRole === "specific" && (
                         <div className="space-y-1">
                             <label className="text-[11px] font-bold text-slate-800 uppercase tracking-wide">Recipient Email Address</label>
-                            <input
+                            <input aria-label="Recipient Email Address"
                                 type="email"
                                 placeholder="student@example.com"
                                 value={targetEmail}
@@ -117,7 +117,7 @@ export default function SendNotificationModal({ isOpen, onClose }) {
                     {/* Notification Type */}
                     <div className="space-y-1">
                         <label className="text-[11px] font-bold text-slate-800 uppercase tracking-wide">Notification Priority / Category</label>
-                        <select
+                        <select aria-label="Notification Priority / Category"
                             value={type}
                             onChange={(e) => setType(e.target.value)}
                             className="w-full h-10 px-3 rounded-xl border-2 border-slate-300 text-xs font-semibold text-slate-900 bg-white outline-none focus:border-accent-dark"
@@ -131,7 +131,7 @@ export default function SendNotificationModal({ isOpen, onClose }) {
                     {/* Title */}
                     <div className="space-y-1">
                         <label className="text-[11px] font-bold text-slate-800 uppercase tracking-wide">Notification Title</label>
-                        <input
+                        <input aria-label="Notification Title"
                             type="text"
                             placeholder="e.g. New Learning Materials Released!"
                             value={title}
@@ -144,7 +144,7 @@ export default function SendNotificationModal({ isOpen, onClose }) {
                     {/* Message */}
                     <div className="space-y-1">
                         <label className="text-[11px] font-bold text-slate-800 uppercase tracking-wide">Message Content</label>
-                        <textarea
+                        <textarea aria-label="Message Content"
                             rows={3}
                             placeholder="Type notification details here..."
                             value={message}
@@ -157,7 +157,7 @@ export default function SendNotificationModal({ isOpen, onClose }) {
                     {/* Optional Link */}
                     <div className="space-y-1">
                         <label className="text-[11px] font-bold text-slate-800 uppercase tracking-wide">Action Redirect Link (Optional)</label>
-                        <input
+                        <input aria-label="Action Redirect Link (Optional)"
                             type="text"
                             placeholder="e.g. /library or /account"
                             value={link}

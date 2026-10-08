@@ -140,7 +140,7 @@ export default function NotificationBellDrawer({ className = "" }) {
                                         <CheckCheck className="w-3.5 h-3.5" /> Read all
                                     </button>
                                 )}
-                                <button
+                                <button aria-label="Close"
                                     onClick={() => setOpen(false)}
                                     className="p-1 text-slate-600 hover:text-slate-600 rounded-md transition-colors"
                                 >
@@ -230,6 +230,17 @@ export default function NotificationBellDrawer({ className = "" }) {
                                                         {n.message}
                                                     </p>
 
+                                                    {/* Keyboard equivalent of clicking an unread notification */}
+                                                    {isUnread && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => { e.stopPropagation(); handleMarkAsRead(n.id); }}
+                                                            className="sr-only focus:not-sr-only focus:mt-1 focus:inline-block text-[11px] font-bold text-accent-dark underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]"
+                                                        >
+                                                            Mark as read
+                                                        </button>
+                                                    )}
+
                                                     {/* Quick Action Link */}
                                                     {n.link && (
                                                         <div className="mt-2">
@@ -248,8 +259,9 @@ export default function NotificationBellDrawer({ className = "" }) {
                                                 {/* Delete icon */}
                                                 <button
                                                     onClick={(e) => handleDelete(n.id, e)}
-                                                    className="opacity-0 group-hover:opacity-100 p-1 text-slate-600 hover:text-rose-600 rounded transition-all absolute right-3 top-3"
+                                                    className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488] p-1 text-slate-600 hover:text-rose-600 rounded transition-all absolute right-3 top-3"
                                                     title="Dismiss"
+                                                    aria-label={`Dismiss notification: ${n.title}`}
                                                 >
                                                     <Trash2 className="w-3.5 h-3.5" />
                                                 </button>

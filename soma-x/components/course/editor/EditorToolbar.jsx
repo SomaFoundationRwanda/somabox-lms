@@ -159,13 +159,13 @@ export default function EditorToolbar({ editor }) {
       {/* Link input popover */}
       {showLinkInput && (
         <div className="flex items-center gap-1.5 ml-1 bg-white border border-slate-200 rounded-lg px-2 py-1 shadow-sm">
-          <input
+          <input aria-label="Link URL"
             type="url"
             value={linkUrl}
             onChange={(e) => setLinkUrl(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); setLink(); } if (e.key === "Escape") setShowLinkInput(false); }}
             placeholder="https://..."
-            className="text-xs border-none outline-none w-48 bg-transparent"
+            className="text-xs border-none outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488] w-48 bg-transparent"
             autoFocus
           />
           <button
@@ -175,7 +175,7 @@ export default function EditorToolbar({ editor }) {
           >
             Set
           </button>
-          <button
+          <button aria-label="Cancel link"
             type="button"
             onClick={() => setShowLinkInput(false)}
             className="text-[10px] text-slate-400 hover:text-slate-600"

@@ -101,6 +101,21 @@ export function hasPending(userId) {
   return !!userId && keysFor(PENDING_PREFIX, userId).length > 0;
 }
 
+/** How many submissions are still waiting on this device for this user. */
+export function pendingCount(userId) {
+  return userId ? keysFor(PENDING_PREFIX, userId).length : 0;
+}
+
+/**
+ * Deletes everything this queue keeps for a user on this device: waiting submissions and
+ * refusal notices. Called on logout so the next person on a shared device can't read them.
+ */
+export function clearUserQueue(userId) {
+  if (!userId) return;
+  for (const key of [...keysFor(PENDING_PREFIX, userId), ...keysFor(NOTICE_PREFIX, userId)]) remove(key);
+  emit({ type: "cleared" });
+}
+
 let flushing = false;
 
 /** Tries to send every waiting submission for this user once. */

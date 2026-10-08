@@ -608,3 +608,17 @@ html.dark ::-webkit-scrollbar { width: 4px; }
 html.dark ::-webkit-scrollbar-track { background: transparent; }
 html.dark ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 99px; }
 html.dark ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.14); }
+/* ------------------------------------------------------------------------------------
+   Keyboard focus safety net (Phase 11). Many controls set `outline-none` / `focus:outline-none`
+   without a replacement focus style, which hides where keyboard focus is. Unlayered, so it
+   wins over Tailwind utilities, but it skips any element that already declares its own
+   focus style (focus/focus-visible ring, outline or border classes).
+   ------------------------------------------------------------------------------------ */
+:is(a, button, summary, [role="button"], [role="tab"], [role="switch"], [role="menuitem"], [role="option"], [tabindex]):is(.outline-none, [class~="focus:outline-none"]):focus-visible:not([tabindex="-1"]):not([class*="focus-visible:ring"]):not([class*="focus:ring"]):not([class*="focus-visible:outline"]):not([class*="focus-visible:border"]):not([class*="focus:border"]) {
+  outline: 2px solid #0D9488;
+  outline-offset: 2px;
+}
+:is(input, select, textarea):is(.outline-none, [class~="focus:outline-none"]):focus-visible:not([class*="focus:"]):not([class*="focus-visible:"]) {
+  outline: 2px solid #0D9488;
+  outline-offset: 1px;
+}

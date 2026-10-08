@@ -2,6 +2,7 @@
 import { createContext, useEffect, useState, useCallback } from "react";
 import { X, AlertCircle, CheckCircle2, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { clearSession, getSessionToken, installAuthFetch } from "@/lib/session";
+import { clearUserQueue, pendingCount } from "@/lib/submissionQueue";
 
 // Attach the session token to every backend request from the first render on.
 installAuthFetch(process.env.NEXT_PUBLIC_SERVER_URL);
@@ -161,6 +162,16 @@ export function DataProvider({ children }) {
     }, []);
 
     const logout = useCallback(async () => {
+        // Shared devices: work waiting in the offline submission queue belongs to this user.
+        // Warn if some hasn't reached the box yet, then delete it with the session so the next
+        // person on this device can't read it.
+        const userId = user?.id;
+        const waiting = pendingCount(userId);
+        if (waiting > 0) {
+            const what = waiting === 1 ? "1 submission hasn't" : `${waiting} submissions haven't`;
+            if (!window.confirm(`${what} been sent yet. Log out anyway? They'll be deleted from this device.`)) return;
+        }
+        clearUserQueue(userId);
         try {
             await fetch(`${SERVER_URL}/auth/logout`, { method: "POST" });
         } catch {
@@ -170,7 +181,7 @@ export function DataProvider({ children }) {
         setAuthenticated(false);
         setUser(null);
         window.location.href = '/';
-    }, [SERVER_URL]);
+    }, [SERVER_URL, user]);
 
     const [uploads, setUploads] = useState([]);
 

@@ -48,7 +48,7 @@ function GradeCell({ cell, pointsPossible }) {
   return (
     <span className="inline-flex flex-col items-center leading-tight">
       <span className="font-semibold text-slate-800 dark:text-slate-100">{cell.pct != null ? `${fmtNum(cell.pct)}%` : "—"}</span>
-      <span className="text-[10px] text-slate-500 whitespace-nowrap">
+      <span className="text-[11px] text-slate-500 whitespace-nowrap">
         {fmtNum(cell.points)}{pointsPossible ? ` / ${fmtNum(pointsPossible)}` : ""}
       </span>
       {cell.late ? <LateMarker /> : null}
@@ -59,7 +59,7 @@ function GradeCell({ cell, pointsPossible }) {
 function TypeLabel({ col }) {
   const label = col.type === "quiz" ? "Quiz" : col.discussion ? "Discussion" : "Assignment";
   return (
-    <span className={`text-[9px] font-bold uppercase tracking-wide ${col.type === "quiz" ? "text-indigo-600" : "text-slate-400"}`}>
+    <span className={`text-[11px] font-bold uppercase tracking-wide ${col.type === "quiz" ? "text-indigo-600" : "text-slate-400"}`}>
       {label}
     </span>
   );
@@ -160,7 +160,7 @@ export default function GradesPage() {
                       return (
                         <span className="inline-flex flex-col items-end leading-tight whitespace-nowrap">
                           <span className="font-semibold text-slate-800 dark:text-slate-100">{cell.pct != null ? `${fmtNum(cell.pct)}%` : "—"}</span>
-                          <span className="text-[10px] text-slate-500">{fmtNum(cell.points)}{c.pointsPossible ? ` / ${fmtNum(c.pointsPossible)}` : ""}</span>
+                          <span className="text-[11px] text-slate-500">{fmtNum(cell.points)}{c.pointsPossible ? ` / ${fmtNum(c.pointsPossible)}` : ""}</span>
                         </span>
                       );
                     },

@@ -1,4 +1,5 @@
 import express from 'express';
+import { renameEmailEverywhere, releaseEmail } from '../helpers/identity.js';
 import bcrypt from "bcrypt";
 
 import { serverDb, localDb } from '../helpers/db-manager.js';
@@ -199,14 +200,15 @@ router.get('/me/dashboard', async (req, res) => {
             const gradedRes = await localDb.prepare(`
                 SELECT COUNT(*) AS c FROM assignment_submissions s
                 JOIN assignments a ON a.id = s.assignment_id
-                WHERE a.course_id = ? AND LOWER(s.scholar_email) = LOWER(?) AND s.grade IS NOT NULL
+                WHERE a.course_id = ? AND a.published = 1 AND LOWER(s.scholar_email) = LOWER(?) AND s.grade IS NOT NULL
             `).get(course.id, email);
             const gradedAssignments = Number(gradedRes?.c || 0);
 
             const studentRes = await localDb.prepare("SELECT COUNT(*) AS total FROM enrollments WHERE course_id = ? AND role = 'student' AND status = 'active'").get(course.id);
             const studentCount = Number(studentRes?.total || 0);
 
-            const progress = totalAssignments > 0 ? Math.round((gradedAssignments / totalAssignments) * 100) : 0;
+            // No published assignments yet means no progress figure, not 0%.
+            const progress = totalAssignments > 0 ? Math.round((gradedAssignments / totalAssignments) * 100) : null;
 
             return {
                 ...course,
@@ -425,9 +427,20 @@ router.patch('/:id', requireAdmin, async (req, res) => {
         query += updates.join(', ') + ' WHERE id = ?';
         params.push(userId);
 
-        const stmt = serverDb.prepare(query);
-        const info = await stmt.run(...params);
+        // The email is still the key in many tables: a change is carried into all of them, in
+        // the same transaction, so the person's courses, work, and grades stay theirs.
+        const info = await serverDb.transaction(async () => {
+            const before = await serverDb.prepare('SELECT email FROM users WHERE id = ?').get(userId);
+            if (!before) return { changes: 0 };
+            if (email !== undefined && email !== String(before.email).toLowerCase()) {
+                const taken = await serverDb.prepare('SELECT 1 FROM users WHERE LOWER(email) = LOWER(?) AND id <> ?').get(email, userId);
+                if (taken) return { taken: true };
+                await renameEmailEverywhere(before.email, email);
+            }
+            return serverDb.prepare(query).run(...params);
+        })();
 
+        if (info.taken) return res.status(409).json({ message: 'Another account already uses that email' });
         if (info.changes === 0) {
             return res.status(404).json({ message: 'User not found' });
         }
@@ -666,8 +679,11 @@ router.post('/bulk-action', requireAdmin, async (req, res) => {
             for (const userId of userIds) await revokeUserSessions(userId);
             await logAdminAuditAction({ adminEmail, action: 'BULK_ROLE_CHANGE', details: `Changed role to ${newRole} for ${affected} users` });
         } else if (action === 'bulk_delete') {
-            const stmt = serverDb.prepare(`DELETE FROM users WHERE id IN (${placeholders})`);
-            const info = await stmt.run(...userIds);
+            const info = await serverDb.transaction(async () => {
+                const doomed = await serverDb.prepare(`SELECT email FROM users WHERE id IN (${placeholders})`).all(...userIds);
+                for (const u of doomed) await releaseEmail(u.email);
+                return serverDb.prepare(`DELETE FROM users WHERE id IN (${placeholders})`).run(...userIds);
+            })();
             affected = info.changes;
             await logAdminAuditAction({ adminEmail, action: 'BULK_DELETE', details: `Deleted ${affected} users` });
         } else {
@@ -694,7 +710,10 @@ router.delete('/:id', requireAdmin, async (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        await serverDb.prepare('DELETE FROM users WHERE id = ?').run(id);
+        await serverDb.transaction(async () => {
+            await releaseEmail(user.email);
+            await serverDb.prepare('DELETE FROM users WHERE id = ?').run(id);
+        })();
 
         await logAdminAuditAction({
             adminEmail,

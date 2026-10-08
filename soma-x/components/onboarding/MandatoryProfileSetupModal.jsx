@@ -373,7 +373,7 @@ export default function MandatoryProfileSetupModal() {
                             {step === 1 && (
                                 <div className="space-y-5 animate-in fade-in-50 duration-200">
                                     <div className="border-b border-slate-200 dark:border-slate-800 pb-3">
-                                        <h3 ref={stepHeadingRef} tabIndex={-1} className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2 outline-none">
+                                        <h3 ref={stepHeadingRef} tabIndex={-1} className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]">
                                             <User className="w-4 h-4 text-teal-600 dark:text-teal-400" />
                                             Personal Information
                                         </h3>
@@ -388,7 +388,7 @@ export default function MandatoryProfileSetupModal() {
                                             Full Name <span className="text-rose-500">*</span>
                                         </label>
                                         <div className="relative">
-                                            <input
+                                            <input aria-label="Full Name"
                                                 type="text"
                                                 value={fullName}
                                                 onChange={(e) => setFullName(e.target.value)}
@@ -411,7 +411,7 @@ export default function MandatoryProfileSetupModal() {
                                             Phone Number <span className="text-slate-600 normal-case font-medium">(optional)</span>
                                         </label>
                                         <div className="relative">
-                                            <input
+                                            <input aria-label="Phone Number (optional)"
                                                 type="tel"
                                                 value={phone}
                                                 onChange={(e) => setPhone(e.target.value)}
@@ -461,7 +461,7 @@ export default function MandatoryProfileSetupModal() {
                             {step === 2 && (
                                 <div className="space-y-5 animate-in fade-in-50 duration-200">
                                     <div className="border-b border-slate-200 dark:border-slate-800 pb-3">
-                                        <h3 ref={stepHeadingRef} tabIndex={-1} className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2 outline-none">
+                                        <h3 ref={stepHeadingRef} tabIndex={-1} className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]">
                                             <MapPin className="w-4 h-4 text-teal-600 dark:text-teal-400" />
                                             Geographic Location & Inclusion
                                         </h3>
@@ -563,7 +563,7 @@ export default function MandatoryProfileSetupModal() {
                                         <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1.5">
                                             Accessibility & Inclusion Support
                                         </label>
-                                        <select
+                                        <select aria-label="Accessibility & Inclusion Support"
                                             value={disabilityStatus}
                                             onChange={(e) => setDisabilityStatus(e.target.value)}
                                             className="w-full h-11 px-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/60 text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all"
@@ -583,7 +583,7 @@ export default function MandatoryProfileSetupModal() {
                             {step === 3 && (
                                 <div className="space-y-5 animate-in fade-in-50 duration-200">
                                     <div className="border-b border-slate-200 dark:border-slate-800 pb-3">
-                                        <h3 ref={stepHeadingRef} tabIndex={-1} className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2 outline-none">
+                                        <h3 ref={stepHeadingRef} tabIndex={-1} className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]">
                                             <GraduationCap className="w-4 h-4 text-teal-600 dark:text-teal-400" />
                                             Academic & Learning Profile
                                         </h3>
@@ -598,7 +598,7 @@ export default function MandatoryProfileSetupModal() {
                                             School / Institution Name <span className="text-slate-600 normal-case font-medium">(optional)</span>
                                         </label>
                                         <div className="relative">
-                                            <input
+                                            <input aria-label="School / Institution Name (optional)"
                                                 type="text"
                                                 value={schoolName}
                                                 onChange={(e) => setSchoolName(e.target.value)}
@@ -613,7 +613,7 @@ export default function MandatoryProfileSetupModal() {
                                         <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1.5">
                                             Current Grade / Study Level {currentRole === 'scholar' && <span className="text-rose-500">*</span>}
                                         </label>
-                                        <select
+                                        <select aria-label="Current Grade / Study Level"
                                             value={gradeLevel}
                                             onChange={(e) => setGradeLevel(e.target.value)}
                                             className={`w-full h-11 px-3 rounded-xl border ${

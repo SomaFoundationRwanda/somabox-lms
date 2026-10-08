@@ -3,8 +3,8 @@
 import { useRouter, useParams } from 'next/navigation';
 import { useContext, useEffect, useState, useMemo } from 'react';
 import HeaderSection from '@/components/ui/HeaderSection';
-import { Book, Video } from 'lucide-react';
-import { AudioFile, BookOutlined, HomeFilled, SentimentVeryDissatisfied } from '@mui/icons-material';
+import Link from 'next/link';
+import { Book, BookOpen, FileAudio, Frown, Home, Video } from 'lucide-react';
 import ContentCard from '@/components/ui/ContentCard';
 import DataContext from '@/context/DataContext';
 import { useLanguage } from '@/context/LanguageContext';
@@ -18,7 +18,7 @@ const getTypeIcon = (type) => {
   switch (type) {
     case 'video': return <Video />;
     case 'book': return <Book />;
-    case 'audio': return <AudioFile />;
+    case 'audio': return <FileAudio />;
     default: return null;
   }
 };
@@ -36,9 +36,10 @@ const getTranslatedTitle = (slug, t, summaryData = null) => {
   if (!slug) return '';
   const lastSegment = slug.includes('/') ? slug.split('/').pop() : slug;
   const translationKey = `educationLevels.${lastSegment}`;
+  // t() returns null (not the key) when no language has it; fall back to the data title.
   const translation = t(translationKey);
 
-  if (translation !== translationKey) return translation;
+  if (translation && translation !== translationKey) return translation;
 
   if (summaryData && summaryData[slug]?.title) return summaryData[slug].title;
 
@@ -76,10 +77,10 @@ function ContentDisplayPage({ levelInfo, breadcrumbs, onBreadcrumbClick }) {
   const hasItems = levelInfo.items && levelInfo.items.length > 0;
 
   const filterOptions = [
-    { key: 'all', label: t("all"), icon: <BookOutlined /> },
+    { key: 'all', label: t("all"), icon: <BookOpen /> },
     { key: 'video', label: t("videos"), icon: <Video /> },
     { key: 'book', label: t("books"), icon: <Book /> },
-    { key: 'audio', label: t("audio"), icon: <AudioFile /> }
+    { key: 'audio', label: t("audio"), icon: <FileAudio /> }
   ];
 
   const handleItemClick = (item) => {
@@ -114,14 +115,15 @@ function ContentDisplayPage({ levelInfo, breadcrumbs, onBreadcrumbClick }) {
                     <Button
                       key={option.key}
                       variant="ghost"
+                      aria-pressed={activeFilter === option.key}
                       onClick={() => setActiveFilter(option.key)}
                       className={`px-5 py-2 rounded-full cursor-pointer font-bold transition-all duration-300 flex items-center gap-2 whitespace-nowrap shrink-0 border-none ring-0 hover:ring-0 h-10 md:h-12 ${activeFilter === option.key
                         ? 'bg-white text-accent-dark shadow-lg scale-105'
                         : 'text-white hover:bg-white/10'
                         }`}
                     >
-                      <span className="opacity-80">{option.icon}</span>
-                      <Typography weight="bold" color={activeFilter === option.key ? "accent" : "white"} className="text-sm md:text-base">
+                      <span className="opacity-80" aria-hidden="true">{option.icon}</span>
+                      <Typography as="span" weight="bold" color={activeFilter === option.key ? "accent" : "white"} className="text-sm md:text-base">
                         {option.label}
                       </Typography>
                       {option.key !== 'all' && (
@@ -136,7 +138,7 @@ function ContentDisplayPage({ levelInfo, breadcrumbs, onBreadcrumbClick }) {
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:px-10 2xl:px-20 gap-6">
                 {filteredContent.map((item) => (
-                  <div key={item.id} onClick={() => handleItemClick(item)} className="bg-white rounded-lg shadow-md flex flex-col justify-between overflow-hidden hover:shadow-lg transition-all duration-200 cursor-pointer">
+                  <div key={item.id} className="relative bg-white rounded-lg shadow-md flex flex-col justify-between overflow-hidden hover:shadow-lg focus-within:ring-2 focus-within:ring-accent-dark transition-all duration-200 cursor-pointer">
                     <div className="relative">
                       {item.type === 'video' && (
                         <div className="w-full h-48 bg-black flex items-center justify-center">
@@ -156,7 +158,7 @@ function ContentDisplayPage({ levelInfo, breadcrumbs, onBreadcrumbClick }) {
                       )}
                       {item.type === 'audio' && (
                         <div className="w-full h-48 bg-slate-100 flex items-center justify-center">
-                          <AudioFile className="text-slate-600" size={48} />
+                          <FileAudio className="text-slate-600" size={48} aria-hidden="true" />
                         </div>
                       )}
 
@@ -177,10 +179,14 @@ function ContentDisplayPage({ levelInfo, breadcrumbs, onBreadcrumbClick }) {
                       <Typography variant="h6" className="line-clamp-1">{item.title}</Typography>
                       <Typography variant="body" color="muted" className="line-clamp-2">{item.description}</Typography>
 
+                      {/* The whole card is clickable through this button (its ::after covers the card). */}
                       <Button
+                        type="button"
                         variant="outline"
                         width="full"
-                        className="bg-primary-500/10 text-primary-700 border-none hover:bg-primary-500/20 mt-2"
+                        onClick={() => handleItemClick(item)}
+                        aria-label={`${item.type === 'video' ? 'Watch' : item.type === 'book' ? 'Read' : 'Listen'}: ${item.title}`}
+                        className="bg-primary-500/10 text-primary-700 border-none hover:bg-primary-500/20 mt-2 after:absolute after:inset-0 after:content-[''] focus-visible:outline-none"
                       >
                         {item.type === 'video' ? 'Watch' : item.type === 'book' ? 'Read' : 'Listen'}
                       </Button>
@@ -191,7 +197,7 @@ function ContentDisplayPage({ levelInfo, breadcrumbs, onBreadcrumbClick }) {
 
               {filteredContent.length === 0 && (
                 <div className="bg-white rounded-lg p-12 text-center">
-                  <SentimentVeryDissatisfied className="text-gray-500 text-6xl mb-4" />
+                  <Frown className="text-gray-500 w-14 h-14 mb-4 mx-auto" aria-hidden="true" />
                   <Typography variant="h3" color="muted" className="mb-2">No content found</Typography>
                   <Typography variant="body" color="muted">No {activeFilter === 'all' ? '' : activeFilter} content available for this topic.</Typography>
                 </div>
@@ -253,7 +259,7 @@ export default function DynamicContentPage() {
       return;
     }
 
-    const crumbs = [{ name: <HomeFilled />, path: '/' }];
+    const crumbs = [{ name: <><Home className="w-5 h-5" aria-hidden="true" /><span className="sr-only">Home</span></>, path: '/' }];
     let currentPath = '';
 
     slug.forEach((segment, index) => {
@@ -274,7 +280,7 @@ export default function DynamicContentPage() {
       <div className="min-h-screen flex-1 bg-slate-200 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-8 text-center space-y-6">
           <div className="w-20 h-20 bg-accent-light/10 text-accent-dark rounded-full flex items-center justify-center mx-auto mb-2">
-            <SentimentVeryDissatisfied className="text-4xl" />
+            <Frown className="w-9 h-9" aria-hidden="true" />
           </div>
           <div className="space-y-2">
             <h2 className="text-2xl font-bold text-slate-800">Oops, you lost your way!</h2>
@@ -320,17 +326,17 @@ export default function DynamicContentPage() {
       <main className="flex-1 py-4 mt-[8rem] md:mt-0 md:mb-0 mb-[5rem] md:py-6 mx-3 flex rounded-xl bg-accent-background">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 lg:px-10 2xl:px-20 gap-6 p-4 w-full">
           {currentLevel.items.map((item, index) => (
-            <div
+            <Link
               key={index}
-              onClick={() => router.push(`/${item.slug}`)}
-              className="cursor-pointer"
+              href={`/${item.slug}`}
+              className="block cursor-pointer rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-dark focus-visible:ring-offset-2"
             >
               <ContentCard
                 title={item.title}
                 image='/imageFallback.png'
                 colorClass={item.colorClass}
               />
-            </div>
+            </Link>
           ))}
         </div>
       </main>

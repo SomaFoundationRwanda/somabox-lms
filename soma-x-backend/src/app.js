@@ -1,7 +1,10 @@
 import express from 'express';
 import cors from 'cors';
 import { config } from './config/index.js';
+import crypto from 'crypto';
+import fs from 'fs';
 import { authenticate, requireAuthUnlessPublic } from './helpers/auth.js';
+import { localDb } from './helpers/db-manager.js';
 
 import cloudServices from './services/cloud.services.js';
 import contentServices from './services/content.services.js';
@@ -50,6 +53,47 @@ export function createApp({ logRequests = true } = {}) {
     app.options(/.*/, cors(corsOptions));
     app.use(express.json());
 
+    // Unexpected server errors: the details go to the log with a short reference, and people
+    // see a plain message with that reference instead of raw database or code errors.
+    app.use((req, res, next) => {
+        const json = res.json.bind(res);
+        res.json = (body) => {
+            if (res.statusCode === 500 && body && typeof body === 'object' && !Array.isArray(body)) {
+                const ref = crypto.randomBytes(3).toString('hex').toUpperCase();
+                console.error(`[error ${ref}] ${req.method} ${req.originalUrl}: ${body.message}`);
+                return json({
+                    message: `Something went wrong on the server. Please try again; if it keeps happening, tell your administrator (reference ${ref}).`,
+                    reference: ref,
+                });
+            }
+            return json(body);
+        };
+        next();
+    });
+
+    // Health check for monitoring on the LAN (no login, no personal data): is the API up, can it
+    // reach the database, which migrations are applied, and how much disk is left for uploads.
+    app.get('/health', async (req, res) => {
+        const health = { status: 'ok', uptimeSeconds: Math.round(process.uptime()) };
+        try {
+            const row = await localDb.prepare('SELECT COUNT(*) AS n, MAX(id) AS latest FROM schema_migrations').get();
+            health.database = 'ok';
+            health.migrations = Number(row.n);
+            health.latestMigration = row.latest;
+        } catch {
+            health.status = 'degraded';
+            health.database = 'unreachable';
+        }
+        try {
+            const stats = fs.statfsSync(fs.existsSync(config.paths.content) ? config.paths.content : config.paths.root);
+            health.diskFreeMb = Math.round((stats.bavail * stats.bsize) / (1024 * 1024));
+            if (health.diskFreeMb < 1024) health.status = 'degraded';
+        } catch {
+            health.diskFreeMb = null;
+        }
+        res.status(health.database === 'ok' ? 200 : 503).json(health);
+    });
+
     if (logRequests) {
         app.use((req, res, next) => {
             console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
@@ -79,6 +123,7 @@ export function createApp({ logRequests = true } = {}) {
     app.use((err, req, res, next) => {
         if (res.headersSent) return next(err);
         console.error(`${req.method} ${req.path} failed:`, err);
+        // 4xx keeps its message (e.g. "File too large"); 500s are replaced by the plain message above.
         res.status(err.status || err.statusCode || 500).json({ message: err.message || 'Request failed' });
     });
 

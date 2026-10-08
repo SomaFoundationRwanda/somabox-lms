@@ -6,6 +6,7 @@ import {
   requireEnrolled,
   requireNavVisible,
   courseExists,
+  freeOutcomeCode,
 } from "./shared.js";
 import { CONTENT_TABLES, GRADED_TYPES, sendItemError, setItemOutcomes } from "./items.js";
 import { computeMastery } from "./results.js";
@@ -37,8 +38,9 @@ router.post("/:id/outcomes", async (req, res) => {
     if (!title) return res.status(400).json({ message: "title is required" });
     const masteryScale = ["4pt", "percent", "pass_fail"].includes(req.body.masteryScale) ? req.body.masteryScale : "4pt";
 
-    const info = await localDb.prepare("INSERT INTO outcomes (course_id, title, description, mastery_scale) VALUES (?, ?, ?, ?)")
-      .run(courseId, title, req.body.description || "", masteryScale);
+    const code = await freeOutcomeCode(courseId, req.body.code);
+    const info = await localDb.prepare("INSERT INTO outcomes (course_id, code, title, description, mastery_scale) VALUES (?, ?, ?, ?, ?)")
+      .run(courseId, code, title, req.body.description || "", masteryScale);
     return res.status(201).json(await localDb.prepare("SELECT * FROM outcomes WHERE id = ?").get(info.lastInsertRowid));
   } catch (error) {
     console.error("Error creating outcome:", error);

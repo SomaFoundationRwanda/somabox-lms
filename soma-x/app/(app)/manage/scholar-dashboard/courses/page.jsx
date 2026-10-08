@@ -64,7 +64,7 @@ export default function ScholarCoursesPage() {
 
         {joining ? (
           <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-3">
-            <input
+            <input aria-label="6-digit course code"
               value={courseCode}
               onChange={(e) => setCourseCode(e.target.value)}
               placeholder="6-digit course code"

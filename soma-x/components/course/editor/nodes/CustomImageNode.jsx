@@ -129,7 +129,7 @@ function CustomImageComponent({ node, updateAttributes, editor }) {
           <div className="mt-2 space-y-1.5">
             {/* Required Alt Text Field */}
             <div className="flex items-center gap-1.5">
-              <input
+              <input aria-label="Alt text for accessibility (required)"
                 type="text"
                 value={altTextDraft}
                 onChange={(e) => setAltTextDraft(e.target.value)}
@@ -150,7 +150,7 @@ function CustomImageComponent({ node, updateAttributes, editor }) {
             )}
 
             {/* Optional Caption Field */}
-            <input
+            <input aria-label="Add optional image caption"
               type="text"
               value={captionDraft}
               onChange={(e) => setCaptionDraft(e.target.value)}

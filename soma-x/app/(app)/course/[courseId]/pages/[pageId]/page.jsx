@@ -4,12 +4,18 @@ import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import { useCourse } from "@/context/CourseContext";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
-import RichTextEditor from "@/components/course/editor/RichTextEditor";
+import dynamic from "next/dynamic";
 import TeacherPageChrome from "@/components/course/pages/TeacherPageChrome";
 import StudentPageChrome from "@/components/course/pages/StudentPageChrome";
 import PrevNextNav from "@/components/course/navigation/PrevNextNav";
 import { AlertCircle } from "lucide-react";
 import { useItemOpened } from "@/lib/usage";
+
+// The editor (TipTap) loads only when a teacher clicks Edit; reading uses PageContent.
+const RichTextEditor = dynamic(() => import("@/components/course/editor/RichTextEditor"), {
+  ssr: false,
+  loading: () => <p className="text-sm text-slate-500 p-3">Loading editor…</p>,
+});
 
 export default function PageDetailPage() {
   const { courseId, pageId } = useParams();
@@ -125,7 +131,7 @@ export default function PageDetailPage() {
             )}
 
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Content</label>
+              <p className="block text-xs font-semibold text-slate-600 mb-1">Content</p>
               <RichTextEditor
                 ref={editorRef}
                 content={getEditorContent()}

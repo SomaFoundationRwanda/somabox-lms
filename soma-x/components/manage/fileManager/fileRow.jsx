@@ -46,9 +46,11 @@ const FileRow = ({ file, onOpenFolder, onToggleVisibility, onView }) => {
     return (
         <tr
             className={`group border-b border-slate-50 transition-colors ${
-                file.type === 'folder' || canPreview ? 'cursor-pointer hover:bg-slate-50' : 'hover:bg-slate-50'
+                file.type === 'folder' || canPreview ? 'cursor-pointer hover:bg-slate-50 focus-visible:outline-none focus-visible:bg-slate-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0D9488]' : 'hover:bg-slate-50'
             }`}
             onClick={handleRowClick}
+            tabIndex={file.type === 'folder' || canPreview ? 0 : undefined}
+            onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); handleRowClick(e); } }}
         >
             {/* Name */}
             <td className="px-5 py-3">
@@ -62,7 +64,7 @@ const FileRow = ({ file, onOpenFolder, onToggleVisibility, onView }) => {
 
                     {/* Type badge — always visible for known media types */}
                     {badge && (
-                        <span className={`px-1.5 py-0.5 text-[9px] font-black rounded tracking-widest uppercase shrink-0 ${badge.className}`}>
+                        <span className={`px-1.5 py-0.5 text-[11px] font-black rounded tracking-widest uppercase shrink-0 ${badge.className}`}>
                             {badge.label}
                         </span>
                     )}

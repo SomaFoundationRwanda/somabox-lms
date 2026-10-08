@@ -287,7 +287,7 @@ router.get('/school', requireAdmin, async (req, res) => {
         `).get();
         const grading = await localDb.prepare(`
             SELECT COUNT(*) AS n, percentile_cont(0.5) WITHIN GROUP (ORDER BY (data->>'ms')::numeric) AS median_ms
-            FROM usage_events WHERE event_type = 'grading_time' AND created_at >= NOW() - make_interval(days => ?)
+            FROM usage_events WHERE event_type = 'grading_time' AND role IN ('teacher', 'ta', 'admin') AND created_at >= NOW() - make_interval(days => ?)
               AND (data->>'ms') ~ '^[0-9]+(\\.[0-9]+){0,1}$'
         `).get(days);
         const edits = await localDb.prepare(`
@@ -325,12 +325,20 @@ export async function retentionDays() {
     return Number.isFinite(days) && days >= 30 ? days : DEFAULT_RETENTION_DAYS;
 }
 
-/** Deletes usage logs (usage_events, ai_calls) older than the retention setting. */
+/** Deletes usage logs (usage_events, ai_calls) older than the retention setting, long-ended sessions, and old read notifications. */
 export async function purgeOldUsage() {
     const days = await retentionDays();
     const events = await localDb.prepare("DELETE FROM usage_events WHERE created_at < NOW() - make_interval(days => ?)").run(days);
     const calls = await localDb.prepare("DELETE FROM ai_calls WHERE created_at < NOW() - make_interval(days => ?)").run(days);
-    return { days, usageEvents: events?.changes ?? 0, aiCalls: calls?.changes ?? 0 };
+    // Sessions that ended (expired or logged out) more than 30 days ago are no longer needed.
+    const sessions = await localDb.prepare(`
+        DELETE FROM sessions WHERE expires_at < NOW() - INTERVAL '30 days' OR revoked_at < NOW() - INTERVAL '30 days'
+    `).run();
+    // Notifications that were read more than 90 days ago.
+    const notifications = await localDb.prepare(`
+        DELETE FROM user_notifications WHERE is_read = 1 AND created_at < NOW() - INTERVAL '90 days'
+    `).run();
+    return { days, usageEvents: events?.changes ?? 0, aiCalls: calls?.changes ?? 0, sessions: sessions?.changes ?? 0, notifications: notifications?.changes ?? 0 };
 }
 
 let purgeTimer = null;

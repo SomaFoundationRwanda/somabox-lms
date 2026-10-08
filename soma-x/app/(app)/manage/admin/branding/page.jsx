@@ -82,7 +82,7 @@ export default function BrandingSettingsPage() {
                         <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
                             School / Partner Name
                         </label>
-                        <input
+                        <input aria-label="School / Partner Name"
                             type="text"
                             value={branding.school_name || ''}
                             onChange={(e) => setBranding(p => ({ ...p, school_name: e.target.value }))}
@@ -95,7 +95,7 @@ export default function BrandingSettingsPage() {
                         <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
                             School Logo Image URL
                         </label>
-                        <input
+                        <input aria-label="School Logo Image URL"
                             type="text"
                             value={branding.logo_url || ''}
                             onChange={(e) => setBranding(p => ({ ...p, logo_url: e.target.value }))}
@@ -110,14 +110,16 @@ export default function BrandingSettingsPage() {
                                 Primary Theme Color
                             </label>
                             <div className="flex items-center gap-2">
-                                <input
+                                <input aria-label="Primary Theme Color"
                                     type="color"
+                                    aria-label="Primary theme color (hex)"
                                     value={branding.primary_color || '#203A3A'}
                                     onChange={(e) => setBranding(p => ({ ...p, primary_color: e.target.value }))}
                                     className="w-10 h-10 rounded-lg cursor-pointer border border-slate-200"
                                 />
                                 <input
                                     type="text"
+                                    aria-label="Primary theme color (hex)"
                                     value={branding.primary_color || '#203A3A'}
                                     onChange={(e) => setBranding(p => ({ ...p, primary_color: e.target.value }))}
                                     className="w-full text-xs p-2.5 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-mono"
@@ -130,14 +132,16 @@ export default function BrandingSettingsPage() {
                                 Secondary Accent Color
                             </label>
                             <div className="flex items-center gap-2">
-                                <input
+                                <input aria-label="Secondary Accent Color"
                                     type="color"
+                                    aria-label="Secondary accent color (hex)"
                                     value={branding.secondary_color || '#0D9488'}
                                     onChange={(e) => setBranding(p => ({ ...p, secondary_color: e.target.value }))}
                                     className="w-10 h-10 rounded-lg cursor-pointer border border-slate-200"
                                 />
                                 <input
                                     type="text"
+                                    aria-label="Secondary accent color (hex)"
                                     value={branding.secondary_color || '#0D9488'}
                                     onChange={(e) => setBranding(p => ({ ...p, secondary_color: e.target.value }))}
                                     className="w-full text-xs p-2.5 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-mono"
@@ -150,7 +154,7 @@ export default function BrandingSettingsPage() {
                         <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
                             M&E Ambassador Sync URL
                         </label>
-                        <input
+                        <input aria-label="M&E Ambassador Sync URL"
                             type="text"
                             value={branding.me_sync_url || ''}
                             onChange={(e) => setBranding(p => ({ ...p, me_sync_url: e.target.value }))}

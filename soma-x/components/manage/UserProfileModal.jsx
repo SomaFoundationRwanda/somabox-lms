@@ -45,7 +45,7 @@ export default function UserProfileModal({ user, isOpen, onClose, onEdit, onSend
                 
                 {/* Header Banner */}
                 <div className="relative px-6 pt-6 pb-5 bg-gradient-to-r from-slate-900 via-teal-950 to-slate-900 text-white shrink-0">
-                    <button
+                    <button aria-label="Close"
                         onClick={onClose}
                         className="absolute top-4 right-4 text-slate-600 hover:text-white p-1.5 rounded-xl hover:bg-white/10 transition-colors"
                     >

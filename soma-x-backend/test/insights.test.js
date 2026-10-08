@@ -223,10 +223,14 @@ test("admins: school view, retention setting with purge, inclusivity suppresses 
   assert.ok(gap.suppressed.includes("urban"));
 
   await db.prepare("INSERT INTO usage_events (event_type, created_at) VALUES ('course_opened', NOW() - INTERVAL '200 days')").run();
+  const uid = await userId(USERS.student.email);
+  await db.prepare("INSERT INTO sessions (token_hash, user_id, expires_at) VALUES ('old-session', ?, NOW() - INTERVAL '60 days')").run(uid);
   assert.equal((await asAdmin("PUT", "/analytics/settings", { usageRetentionDays: 10 })).status, 400);
   const saved = await asAdmin("PUT", "/analytics/settings", { usageRetentionDays: 90 });
   assert.equal(saved.status, 200, JSON.stringify(saved.body));
   assert.ok(saved.body.purged.usageEvents >= 1);
+  assert.ok(saved.body.purged.sessions >= 1);
+  assert.equal(await db.prepare("SELECT 1 FROM sessions WHERE token_hash = 'old-session'").get(), undefined, "long-expired sessions are removed");
   assert.equal((await asAdmin("GET", "/analytics/settings")).body.usageRetentionDays, 90);
   const old = await db.prepare("SELECT COUNT(*) AS n FROM usage_events WHERE created_at < NOW() - INTERVAL '90 days'").get();
   assert.equal(Number(old.n), 0);

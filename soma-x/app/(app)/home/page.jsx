@@ -1,5 +1,5 @@
 'use client'
-import { ChevronDown } from "lucide-react";
+import { BookOpen, ChevronDown } from "lucide-react";
 import HeaderSection from '@/components/ui/HeaderSection';
 import ContentCard from '@/components/ui/ContentCard';
 import { useContext, useState, useMemo, useEffect } from "react";
@@ -9,7 +9,6 @@ import Link from "next/link";
 import { useLanguage } from '@/context/LanguageContext';
 import Typography from "@/components/ui/Typography";
 import { Button } from "@/components/ui/button";
-import { BookOutlined } from "@mui/icons-material";
 
 export default function SomaboxHomepage() {
     const router = useRouter();
@@ -68,6 +67,7 @@ export default function SomaboxHomepage() {
                             <Button
                                 key={index}
                                 variant={activeTab === item.slug ? "default" : "ghost"}
+                                aria-pressed={activeTab === item.slug}
                                 onClick={() => setActiveTab(item.slug)}
                                 className={`rounded-full px-6 h-10 text-sm font-bold transition-all shadow-sm shrink-0 ${activeTab === item.slug
                                     ? "bg-accent-dark text-white shadow-accent-dark/20"
@@ -90,19 +90,21 @@ export default function SomaboxHomepage() {
                             <div className="text-gray-600 text-sm p-4 text-center italic">{t("loadingCategories")}</div>
                         ) : (
                             sidebarItems.map((item, index) => (
-                                <div
+                                <button
+                                    type="button"
                                     key={index}
                                     onClick={() => setActiveTab(item.slug)}
-                                    className={`flex items-center justify-between py-3.5 px-5 rounded-xl transition-all duration-300 cursor-pointer group ${activeTab === item.slug
+                                    aria-pressed={activeTab === item.slug}
+                                    className={`w-full text-left flex items-center justify-between py-3.5 px-5 rounded-xl transition-all duration-300 cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-dark focus-visible:ring-offset-2 ${activeTab === item.slug
                                         ? 'bg-accent-dark text-white shadow-lg shadow-accent-dark/20 -translate-x-1'
                                         : 'hover:bg-accent-light-3/40 text-slate-600 hover:text-accent-dark'
                                         }`}
                                 >
-                                    <Typography color={activeTab === item.slug ? "white" : "default"} weight={activeTab === item.slug ? "bold" : "semibold"} className="text-[15px]">
+                                    <Typography as="span" color={activeTab === item.slug ? "white" : "default"} weight={activeTab === item.slug ? "bold" : "semibold"} className="text-[15px]">
                                         {item.title}
                                     </Typography>
-                                    <ChevronDown className={`w-4 h-4 transition-all duration-300 ${activeTab === item.slug ? '-rotate-90 text-white' : 'opacity-0 group-hover:opacity-100 group-hover:translate-x-1'}`} />
-                                </div>
+                                    <ChevronDown aria-hidden="true" className={`w-4 h-4 transition-all duration-300 ${activeTab === item.slug ? '-rotate-90 text-white' : 'opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 group-hover:translate-x-1'}`} />
+                                </button>
                             ))
                         )}
                     </div>
@@ -113,7 +115,7 @@ export default function SomaboxHomepage() {
                         itemsToDisplay.length === 0 ? (
                             <div className="flex flex-col items-center justify-center h-full py-12 text-slate-500 gap-4">
                                 <div className="w-16 h-16 bg-slate-200 rounded-full flex items-center justify-center opacity-50">
-                                    <BookOutlined className="text-slate-600" />
+                                    <BookOpen className="text-slate-600 w-6 h-6" aria-hidden="true" />
                                 </div>
                                 <Typography variant="body" color="muted" className="text-center max-w-xs md:max-w-md">
                                     {activeTab === 'custom-content' || activeTab === 'school-content'
@@ -133,7 +135,7 @@ export default function SomaboxHomepage() {
                                             href={`/frame?slug=${course.slug}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="block group"
+                                            className="block group rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-dark focus-visible:ring-offset-2"
                                         >
                                             <div className="bg-white/80 hover:bg-white backdrop-blur-sm rounded-2xl p-6 transition-all duration-300 ring-1 ring-slate-200 hover:ring-accent-dark/30 hover:shadow-xl hover:-translate-y-1">
                                                 <div className="flex items-center gap-6">
@@ -152,7 +154,7 @@ export default function SomaboxHomepage() {
                                             </div>
                                         </a>
                                     ) : (
-                                        <Link href={`/${course.slug}`} key={index} className="block transition-transform duration-200 active:scale-95">
+                                        <Link href={`/${course.slug}`} key={index} className="block rounded-lg transition-transform duration-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-dark focus-visible:ring-offset-2">
                                             <ContentCard
                                                 title={activeTab === 'custom-content' || activeTab === 'school-content'
                                                     ? course.title

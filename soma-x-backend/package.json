@@ -7,9 +7,9 @@
     "test": "node --test --test-concurrency=1 \"test/**/*.test.js\"",
     "dev": "nodemon --exitcrash index.js",
     "setup": "node -e \"import('./src/helpers/db-manager.js').then(m => m.initSchemas())\"",
-    "backfill:lesson-progress": "node ./src/scripts/backfill-lesson-progress.js",
-    "seed:test-data": "node ./src/scripts/seed-test-data.js",
-    "seed": "node src/db/seed.js",
+    "backup": "node src/scripts/backup.js backup",
+    "restore": "node src/scripts/backup.js restore",
+    "backup:verify": "node src/scripts/backup.js verify",
     "start": "pm2 start index.js --name soma-x-backend"
   },
   "keywords": [],

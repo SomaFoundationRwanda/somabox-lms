@@ -98,13 +98,10 @@ export default {
     "auth":{
         "authTitle":"Welcome Back",
         "authSubtitle":"Login to manage your account",
-        "authEmail": "Email",
         "authPassword": "Password",
         "authTeacher": "Teacher",
         "authAdmin": "Admin",
-        "authLogin": "Login",
-        "authScholar": "Scholar"
-
+        "authLogin": "Login"
     },
     "AdminManageOptions": {
         "syncTitle": "Sync content",
@@ -131,6 +128,10 @@ export default {
         "scholar": "Scholar"
     },
     "notFound":"Content not found",
+    "loading": "Loading...",
+    "loadingCategories": "Loading categories...",
+    "exploreTopics": "Explore the topics below",
+    "notContent": "There is no content here yet.",
     "noContent":"The requested content could not be loaded",
     "thePath": "The path",
     "doesNotExist":"Does not Exist",

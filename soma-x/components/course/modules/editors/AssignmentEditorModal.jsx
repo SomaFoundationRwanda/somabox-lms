@@ -53,7 +53,7 @@ export default function AssignmentEditorModal({ open, onClose, onSave, initialDa
           <h2 className="text-base font-bold text-slate-900">
             {isEdit ? "Edit Assignment" : "New Assignment"}
           </h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400">
+          <button aria-label="Close" onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -61,7 +61,7 @@ export default function AssignmentEditorModal({ open, onClose, onSave, initialDa
         <div className="px-6 py-4 space-y-4">
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1.5">Assignment Title *</label>
-            <input
+            <input aria-label="Assignment Title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Linear Equations Problem Set"
@@ -71,7 +71,7 @@ export default function AssignmentEditorModal({ open, onClose, onSave, initialDa
 
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1.5">Instructions & Description</label>
-            <textarea
+            <textarea aria-label="Instructions & Description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
@@ -107,7 +107,7 @@ export default function AssignmentEditorModal({ open, onClose, onSave, initialDa
                 <Sparkles className="w-3.5 h-3.5 text-[#0D9488]" /> AI Generate Rubric from Outcomes
               </button>
             </div>
-            <textarea
+            <textarea aria-label="Assignment Rubric"
               value={rubricDraft}
               onChange={(e) => setRubricDraft(e.target.value)}
               rows={3}

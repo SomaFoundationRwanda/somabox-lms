@@ -86,10 +86,8 @@ const PUBLIC_ROUTES = [
     { method: 'POST', path: '/auth/login' },
     { method: 'POST', path: '/auth/register' },
     { method: 'GET', path: '/analytics/branding' },
-    { method: 'GET', path: '/ai/health' },
     // Opened by <video>/<iframe>/PDF viewers, which can't send a bearer token.
-    // TODO(phase 4): replace with short-lived signed URLs.
-    { method: 'GET', prefix: '/content/files/' },
+    // TODO: replace with short-lived signed URLs (see docs/99-gap-report.md).
     { method: 'GET', prefix: '/library/file/' },
 ];
 

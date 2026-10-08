@@ -205,3 +205,16 @@ export async function userFullName(email) {
   return user?.full_name || email;
 }
 
+
+/**
+ * An outcome code that's free in the course: `wanted` if given and unused, else the next
+ * OUT-n. (The column default used to give every outcome "OUT-1".)
+ */
+export async function freeOutcomeCode(courseId, wanted = null) {
+  const taken = new Set((await localDb.prepare("SELECT LOWER(code) AS code FROM outcomes WHERE course_id = ? AND code IS NOT NULL").all(courseId)).map((r) => r.code));
+  const clean = String(wanted || "").trim().slice(0, 40);
+  if (clean && !taken.has(clean.toLowerCase())) return clean;
+  let n = taken.size + 1;
+  while (taken.has(`out-${n}`)) n += 1;
+  return `OUT-${n}`;
+}

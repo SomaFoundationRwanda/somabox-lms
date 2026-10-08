@@ -184,7 +184,7 @@ function ShiftTimelinePanel({ SERVER_URL, courseId, startDate, onApplied }) {
                 step="1"
                 value={days}
                 onChange={(e) => setDays(e.target.value)}
-                className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none"
+                className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]"
               />
               <p className="text-[10px] text-slate-500 mt-0.5">Negative = earlier</p>
             </div>
@@ -194,7 +194,7 @@ function ShiftTimelinePanel({ SERVER_URL, courseId, startDate, onApplied }) {
                 id="shift-from"
                 value={fromModuleId}
                 onChange={(e) => setFromModuleId(e.target.value)}
-                className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none bg-white"
+                className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488] bg-white"
               >
                 <option value="">Whole course (moves the start date)</option>
                 {modules.map((m) => (
@@ -438,16 +438,16 @@ export default function CourseSettingsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label htmlFor="course-start-date" className="text-xs font-semibold text-slate-600 mb-1 block">Start date (first day of Week 1)</label>
-                <input id="course-start-date" type="date" value={form.startDate || ""} onChange={(e) => setForm((p) => ({ ...p, startDate: e.target.value }))} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none" />
+                <input id="course-start-date" type="date" value={form.startDate || ""} onChange={(e) => setForm((p) => ({ ...p, startDate: e.target.value }))} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]" />
               </div>
               <div>
                 <label htmlFor="course-end-date" className="text-xs font-semibold text-slate-600 mb-1 block">End date (optional)</label>
-                <input id="course-end-date" type="date" value={form.endDate || ""} min={form.startDate || undefined} onChange={(e) => setForm((p) => ({ ...p, endDate: e.target.value }))} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none" />
+                <input id="course-end-date" type="date" value={form.endDate || ""} min={form.startDate || undefined} onChange={(e) => setForm((p) => ({ ...p, endDate: e.target.value }))} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]" />
               </div>
             </div>
             <div>
               <label htmlFor="course-length" className="text-xs font-semibold text-slate-600 mb-1 block">Duration (Weeks)</label>
-              <input id="course-length" type="number" min={1} max={52} value={form.lengthWeeks} onChange={(e) => setForm((p) => ({ ...p, lengthWeeks: Number(e.target.value) }))} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none" />
+              <input id="course-length" type="number" min={1} max={52} value={form.lengthWeeks} onChange={(e) => setForm((p) => ({ ...p, lengthWeeks: Number(e.target.value) }))} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]" />
             </div>
             </div>
             </Section>
@@ -465,11 +465,11 @@ export default function CourseSettingsPage() {
             <div className="space-y-3">
             <div>
               <label htmlFor="course-grade" className="text-xs font-semibold text-slate-600 mb-1 block">Grade/Level</label>
-              <input id="course-grade" value={form.grade} onChange={(e) => setForm((p) => ({ ...p, grade: e.target.value }))} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none" />
+              <input id="course-grade" value={form.grade} onChange={(e) => setForm((p) => ({ ...p, grade: e.target.value }))} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]" />
             </div>
             <div>
               <label htmlFor="course-description" className="text-xs font-semibold text-slate-600 mb-1 block">Description</label>
-              <textarea id="course-description" value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} rows={4} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none" />
+              <textarea id="course-description" value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} rows={4} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]" />
             </div>
             <div>
               <label htmlFor="course-banner" className="text-xs font-semibold text-slate-600 mb-1 block">Banner Image</label>
@@ -481,7 +481,7 @@ export default function CourseSettingsPage() {
                 id="course-visibility"
                 value={form.visibility}
                 onChange={(e) => setForm((p) => ({ ...p, visibility: e.target.value }))}
-                className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none bg-white"
+                className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488] bg-white"
               >
                 <option value="private">Private — invite only</option>
                 <option value="public">Public — listed in Discover Courses</option>

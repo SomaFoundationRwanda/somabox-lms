@@ -19,7 +19,7 @@ export default function InfoTooltip({ text, className = "" }) {
         onMouseLeave={() => setOpen(false)}
         onFocus={() => setOpen(true)}
         onBlur={() => setOpen(false)}
-        className="inline-flex items-center justify-center w-4 h-4 rounded-full text-slate-400 hover:text-slate-600 focus:text-slate-600 outline-none"
+        className="inline-flex items-center justify-center w-4 h-4 rounded-full text-slate-400 hover:text-slate-600 focus:text-slate-600 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]"
       >
         <Info className="w-3.5 h-3.5" />
         <span className="sr-only">More info</span>

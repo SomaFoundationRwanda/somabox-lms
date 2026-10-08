@@ -100,13 +100,11 @@ export default {
     "auth": {
         "authTitle": "Murakaza neza",
         "authSubtitle": "Injira kugirango ucunge konti yawe",
-        "authUsername": "Izina ry'ukoresha",
         "authPassword": "Ijambo ry'ibanga",
         "authTeacher": "Umwarimu",
         "authAdmin": "Umuyobozi",
         "authLogin": "Injira"
     },
-    "authScholar": "Umunyeshuri",
     "AdminManageOptions": {
         "syncTitle": "Guhuza ibikubiyemo",
         "contentTitle": "Tunganya ibikubiyemo",
@@ -131,6 +129,9 @@ export default {
         "scholar": "Umunyeshuri"
     },
     "notFound": "Ibikubiyemo ntibyabonetse",
+    "loadingCategories": "Loading categories...",
+    "exploreTopics": "Explore the topics below",
+    "notContent": "There is no content here yet.",
     "noContent": "Ibikubiyemo wasabye ntibyari byashoboye gutangizwa",
     "thePath": "Inzira",
     "doesNotExist": "Ntibibaho",

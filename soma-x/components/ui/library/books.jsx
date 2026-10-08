@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
-import EpubReader from "./EpubReader";
+import dynamic from "next/dynamic";
 import UniversalPlayerModal from "@/components/ui/UniversalPlayerModal";
 import { BookOpen } from "lucide-react";
+
+// react-reader (epub.js) loads only when a book is opened.
+const EpubReader = dynamic(() => import("./EpubReader"), { ssr: false });
 
 // Fallback gradient colors per book index
 const COVER_GRADIENTS = [
@@ -103,7 +106,7 @@ const BooksPage = ({ selectedFilters, searchQuery }) => {
                             key={item.id ?? index}
                             type="button"
                             onClick={() => setSelectedBook(item)}
-                            className="group text-left focus:outline-none"
+                            className="group text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488] focus-visible:ring-offset-2 rounded-xl"
                         >
                             {/* Cover */}
                             <div className="relative aspect-[2/3] overflow-hidden rounded-xl shadow-sm group-hover:shadow-lg transition-all duration-300 group-hover:-translate-y-0.5 mb-2.5">
@@ -125,7 +128,7 @@ const BooksPage = ({ selectedFilters, searchQuery }) => {
                                 )}
 
                                 {/* Read overlay on hover */}
-                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-200 flex items-center justify-center">
                                     <span className="bg-white text-slate-900 text-[11px] font-bold px-3 py-1.5 rounded-full shadow">
                                         Read →
                                     </span>

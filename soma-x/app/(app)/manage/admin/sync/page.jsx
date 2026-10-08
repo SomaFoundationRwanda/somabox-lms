@@ -21,7 +21,7 @@ const Banner = ({ type, message, onDismiss }) => {
         <div className={`flex items-start justify-between gap-3 px-3 py-2.5 rounded-[5px] border text-[12px] font-medium ${styles[type]}`}>
             <span className="flex-1">{message}</span>
             {onDismiss && (
-                <button onClick={onDismiss} className="shrink-0 opacity-60 hover:opacity-100 mt-0.5">
+                <button aria-label="Dismiss message" onClick={onDismiss} className="shrink-0 opacity-60 hover:opacity-100 mt-0.5">
                     <X className="w-3.5 h-3.5" />
                 </button>
             )}
@@ -72,7 +72,7 @@ const TreeNode = ({ node, onCheck, checked }) => {
                         }
                         <span className="text-[12px] font-semibold text-slate-700 dark:text-slate-200">{node.name}</span>
                         {node.isDownloaded && (
-                            <span className="text-[9px] bg-green-50 text-green-600 px-2 py-0.5 rounded-full font-bold">
+                            <span className="text-[11px] bg-green-50 text-green-600 px-2 py-0.5 rounded-full font-bold">
                                 Downloaded
                             </span>
                         )}
@@ -102,7 +102,7 @@ const TreeNode = ({ node, onCheck, checked }) => {
                 <File className="w-3.5 h-3.5 text-slate-600 shrink-0" />
                 <span className="text-[12px] text-slate-600 flex-1">{node.name}</span>
                 {node.isDownloaded && (
-                    <span className="text-[9px] bg-green-50 text-green-600 px-2 py-0.5 rounded-full font-bold">
+                    <span className="text-[11px] bg-green-50 text-green-600 px-2 py-0.5 rounded-full font-bold">
                         Downloaded
                     </span>
                 )}

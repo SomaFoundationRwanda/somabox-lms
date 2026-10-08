@@ -4,7 +4,7 @@ import Input from "@/components/ui/input";
 const SearchBar = ({ searchTerm, onSearchChange }) => {
     return (
         <div className="relative w-full">
-            <Input
+            <Input aria-label="Search files/folders"
                 id="search"
                 type="text"
                 placeholder="Search files/folders..."
