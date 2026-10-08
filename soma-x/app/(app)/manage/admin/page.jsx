@@ -7,7 +7,7 @@ import { AddUserDrawer } from "@/components/AddUserDrawer";
 import { Button } from "@/components/ui/button";
 import Users from "./comps/Users";
 import AllCourses from "./comps/AllCourses";
-import { BarChart3, ChevronRight, LayoutDashboard, Library, Megaphone, Palette, Plus, RefreshCcw, Sparkles } from "lucide-react";
+import { BarChart3, ChevronRight, LayoutDashboard, Library, Megaphone, Palette, Plus, RefreshCcw, School, Sparkles } from "lucide-react";
 import { PageHeader, Section, List, ListRow } from "@/components/layout";
 import SendNotificationModal from "@/components/notifications/SendNotificationModal";
 import InclusivityGapReport from "@/components/analytics/InclusivityGapReport";
@@ -55,6 +55,13 @@ const AdminPortal = () => {
             subtitle: "Switch AI on or off, per school or per person, and see how it's used",
             href: "/manage/admin/ai",
             icon: Sparkles,
+            allowedRoles: ['admin'],
+        },
+        {
+            title: t("school.settings.navTitle"),
+            subtitle: t("school.settings.navSubtitle"),
+            href: "/manage/admin/school",
+            icon: School,
             allowedRoles: ['admin'],
         },
         {

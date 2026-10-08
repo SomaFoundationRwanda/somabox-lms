@@ -7,6 +7,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/context/ToastContext";
+import { useLanguage } from "@/context/LanguageContext";
+import { fill } from "@/lib/fill";
 
 /* ── Role config ── */
 const ROLES = [
@@ -33,6 +35,9 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
     const [loading, setLoading]             = useState(false);
     const [error, setError]                 = useState(null);
     const [success, setSuccess]             = useState(null);
+    // A new learner's sign-in code from the server (e.g. GSK-0012), shown until the admin closes.
+    const [createdCode, setCreatedCode]     = useState("");
+    const { t }                             = useLanguage();
 
     const [gender, setGender]               = useState("prefer_not_to_say");
     const [regionProvince, setRegionProvince] = useState("Not Specified");
@@ -65,6 +70,7 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
         }
         setError(null);
         setSuccess(null);
+        setCreatedCode("");
     }, [user, open]);
 
     const handleClose = () => {
@@ -116,7 +122,9 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
             showToast(successMsg, "success");
             if (!user) { setEmail(""); setFullName(""); setPassword(""); setSelectedRole("teacher"); }
             if (onSuccess) onSuccess();
-            setTimeout(handleClose, 1200);
+            // Keep the drawer open for a new learner so the admin can note the code down.
+            if (!user && data.user?.learner_code) setCreatedCode(data.user.learner_code);
+            else setTimeout(handleClose, 1200);
         } catch (err) {
             setError(err.message);
             showToast(`Action failed: ${err.message}`, "error");
@@ -376,6 +384,22 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
                                         <CheckCircle2 className="w-3.5 h-3.5 mt-0.5 shrink-0" />
                                         <span>{success}</span>
                                     </div>
+                                )}
+                                {createdCode && (
+                                    <div role="status" className="px-3 py-3 rounded-[5px] border-2 border-teal-600 bg-teal-50 text-slate-800">
+                                        <p className="text-[11px] font-bold uppercase tracking-wider text-teal-800">{t("school.learnerCode")}</p>
+                                        <p className="text-xl font-black font-mono tracking-wider text-slate-900 break-all">{createdCode}</p>
+                                        <p className="text-[12px] mt-1">{fill(t("school.users.createdCode"), { code: createdCode })}</p>
+                                    </div>
+                                )}
+                                {createdCode && (
+                                    <button
+                                        type="button"
+                                        onClick={handleClose}
+                                        className="w-full h-9 rounded-[5px] bg-slate-900 text-white text-[12px] font-semibold hover:bg-black"
+                                    >
+                                        {t("school.done")}
+                                    </button>
                                 )}
                             </div>
 

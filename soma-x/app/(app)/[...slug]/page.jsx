@@ -114,6 +114,7 @@ function FolderPage({ levelInfo, breadcrumbs, onBreadcrumbClick }) {
             setSelectedMedia(null);
           }}
           mediaItem={selectedMedia}
+          summaryPath={selectedMedia?.slug || null}
         />
         <div className="flex-1 p-4 space-y-8">
           {hasFolders && (

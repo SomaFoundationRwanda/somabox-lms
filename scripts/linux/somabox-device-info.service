@@ -1,0 +1,16 @@
+# Writes /etc/somabox/device.json (serial number, MAC addresses, machine id) at every boot, before
+# the LMS starts, so cloud sync can identify this box.
+#   sudo cp somabox-device-info.sh /usr/local/sbin/ && sudo cp somabox-device-info.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now somabox-device-info.service
+[Unit]
+Description=Collect SOMABOX device identity
+After=network-pre.target local-fs.target
+Before=multi-user.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/somabox-device-info.sh /etc/somabox/device.json
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

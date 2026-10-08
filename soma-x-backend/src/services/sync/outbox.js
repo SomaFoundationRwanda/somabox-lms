@@ -4,6 +4,7 @@
 // record keyed by its own sync_id, so a retried batch can't create duplicates.
 import { localDb } from "../../helpers/db-manager.js";
 import { createTransport } from "./transports.js";
+import { deviceInfo, syncHistory } from "./device.js";
 
 export const DEFAULT_SCOPE = {
   courses: true,
@@ -143,6 +144,14 @@ export async function pushOutbox({ transport = createTransport() } = {}) {
     }
     if (pendingBefore === 0) {
       await cleanupSent();
+      // Nothing new: still tell the cloud this box is alive, what it is, and how syncing has gone.
+      try {
+        await transport.status?.({ boxId: await boxId(), device: deviceInfo(), history: await syncHistory() });
+      } catch (err) {
+        const result = { status: "failed", sent: 0, skipped: 0, pending: 0, error: err.message || String(err) };
+        await logRun(started, result.status, result);
+        return result;
+      }
       return { status: "nothing_to_send", sent: 0, skipped: 0, pending: 0 };
     }
 
@@ -173,7 +182,7 @@ export async function pushOutbox({ transport = createTransport() } = {}) {
       }
       const ids = rows.map((r) => r.id);
       try {
-        if (records.length) await transport.send(records, { boxId: box });
+        if (records.length) await transport.send(records, { boxId: box, device: deviceInfo(), history: await syncHistory() });
       } catch (err) {
         error = err.message || String(err);
         await localDb.prepare(`UPDATE sync_outbox SET attempts = attempts + 1, last_error = ? WHERE id IN (${ids.map(() => "?").join(",")})`)
@@ -219,6 +228,7 @@ export async function syncStatus() {
   const parse = (d) => { try { return JSON.parse(d); } catch { return d; } };
   return {
     boxId: await boxId(),
+    device: deviceInfo(),
     transport: transport?.name ?? null,
     configured: !!transport,
     intervalMinutes: intervalMinutes(),

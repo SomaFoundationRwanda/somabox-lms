@@ -12,19 +12,25 @@ export function createTransport(env = process.env) {
   return null;
 }
 
-/** POST { boxId, records } as JSON; any 2xx is success. */
+/**
+ * POST { boxId, device, history, records } as JSON; any 2xx is success. `device` is the box's
+ * hardware identity (serial, MACs, machine id) and `history` its recent sync runs; a run with
+ * nothing new still sends them (records: []) so the cloud knows the box is alive.
+ */
 export function httpTransport(url, token) {
+  const post = async (body) => {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(Number(process.env.SYNC_TIMEOUT_MS) || 60000),
+    });
+    if (!res.ok) throw new Error(`Cloud answered ${res.status}`);
+  };
   return {
     name: "http",
-    async send(records, { boxId }) {
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ boxId, records }),
-        signal: AbortSignal.timeout(Number(process.env.SYNC_TIMEOUT_MS) || 60000),
-      });
-      if (!res.ok) throw new Error(`Cloud answered ${res.status}`);
-    },
+    send: (records, { boxId, device, history }) => post({ boxId, device, history, records }),
+    status: ({ boxId, device, history }) => post({ boxId, device, history, records: [] }),
   };
 }
 
@@ -54,6 +60,11 @@ export function firestoreTransport(env) {
         for (const record of records.slice(i, i + 400)) batch.set(collection.doc(record.syncId), record);
         await batch.commit();
       }
+    },
+    // One document per box (id = boxId) with its hardware identity and recent sync runs.
+    async status({ boxId, device, history }) {
+      const db = await firestoreDb(env);
+      await db.collection(env.FIRESTORE_BOX_COLLECTION || "boxes").doc(boxId).set({ boxId, device, history, lastSeenAt: new Date().toISOString() }, { merge: true });
     },
   };
 }

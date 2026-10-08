@@ -20,15 +20,8 @@ import DataContext from '@/context/DataContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { useToast } from '@/context/ToastContext';
 
-// Rwanda Provinces and Districts Dataset
-const RWANDA_LOCATIONS = {
-    "Kigali City": ["Gasabo", "Kicukiro", "Nyarugenge"],
-    "Northern Province": ["Burera", "Gakenke", "Gicumbi", "Musanze", "Rulindo"],
-    "Southern Province": ["Gisagara", "Huye", "Kamonyi", "Muhanga", "Nyamagabe", "Nyanza", "Nyaruguru", "Ruhango"],
-    "Eastern Province": ["Bugesera", "Gatsibo", "Kayonza", "Kirehe", "Ngoma", "Nyagatare", "Rwamagana"],
-    "Western Province": ["Karongi", "Ngororero", "Nyabihu", "Nyamasheke", "Rubavu", "Rusizi", "Rutsiro"],
-    "International / Other": ["Other District / Region"]
-};
+// Rwanda provinces and districts (shared with the School settings page).
+import { RWANDA_LOCATIONS } from '@/lib/rwandaLocations';
 
 const GRADE_LEVELS = [
     { value: "Primary 1", label: "Primary 1 (P1)" },
@@ -50,7 +43,7 @@ const GRADE_LEVELS = [
 
 export default function MandatoryProfileSetupModal() {
     const { authenticated, role, user, refreshUser } = useContext(DataContext);
-    const { lang, setLang } = useLanguage();
+    const { lang, setLang, t } = useLanguage();
     const { showToast } = useToast();
 
     const [isOpen, setIsOpen] = useState(false);
@@ -70,7 +63,9 @@ export default function MandatoryProfileSetupModal() {
     // "no disability" for people who never chose (the school reports on these).
     const [isRural, setIsRural] = useState(null);
     const [disabilityStatus, setDisabilityStatus] = useState('');
-    const [schoolName, setSchoolName] = useState('');
+    // One box serves one school: the school (name, place, rural/urban) comes from the box's
+    // settings, so learners aren't asked for it. { name, code, province, district, isRural }.
+    const [school, setSchool] = useState(null);
     const [gradeLevel, setGradeLevel] = useState('');
     const [preferredLanguage, setPreferredLanguage] = useState(lang || 'en');
 
@@ -108,12 +103,21 @@ export default function MandatoryProfileSetupModal() {
                 if (data.full_name) setFullName(data.full_name);
                 if (data.phone) setPhone(data.phone);
                 if (data.gender && data.gender !== 'prefer_not_to_say') setGender(data.gender);
-                if (data.region_province && data.region_province !== 'Not Specified') setProvince(data.region_province);
-                if (data.region_district && data.region_district !== 'Not Specified') setDistrict(data.region_district);
+                const hasProvince = data.region_province && data.region_province !== 'Not Specified';
+                const hasDistrict = data.region_district && data.region_district !== 'Not Specified';
+                if (hasProvince) setProvince(data.region_province);
+                if (hasDistrict) setDistrict(data.region_district);
+                if (data.school) {
+                    setSchool(data.school);
+                    // Start from the school's place when the learner has none yet (they can change it).
+                    if (!hasProvince && data.school.province) {
+                        setProvince(data.school.province);
+                        if (!hasDistrict && data.school.district) setDistrict(data.school.district);
+                    }
+                }
                 // Only reuse these once they were actually answered (older accounts hold defaults).
                 if (data.isProfileComplete && data.is_rural != null) setIsRural(Number(data.is_rural) === 1);
                 if (data.isProfileComplete && data.disability_status) setDisabilityStatus(data.disability_status);
-                if (data.school_name) setSchoolName(data.school_name);
                 if (data.grade_level) setGradeLevel(data.grade_level);
                 if (data.preferred_language) setPreferredLanguage(data.preferred_language);
 
@@ -134,9 +138,11 @@ export default function MandatoryProfileSetupModal() {
     // Continue directly, independent of whether the user has attempted to
     // submit yet, so the requirement is always accurately represented.
     const isStep1Valid = fullName.trim() !== '' && !!gender;
+    // When the school says whether it is rural or urban, the server uses that for every learner.
+    const ruralFromSchool = school?.isRural != null;
     const isStep2Valid = !!province && (
         province === "International / Other" ? customDistrict.trim() !== '' : !!district
-    ) && isRural !== null && !!disabilityStatus;
+    ) && (ruralFromSchool || isRural !== null) && !!disabilityStatus;
     const isStep3Valid = currentRole !== 'scholar' || !!gradeLevel;
 
     const STEP_LABELS = { 1: "Personal Details", 2: "Location & Region", 3: "Academic Info" };
@@ -222,9 +228,8 @@ export default function MandatoryProfileSetupModal() {
                     gender,
                     regionProvince: province,
                     regionDistrict: finalDistrict,
-                    isRural,
+                    ...(ruralFromSchool ? {} : { isRural }),
                     disabilityStatus,
-                    schoolName: schoolName.trim(),
                     gradeLevel,
                     preferredLanguage,
                     completeProfile: true
@@ -525,7 +530,8 @@ export default function MandatoryProfileSetupModal() {
                                         )}
                                     </div>
 
-                                    {/* Rural / Urban: an explicit choice */}
+                                    {/* Rural / Urban: an explicit choice, unless the school already says */}
+                                    {!ruralFromSchool && (
                                     <fieldset className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80">
                                         <legend className="text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200 px-1">
                                             Where do you live? <span className="text-rose-500">*</span>
@@ -539,6 +545,7 @@ export default function MandatoryProfileSetupModal() {
                                             ))}
                                         </div>
                                     </fieldset>
+                                    )}
 
                                     {/* Inclusion & Disability Support */}
                                     <div>
@@ -575,21 +582,16 @@ export default function MandatoryProfileSetupModal() {
                                         </p>
                                     </div>
 
-                                    {/* School / Institution Name */}
-                                    <div>
-                                        <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1.5">
-                                            School / Institution Name <span className="text-slate-600 normal-case font-medium">(optional)</span>
-                                        </label>
-                                        <div className="relative">
-                                            <input aria-label="School / Institution Name (optional)"
-                                                type="text"
-                                                value={schoolName}
-                                                onChange={(e) => setSchoolName(e.target.value)}
-                                                placeholder="e.g. GS Kigali, Remera Academy, etc."
-                                                className="w-full h-11 px-3.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/60 text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all"
-                                            />
+                                    {/* School: set by the box, shown read-only */}
+                                    {school?.name && (
+                                        <div className="flex items-center gap-2 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80 text-sm">
+                                            <Building2 className="w-4 h-4 text-teal-600 dark:text-teal-400 shrink-0" aria-hidden="true" />
+                                            <span className="font-semibold text-slate-700 dark:text-slate-200">
+                                                {t("school.onboarding.schoolLabel")}{" "}
+                                                <span className="font-extrabold text-slate-900 dark:text-white">{school.name}</span>
+                                            </span>
                                         </div>
-                                    </div>
+                                    )}
 
                                     {/* Grade / Study Level */}
                                     <div>

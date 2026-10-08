@@ -17,7 +17,7 @@ const FILES = { en: "english", fr: "french", rw: "kinywanda", sw: "swahili", es:
 // each file's default export from source.
 // Feature folders whose text lives in its own files (languages/<folder>/<code>.js), loaded
 // into the main file under the same key. Explainers are checked by check-explainers.mjs.
-const SUBTREES = ["attendance", "guest", "explore"];
+const SUBTREES = ["attendance", "guest", "explore", "school"];
 const CODES = { english: "en", french: "fr", kinywanda: "rw", swahili: "sw", spanish: "es" };
 
 async function loadModule(file) {

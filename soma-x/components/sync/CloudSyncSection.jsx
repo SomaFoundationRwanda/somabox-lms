@@ -5,6 +5,7 @@ import { AlertTriangle, CheckCircle2, CloudOff, Loader2, RefreshCw, Clock } from
 import { useToast } from "@/context/ToastContext";
 import { Section, List, ListRow } from "@/components/layout";
 import { formatDateTime, formatRelative } from "@/lib/dates";
+import DeviceCard from "@/components/sync/DeviceCard";
 
 // Cloud sync (admins): changes made on this box wait in a queue and are sent to the cloud on a
 // schedule. This shows where the queue stands, lets an admin send now, and sets what may leave
@@ -289,6 +290,8 @@ export default function CloudSyncSection({ SERVER_URL }) {
           </div>
         ) : null}
       </Section>
+
+      {status?.device ? <DeviceCard device={status.device} /> : null}
 
       {status ? (
         <Section divided title="Recent syncs">

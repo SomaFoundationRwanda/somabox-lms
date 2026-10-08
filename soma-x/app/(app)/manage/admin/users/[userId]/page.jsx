@@ -213,6 +213,11 @@ export default function UserProfilePage() {
                                 <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-extrabold border ${roleStyle.bg} ${roleStyle.text} ${roleStyle.border}`}>
                                     {t(`role.${user.role}`) || user.role}
                                 </span>
+                                {user.learner_code && (
+                                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200">
+                                        {t("school.learnerCode")}: <span className="font-mono font-black">{user.learner_code}</span>
+                                    </span>
+                                )}
                                 {isInactive && (
                                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 uppercase">
                                         Inactive

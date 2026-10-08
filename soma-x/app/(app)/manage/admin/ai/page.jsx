@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, Sparkles } from "lucide-react";
 import DataContext from "@/context/DataContext";
 import { useToast } from "@/context/ToastContext";
+import { useLanguage } from "@/context/LanguageContext";
 import Unauthorized from "@/components/sections/Unauthorized";
 import { PageHeader, Section, List, ListRow, DataTable, EmptyState } from "@/components/layout";
 import { aiFetch, DRAFT_TYPE_LABELS } from "@/lib/ai";
@@ -25,6 +26,7 @@ const fmtInt = (n) => Number(n || 0).toLocaleString();
 export default function AdminAiSettingsPage() {
   const { SERVER_URL, authenticated, role } = useContext(DataContext);
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const isAdmin = role === "admin";
 
   const [settings, setSettings] = useState(null);
@@ -61,6 +63,17 @@ export default function AdminAiSettingsPage() {
     if (!r.ok) { showToast(r.message, "error"); return; }
     setSettings((st) => ({ ...st, enabled: r.data?.enabled ?? next }));
     showToast(next ? "AI assistant switched on" : "AI assistant switched off", "success");
+  };
+
+  // AI summaries of books and videos for learners (GET/PUT /ai/admin/settings learnerSummaries).
+  const toggleSummaries = async () => {
+    const next = !settings?.learnerSummaries;
+    setBusy("summaries");
+    const r = await aiFetch(`${SERVER_URL}/ai/admin/settings`, { method: "PUT", body: { learnerSummaries: next } });
+    setBusy("");
+    if (!r.ok) { showToast(r.message, "error"); return; }
+    setSettings((st) => ({ ...st, learnerSummaries: r.data?.learnerSummaries ?? next }));
+    showToast(next ? t("explore.summary.admin.turnedOn") : t("explore.summary.admin.turnedOff"), "success");
   };
 
   const setUserAi = async (user, aiEnabled) => {
@@ -148,6 +161,44 @@ export default function AdminAiSettingsPage() {
                 <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${settings.enabled ? "translate-x-6" : "translate-x-1"}`} />
                 <span className="sr-only">{settings.enabled ? "Switch off" : "Switch on"}</span>
               </button>
+            ) : null}
+          </div>
+        </Section>
+
+        <Section divided title={t("explore.summary.admin.title")}>
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm text-slate-800 dark:text-slate-100" id="ai-summaries-label">
+                {settings == null
+                  ? t("explore.summary.loading")
+                  : settings.learnerSummaries
+                    ? t("explore.summary.admin.on")
+                    : t("explore.summary.admin.off")}
+              </p>
+              {settings ? (
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={!!settings.learnerSummaries}
+                  aria-labelledby="ai-summaries-label"
+                  aria-describedby="ai-summaries-help"
+                  onClick={toggleSummaries}
+                  disabled={busy === "summaries"}
+                  className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488] focus-visible:ring-offset-1 disabled:opacity-50 ${settings.learnerSummaries ? "bg-[#0D9488]" : "bg-slate-300 dark:bg-slate-700"}`}
+                >
+                  <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${settings.learnerSummaries ? "translate-x-6" : "translate-x-1"}`} />
+                  <span className="sr-only">{t("explore.summary.admin.switchLabel")}</span>
+                </button>
+              ) : null}
+            </div>
+            <ul id="ai-summaries-help" className="list-disc pl-5 space-y-1 text-sm text-slate-600 dark:text-slate-300">
+              <li>{t("explore.summary.admin.helpBooks")}</li>
+              <li>{t("explore.summary.admin.helpVideos")}</li>
+              <li>{t("explore.summary.admin.helpShared")}</li>
+              <li>{t("explore.summary.admin.helpLimit")}</li>
+            </ul>
+            {settings && !settings.enabled ? (
+              <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">{t("explore.summary.admin.needsAi")}</p>
             ) : null}
           </div>
         </Section>

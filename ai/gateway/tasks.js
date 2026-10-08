@@ -68,6 +68,16 @@ export const TASKS = {
       feedback: str(10, 1200),
     }),
   },
+  // Summaries of Explore/Library books and videos for learners: long texts are read in parts
+  // ("notes" per part), then the notes are turned into one summary.
+  notes: {
+    maxTokens: 500,
+    schema: obj({ notes: arr(str(5, 300), 1, 8) }),
+  },
+  content_summary: {
+    maxTokens: 900,
+    schema: obj({ overview: str(40, 1500), keyPoints: arr(str(5, 300), 3, 8), questions: arr(str(5, 200), 0, 3) }),
+  },
   class_summary: {
     maxTokens: 700,
     schema: obj({ summary: str(20, 1200), suggestions: arr(str(10, 400), 1, 5) }),
@@ -100,6 +110,13 @@ export function renderContext(input, maxSourceLength) {
     if (input[key] != null && input[key] !== "") lines.push(`${label}: ${input[key]}`);
   }
   if (input.stats) lines.push(`Class results: ${JSON.stringify(input.stats)}`);
+  if (input.title) lines.push(`Title: ${input.title}`);
+  if (input.kind) lines.push(`This is a ${input.kind === "video" ? "video (from its transcript)" : input.kind === "audio" ? "recording (from its transcript)" : "book or document"}.`);
+  if (input.part) lines.push(`Part ${input.part}`);
+  if (Array.isArray(input.notes) && input.notes.length) {
+    lines.push("Notes taken while reading it:");
+    for (const n of input.notes) lines.push(`- ${n}`);
+  }
   if (input.sourceText) lines.push(`Source text (only use facts from here when given):\n${String(input.sourceText).slice(0, maxSourceLength)}`);
   if (input.submissionText) lines.push(`Learner's submission (anonymous):\n${String(input.submissionText).slice(0, maxSourceLength)}`);
   return lines.join("\n");

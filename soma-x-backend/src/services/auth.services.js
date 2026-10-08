@@ -3,22 +3,26 @@ import bcrypt from "bcrypt";
 import { serverDb } from '../helpers/db-manager.js';
 import { createSession, revokeSession } from '../helpers/auth.js';
 import { setMediaCookie, clearMediaCookie } from '../helpers/media.js';
+import { assignLearnerCode, applySchoolToLearner } from './school.js';
 
 const router = express.Router();
 
 router.post('/login', async (req, res) => {
     try {
-        const email = String(req.body.email || req.body.username || '').trim().toLowerCase();
+        // Learners can sign in with their email or their learner code (e.g. "GSK-0001").
+        const email = String(req.body.email || req.body.username || req.body.learnerCode || '').trim().toLowerCase();
         const password = req.body.password;
 
         if (!email || !password) {
-            return res.status(400).json({ message: 'Email and password required' });
+            return res.status(400).json({ message: 'Email (or learner code) and password required' });
         }
         
-        const row = await serverDb.prepare('SELECT * FROM users WHERE LOWER(email) = LOWER(?)').get(email);
+        const row = email.includes('@')
+            ? await serverDb.prepare('SELECT * FROM users WHERE LOWER(email) = LOWER(?)').get(email)
+            : await serverDb.prepare('SELECT * FROM users WHERE UPPER(learner_code) = UPPER(?)').get(email);
         
         if (!row) {
-            return res.status(401).json({ message: 'Invalid email or password' });
+            return res.status(401).json({ message: 'Invalid email, learner code, or password' });
         }
 
         if (row.is_active === 0) {
@@ -27,7 +31,7 @@ router.post('/login', async (req, res) => {
         
         const match = await bcrypt.compare(password, row.password_hash);
         if (!match) {
-            return res.status(401).json({ message: 'Invalid email or password' });
+            return res.status(401).json({ message: 'Invalid email, learner code, or password' });
         }
 
         const token = await createSession(row.id, req.headers['user-agent']);
@@ -45,6 +49,7 @@ router.post('/login', async (req, res) => {
                 grade_level: row.grade_level,
                 preferred_language: row.preferred_language,
                 role: row.role,
+                learner_code: row.learner_code,
                 created_at: row.created_at,
                 must_change_password: Number(row.must_change_password) === 1
             }
@@ -84,12 +89,15 @@ router.post('/register', async (req, res) => {
             RETURNING id, email, full_name, role, created_at
         `).get(email, fullName, passwordHash);
 
+        // A new learner belongs to this box's school and gets a learner code straight away.
+        await applySchoolToLearner(row.id);
+        const learnerCode = await assignLearnerCode(row.id);
         const token = await createSession(row.id, req.headers['user-agent']);
         await setMediaCookie(res, row.id);
         return res.status(201).json({
             message: 'Account created',
             token,
-            user: { ...row, must_change_password: false }
+            user: { ...row, learner_code: learnerCode, must_change_password: false }
         });
     } catch (error) {
         console.error('Registration error:', error);
@@ -100,7 +108,7 @@ router.post('/register', async (req, res) => {
 async function sendCurrentUser(req, res) {
     try {
         const row = await serverDb.prepare(`
-            SELECT id, email, full_name, phone, school_name, grade_level, preferred_language, role, created_at, must_change_password
+            SELECT id, email, full_name, phone, school_name, grade_level, preferred_language, role, created_at, must_change_password, learner_code
             FROM users WHERE id = ?
         `).get(req.user.id);
         if (!row) return res.status(401).json({ message: 'Please log in to continue' });
@@ -114,6 +122,7 @@ async function sendCurrentUser(req, res) {
                 grade_level: row.grade_level,
                 preferred_language: row.preferred_language,
                 role: row.role,
+                learner_code: row.learner_code,
                 created_at: row.created_at,
                 must_change_password: Number(row.must_change_password) === 1
             }

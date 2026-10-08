@@ -229,11 +229,12 @@ export default function Users() {
         const selectedUsersList = users.filter(u => selectedRows.has(u.id));
         const listToExport = selectedUsersList.length > 0 ? selectedUsersList : users;
 
-        const headers = ["ID", "Full Name", "Email", "Role", "Status", "Phone", "School", "Grade", "Joined Date"];
+        const headers = ["ID", "Full Name", "Email", "Learner code", "Role", "Status", "Phone", "School", "Grade", "Joined Date"];
         const rows = listToExport.map(u => [
             u.id,
             `"${u.full_name || ''}"`,
             `"${u.email || ''}"`,
+            `"${u.learner_code || ''}"`,
             u.role,
             u.is_active === 0 ? "Inactive" : "Active",
             `"${u.phone || ''}"`,
@@ -329,6 +330,11 @@ export default function Users() {
                                 {user.full_name || <em>No name</em>}
                             </p>
                             <p className="text-[11px] truncate mt-0.5" style={{ color: textSecondary }}>{user.email}</p>
+                            {user.learner_code && (
+                                <p className="text-[11px] font-mono font-bold truncate mt-0.5" style={{ color: textPrimary }}>
+                                    <span className="sr-only">{t("school.learnerCode")}: </span>{user.learner_code}
+                                </p>
+                            )}
                         </div>
                     </button>
                 );

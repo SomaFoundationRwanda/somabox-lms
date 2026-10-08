@@ -1,3 +1,4 @@
+import swSchool from "./school/sw";
 import swExplore from "./explore/sw";
 import swAttendance from "./attendance/sw";
 import swGuest from "./guest/sw";
@@ -7,6 +8,7 @@ export default {
     "attendance": swAttendance,
     "guest": swGuest,
     "explore": swExplore,
+    "school": swSchool,
     "explainers": swExplainers,
     "nav": {
         "dashboard": "Nyumbani",

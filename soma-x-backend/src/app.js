@@ -20,6 +20,7 @@ import aiServices from './services/ai-proxy.services.js';
 import calendarServices from './services/calendar.services.js';
 import syncServices from './services/sync.services.js';
 import bundleServices from './services/bundles.services.js';
+import schoolServices from './services/school.services.js';
 
 // API routers in mount order. Exported so tests can enumerate every route.
 export const API_ROUTERS = [
@@ -36,6 +37,7 @@ export const API_ROUTERS = [
     ['/calendar', calendarServices],
     ['/sync', syncServices],
     ['/bundles', bundleServices],
+    ['/school', schoolServices],
 ];
 
 export function createApp({ logRequests = true } = {}) {

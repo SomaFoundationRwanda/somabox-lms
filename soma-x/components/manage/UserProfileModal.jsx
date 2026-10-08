@@ -79,6 +79,11 @@ export default function UserProfileModal({ user, isOpen, onClose, onEdit, onSend
                                 <Mail size={13} className="text-teal-400 shrink-0" />
                                 {user.email}
                             </p>
+                            {user.learner_code && (
+                                <p className="text-xs text-slate-600 dark:text-slate-300 font-medium mt-1">
+                                    {t("school.learnerCode")}: <span className="font-mono font-black">{user.learner_code}</span>
+                                </p>
+                            )}
                         </div>
                     </div>
                 </div>

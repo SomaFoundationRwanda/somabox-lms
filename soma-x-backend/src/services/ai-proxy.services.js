@@ -154,7 +154,8 @@ const requireAdmin = requireRole('admin');
 router.get('/admin/settings', requireAdmin, async (req, res) => {
     try {
         const disabled = await localDb.prepare("SELECT id, email, full_name, role FROM users WHERE ai_enabled = false ORDER BY email").all();
-        return res.json({ enabled: await schoolAiEnabled(), disabledUsers: disabled });
+        const summaries = await localDb.prepare("SELECT value FROM system_settings WHERE key = 'learner_summaries_enabled'").get();
+        return res.json({ enabled: await schoolAiEnabled(), learnerSummaries: summaries ? summaries.value !== false : true, disabledUsers: disabled });
     } catch (error) {
         return res.status(500).json({ message: error.message });
     }
@@ -162,12 +163,19 @@ router.get('/admin/settings', requireAdmin, async (req, res) => {
 
 router.put('/admin/settings', requireAdmin, async (req, res) => {
     try {
-        if (typeof req.body.enabled !== 'boolean') return res.status(400).json({ message: 'enabled must be true or false' });
-        await localDb.prepare(`
-            INSERT INTO system_settings (key, value, updated_by, updated_at) VALUES ('ai_enabled', ?::jsonb, ?, CURRENT_TIMESTAMP)
-            ON CONFLICT (key) DO UPDATE SET value = excluded.value, updated_by = excluded.updated_by, updated_at = CURRENT_TIMESTAMP
-        `).run(JSON.stringify(req.body.enabled), req.user.email);
-        return res.json({ enabled: req.body.enabled });
+        // enabled: AI for the whole school; learnerSummaries: AI summaries of books and videos for learners.
+        const { enabled, learnerSummaries } = req.body || {};
+        if (enabled === undefined && learnerSummaries === undefined) return res.status(400).json({ message: 'Send enabled and/or learnerSummaries' });
+        for (const [key, value] of [['ai_enabled', enabled], ['learner_summaries_enabled', learnerSummaries]]) {
+            if (value === undefined) continue;
+            if (typeof value !== 'boolean') return res.status(400).json({ message: 'Settings must be true or false' });
+            await localDb.prepare(`
+                INSERT INTO system_settings (key, value, updated_by, updated_at) VALUES (?, ?::jsonb, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT (key) DO UPDATE SET value = excluded.value, updated_by = excluded.updated_by, updated_at = CURRENT_TIMESTAMP
+            `).run(key, JSON.stringify(value), req.user.email);
+        }
+        const summaries = await localDb.prepare("SELECT value FROM system_settings WHERE key = 'learner_summaries_enabled'").get();
+        return res.json({ enabled: await schoolAiEnabled(), learnerSummaries: summaries ? summaries.value !== false : true });
     } catch (error) {
         return res.status(500).json({ message: error.message });
     }

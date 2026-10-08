@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Eye, EyeOff, File, Folder, Pencil, Trash2 } from "lucide-react";
+import { Eye, EyeOff, File, Folder, Pencil, Sparkles, Trash2 } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 
 function formatBytes(bytes) {
@@ -69,7 +69,8 @@ const ActionButton = ({ label, onClick, children, danger }) => (
     </button>
 );
 
-const FileRow = ({ file, canDelete, onOpenFolder, onToggleVisibility, onView, onRename, onDelete }) => {
+// onSummary (admins): opens the file's AI summary (books, videos and audio).
+const FileRow = ({ file, canDelete, onOpenFolder, onToggleVisibility, onView, onRename, onDelete, onSummary }) => {
     const { t } = useLanguage();
     const mediaType  = file.type === 'file' ? getFileMediaType(file.path_key) : null;
     const badge      = mediaType ? TYPE_BADGE[mediaType] : null;
@@ -129,6 +130,11 @@ const FileRow = ({ file, canDelete, onOpenFolder, onToggleVisibility, onView, on
             {/* Actions */}
             <td className="px-5 py-3">
                 <div className="flex items-center gap-1 justify-end" onClick={(e) => e.stopPropagation()}>
+                    {onSummary && mediaType && (
+                        <ActionButton label={`${t("explore.summary.adminAction")}: ${file.name}`} onClick={() => onSummary(file)}>
+                            <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
+                        </ActionButton>
+                    )}
                     <ActionButton label={`${t("explore.manager.rename")}: ${file.name}`} onClick={() => onRename?.(file)}>
                         <Pencil className="w-3.5 h-3.5" aria-hidden="true" />
                     </ActionButton>

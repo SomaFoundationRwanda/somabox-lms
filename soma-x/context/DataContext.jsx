@@ -57,7 +57,7 @@ export function DataProvider({ children }) {
     const [summaryData, setSummaryData] = useState(null);
     const [mainCategories, setMainCategories] = useState(null);
     const [customContentSummary, setCustomContentSummary] = useState(null);
-    // The logged-in user from GET /auth/me: { id, email, fullName, role, mustChangePassword }.
+    // The logged-in user from GET /auth/me: { id, email, fullName, role, mustChangePassword, learnerCode }.
     const [user, setUser] = useState(null);
     const [authenticated, setAuthenticated] = useState(false);
     const [authLoading, setAuthLoading] = useState(true);
@@ -168,6 +168,8 @@ export function DataProvider({ children }) {
                 fullName: me.full_name || "",
                 role: me.role,
                 mustChangePassword: !!me.must_change_password,
+                // Learners' sign-in code (e.g. GSK-0012); "" for staff.
+                learnerCode: me.learner_code || "",
             };
             setUser(next);
             setAuthenticated(true);

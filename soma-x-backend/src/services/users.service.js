@@ -1,5 +1,6 @@
 import express from 'express';
 import { renameEmailEverywhere, releaseEmail } from '../helpers/identity.js';
+import { assignLearnerCode, applySchoolToLearner, getSchool } from './school.js';
 import bcrypt from "bcrypt";
 
 import { serverDb, localDb } from '../helpers/db-manager.js';
@@ -12,7 +13,7 @@ const VALID_ROLES = ['admin', 'teacher', 'scholar'];
 // Columns safe to return about a user (never password_hash).
 const PUBLIC_USER_COLUMNS = `id, email, full_name, role, phone, school_name, grade_level, preferred_language,
     gender, region_province, region_district, is_rural, disability_status, accessibility_profile,
-    COALESCE(is_active, 1) AS is_active, created_at`;
+    COALESCE(is_active, 1) AS is_active, created_at, learner_code`;
 
 export const hashPassword = async (password) => {
     const saltRounds = 12;
@@ -98,7 +99,7 @@ router.get('/', requireAdmin, async (req, res) => {
         const queryStmt = serverDb.prepare(`
             SELECT id, email, full_name, role, phone, school_name, grade_level, preferred_language,
                    gender, region_province, region_district, is_rural, disability_status,
-                   COALESCE(is_active, 1) as is_active, created_at
+                   COALESCE(is_active, 1) as is_active, created_at, learner_code
             FROM users
             ${whereSql}
             ORDER BY ${sortColumn} ${sortOrder}
@@ -262,7 +263,7 @@ router.get('/profile/view', async (req, res) => {
         const user = await serverDb.prepare(`
             SELECT id, email, full_name, role, phone, school_name, grade_level, preferred_language,
                    gender, region_province, region_district, is_rural, disability_status, accessibility_profile, created_at,
-                   profile_completed_at
+                   profile_completed_at, learner_code
             FROM users
             WHERE id = ?
         `).get(req.user.id);
@@ -279,9 +280,12 @@ router.get('/profile/view', async (req, res) => {
         // Admins aren't asked.
         const isProfileComplete = user.role === 'admin' || (Boolean(user.profile_completed_at) && hasGender && hasProvince && hasDistrict);
 
+        const school = await getSchool();
         return res.json({
             ...user,
-            isProfileComplete
+            isProfileComplete,
+            // The school's details aren't asked of learners: one box serves one school.
+            school: { name: school.name, code: school.code, province: school.province, district: school.district, isRural: school.isRural },
         });
     } catch (error) {
         console.error('Error fetching profile:', error);
@@ -338,6 +342,14 @@ router.post('/', requireAdmin, async (req, res) => {
       accessibility_profile
     );
 
+    // Learners get the school's details and a learner code straight away.
+    let learnerCode = null;
+    if (role === 'scholar') {
+      const created = await serverDb.prepare('SELECT id FROM users WHERE LOWER(email) = LOWER(?)').get(normalizedEmail);
+      await applySchoolToLearner(created.id);
+      learnerCode = await assignLearnerCode(created.id);
+    }
+
     await logAdminAuditAction({
       adminEmail: req.user.email,
       action: 'CREATE_USER',
@@ -347,7 +359,7 @@ router.post('/', requireAdmin, async (req, res) => {
 
     res.status(201).json({
       message: 'User created successfully',
-      user: { email: normalizedEmail, role, full_name: fullName || '' }
+      user: { email: normalizedEmail, role, full_name: fullName || '', learner_code: learnerCode }
     });
   } catch (error) {
     console.error('Error creating user:', error);
@@ -478,7 +490,9 @@ router.patch('/profile/update', async (req, res) => {
         const gender = req.body.gender !== undefined ? String(req.body.gender).trim() : undefined;
         const regionProvince = req.body.regionProvince !== undefined ? String(req.body.regionProvince).trim() : undefined;
         const regionDistrict = req.body.regionDistrict !== undefined ? String(req.body.regionDistrict).trim() : undefined;
-        const isRural = req.body.isRural !== undefined ? (req.body.isRural ? 1 : 0) : undefined;
+        // Rural/urban is the school's setting once the admin has set it; learners can't change it.
+        const schoolRural = (await getSchool()).isRural;
+        const isRural = schoolRural != null ? undefined : (req.body.isRural !== undefined ? (req.body.isRural ? 1 : 0) : undefined);
         const disabilityStatus = req.body.disabilityStatus !== undefined ? String(req.body.disabilityStatus).trim() : undefined;
 
         const user = { id: req.user.id };
@@ -509,7 +523,14 @@ router.patch('/profile/update', async (req, res) => {
             if (!gender || gender === 'prefer_not_to_say') missing.push('gender');
             if (!regionProvince || regionProvince === 'Not Specified') missing.push('province');
             if (!regionDistrict || regionDistrict === 'Not Specified') missing.push('district');
-            if (typeof req.body.isRural !== 'boolean') missing.push('rural or urban');
+            // Rural/urban comes from the school's settings when the admin has set it.
+            const school = await getSchool();
+            if (school.isRural != null) {
+                updates.push('is_rural = ?');
+                params.push(school.isRural ? 1 : 0);
+            } else if (typeof req.body.isRural !== 'boolean') {
+                missing.push('rural or urban');
+            }
             if (!DISABILITY_ANSWERS.includes(disabilityStatus)) missing.push('accessibility needs');
             if (req.user.role === 'scholar' && !gradeLevel) missing.push('grade');
             if (missing.length) return res.status(400).json({ message: `Please answer: ${missing.join(', ')}`, missing });

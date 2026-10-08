@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, Eye, EyeOff, Globe } from "lucide-react";
+import { BadgeCheck, ChevronDown, Eye, EyeOff, Globe } from "lucide-react";
 import { useLanguage } from '@/context/LanguageContext';
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useToast } from "@/context/ToastContext";
 import { renewMediaSession, safeNext, setSessionToken, takeNext } from "@/lib/session";
+import { fill } from "@/lib/fill";
 
 export default function SignupPage() {
   const { t, setLang, lang } = useLanguage();
@@ -18,6 +19,8 @@ export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
+  // The learner code the server gave the new account (e.g. GSK-0012), shown before moving on.
+  const [learnerCode, setLearnerCode] = useState('');
   const languages = ["en", "fr", "rw", "sw", "es"];
   // Where a guest was going when they were asked to sign up (?next=, or remembered).
   const [next, setNext] = useState('');
@@ -86,6 +89,12 @@ export default function SignupPage() {
       // Registration set the media cookie (credentials: "include"); renew it once more so
       // files open straight away.
       await renewMediaSession(SERVER_URL);
+      // Learners get a code they can sign in with instead of their email: show it and let
+      // them note it down before going on.
+      if (data.user?.learner_code) {
+        setLearnerCode(data.user.learner_code);
+        return;
+      }
       showToast('Account created successfully! Redirecting to your dashboard...', 'success');
       // New accounts always meet the mandatory profile step first: it opens on every
       // signed-in page (and on /frame) until gender, location and grade are filled in, and
@@ -182,7 +191,27 @@ export default function SignupPage() {
           </div>
         </div>
 
-        {/* Form */}
+        {learnerCode ? (
+          <div className="w-full max-w-[400px] space-y-5 text-center" role="status" aria-live="polite">
+            <BadgeCheck className="w-12 h-12 mx-auto text-emerald-600" aria-hidden="true" />
+            <h2 className="text-2xl font-bold text-slate-900 tracking-tight">{t("school.signup.createdTitle")}</h2>
+            <div className="rounded-2xl border-2 border-teal-600 bg-teal-50 px-4 py-5">
+              <p className="text-[12px] font-bold uppercase tracking-wider text-teal-800">{t("school.learnerCode")}</p>
+              <p className="mt-1 text-3xl font-black tracking-wider text-slate-900 font-mono break-all">{learnerCode}</p>
+            </div>
+            <p className="text-[15px] font-medium text-slate-700">{fill(t("school.signup.codeMessage"), { code: learnerCode })}</p>
+            <p className="text-[13px] text-slate-600">{t("school.signup.writeItDown")}</p>
+            <Button
+              type="button"
+              autoFocus
+              onClick={() => { window.location.href = safeNext(next) || '/manage/scholar-dashboard'; }}
+              className="w-full h-11 text-[15px] font-bold rounded-lg bg-accent-dark hover:bg-black text-white shadow-md"
+            >
+              {t("school.signup.continue")}
+            </Button>
+          </div>
+        ) : (
+        /* Form */
         <form onSubmit={handleSubmit} className="w-full max-w-[400px] space-y-4">
 
           {/* Form header */}
@@ -340,6 +369,7 @@ export default function SignupPage() {
             </Link>
           )}
         </form>
+        )}
       </div>
     </div>
   );

@@ -3,10 +3,11 @@
 import { useContext, useEffect, useState } from "react";
 import {
     BookOpen, CheckCircle2, GraduationCap,
-    Download, KeyRound, Lock, Mail, MapPin, Pencil, Save, ShieldAlert, User, X
+    Download, Hash, KeyRound, Lock, Mail, MapPin, Pencil, Save, School, ShieldAlert, User, X
 } from "lucide-react";
 import DataContext from "@/context/DataContext";
 import { useToast } from "@/context/ToastContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { downloadFile } from "@/lib/download";
 
 // "Download my data": everything the box holds about the signed-in person, as a JSON file.
@@ -97,6 +98,7 @@ export default function AccountPage() {
     const heroFade = isDark ? "#080B0F" : "#F0F2F5";
 
     const { showToast } = useToast();
+    const { t } = useLanguage();
     const currentEmail = user?.email || "";
     const currentRole = user?.role || "";
     const [loadingProfile, setLoadingProfile] = useState(true);
@@ -137,6 +139,8 @@ export default function AccountPage() {
                 setProfileView({
                     email: data.email || "",
                     fullName: data.full_name || "",
+                    learnerCode: data.learner_code || "",
+                    schoolName: data.school?.name || data.school_name || "",
                     gender: data.gender || "prefer_not_to_say",
                     province: data.region_province || "Not Specified",
                     district: data.region_district || "Not Specified",
@@ -296,6 +300,13 @@ export default function AccountPage() {
                                         {profileView.fullName || "—"}
                                     </p>
                                     <p className="text-[13px] text-white/40 mb-4">{profileView.email}</p>
+                                    {profileView.learnerCode && (
+                                        <p className="mb-4 text-[13px] text-white/80">
+                                            {t("school.learnerCode")}:{" "}
+                                            <span className="font-mono font-black text-white tracking-wider">{profileView.learnerCode}</span>
+                                            <span className="block text-[12px] text-white/60 mt-0.5">{t("school.account.codeHint")}</span>
+                                        </p>
+                                    )}
                                     <div className="flex flex-wrap items-center gap-2">
                                         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold text-white/90 border border-white/15 bg-white/10 backdrop-blur-sm">
                                             <GraduationCap size={11} />
@@ -506,6 +517,8 @@ export default function AccountPage() {
                                     {[
                                         { icon: <User size={13} className="text-slate-600" />,         label: "Full name",          value: profileView.fullName },
                                         { icon: <Mail size={13} className="text-slate-600" />,         label: "Email",              value: profileView.email },
+                                        ...(profileView.learnerCode ? [{ icon: <Hash size={13} className="text-slate-600" />, label: t("school.learnerCode"), value: profileView.learnerCode }] : []),
+                                        ...(profileView.schoolName ? [{ icon: <School size={13} className="text-slate-600" />, label: t("school.schoolWord"), value: profileView.schoolName }] : []),
                                         { icon: <GraduationCap size={13} className="text-slate-600" />, label: "Role",              value: roleLabel },
                                         { icon: <User size={13} className="text-slate-600" />,         label: "Gender",             value: profileView.gender ? profileView.gender.replace('_', ' ').toUpperCase() : "Prefer Not To Say" },
                                         { icon: <MapPin size={13} className="text-slate-600" />,      label: "Region / Location",  value: `${profileView.province} (${profileView.district})${profileView.isRural ? " - Rural" : " - Urban"}` },

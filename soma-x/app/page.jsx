@@ -38,7 +38,7 @@ const AuthComp = () => {
             const response = await fetch(`${SERVER_URL}/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: formData.email, password: formData.password }),
+                body: JSON.stringify({ email: formData.email.trim(), password: formData.password }),
             });
             const data = await response.json();
             if (!response.ok) {
@@ -176,15 +176,18 @@ const AuthComp = () => {
                         ) : null}
                     </div>
 
-                    {/* Email */}
+                    {/* Email or learner code (learners can sign in with GSK-0012 instead of an email) */}
                     <div className="space-y-1.5">
                         <label htmlFor="auth-email" className="block text-[12px] font-bold text-slate-800 uppercase tracking-wider">
-                            Email
+                            {t("school.login.label")}
                         </label>
                         <input
-                            type="email"
+                            type="text"
                             id="auth-email"
-                            placeholder="you@example.com"
+                            placeholder={t("school.login.placeholder")}
+                            autoComplete="username"
+                            autoCapitalize="none"
+                            spellCheck={false}
                             required
                             value={formData.email}
                             onChange={(e) => setFormData({ ...formData, email: e.target.value })}

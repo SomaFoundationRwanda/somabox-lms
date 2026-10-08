@@ -577,6 +577,7 @@ const ManageLibrary = () => {
                     url={libraryFileUrl(SERVER_URL, viewBook)}
                     title={viewBook.name}
                     onClose={() => setViewBook(null)}
+                    summaryPath={viewBook.path_key || null}
                 />
             )}
 
@@ -584,6 +585,7 @@ const ManageLibrary = () => {
             <UniversalPlayerModal
                 isOpen={Boolean(viewBook) && libraryViewer(viewBook) !== 'epub'}
                 onClose={() => setViewBook(null)}
+                summaryPath={viewBook && libraryViewer(viewBook) !== 'epub' ? (viewBook.path_key || null) : null}
                 mediaItem={viewBook && libraryViewer(viewBook) !== 'epub' ? {
                     title: viewBook.name,
                     type: libraryViewer(viewBook),

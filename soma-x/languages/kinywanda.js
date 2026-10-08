@@ -1,3 +1,4 @@
+import rwSchool from "./school/rw";
 import rwExplore from "./explore/rw";
 import rwAttendance from "./attendance/rw";
 import rwGuest from "./guest/rw";
@@ -7,6 +8,7 @@ export default {
     "attendance": rwAttendance,
     "guest": rwGuest,
     "explore": rwExplore,
+    "school": rwSchool,
     "explainers": {},
     "nav": {
         "dashboard": "Ahabanza",

@@ -7,10 +7,12 @@ import { useContext } from "react";
 import DataContext from "../../context/DataContext";
 import { LogOut, Settings, UserRound } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useLanguage } from "../../context/LanguageContext";
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "./dropdown-menu";
@@ -24,7 +26,10 @@ const ProfileCard = () => {
         role 
     } = useUser();
     
-    const { logout, isDark } = useContext(DataContext) || {};
+    const { logout, user } = useContext(DataContext) || {};
+    const { t } = useLanguage();
+    // Learners can sign in with this code instead of their email (e.g. GSK-0012).
+    const learnerCode = user?.learnerCode || "";
     const router = useRouter();
 
     const dropdownBg = "#0f2d2b";
@@ -85,6 +90,15 @@ const ProfileCard = () => {
                     borderColor: borderColor 
                 }}
             >
+                {learnerCode && (
+                    <>
+                        <DropdownMenuLabel className="px-2.5 py-2" style={{ color: titleColor }}>
+                            <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-300">{t("school.learnerCode")}</span>
+                            <span className="block text-[14px] font-black font-mono tracking-wider">{learnerCode}</span>
+                        </DropdownMenuLabel>
+                        <DropdownMenuSeparator style={{ backgroundColor: borderColor }} />
+                    </>
+                )}
                 <DropdownMenuItem 
                     onClick={() => router.push('/settings')}
                     className="cursor-pointer gap-2.5 rounded-[5px] px-2.5 py-2 transition-colors"

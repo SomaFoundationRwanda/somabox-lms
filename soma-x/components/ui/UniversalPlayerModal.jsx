@@ -2,12 +2,17 @@ import React, { useState, useRef, useEffect, useContext } from 'react';
 import { X, Play, Pause, Volume2, VolumeX, Maximize, Minimize, SkipBack, SkipForward, FileText, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MediaAccessNotice, useMediaAccess } from '@/components/guest/MediaAccess';
+import SummaryPanel, { SummaryToggleButton, useContentSummary } from '@/components/explore/SummaryPanel';
 
 const UniversalPlayerModal = ({
     isOpen,
     onClose,
-    mediaItem = null
+    mediaItem = null,
+    // The file's path_key (Explore item `slug`, Library `path_key`): enables the AI summary panel.
+    summaryPath = null
 }) => {
+    const [summaryOpen, setSummaryOpen] = useState(false);
+    const summary = useContentSummary(summaryPath, { active: Boolean(isOpen && summaryPath) });
     const [isPlaying, setIsPlaying] = useState(false);
     const [volume, setVolume] = useState(1);
     const [isMuted, setIsMuted] = useState(false);
@@ -51,6 +56,9 @@ const UniversalPlayerModal = ({
             setIsFullscreen(false);
         }
     }, [isOpen, mediaItem]);
+
+    // A different file (or closing) closes the summary panel.
+    useEffect(() => { setSummaryOpen(false); }, [isOpen, summaryPath]);
 
     const handleClose = () => {
         setIsPlaying(false);
@@ -376,16 +384,23 @@ const UniversalPlayerModal = ({
                 role="dialog"
                 aria-modal="true"
                 aria-label={mediaItem?.title || 'Media Player'}
-                className={`bg-black border border-primary-400/50 rounded-sm shadow-2xl transition-all duration-300 ${isFullscreen ? 'w-full h-full' : 'w-[85vw] h-[85vh]'
-                    } max-w-8xl max-h-full overflow-hidden`}
+                className={`bg-black border border-primary-400/50 rounded-sm shadow-2xl transition-all duration-300 ${isFullscreen ? 'w-full h-full' : 'w-full h-full sm:w-[85vw] sm:h-[85vh]'
+                    } max-w-8xl max-h-full overflow-hidden flex flex-col`}
                 style={{
                     animation: 'modalSlideIn 0.3s ease-out'
                 }}
             >
                 {/* Modal Header */}
-                <div className="bg-accent-dark text-white p-2 flex items-center justify-between rounded-t-sm">
+                <div className="bg-accent-dark text-white p-2 flex items-center justify-between rounded-t-sm shrink-0">
                     <h2 className="font-semibold truncate mr-4">{mediaItem?.title || 'Media Player'}</h2>
                     <div className="flex items-center space-x-2 flex-shrink-0">
+                        <SummaryToggleButton
+                            state={summary}
+                            open={summaryOpen}
+                            onToggle={() => setSummaryOpen((v) => !v)}
+                            controls="player-summary"
+                            className="bg-white/10 hover:bg-white/20 text-white"
+                        />
                         <Button
                             variant="ghost"
                             onClick={toggleFullscreen}
@@ -407,9 +422,22 @@ const UniversalPlayerModal = ({
                     </div>
                 </div>
 
-                {/* Modal Content */}
-                <div className="h-full">
-                    {renderMediaPlayer()}
+                {/* Modal Content: the player, and the AI summary beside it (below it on phones).
+                    Playing or reading carries on while the summary is open or being made. */}
+                <div className="flex-1 min-h-0 flex flex-col md:flex-row">
+                    <div className="flex-1 min-h-0 min-w-0">
+                        {renderMediaPlayer()}
+                    </div>
+                    {summaryOpen && summaryPath ? (
+                        <aside id="player-summary" className="bg-white w-full md:w-[380px] max-h-[50%] md:max-h-none shrink-0 overflow-y-auto p-4 border-t md:border-t-0 md:border-l border-slate-200">
+                            <SummaryPanel
+                                pathKey={summaryPath}
+                                state={summary}
+                                onClose={() => setSummaryOpen(false)}
+                                headingId="player-summary-title"
+                            />
+                        </aside>
+                    ) : null}
                 </div>
             </div>
 

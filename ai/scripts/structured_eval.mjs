@@ -21,6 +21,8 @@ const CASES = {
   page: base,
   assignment: base,
   grading_suggestion: { ...base, assignmentTitle: "Fraction poster", criteria: [{ id: 11, title: "Method", points: 4 }, { id: 12, title: "Answer", points: 4 }], submissionText: "1/2 + 1/4 = 2/6 because I add the tops and the bottoms." },
+  notes: { ...base, title: "Sharing mangoes", kind: "book", part: 1, sourceText: "Aline had six mangoes. She shared them equally with her two friends, so each of the three children got two mangoes. Then she cut one mango into four equal pieces and gave one piece to her little brother. One piece of four equal pieces is called one quarter, written 1/4." },
+  content_summary: { ...base, title: "Sharing mangoes", kind: "book", notes: ["Aline shares six mangoes equally among three children: two each.", "One mango is cut into four equal pieces; one piece is a quarter (1/4)."] },
   class_summary: { ...base, stats: { "OUT-1": { mastery: 72, learners: 30 }, "OUT-2": { mastery: 48, learners: 30 } } },
 };
 const LANGS = ["en", "fr", "rw", "sw"];

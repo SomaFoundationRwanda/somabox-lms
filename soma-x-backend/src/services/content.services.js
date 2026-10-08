@@ -13,6 +13,7 @@ import { FILE_ROOTS, rootOf, safePathKey, absolutePath, fileType, humanize, cove
 import { syncExploreIndex, lastIndexRun } from "./explore/indexer.js";
 import { getCatalog, invalidateCatalog } from "./explore/catalog.js";
 import { coverQueueLength } from "./explore/covers.js";
+import { SUMMARY_LANGUAGES, summariesEnabled, summarisable, userLanguage, getSummary, summaryView, requestSummary } from "./explore/summaries.js";
 
 const router = express.Router();
 const requireContentManager = requireRole("teacher", "admin");
@@ -65,6 +66,73 @@ router.get("/files/*filePath", requireMediaAccess(), async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+});
+
+// --- AI summaries (signed-in people) ------------------------------------------------------------
+// A summary of a book (from its text) or a video/recording (from a transcript next to it), made
+// once per file and language and shared by everyone. GET tells the app whether it exists, is being
+// made, or can be asked for; POST asks for it.
+async function summaryTarget(req, res, raw) {
+  const pathKey = safePathKey(raw);
+  const staff = isStaff(req.user);
+  if (!pathKey || !fileType(pathKey) || !fs.existsSync(absolutePath(pathKey))) {
+    res.status(404).json({ message: "File not found" });
+    return null;
+  }
+  if (!staff && await (await getCatalog()).isHidden(pathKey)) {
+    res.status(404).json({ message: "File not found" });
+    return null;
+  }
+  return { pathKey, staff };
+}
+
+router.get("/summary", async (req, res) => {
+  try {
+    const target = await summaryTarget(req, res, req.query.path);
+    if (!target) return;
+    const enabled = await summariesEnabled();
+    const language = SUMMARY_LANGUAGES.includes(req.query.language) ? req.query.language : await userLanguage(req.user.id);
+    const can = summarisable(target.pathKey);
+    const row = await getSummary(target.pathKey, language);
+    return res.json({
+      enabled, language, available: can.ok, reason: can.ok ? null : can.message,
+      ...summaryView(row, { staff: target.staff }),
+    });
+  } catch (error) {
+    console.error("Error reading summary:", error);
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+router.post("/summary", async (req, res) => {
+  try {
+    const target = await summaryTarget(req, res, req.body?.path);
+    if (!target) return;
+    if (!await summariesEnabled()) return res.status(403).json({ message: "AI summaries are switched off for this school", code: "SUMMARIES_OFF" });
+    const language = await userLanguage(req.user.id);
+    const { row, created } = await requestSummary(req.user, target.pathKey, language);
+    return res.status(created ? 202 : 200).json({ language, ...summaryView(await getSummary(row.path_key, language), { staff: target.staff }) });
+  } catch (error) {
+    if (error.status) return res.status(error.status).json({ message: error.message, code: error.code });
+    console.error("Error asking for summary:", error);
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+// Admins: hide a summary from learners, or remove it so it's made again next time.
+router.patch("/summary", requireRole("admin"), async (req, res) => {
+  const key = safePathKey(req.body?.path);
+  if (!key || typeof req.body?.hidden !== "boolean") return res.status(400).json({ message: "Send path and hidden" });
+  const info = await localDb.prepare("UPDATE content_summaries SET hidden = ? WHERE path_key = ? AND (?::text IS NULL OR language = ?)")
+    .run(req.body.hidden, key, req.body.language || null, req.body.language || null);
+  return info.changes ? res.json({ ok: true }) : res.status(404).json({ message: "No summary for this file" });
+});
+
+router.delete("/summary", requireRole("admin"), async (req, res) => {
+  const key = safePathKey(req.body?.path || req.query.path);
+  if (!key) return res.status(400).json({ message: "Send path" });
+  await localDb.prepare("DELETE FROM content_summaries WHERE path_key = ? AND status <> 'running'").run(key);
+  return res.status(204).end();
 });
 
 // --- Content manager ----------------------------------------------------------------------------

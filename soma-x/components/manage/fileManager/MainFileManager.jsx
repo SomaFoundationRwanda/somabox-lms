@@ -16,8 +16,9 @@ import DataContext from "@/context/DataContext";
 import { useLanguage } from "@/context/LanguageContext";
 import {
     Check, ChevronDown, ChevronRight, File, FolderPlus, Loader2, Search, Info,
-    Upload, X, CheckCircle2, AlertCircle, Music, Video, BookOpen, FolderOpen, RefreshCw, Pencil, Trash2,
+    Upload, X, CheckCircle2, AlertCircle, Music, Video, BookOpen, FolderOpen, RefreshCw, Pencil, Trash2, Sparkles,
 } from 'lucide-react';
+import SummaryPanel from '@/components/explore/SummaryPanel';
 
 // react-reader (epub.js) loads only when a book is opened.
 const EpubReader = dynamic(() => import("@/components/ui/library/EpubReader"), { ssr: false });
@@ -969,6 +970,7 @@ const FileManager = () => {
                 onView={(file, mediaType) => setViewItem({ file, mediaType })}
                 onRename={(row) => setModal({ kind: 'rename', row })}
                 onDelete={(row) => setModal({ kind: 'delete', row })}
+                onSummary={isAdmin ? (row) => setModal({ kind: 'summary', row }) : undefined}
             />
 
             {/* ── Modals ── */}
@@ -986,6 +988,19 @@ const FileManager = () => {
             {modal?.kind === 'rename' && (
                 <RenameModal row={modal.row} onClose={() => setModal(null)} onSubmit={handleRename} />
             )}
+            {modal?.kind === 'summary' && (
+                <Modal onClose={() => setModal(null)} labelledBy="summary-dialog-title" wide>
+                    <ModalHeader
+                        id="summary-dialog-title"
+                        icon={<Sparkles className="w-3.5 h-3.5 text-teal-700" aria-hidden="true" />}
+                        title={`${t("explore.summary.title")}: ${modal.row.name}`}
+                        onClose={() => setModal(null)}
+                    />
+                    <div className="p-5">
+                        <SummaryPanel pathKey={modal.row.path_key} adminControls headingId="summary-dialog-panel" />
+                    </div>
+                </Modal>
+            )}
             {modal?.kind === 'delete' && (
                 <DeleteModal row={modal.row} onClose={() => setModal(null)} onSubmit={handleDelete} />
             )}
@@ -996,11 +1011,13 @@ const FileManager = () => {
                     url={`${SERVER_URL}/content/files/${encodeURI(viewItem.file.path_key)}`}
                     title={viewItem.file.name}
                     onClose={() => setViewItem(null)}
+                    summaryPath={viewItem.file.path_key}
                 />
             )}
             <UniversalPlayerModal
                 isOpen={Boolean(viewItem) && viewItem?.mediaType !== 'epub'}
                 onClose={() => setViewItem(null)}
+                summaryPath={viewItem && viewItem.mediaType !== 'epub' ? viewItem.file.path_key : null}
                 mediaItem={viewItem && viewItem.mediaType !== 'epub' ? {
                     title: viewItem.file.name,
                     type:  viewItem.mediaType === 'pdf' ? 'book' : viewItem.mediaType,

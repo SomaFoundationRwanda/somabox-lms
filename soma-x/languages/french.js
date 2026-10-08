@@ -1,3 +1,4 @@
+import frSchool from "./school/fr";
 import frExplore from "./explore/fr";
 import frAttendance from "./attendance/fr";
 import frGuest from "./guest/fr";
@@ -7,6 +8,7 @@ export default {
     "attendance": frAttendance,
     "guest": frGuest,
     "explore": frExplore,
+    "school": frSchool,
     "explainers": frExplainers,
     "nav": {
         "dashboard": "Tableau de bord",

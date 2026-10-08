@@ -2,7 +2,7 @@ import { Folder } from "lucide-react";
 import FileRow from './fileRow';
 import { useLanguage } from "@/context/LanguageContext";
 
-const FileTable = ({ files, loading, emptyText, canDelete, onOpenFolder, onToggleVisibility, onView, onRename, onDelete }) => {
+const FileTable = ({ files, loading, emptyText, canDelete, onOpenFolder, onToggleVisibility, onView, onRename, onDelete, onSummary }) => {
     const { t } = useLanguage();
     return (
         <div className="bg-white dark:bg-transparent rounded-xl border border-slate-200 dark:border-slate-800 overflow-x-auto">
@@ -43,6 +43,7 @@ const FileTable = ({ files, loading, emptyText, canDelete, onOpenFolder, onToggl
                                 onView={onView}
                                 onRename={onRename}
                                 onDelete={onDelete}
+                                onSummary={onSummary}
                             />
                         ))
                     )}

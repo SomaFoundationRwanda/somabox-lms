@@ -4,8 +4,12 @@ import { ReactReader } from 'react-reader';
 import { AlertTriangle, X } from 'lucide-react';
 import { MediaAccessNotice } from '@/components/guest/MediaAccess';
 import { getSessionToken } from '@/lib/session';
+import SummaryPanel, { SummaryToggleButton, useContentSummary } from '@/components/explore/SummaryPanel';
 
-const EpubReader = ({ url, title, onClose }) => {
+// `summaryPath`: the book's path_key, to offer its AI summary beside the reader.
+const EpubReader = ({ url, title, onClose, summaryPath = null }) => {
+    const [summaryOpen, setSummaryOpen] = useState(false)
+    const summary = useContentSummary(summaryPath, { active: Boolean(summaryPath) })
     const [location, setLocation] = useState(null)
     const [data, setData] = useState(null)
     const [loading, setLoading] = useState(true)
@@ -73,8 +77,8 @@ const EpubReader = ({ url, title, onClose }) => {
         <div className="fixed inset-0 right-[5%] z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-0 md:p-4">
             <div className="bg-white w-full h-full max-w-7xl rounded-md overflow-hidden flex flex-col shadow-2xl relative">
                 {/* Header */}
-                <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-white z-10">
-                    <div className="flex items-center gap-3">
+                <div className="flex items-center justify-between gap-2 p-4 border-b border-gray-100 bg-white z-10">
+                    <div className="flex items-center gap-3 min-w-0">
                         <div className="p-2 bg-blue-50 rounded-lg">
                             <span className="text-xl"></span>
                         </div>
@@ -83,17 +87,29 @@ const EpubReader = ({ url, title, onClose }) => {
                             {/* <p className="text-xs text-gray-500">Reading Mode</p> */}
                         </div>
                     </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                    <SummaryToggleButton
+                        state={summary}
+                        open={summaryOpen}
+                        onToggle={() => setSummaryOpen((v) => !v)}
+                        controls="reader-summary"
+                        className="bg-teal-50 text-teal-900 hover:bg-teal-100"
+                    />
                     <button
                         onClick={onClose}
                         className="p-2 hover:bg-gray-100 rounded-full transition-colors group"
                         title="Close Reader"
+                        aria-label="Close Reader"
                     >
                         <X className="w-6 h-6 text-gray-600 group-hover:text-gray-600" />
                     </button>
+                    </div>
                 </div>
 
+                <div className="flex-1 min-h-0 flex flex-col md:flex-row">
+
                 {/* Reader Container */}
-                <div className="flex-1 relative bg-white flex items-center justify-center overflow-hidden">
+                <div className="flex-1 min-h-0 min-w-0 relative bg-white flex items-center justify-center overflow-hidden">
                     {access ? (
                         <MediaAccessNotice state={access} />
                     ) : loading ? (
@@ -132,6 +148,17 @@ const EpubReader = ({ url, title, onClose }) => {
                             />
                         </div>
                     )}
+                </div>
+                {summaryOpen && summaryPath ? (
+                    <aside id="reader-summary" className="bg-white w-full md:w-[380px] max-h-[50%] md:max-h-none shrink-0 overflow-y-auto p-4 border-t md:border-t-0 md:border-l border-slate-200">
+                        <SummaryPanel
+                            pathKey={summaryPath}
+                            state={summary}
+                            onClose={() => setSummaryOpen(false)}
+                            headingId="reader-summary-title"
+                        />
+                    </aside>
+                ) : null}
                 </div>
 
                 {/* Footer/Progress (Optional) */}

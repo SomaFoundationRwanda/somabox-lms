@@ -1,0 +1,9 @@
+Write a summary of this book or video for school learners, from the notes below.
+
+{CONTEXT}
+
+Rules:
+- "overview": 3 to 6 simple sentences saying what it is about and what a learner will get from it.
+- "keyPoints": 3 to 6 short points with the most important ideas, in the order they come.
+- "questions": up to 3 short questions a learner could think about after reading or watching.
+- Use only what the notes say. Do not invent names, numbers, or events. Simple words for the learners' level.

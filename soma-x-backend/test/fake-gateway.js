@@ -20,6 +20,8 @@ export const RESULTS = {
   page: { title: "Fractions around us", sections: [{ heading: "Halves", body: "A half is one of two equal parts.\n\nFold a paper in two." }] },
   assignment: { title: "Fraction poster", instructions: "1. Draw three fractions.\n2. Label them.", pointsPossible: 10, outcomeCode: "OUT-1" },
   grading_suggestion: null, // built from the request's criteria
+  notes: { notes: ["The text explains how to share things equally.", "A quarter is one of four equal parts."] },
+  content_summary: { overview: "This book shows learners how to share things equally and what fractions like a quarter mean.", keyPoints: ["Sharing equally means everyone gets the same amount.", "A quarter is one of four equal parts.", "Fractions are written with a top and bottom number."], questions: ["Where do you share things equally at home?"] },
   class_summary: { summary: "Most learners can add fractions.", suggestions: ["Reteach comparing fractions with drawings."] },
 };
 

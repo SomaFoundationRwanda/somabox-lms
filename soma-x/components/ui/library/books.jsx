@@ -169,6 +169,7 @@ const BooksPage = ({ books = [], loading = false, shelf = null, searchQuery }) =
                     url={libraryFileUrl(SERVER_URL, selectedBook)}
                     title={selectedBook.name}
                     onClose={() => setSelectedBook(null)}
+                    summaryPath={selectedBook.path_key || null}
                 />
             )}
 
@@ -176,6 +177,7 @@ const BooksPage = ({ books = [], loading = false, shelf = null, searchQuery }) =
             <UniversalPlayerModal
                 isOpen={Boolean(selectedBook) && viewer !== 'epub'}
                 onClose={() => setSelectedBook(null)}
+                summaryPath={selectedBook && viewer !== 'epub' ? (selectedBook.path_key || null) : null}
                 mediaItem={selectedBook && viewer !== 'epub' ? {
                     title: selectedBook.name,
                     type: viewer,
