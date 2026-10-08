@@ -11,10 +11,11 @@ import PrevNextNav from "@/components/course/navigation/PrevNextNav";
 import { AlertCircle } from "lucide-react";
 import { useItemOpened } from "@/lib/usage";
 import { useCourseText } from "@/components/course/useCourseText";
+import Loader from "@/components/ui/Loader";
 
 function EditorLoading() {
   const { t } = useCourseText();
-  return <p className="text-sm text-slate-500 p-3">{t("pageView.loadingEditor")}</p>;
+  return <Loader variant="page" size={48} className="min-h-[30vh]" label={t("pageView.loadingEditor")} />;
 }
 
 // The editor (TipTap) loads only when a teacher clicks Edit; reading uses PageContent.
@@ -109,7 +110,7 @@ export default function PageDetailPage() {
     return "";
   };
 
-  if (loading) return <div className="p-6"><p className="text-sm text-slate-500">{t("common.loading")}</p></div>;
+  if (loading) return <Loader variant="page" />;
   if (!page) return <div className="p-6"><p className="text-sm text-rose-600">{t("pageView.notFound")}</p></div>;
 
   return (

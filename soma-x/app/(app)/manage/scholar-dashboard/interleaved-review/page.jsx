@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import PracticeLabel from "@/components/sol/PracticeLabel";
 import { useLanguage } from "@/context/LanguageContext";
 import { fill } from "@/lib/fill";
+import Loader from "@/components/ui/Loader";
 
 export default function InterleavedReviewPage() {
     const { SERVER_URL, user } = useContext(DataContext);
@@ -40,7 +41,7 @@ export default function InterleavedReviewPage() {
     }, [SERVER_URL, scholarEmail]);
 
     if (loading) {
-        return <div className="p-8 text-center text-sm font-semibold text-slate-600">{t("learner.review.loading")}</div>;
+        return <Loader variant="page" label={t("learner.review.loading")} />;
     }
 
     const questions = sessionData?.questions || [];

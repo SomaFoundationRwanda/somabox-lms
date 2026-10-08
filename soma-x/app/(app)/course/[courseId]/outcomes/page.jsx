@@ -11,6 +11,7 @@ import { startAiJob } from "@/lib/ai";
 import { AiStatusNote } from "@/components/ai/AiBits";
 import AiJobPanel from "@/components/ai/AiJobPanel";
 import { useProgressText } from "@/components/progress/text";
+import Loader from "@/components/ui/Loader";
 
 const MASTERY_LEVELS = [
   { points: 4, level: "exceeds" },
@@ -235,11 +236,11 @@ export default function OutcomesPage() {
           title={<span className="flex items-center gap-2"><TrendingUp className="w-4 h-4 text-[#0D9488]" /> {tp("outcomes.masteryTitle")}</span>}
         >
           {masteryList.length === 0 ? (
-            <EmptyState
-              compact
-              title={loading ? tp("outcomes.loading") : tp("outcomes.empty")}
-              description={loading ? undefined : tp("outcomes.emptyHint")}
-            />
+            loading ? (
+              <Loader variant="page" size={48} className="min-h-[25vh]" label={tp("outcomes.loading")} />
+            ) : (
+              <EmptyState compact title={tp("outcomes.empty")} description={tp("outcomes.emptyHint")} />
+            )
           ) : (
             <List label={tp("outcomes.masteryList")}>
               {masteryList.map((m) => (

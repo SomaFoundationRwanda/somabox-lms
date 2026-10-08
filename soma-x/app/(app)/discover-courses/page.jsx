@@ -8,6 +8,7 @@ import AsyncListState from "@/components/course/AsyncListState";
 import { useGuestGate } from "@/components/guest/GuestGate";
 import { useLanguage } from "@/context/LanguageContext";
 import { fill } from "@/lib/fill";
+import { startRouteLoading } from "@/components/global/RouteLoader";
 
 export default function DiscoverCoursesPage() {
   const router = useRouter();
@@ -65,6 +66,7 @@ export default function DiscoverCoursesPage() {
         body: JSON.stringify({}),
       });
       if (!res.ok) throw new Error((await res.json()).message || t("learner.discover.joinFailed"));
+      startRouteLoading();
       router.push(`/course/${courseId}/home`);
     } catch (err) {
       setError(err.message || t("learner.discover.joinFailed"));

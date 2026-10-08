@@ -9,6 +9,7 @@ import ProfileCompletionBanner from "@/components/notifications/ProfileCompletio
 import CreateCourseModal from "@/components/teacher/CreateCourseModal"
 import { useLanguage } from "@/context/LanguageContext"
 import { fill } from "@/lib/fill"
+import Loader from "@/components/ui/Loader";
 
 function Modal({ title, onClose, children }) {
   const { t } = useLanguage()
@@ -99,7 +100,7 @@ export default function TeacherDashboardPage() {
 
         <div className="flex gap-5 overflow-x-auto pb-3 no-scrollbar">
           {loading ? (
-            <p className="text-sm text-slate-600">{t("teacher.common.loading")}</p>
+            <Loader variant="page" size={56} className="min-h-[14rem]" label={t("teacher.common.loading")} />
           ) : courses.length === 0 ? (
             <div className="w-full flex justify-center py-8"><EmptyState message={t("teacher.dashboard.noCourses")} /></div>
           ) : (

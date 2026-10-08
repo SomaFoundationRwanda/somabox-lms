@@ -14,6 +14,8 @@ import { getDiagnosticStatus } from "@/lib/sol-service";
 import { SOL_QUIZ_ENABLED } from "@/lib/featureFlags";
 import { useLanguage } from "@/context/LanguageContext";
 import { fill } from "@/lib/fill";
+import { startRouteLoading } from "@/components/global/RouteLoader";
+import Loader from "@/components/ui/Loader";
 
 const ScholarDashboard = () => {
     const { authenticated, role, SERVER_URL, isDark, user } = useContext(DataContext);
@@ -74,6 +76,7 @@ const ScholarDashboard = () => {
                 body: JSON.stringify({}),
             });
             if (!res.ok) throw new Error((await res.json()).message || t("learner.discover.joinFailed"));
+            startRouteLoading();
             router.push(`/course/${courseId}/home`);
         } catch (err) {
             setJoinError(err.message || t("learner.discover.joinFailed"));
@@ -82,7 +85,10 @@ const ScholarDashboard = () => {
     };
 
     useEffect(() => {
-        if (authenticated && currentRole && currentRole !== "scholar") router.replace("/");
+        if (authenticated && currentRole && currentRole !== "scholar") {
+            startRouteLoading();
+            router.replace("/");
+        }
     }, [authenticated, currentRole, router]);
 
     if (!authenticated || currentRole !== "scholar") return null;
@@ -158,11 +164,7 @@ const ScholarDashboard = () => {
                         ) : null}
 
                         {loading ? (
-                            <div className="bg-white rounded-[5px] p-3 sm:p-4 space-y-2">
-                                {[1, 2, 3].map(i => (
-                                    <div key={i} className="h-16 bg-slate-100 rounded-[5px] animate-pulse" />
-                                ))}
-                            </div>
+                            <Loader variant="page" size={56} className="min-h-[30vh]" />
                         ) : showTrueEmptyState ? (
                             /* True empty state — only when zero enrollments AND zero public courses */
                             <div

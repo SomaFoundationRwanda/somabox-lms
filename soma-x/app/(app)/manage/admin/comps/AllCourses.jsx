@@ -6,6 +6,7 @@ import { DataTable, EmptyState } from "@/components/layout";
 import { formatDate } from "@/lib/dates";
 import { useLanguage } from "@/context/LanguageContext";
 import { fill } from "@/lib/fill";
+import Loader from "@/components/ui/Loader";
 
 // Every course on this box, for admins (GET /courses/all).
 export default function AllCourses({ serverUrl }) {
@@ -29,7 +30,7 @@ export default function AllCourses({ serverUrl }) {
   }, [serverUrl]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (error) return <p className="text-sm text-rose-600">{error}</p>;
-  if (!courses) return <div className="h-24 rounded-xl bg-slate-100 animate-pulse" />;
+  if (!courses) return <Loader variant="page" size={48} className="min-h-[8rem]" />;
   if (courses.length === 0) {
     return <EmptyState compact title={t("admin.courses.emptyTitle")} description={t("admin.courses.emptyText")} />;
   }

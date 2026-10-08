@@ -2,6 +2,7 @@
 
 import { formatInstantDate } from "@/lib/dates";
 import { useProgressText, enTp, plural, fmtDateTime, itemTypeLabel } from "@/components/progress/text";
+import Loader from "@/components/ui/Loader";
 
 // Shared display helpers for Insights (teachers) and My progress (learners).
 // Every figure can be null: null shows as a dash or "No results yet", never as 0.
@@ -201,12 +202,17 @@ export function Figure({ label, value, sub, children }) {
 /** "based on 12 of 30 learners" (in the language `tp` gives). */
 export const basedOn = (n, total, tp = enTp) => plural(tp, "bits.basedOn", total ?? 0, { n: n ?? 0, total: total ?? 0 });
 
+// While an insights/attendance/progress panel waits for data: the SOMABOX loader, centred
+// where the rows will appear (taller when more rows are expected).
 export function LoadingRows({ count = 3 }) {
   const { tp } = useProgressText();
   return (
-    <div className="space-y-2" aria-busy="true" aria-label={tp("common.loading")}>
-      {Array.from({ length: count }, (_, i) => <div key={i} className="h-10 rounded-xl bg-slate-100 dark:bg-slate-800 animate-pulse" />)}
-    </div>
+    <Loader
+      variant="page"
+      size={count > 3 ? 56 : 48}
+      className={count > 3 ? "min-h-[30vh]" : "min-h-[20vh]"}
+      label={tp("common.loading")}
+    />
   );
 }
 

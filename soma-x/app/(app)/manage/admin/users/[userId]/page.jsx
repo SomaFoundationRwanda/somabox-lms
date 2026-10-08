@@ -15,6 +15,8 @@ import Link from "next/link";
 import { PageHeader, Section, List, ListRow, DataTable, EmptyState } from "@/components/layout";
 import { fill } from "@/lib/fill";
 import { LANGUAGE_NAMES } from "@/components/global/LanguageSwitcher";
+import { startRouteLoading } from "@/components/global/RouteLoader";
+import Loader from "@/components/ui/Loader";
 
 function getInitials(name, email) {
     if (name?.trim()) return name.trim().split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
@@ -102,9 +104,7 @@ export default function UserProfilePage() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center min-h-[50vh]">
-                <div className="w-8 h-8 border-4 border-teal-500 border-t-transparent rounded-full animate-spin"></div>
-            </div>
+            <Loader variant="page" className="min-h-[50vh]" />
         );
     }
 
@@ -112,7 +112,7 @@ export default function UserProfilePage() {
         return (
             <div className="text-center py-12">
                 <p className="text-rose-500 font-bold mb-4">{error || t("admin.user.notFound")}</p>
-                <button onClick={() => router.push("/manage/admin")} className="px-4 py-2 bg-slate-200 rounded-lg text-sm font-semibold">
+                <button onClick={() => { startRouteLoading(); router.push("/manage/admin"); }} className="px-4 py-2 bg-slate-200 rounded-lg text-sm font-semibold">
                     {t("admin.user.goBack")}
                 </button>
             </div>
@@ -195,7 +195,7 @@ export default function UserProfilePage() {
     return (
         <div className="max-w-6xl mx-auto space-y-8 pb-12 animate-in fade-in duration-300 pt-4 px-4 sm:px-6">
             <button
-                onClick={() => router.push("/manage/admin?tab=users")}
+                onClick={() => { startRouteLoading(); router.push("/manage/admin?tab=users"); }}
                 className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
             >
                 <ArrowLeft className="w-3.5 h-3.5" /> {t("admin.user.backToUsers")}

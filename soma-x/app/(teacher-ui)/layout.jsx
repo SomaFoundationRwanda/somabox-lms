@@ -9,6 +9,8 @@ import BrightnessSlider from "@/components/ui/BrightnessSlider";
 import Header from "@/components/global/Header";
 import { useLanguage } from "@/context/LanguageContext";
 import { BookOpen, CalendarDays, Compass, LayoutDashboard, LogOut, PanelLeftClose, PanelLeftOpen, Settings } from "lucide-react"
+import Loader from "@/components/ui/Loader";
+import { startRouteLoading } from "@/components/global/RouteLoader";
 
 const ACCENT_LIGHT = "#203A3A"
 const ACCENT_DARK = "#0D9488"
@@ -38,6 +40,7 @@ export default function TeacherUILayout({ children }) {
   // Teacher pages need a teacher or admin session (the API enforces this too).
   useEffect(() => {
     if (authLoading) return
+    if (!allowed || user?.mustChangePassword) startRouteLoading()
     if (!authenticated) router.replace("/")
     else if (user?.mustChangePassword) router.replace("/account")
     else if (!allowed) router.replace("/manage/auth")
@@ -147,8 +150,8 @@ export default function TeacherUILayout({ children }) {
 
   if (authLoading || !allowed) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#EFEFEF]">
-        <div className="w-8 h-8 rounded-full border-[3px] border-slate-200 border-t-[#203A3A] animate-spin" />
+      <div className="min-h-screen w-full bg-[#EFEFEF] dark:bg-slate-950">
+        <Loader variant="page" className="min-h-screen" />
       </div>
     )
   }

@@ -6,6 +6,7 @@ import DataContext from "@/context/DataContext";
 import { CourseProvider, useCourse } from "@/context/CourseContext";
 import CourseSidebar, { CourseMenuButton } from "@/components/course/CourseSidebar";
 import { useCourseOpened } from "@/lib/usage";
+import Loader from "@/components/ui/Loader";
 
 function CourseShell({ children }) {
   const { loading, error, course, courseId } = useCourse();
@@ -19,9 +20,7 @@ function CourseShell({ children }) {
 
   if (loading && !course) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="w-8 h-8 rounded-full border-[3px] border-slate-200 border-t-[#203A3A] animate-spin" />
-      </div>
+      <Loader variant="page" className="min-h-[60vh]" />
     );
   }
 

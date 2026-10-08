@@ -10,6 +10,7 @@ import Image from "next/image";
 import { useToast } from "@/context/ToastContext";
 import { renewMediaSession, safeNext, setSessionToken, takeNext } from "@/lib/session";
 import { fill } from "@/lib/fill";
+import { startRouteLoading } from "@/components/global/RouteLoader";
 
 export default function SignupPage() {
   const { t } = useLanguage();
@@ -98,6 +99,7 @@ export default function SignupPage() {
       // New accounts always meet the mandatory profile step first: it opens on every
       // signed-in page (and on /frame) until gender, location and grade are filled in, and
       // then they're where they wanted to be.
+      startRouteLoading();
       setTimeout(() => {
         window.location.href = safeNext(next) || '/manage/scholar-dashboard';
       }, 1000);

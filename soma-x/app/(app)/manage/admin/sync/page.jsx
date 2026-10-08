@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/context/LanguageContext";
 import { fill } from "@/lib/fill";
 import { AlertCircle, CheckCircle2, ChevronDown, ChevronRight, File, FolderClosed, FolderOpen, Loader2, X } from "lucide-react";
+import Loader from "@/components/ui/Loader";
 
 /* ── Inline feedback banner ── */
 const Banner = ({ type, message, onDismiss }) => {
@@ -316,11 +317,7 @@ const ManageSync = () => {
                 <Section title={t("admin.sync.downloadTitle")} description={t("admin.sync.downloadHelp")}>
                     {/* Tree */}
                     {fetching ? (
-                        <div className="flex flex-col gap-2 py-4">
-                            {[1,2,3].map(i => (
-                                <div key={i} className="h-9 bg-slate-100 dark:bg-slate-800 rounded-[5px] animate-pulse" />
-                            ))}
-                        </div>
+                        <Loader variant="page" size={56} className="min-h-[30vh]" />
                     ) : cloudUnavailable ? (
                         <EmptyState
                             icon={<AlertCircle className="w-8 h-8 text-red-300" />}

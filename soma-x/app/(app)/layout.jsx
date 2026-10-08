@@ -11,6 +11,8 @@ import { loginUrlWithNext } from "@/lib/session";
 import { startSubmissionQueue } from "@/lib/submissionQueue";
 import { useContext, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import Loader from "@/components/ui/Loader";
+import { startRouteLoading } from "@/components/global/RouteLoader";
 
 // Routes in this group that need an account. Everything else here is for exploring as a
 // guest: /home, /library, /discover-courses and the content browser (/[...slug]).
@@ -18,9 +20,10 @@ const PRIVATE_PREFIXES = ["/account", "/calendar", "/course", "/manage", "/libra
 const isExploreRoute = (pathname = "") =>
   !PRIVATE_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
 
+// While the session is being checked: the SOMABOX logo loader, centred on the screen.
 const Spinner = () => (
-  <div className="min-h-screen w-full flex items-center justify-center bg-[#EFEFEF]">
-    <div className="w-8 h-8 rounded-full border-[3px] border-slate-200 border-t-[#203A3A] animate-spin" />
+  <div className="min-h-screen w-full bg-[#EFEFEF] dark:bg-slate-950">
+    <Loader variant="page" className="min-h-screen" />
   </div>
 );
 
@@ -39,6 +42,7 @@ export default function AppLayout({ children }) {
   // Guests may explore; anything else sends them to sign in, and back here afterwards.
   useEffect(() => {
     if (guest && !explore) {
+      startRouteLoading();
       router.replace(loginUrlWithNext(window.location.pathname + window.location.search));
     }
   }, [guest, explore, router]);
@@ -47,7 +51,10 @@ export default function AppLayout({ children }) {
   // first. The backend enforces this too; this just avoids a screen full of errors.
   useEffect(() => {
     if (authLoading || !authenticated) return;
-    if (user?.mustChangePassword && pathname !== "/account") router.replace("/account");
+    if (user?.mustChangePassword && pathname !== "/account") {
+      startRouteLoading();
+      router.replace("/account");
+    }
   }, [authLoading, authenticated, user, pathname, router]);
 
   // Learners' assignment submissions that couldn't reach the box are retried from here. Only

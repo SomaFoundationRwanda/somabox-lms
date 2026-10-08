@@ -11,9 +11,11 @@ import { fill } from "@/lib/fill";
 import { useToast } from "@/context/ToastContext";
 import {
     ArrowUpDown, CheckSquare, ChevronLeft, ChevronRight, Download, Eye, Filter,
-    GraduationCap, KeyRound, MoreVertical, Pencil, Phone, RefreshCw, School, Search,
+    GraduationCap, KeyRound, MoreVertical, Pencil, Phone, School, Search,
     ShieldAlert, ShieldCheck, Square, Trash2, User, UserCheck, Users2, UserX, X
 } from "lucide-react";
+import { startRouteLoading } from "@/components/global/RouteLoader";
+import Loader from "@/components/ui/Loader";
 
 function getInitials(name, email) {
     if (name?.trim()) return name.trim().split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
@@ -440,7 +442,7 @@ export default function Users() {
                                     {/* View Profile */}
                                     <button
                                         type="button"
-                                        onClick={() => { setActiveMenuId(null); router.push(`/manage/admin/users/${user.id}`); }}
+                                        onClick={() => { setActiveMenuId(null); startRouteLoading(); router.push(`/manage/admin/users/${user.id}`); }}
                                         className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                                     >
                                         <Eye className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" /> {t("admin.users.viewDetails")}
@@ -661,9 +663,7 @@ export default function Users() {
                 rows={loading ? [] : users}
                 rowClassName={(u) => (u.is_active === 0 ? "opacity-60 bg-slate-50/50 dark:bg-slate-900/30" : "")}
                 empty={loading ? (
-                    <span className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500">
-                        <RefreshCw className="w-3.5 h-3.5 animate-spin" /> {t("admin.users.loading")}
-                    </span>
+                    <Loader variant="page" size={56} className="min-h-[30vh]" label={t("admin.users.loading")} />
                 ) : (
                     <div className="flex flex-col items-center gap-2 py-6">
                         <Users2 className="w-9 h-9 text-slate-500 dark:text-slate-700" />

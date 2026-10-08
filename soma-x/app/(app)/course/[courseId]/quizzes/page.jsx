@@ -8,6 +8,7 @@ import Breadcrumbs from "@/components/course/Breadcrumbs";
 import { PageHeader, List, ListRow, EmptyState } from "@/components/layout";
 import { ExplainerText } from "@/components/help/Explainer";
 import { useCourseText } from "@/components/course/useCourseText";
+import Loader from "@/components/ui/Loader";
 
 export default function QuizzesListPage() {
   const { SERVER_URL, courseId, userEmail, isTeacher } = useCourse();
@@ -50,7 +51,7 @@ export default function QuizzesListPage() {
         />
 
         {quizzes.length === 0 ? (
-          <EmptyState compact title={loading ? t("lists.loadingQuizzes") : t("lists.noQuizzes")} description={loading ? undefined : <ExplainerText k="pages.quizzes" />} />
+          loading ? <Loader variant="page" size={48} className="min-h-[25vh]" label={t("lists.loadingQuizzes")} /> : <EmptyState compact title={t("lists.noQuizzes")} description={<ExplainerText k="pages.quizzes" />} />
         ) : (
           <List label={t("nav.quizzes")}>
             {quizzes.map((q) => (

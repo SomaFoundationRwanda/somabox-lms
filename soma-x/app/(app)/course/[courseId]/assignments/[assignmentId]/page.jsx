@@ -18,6 +18,7 @@ import PrevNextNav from "@/components/course/navigation/PrevNextNav";
 import { useCourseText } from "@/components/course/useCourseText";
 import ScheduleFields, { initialScheduleValues, scheduleError, schedulePayload } from "@/components/course/modules/editors/ScheduleFields";
 import { useItemOpened } from "@/lib/usage";
+import Loader from "@/components/ui/Loader";
 
 const itemDaysOf = (item) => ({ release_day: item.release_day, due_day: item.due_day, close_day: item.close_day });
 
@@ -242,7 +243,7 @@ export default function AssignmentDetailPage() {
     }
   };
 
-  if (loading) return <div className="p-6"><p className="text-sm text-slate-500">{t("assignment.loading")}</p></div>;
+  if (loading) return <Loader variant="page" label={t("assignment.loading")} />;
   if (!assignment) return <div className="p-6"><p className="text-sm text-rose-600">{t("assignment.notFound")}</p></div>;
 
   const currentModule = assignment.module || modules.find(m => m.id === assignment.module_id) || null;

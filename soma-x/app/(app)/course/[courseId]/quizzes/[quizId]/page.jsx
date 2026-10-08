@@ -10,6 +10,7 @@ import { useToast } from "@/context/ToastContext";
 import PrevNextNav from "@/components/course/navigation/PrevNextNav";
 import { useCourseText } from "@/components/course/useCourseText";
 import { useItemOpened } from "@/lib/usage";
+import Loader from "@/components/ui/Loader";
 
 function getOptionText(opt) {
   if (opt === null || opt === undefined) return "";
@@ -118,7 +119,7 @@ export default function QuizDetailPage() {
     }
   };
 
-  if (loading) return <div className="p-6"><p className="text-sm text-slate-500">{t("quiz.loading")}</p></div>;
+  if (loading) return <Loader variant="page" label={t("quiz.loading")} />;
   if (!quiz) return <div className="p-6"><p className="text-sm text-rose-600">{t("quiz.notFound")}</p></div>;
 
   const currentModule = quiz.module || modules.find(m => m.id === quiz.module_id) || null;

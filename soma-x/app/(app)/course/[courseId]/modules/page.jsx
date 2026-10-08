@@ -18,6 +18,7 @@ import ModuleCard from "@/components/course/modules/ModuleCard";
 import DeleteItemDialog from "@/components/course/modules/DeleteItemDialog";
 import useAiStatus from "@/lib/useAiStatus";
 import { AiStatusNote } from "@/components/ai/AiBits";
+import Loader from "@/components/ui/Loader";
 
 // Teacher-only code is loaded on demand so learners on low-end devices don't download it:
 // the editor modals (TipTap etc.) when one is opened, and drag-and-drop for teachers.
@@ -425,7 +426,7 @@ export default function ModulesPage() {
         )}
 
         {/* Loading / Error */}
-        {loading && <p className="text-sm text-slate-500">{t("modules.loading")}</p>}
+        {loading && <Loader variant="page" size={56} className="min-h-[30vh]" label={t("modules.loading")} />}
         {error && <p className="text-sm text-rose-600">{error}</p>}
         {!loading && !error && (!modules || modules.length === 0) && (
           <EmptyState

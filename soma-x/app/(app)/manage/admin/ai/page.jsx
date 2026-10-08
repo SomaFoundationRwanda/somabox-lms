@@ -10,6 +10,7 @@ import Unauthorized from "@/components/sections/Unauthorized";
 import { PageHeader, Section, List, ListRow, DataTable, EmptyState } from "@/components/layout";
 import { aiFetch, DRAFT_TYPE_LABELS } from "@/lib/ai";
 import { fill } from "@/lib/fill";
+import Loader from "@/components/ui/Loader";
 
 // Feature and draft-type names are translated under admin.ai.features / admin.ai.draftTypes.
 const FEATURE_KEYS = ["fill_week", "story", "quiz", "outline", "outcome_rewrite", "rubric", "grading", "ask"];
@@ -133,6 +134,11 @@ export default function AdminAiSettingsPage() {
 
         {error ? <p role="alert" className="text-sm text-rose-600">{error}</p> : null}
 
+        {/* First load: the SOMABOX loader until the school's AI settings and use arrive. */}
+        {loading && settings == null ? (
+          <Loader variant="page" />
+        ) : (
+        <>
         <Section title={t("admin.ai.schoolSwitch")}>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
@@ -282,6 +288,8 @@ export default function AdminAiSettingsPage() {
             ]}
           />
         </Section>
+        </>
+        )}
       </div>
     </div>
   );

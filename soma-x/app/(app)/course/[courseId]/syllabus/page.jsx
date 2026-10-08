@@ -7,6 +7,7 @@ import { useCourseText } from "@/components/course/useCourseText";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
 import { PageHeader, Section, List, DataTable } from "@/components/layout";
 import { formatRange } from "@/lib/dates";
+import Loader from "@/components/ui/Loader";
 
 export default function SyllabusPage() {
   const { SERVER_URL, courseId, userEmail, course } = useCourse();
@@ -91,7 +92,7 @@ export default function SyllabusPage() {
         {/* 3. Weekly module schedule */}
         <Section title={<span className="flex items-center gap-2"><Calendar className="w-4 h-4 text-[#0D9488]" /> {t("syllabus.schedule")}</span>}>
           {modules.length === 0 ? (
-            <p className="text-xs text-slate-500">{loading ? t("syllabus.loadingSchedule") : t("syllabus.noSchedule")}</p>
+            loading ? <Loader variant="page" size={48} className="min-h-[25vh]" label={t("syllabus.loadingSchedule")} /> : <p className="text-xs text-slate-500">{t("syllabus.noSchedule")}</p>
           ) : (
             <div className="space-y-6">
               {modules.map((m) => (

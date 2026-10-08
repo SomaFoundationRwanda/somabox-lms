@@ -8,6 +8,7 @@ import Breadcrumbs from "@/components/course/Breadcrumbs";
 import { PageHeader, List, ListRow, EmptyState } from "@/components/layout";
 import { ExplainerText } from "@/components/help/Explainer";
 import { useCourseText } from "@/components/course/useCourseText";
+import Loader from "@/components/ui/Loader";
 
 const KIND_ICONS = { assignment: ClipboardList, quiz: HelpCircle, discussion: MessageSquare };
 
@@ -52,7 +53,7 @@ export default function AssignmentsPage() {
         />
 
         {items.length === 0 ? (
-          <EmptyState compact title={loading ? t("lists.loadingAssignments") : t("lists.noAssignments")} description={loading ? undefined : <ExplainerText k="pages.assignments" />} />
+          loading ? <Loader variant="page" size={48} className="min-h-[25vh]" label={t("lists.loadingAssignments")} /> : <EmptyState compact title={t("lists.noAssignments")} description={<ExplainerText k="pages.assignments" />} />
         ) : (
           <List label={t("nav.assignments")}>
             {items.map((item) => {

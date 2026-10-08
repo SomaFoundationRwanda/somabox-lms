@@ -7,6 +7,7 @@ import { Section, List, ListRow } from "@/components/layout";
 import { useLanguage } from "@/context/LanguageContext";
 import { fill } from "@/lib/fill";
 import DeviceCard from "@/components/sync/DeviceCard";
+import Loader from "@/components/ui/Loader";
 
 // Cloud sync (admins): changes made on this box wait in a queue and are sent to the cloud on a
 // schedule. This shows where the queue stands, lets an admin send now, and sets what may leave
@@ -291,7 +292,7 @@ export default function CloudSyncSection({ SERVER_URL }) {
         }
       >
         {error ? <p role="alert" className="text-sm text-rose-600">{error}</p> : null}
-        {!status && !error ? <div className="h-14 rounded-lg bg-slate-100 dark:bg-slate-800 animate-pulse" aria-label={t("admin.cloud.loadingStatus")} /> : null}
+        {!status && !error ? <Loader variant="page" size={40} className="min-h-[6rem]" label={t("admin.cloud.loadingStatus")} /> : null}
         {status ? (
           <div className="space-y-3">
             <StatusLine status={status} />

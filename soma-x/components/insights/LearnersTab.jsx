@@ -9,6 +9,7 @@ import { DataTable } from "@/components/layout";
 import { DeltaText, fmtGain, fmtPct, fmtRate, relativeDay } from "./bits";
 import { useProgressText } from "@/components/progress/text";
 import { useAttendanceText } from "@/components/attendance/text";
+import { startRouteLoading } from "@/components/global/RouteLoader";
 
 // Name for sorting and search; the "Learner" fallback only matters for rows with neither.
 const nameOf = (l) => l.name || l.email || "Learner";
@@ -101,7 +102,7 @@ export default function LearnersTab({ data, flaggedOnly, setFlaggedOnly }) {
         rowKey={(l) => l.id}
         sort={sort}
         onSort={onSort}
-        onRowClick={(l) => router.push(detailHref(l))}
+        onRowClick={(l) => { startRouteLoading(); router.push(detailHref(l)); }}
         empty={learners.length === 0 ? tp("common.noLearnersEnrolled") : flaggedOnly ? tp("insights.learners.noneFlagged") : tp("insights.learners.noMatch")}
         columns={[
           {

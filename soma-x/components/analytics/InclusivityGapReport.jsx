@@ -5,6 +5,7 @@ import { CloudUpload, Globe, ShieldCheck } from "lucide-react";
 import { getInclusivityGap } from "@/lib/analytics-service";
 import { useLanguage } from "@/context/LanguageContext";
 import { fill } from "@/lib/fill";
+import Loader from "@/components/ui/Loader";
 
 // Average outcome result by group (rural/urban, gender, accessibility needs). Aggregates only:
 // any group with fewer than `minGroupSize` learners with results comes back null and is listed
@@ -28,7 +29,7 @@ export default function InclusivityGapReport({ serverUrl }) {
     }, [serverUrl]);
 
     if (loading) {
-        return <div className="h-40 rounded-xl bg-slate-100 dark:bg-slate-800 animate-pulse" aria-label={t("admin.gap.loading")} />;
+        return <Loader variant="page" size={48} className="min-h-[10rem]" label={t("admin.gap.loading")} />;
     }
 
     if (!report) {

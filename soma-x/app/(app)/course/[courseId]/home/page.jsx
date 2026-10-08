@@ -12,6 +12,7 @@ import MasterySummary from "@/components/course/outcomes/MasterySummary";
 import SetupChecklist, { setupNeedsAttention } from "@/components/teacher/SetupChecklist";
 import { useCourseText } from "@/components/course/useCourseText";
 import { formatRange } from "@/lib/dates";
+import Loader from "@/components/ui/Loader";
 
 export default function CourseHomePage() {
   const { courseId, course, SERVER_URL, userEmail, isTeacher, refresh } = useCourse();
@@ -70,6 +71,9 @@ export default function CourseHomePage() {
     ? (beatInfo.startDate ? t("home.noModuleThisWeek") : t("home.noDatesYet"))
     : beatInfo.currentWeekNumber === 0 ? t("weeks.baseline") : tf("weeks.week", { n: beatInfo.currentWeekNumber });
   const beatName = ["prepare", "release", "collect", "grade", "review"].includes(currentBeat) ? t(`home.beats.${currentBeat}`) : currentBeat;
+
+  // First load: the SOMABOX loader until the course's week, attention list and outcomes arrive.
+  if (loading && SERVER_URL && !homeLoop && !setupStatus && !outcomePulse) return <Loader variant="page" />;
 
   return (
     <div>

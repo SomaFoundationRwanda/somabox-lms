@@ -4,6 +4,7 @@ import Link from "next/link"
 import DataContext from "@/context/DataContext"
 import { useLanguage } from "@/context/LanguageContext"
 import { folderTitle, serverAsset } from "@/components/explore/FolderCard"
+import Loader from "@/components/ui/Loader";
 
 const CATEGORY_IMAGES = {
   math: "/images/math.webp",
@@ -154,7 +155,7 @@ export default function TeacherExplorePage() {
 
       {activeTab === "categories" && (
         mainCategories == null ? (
-          <p className="text-sm text-slate-600">{t("explore.teacher.loading")}</p>
+          <Loader variant="page" label={t("explore.teacher.loading")} />
         ) : filteredEntries.length === 0 ? (
           <p className="text-sm text-slate-600">{query ? t("explore.teacher.noMatches") : t("explore.emptyRoot")}</p>
         ) : (
@@ -189,7 +190,7 @@ export default function TeacherExplorePage() {
 
       {activeTab === "books" && (
         loading ? (
-          <p className="text-sm text-slate-600">{t("explore.teacher.loading")}</p>
+          <Loader variant="page" label={t("explore.teacher.loading")} />
         ) : booksError ? (
           <p className="text-sm text-red-700" role="alert">{booksError}</p>
         ) : filteredBooks.length === 0 ? (

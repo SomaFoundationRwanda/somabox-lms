@@ -6,6 +6,7 @@ import { MediaAccessNotice } from '@/components/guest/MediaAccess';
 import { getSessionToken } from '@/lib/session';
 import { useLanguage } from '@/context/LanguageContext';
 import SummaryPanel, { SummaryToggleButton, useContentSummary } from '@/components/explore/SummaryPanel';
+import Loader from "@/components/ui/Loader";
 
 // `summaryPath`: the book's path_key, to offer its AI summary beside the reader.
 const EpubReader = ({ url, title, onClose, summaryPath = null }) => {
@@ -115,9 +116,10 @@ const EpubReader = ({ url, title, onClose, summaryPath = null }) => {
                     {access ? (
                         <MediaAccessNotice state={access} />
                     ) : loading ? (
+                        // The SOMABOX loader while the book opens (brand green; light teal in dark mode).
                         <div className="flex flex-col items-center gap-4">
-                            <div className="w-12 h-12 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin"></div>
-                            <p className="text-gray-500 font-medium">{t("learner.reader.opening")}</p>
+                            <Loader size={64} label={t("learner.reader.opening")} />
+                            <p className="text-gray-500 font-medium" aria-hidden="true">{t("learner.reader.opening")}</p>
                         </div>
                     ) : error ? (
                         <div className="text-center p-8">

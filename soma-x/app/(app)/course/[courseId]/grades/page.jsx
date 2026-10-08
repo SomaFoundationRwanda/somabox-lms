@@ -8,6 +8,7 @@ import Breadcrumbs from "@/components/course/Breadcrumbs";
 import { PageHeader, Section, DataTable, EmptyState } from "@/components/layout";
 import { formatDate } from "@/lib/dates";
 import { useProgressText, itemTypeLabel } from "@/components/progress/text";
+import Loader from "@/components/ui/Loader";
 
 const fmtNum = (n) => (n == null ? "" : Number.isInteger(Number(n)) ? String(Number(n)) : Number(n).toFixed(2).replace(/\.?0+$/, ""));
 
@@ -100,9 +101,7 @@ export default function GradesPage() {
         />
 
         {loading ? (
-          <div className="space-y-2">
-            {[1, 2, 3].map((i) => <div key={i} className="h-10 rounded-xl bg-slate-100 dark:bg-slate-800 animate-pulse" />)}
-          </div>
+          <Loader variant="page" size={56} className="min-h-[30vh]" />
         ) : error ? (
           <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-4 flex items-center justify-between gap-3">
             <p className="text-sm text-rose-700">{error}</p>

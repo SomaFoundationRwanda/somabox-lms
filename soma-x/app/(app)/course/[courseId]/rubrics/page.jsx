@@ -7,6 +7,7 @@ import { useCourse } from "@/context/CourseContext";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
 import { PageHeader, Section, DataTable, EmptyState } from "@/components/layout";
 import { useCourseText } from "@/components/course/useCourseText";
+import Loader from "@/components/ui/Loader";
 
 export default function RubricsPage() {
   const { SERVER_URL, courseId, userEmail } = useCourse();
@@ -54,11 +55,11 @@ export default function RubricsPage() {
         {/* One Section per instantiated rubric; criteria as a table */}
         {rubrics.length === 0 ? (
           <Section title={<span className="flex items-center gap-2"><ListChecks className="w-4 h-4 text-[#0D9488]" /> {t("rubrics.inAssignments")}</span>}>
-            <EmptyState
-              compact
-              title={loading ? t("rubrics.loading") : t("rubrics.empty")}
-              description={loading ? undefined : t("rubrics.emptyHelp")}
-            />
+            {loading ? (
+              <Loader variant="page" size={48} className="min-h-[25vh]" label={t("rubrics.loading")} />
+            ) : (
+              <EmptyState compact title={t("rubrics.empty")} description={t("rubrics.emptyHelp")} />
+            )}
           </Section>
         ) : (
           rubrics.map((r, i) => (

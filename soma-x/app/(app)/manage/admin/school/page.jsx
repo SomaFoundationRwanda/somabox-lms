@@ -2,7 +2,7 @@
 
 import { useContext, useEffect, useState } from "react";
 import Link from "next/link";
-import { AlertCircle, ArrowLeft, Check, Info, Loader2 } from "lucide-react";
+import { AlertCircle, ArrowLeft, Check, Info } from "lucide-react";
 import { PageHeader, Section } from "@/components/layout";
 import DataContext from "@/context/DataContext";
 import { useLanguage } from "@/context/LanguageContext";
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { RWANDA_LOCATIONS, OTHER_PROVINCE } from "@/lib/rwandaLocations";
 import { fill } from "@/lib/fill";
 import { FOCUS_RING } from "@/lib/a11y";
+import Loader from "@/components/ui/Loader";
 
 // One box serves one school. The school's name, code, place and rural/urban setting live here
 // (GET/PUT /school), so learners aren't asked for them when they set up their profile.
@@ -138,9 +139,7 @@ export default function SchoolSettingsPage() {
 
             <Section className="mt-6">
                 {loading ? (
-                    <p className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300" role="status">
-                        <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> {t("school.loading")}
-                    </p>
+                    <Loader variant="page" size={56} className="min-h-[30vh]" label={t("school.loading")} />
                 ) : loadError ? (
                     <p role="alert" className="flex items-start gap-2 text-sm font-semibold text-rose-700 dark:text-rose-300">
                         <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" aria-hidden="true" /> {loadError}

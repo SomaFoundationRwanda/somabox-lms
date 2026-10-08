@@ -10,6 +10,7 @@ import { useToast } from "@/context/ToastContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { downloadFile } from "@/lib/download";
 import { fill } from "@/lib/fill";
+import Loader from "@/components/ui/Loader";
 
 // "Download my data": everything the box holds about the signed-in person, as a JSON file.
 function DownloadMyData({ SERVER_URL }) {
@@ -277,7 +278,10 @@ export default function AccountPage() {
 
                         {/* Avatar with glow */}
                         {loadingProfile ? (
-                            <div className="w-20 h-20 rounded-3xl bg-white/10 animate-pulse shrink-0" />
+                            // The SOMABOX loader (white on the dark header) while the profile loads.
+                            <div className="w-20 h-20 md:w-24 md:h-24 shrink-0 grid place-items-center">
+                                <Loader size={64} color="#ffffff" />
+                            </div>
                         ) : (
                             <div className="relative shrink-0">
                                 {/* Glow halo */}
@@ -297,10 +301,7 @@ export default function AccountPage() {
                         {/* Name block */}
                         <div className="flex-1 min-w-0">
                             {loadingProfile ? (
-                                <div className="space-y-2 animate-pulse">
-                                    <div className="h-8 w-48 bg-white/10 rounded-xl" />
-                                    <div className="h-4 w-36 bg-white/10 rounded-xl" />
-                                </div>
+                                null
                             ) : (
                                 <>
                                     <p className="text-[26px] md:text-[30px] font-black text-white tracking-tight leading-tight mb-1">
@@ -430,14 +431,7 @@ export default function AccountPage() {
                             </div>
 
                             {loadingProfile ? (
-                                <div className="p-5 space-y-4 animate-pulse">
-                                    {[1, 2, 3, 4, 5].map(i => (
-                                        <div key={i} className="flex justify-between">
-                                            <div className="h-3 bg-slate-100 rounded w-20" />
-                                            <div className="h-3 bg-slate-100 rounded w-32" />
-                                        </div>
-                                    ))}
-                                </div>
+                                <Loader variant="page" size={48} className="min-h-[12rem]" />
                             ) : editDemographics ? (
                                 <form onSubmit={handleDemographicsSave} className="p-5 space-y-4">
                                     {/* Gender */}

@@ -16,6 +16,8 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "./dropdown-menu";
+import { startRouteLoading } from "@/components/global/RouteLoader";
+import Loader from "@/components/ui/Loader";
 
 const ProfileCard = () => {
     const { 
@@ -42,9 +44,7 @@ const ProfileCard = () => {
     if (loading) {
         return (
             <section className="relative cursor-pointer bg-white border border-slate-100 px-2.5 shadow-sm flex items-center justify-around rounded-full w-10 sm:w-[11rem] h-10">
-                <div className="w-6 h-6 px-3 flex items-center justify-center rounded-[100%] bg-amber-400">
-                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
-                </div>
+                <Loader size={24} label={t("shell.common.loading")} />
                 <div className="hidden sm:block">
                     <p className="ml-3 text-xs font-bold text-slate-600">{t("shell.common.loading")}</p>
                 </div>
@@ -100,7 +100,7 @@ const ProfileCard = () => {
                     </>
                 )}
                 <DropdownMenuItem 
-                    onClick={() => router.push('/settings')}
+                    onClick={() => { startRouteLoading(); router.push('/settings'); }}
                     className="cursor-pointer gap-2.5 rounded-[5px] px-2.5 py-2 transition-colors"
                     onMouseEnter={e => e.currentTarget.style.backgroundColor = itemHoverBg}
                     onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}
@@ -111,7 +111,7 @@ const ProfileCard = () => {
                 </DropdownMenuItem>
                 
                 <DropdownMenuItem 
-                    onClick={() => router.push('/account')}
+                    onClick={() => { startRouteLoading(); router.push('/account'); }}
                     className="cursor-pointer gap-2.5 rounded-[5px] px-2.5 py-2 transition-colors"
                     onMouseEnter={e => e.currentTarget.style.backgroundColor = itemHoverBg}
                     onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}

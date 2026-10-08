@@ -15,6 +15,7 @@ import Link from "next/link";
 import { useLanguage } from "@/context/LanguageContext";
 import { fill } from "@/lib/fill";
 import { libraryCoverUrl, libraryFileUrl, libraryShelf, libraryViewer } from "@/components/ui/library/libraryEntry";
+import Loader from "@/components/ui/Loader";
 
 // What the library can hold: books, videos and audio.
 const LIBRARY_ACCEPT = ".pdf,.epub,.mp4,.webm,.mkv,.m4v,.mov,.mp3,.wav,.ogg,.m4a";
@@ -525,7 +526,7 @@ const ManageLibrary = () => {
                             rows={fetching ? [] : books}
                             rowClassName={(book) => (isDownloaded(book) ? "bg-green-50/60 dark:bg-green-950/20" : "")}
                             empty={fetching ? (
-                                <span className="inline-flex items-center gap-2 text-[12px] font-semibold"><Loader2 className="w-3.5 h-3.5 animate-spin" /> {t("admin.library.loadingBooks")}</span>
+                                <Loader variant="page" size={56} className="min-h-[30vh]" label={t("admin.library.loadingBooks")} />
                             ) : t("admin.library.noBooks")}
                             className="max-h-[500px] overflow-y-auto"
                         />

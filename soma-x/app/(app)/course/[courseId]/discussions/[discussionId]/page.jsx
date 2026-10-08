@@ -7,6 +7,7 @@ import Breadcrumbs from "@/components/course/Breadcrumbs";
 import { PageHeader, Section, List } from "@/components/layout";
 import { useItemOpened } from "@/lib/usage";
 import { useCourseText } from "@/components/course/useCourseText";
+import Loader from "@/components/ui/Loader";
 
 export default function DiscussionThreadPage() {
   const { courseId, discussionId } = useParams();
@@ -63,7 +64,7 @@ export default function DiscussionThreadPage() {
     load();
   };
 
-  if (loading) return <div className="p-6"><p className="text-sm text-slate-500">{t("common.loading")}</p></div>;
+  if (loading) return <Loader variant="page" />;
   if (!discussion) return <div className="p-6"><p className="text-sm text-rose-600">{t("discussions.notFound")}</p></div>;
 
   return (

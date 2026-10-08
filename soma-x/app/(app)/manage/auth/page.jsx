@@ -1,6 +1,7 @@
 "use client"
 import { useContext, useEffect } from "react";
 import DataContext from "@/context/DataContext";
+import Loader from "@/components/ui/Loader";
 
 export default function AuthRedirect() {
     const { authLoading, authenticated, role } = useContext(DataContext);
@@ -16,5 +17,6 @@ export default function AuthRedirect() {
         else window.location.replace("/manage/scholar-dashboard");
     }, [authLoading, authenticated, role]);
 
-    return null;
+    // Sending the user to their area: the SOMABOX loader while that page loads.
+    return <Loader variant="page" className="min-h-[60vh]" />;
 }

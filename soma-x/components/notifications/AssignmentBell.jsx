@@ -7,6 +7,7 @@ import DataContext from "@/context/DataContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { fill } from "@/lib/fill";
 import { formatDate } from "@/components/helpers/localeDate";
+import Loader from "@/components/ui/Loader";
 
 export default function AssignmentBell({ className = "" }) {
     const { authenticated, isDark, SERVER_URL, user } = useContext(DataContext);
@@ -86,9 +87,7 @@ export default function AssignmentBell({ className = "" }) {
 
                         <div className="flex-1 overflow-y-auto divide-y" style={{ borderColor: borderCol }}>
                             {loading && outstanding.length === 0 ? (
-                                <div className="p-4 space-y-2">
-                                    {[1, 2, 3].map((i) => <div key={i} className="h-9 rounded-lg bg-slate-100 dark:bg-slate-800 animate-pulse" />)}
-                                </div>
+                                <Loader variant="page" size={48} className="min-h-[12rem]" />
                             ) : outstanding.length === 0 ? (
                                 <div className="p-8 text-center space-y-2">
                                     <div className="w-10 h-10 mx-auto rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600">

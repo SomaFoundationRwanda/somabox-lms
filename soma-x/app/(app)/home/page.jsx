@@ -9,6 +9,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import Typography from "@/components/ui/Typography";
 import { Button } from "@/components/ui/button";
 import { useGuestGate } from "@/components/guest/GuestGate";
+import Loader from "@/components/ui/Loader";
 
 export default function SomaboxHomepage() {
     const router = useRouter();
@@ -109,7 +110,9 @@ export default function SomaboxHomepage() {
                 </aside>
 
                 <main className="flex-1 p-2 md:p-6 rounded-xl bg-accent-light-3/30 backdrop-blur-md shadow-inner min-h-[60vh]">
-                    {noCategories ? (
+                    {loading ? (
+                        <Loader variant="page" className="min-h-[50vh]" />
+                    ) : noCategories ? (
                         <EmptyState text={t("explore.noCategories")} />
                     ) : activeCategory && (
                         itemsToDisplay.length === 0 ? (

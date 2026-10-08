@@ -11,6 +11,8 @@ import { PageHeader, Section, List, EmptyState } from "@/components/layout";
 import { formatInstantDate } from "@/lib/dates";
 import { useLanguage } from "@/context/LanguageContext";
 import { fill } from "@/lib/fill";
+import { startRouteLoading } from "@/components/global/RouteLoader";
+import Loader from "@/components/ui/Loader";
 
 // Course library (teachers and admins): bundles exported from courses on this box or uploaded
 // as files. Creating a course from a bundle always makes a NEW draft course.
@@ -56,7 +58,7 @@ function BundlePreview({ SERVER_URL, entryId }) {
   }, [SERVER_URL, entryId, t]);
 
   if (error) return <p role="alert" className="text-xs text-rose-600">{error}</p>;
-  if (!data) return <p className="text-xs text-slate-500 flex items-center gap-1.5"><Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" /> {t("shell.courseLibrary.loadingPreview")}</p>;
+  if (!data) return <Loader variant="page" size={40} className="min-h-[8rem]" label={t("shell.courseLibrary.loadingPreview")} />;
 
   const modules = Array.isArray(data.modules) ? data.modules : [];
   const outcomes = Array.isArray(data.outcomes) ? data.outcomes : [];
@@ -358,6 +360,7 @@ export default function CourseLibraryPage() {
     const existingCopies = Array.isArray(payload.existingCopies) ? payload.existingCopies : [];
     showToast(t("shell.courseLibrary.createdToast"), "success");
     if (!warnings.length && !existingCopies.length) {
+      startRouteLoading();
       router.push(`/course/${payload.courseId}/home`);
       return;
     }
@@ -428,9 +431,7 @@ export default function CourseLibraryPage() {
         <Section divided title={t("shell.courseLibrary.bundlesTitle")}>
           {error ? <p role="alert" className="text-sm text-rose-600 mb-2">{error}</p> : null}
           {entries === null ? (
-            <div className="space-y-2" aria-label={t("shell.courseLibrary.loading")}>
-              {[1, 2, 3].map((i) => <div key={i} className="h-16 rounded-lg bg-slate-100 dark:bg-slate-800 animate-pulse" />)}
-            </div>
+            <Loader variant="page" size={56} className="min-h-[30vh]" label={t("shell.courseLibrary.loading")} />
           ) : groups.length === 0 ? (
             <EmptyState
               icon={<Library className="w-8 h-8" aria-hidden="true" />}

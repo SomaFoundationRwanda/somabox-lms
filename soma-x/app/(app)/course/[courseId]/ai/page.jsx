@@ -12,6 +12,7 @@ import { aiFetch, cancelAiJob, isActiveJob } from "@/lib/ai";
 import { useProgressText, jobKindLabel, weekLabel } from "@/components/progress/text";
 import { AiStatusNote, JobProgress } from "@/components/ai/AiBits";
 import DraftCard, { ApprovedNote, DecidedDraftRow } from "@/components/ai/DraftCard";
+import Loader from "@/components/ui/Loader";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const DISMISS_KEY = "ai-dismissed-jobs";
@@ -164,7 +165,7 @@ export default function AiDraftsPage() {
           description={tp("ai.page.inProgressHint")}
         >
           {visibleJobs.length === 0 ? (
-            <EmptyState compact title={loading ? tp("common.loadingDots") : tp("ai.page.nothingRunning")} description={loading ? undefined : tp("ai.page.nothingRunningHint")} />
+            loading ? <Loader variant="page" size={48} className="min-h-[25vh]" label={tp("common.loadingDots")} /> : <EmptyState compact title={tp("ai.page.nothingRunning")} description={tp("ai.page.nothingRunningHint")} />
           ) : (
             <List label={tp("ai.page.jobsList")}>
               {visibleJobs.map((j) => (
@@ -188,7 +189,7 @@ export default function AiDraftsPage() {
           description={tp("ai.page.waitingHint")}
         >
           {pending.length === 0 ? (
-            <EmptyState compact icon={<Inbox className="w-6 h-6" />} title={loading ? tp("common.loadingDots") : tp("ai.page.noneWaiting")} />
+            loading ? <Loader variant="page" size={48} className="min-h-[25vh]" label={tp("common.loadingDots")} /> : <EmptyState compact icon={<Inbox className="w-6 h-6" />} title={tp("ai.page.noneWaiting")} />
           ) : (
             <div className="space-y-4">
               {pending.map((d) => (

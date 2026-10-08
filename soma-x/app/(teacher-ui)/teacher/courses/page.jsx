@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/ui/empty-state"
 import CreateCourseModal from "@/components/teacher/CreateCourseModal"
 import { useLanguage } from "@/context/LanguageContext"
 import { fill } from "@/lib/fill"
+import Loader from "@/components/ui/Loader";
 
 export default function TeacherCoursesPage() {
   const { SERVER_URL, user } = useContext(DataContext)
@@ -47,7 +48,7 @@ export default function TeacherCoursesPage() {
       </div>
 
       {loading ? (
-        <p className="text-sm text-slate-600">{t("teacher.common.loading")}</p>
+        <Loader variant="page" label={t("teacher.common.loading")} />
       ) : courses.length === 0 ? (
         <div className="w-full flex justify-center py-8"><EmptyState message={t("teacher.courses.empty")} /></div>
       ) : (

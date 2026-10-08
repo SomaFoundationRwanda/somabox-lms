@@ -6,6 +6,7 @@ import { useGuestGate } from "@/components/guest/GuestGate";
 import { useLanguage } from "@/context/LanguageContext";
 import { fill } from "@/lib/fill";
 import { libraryCoverUrl, libraryFileUrl, libraryShelf, libraryViewer } from "./libraryEntry";
+import Loader from "@/components/ui/Loader";
 
 // react-reader (epub.js) loads only when a book is opened.
 const EpubReader = dynamic(() => import("./EpubReader"), { ssr: false });
@@ -69,19 +70,7 @@ const BooksPage = ({ books = [], loading = false, shelf = null, searchQuery }) =
     };
 
     if (loading) {
-        return (
-            <div className="p-5">
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
-                    {Array.from({ length: 10 }).map((_, i) => (
-                        <div key={i} className="animate-pulse">
-                            <div className="aspect-[2/3] rounded-xl bg-slate-100 mb-2" />
-                            <div className="h-2.5 bg-slate-100 rounded w-3/4 mb-1.5" />
-                            <div className="h-2 bg-slate-100 rounded w-1/2" />
-                        </div>
-                    ))}
-                </div>
-            </div>
-        );
+        return <Loader variant="page" className="min-h-[50vh]" />;
     }
 
     if (filteredBooks.length === 0) {

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, CheckCircle2 } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
 import { useCourseText } from "@/components/course/useCourseText";
+import { startRouteLoading } from "@/components/global/RouteLoader";
 
 export default function PrevNextNav({ courseId, itemType, contentId, moduleItemId }) {
   const router = useRouter();
@@ -56,6 +57,7 @@ export default function PrevNextNav({ courseId, itemType, contentId, moduleItemI
       }).catch(console.error);
     }
 
+    startRouteLoading();
     router.push(target.url);
   };
 

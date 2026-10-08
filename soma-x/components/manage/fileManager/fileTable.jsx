@@ -1,6 +1,7 @@
 import { Folder } from "lucide-react";
 import FileRow from './fileRow';
 import { useLanguage } from "@/context/LanguageContext";
+import Loader from "@/components/ui/Loader";
 
 const FileTable = ({ files, loading, emptyText, canDelete, onOpenFolder, onToggleVisibility, onView, onRename, onDelete, onSummary }) => {
     const { t } = useLanguage();
@@ -16,13 +17,11 @@ const FileTable = ({ files, loading, emptyText, canDelete, onOpenFolder, onToggl
                 </thead>
                 <tbody>
                     {loading ? (
-                        [...Array(4)].map((_, i) => (
-                            <tr key={i}>
-                                <td className="px-5 py-3" colSpan={3}>
-                                    <div className="h-9 bg-slate-100 rounded-[5px] animate-pulse" />
-                                </td>
-                            </tr>
-                        ))
+                        <tr>
+                            <td className="px-5 py-3" colSpan={3}>
+                                <Loader variant="page" size={56} className="min-h-[30vh]" />
+                            </td>
+                        </tr>
                     ) : files.length === 0 ? (
                         <tr>
                             <td className="px-5 py-12 text-center" colSpan={3}>

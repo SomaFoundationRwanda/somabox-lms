@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { addDays, compareDates, diffDays, todayIn, weekday } from "@somabox/timeline";
 import { useCourseText } from "@/components/course/useCourseText";
+import Loader from "@/components/ui/Loader";
 
 // Visual language per event type. Labels shown on screen come from course.calendar.types.<type>.
 export const EVENT_TYPES = {
@@ -283,7 +284,8 @@ export default function CalendarView({ events, today, loading, onEventMove, onRa
         <div className="flex items-center gap-2 min-w-0">
           {title && <h1 className="text-lg font-bold text-slate-900 dark:text-white truncate">{title}</h1>}
           {loading && (
-            <span className="w-4 h-4 rounded-full border-2 border-slate-200 border-t-[#203A3A] animate-spin" role="status" aria-label={t("common.loading")} />
+            // A small "refreshing" mark beside the title (the calendar itself stays on screen).
+            <Loader size={20} label={t("common.loading")} />
           )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -322,7 +324,7 @@ export default function CalendarView({ events, today, loading, onEventMove, onRa
         )}
       </ul>
 
-      {view === null && <div className="h-64 rounded-xl border border-slate-200 bg-slate-50 animate-pulse" />}
+      {view === null && <Loader variant="page" size={56} className="min-h-[16rem]" />}
 
       {/* ===== Month view ===== */}
       {view === "month" && (
@@ -426,6 +428,8 @@ export default function CalendarView({ events, today, loading, onEventMove, onRa
               </button>
             </div>
           )}
+
+          {agendaGroups.length === 0 && loading && <Loader variant="page" size={56} className="min-h-[30vh]" />}
 
           {agendaGroups.length === 0 && !loading && (
             <p className="text-sm text-slate-500 py-6 text-center">{showEarlier ? t("calendar.nothingPeriod") : t("calendar.nothingAhead")}</p>

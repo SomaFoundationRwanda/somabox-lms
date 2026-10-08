@@ -5,6 +5,7 @@ import { getGrowthCurves } from "@/lib/analytics-service";
 import { formatDate } from "@/lib/dates";
 import { useLanguage } from "@/context/LanguageContext";
 import { fill } from "@/lib/fill";
+import Loader from "@/components/ui/Loader";
 
 const W = 600;
 const H = 220;
@@ -68,7 +69,7 @@ export default function GrowthCurvesChart({ serverUrl, scholarEmail, weeks: week
             </div>
 
             {loading && !data ? (
-                <div className="h-40 rounded-xl bg-slate-100 dark:bg-slate-800 animate-pulse" aria-label={t("admin.common.loading")} />
+                <Loader variant="page" size={48} className="min-h-[10rem]" label={t("admin.common.loading")} />
             ) : error ? (
                 <p role="alert" className="text-xs text-rose-600">{error}</p>
             ) : weeks.length === 0 ? (

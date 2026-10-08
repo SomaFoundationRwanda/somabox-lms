@@ -12,6 +12,8 @@ import { Button } from '@/components/ui/button';
 import UniversalPlayerModal from '@/components/ui/UniversalPlayerModal';
 import Typography from '@/components/ui/Typography';
 import { useGuestGate } from '@/components/guest/GuestGate';
+import { startRouteLoading } from "@/components/global/RouteLoader";
+import Loader from "@/components/ui/Loader";
 
 // --- Helpers moved outside for performance and cleaner component scope ---
 
@@ -271,7 +273,10 @@ export default function DynamicContentPage() {
   const fullKey = slug.join('/');
 
   useEffect(() => {
-    if (slug.length === 0) router.push('/');
+    if (slug.length === 0) {
+      startRouteLoading();
+      router.push('/');
+    }
   }, [slug.length, router]);
 
   const levelData = summaryData ? summaryData[fullKey] : undefined;
@@ -288,7 +293,7 @@ export default function DynamicContentPage() {
     return crumbs;
   }, [slug, summaryData, t]);
 
-  if (!summaryData) return null; // still loading the catalogue
+  if (!summaryData) return <Loader variant="page" className="min-h-[60vh]" />; // still loading the catalogue
   if (!levelData) return <FolderGone />;
 
   return (
@@ -296,7 +301,7 @@ export default function DynamicContentPage() {
       key={fullKey}
       levelInfo={levelData}
       breadcrumbs={breadcrumbs}
-      onBreadcrumbClick={(path) => router.push(path)}
+      onBreadcrumbClick={(path) => { startRouteLoading(); router.push(path); }}
     />
   );
 }

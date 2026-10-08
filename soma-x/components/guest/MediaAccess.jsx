@@ -5,11 +5,12 @@
 // (iframes can't report a 401) and, when a <video>/<img> fails, works out whether the cookie
 // ran out: it renews it once and reloads the element, or asks the person to sign in again.
 import { useCallback, useContext, useEffect, useState } from "react";
-import { Loader2, LogIn, ShieldAlert } from "lucide-react";
+import { LogIn, ShieldAlert } from "lucide-react";
 import DataContext from "@/context/DataContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { checkMediaAccess, clearSession, isBackendUrl, loginUrlWithNext } from "@/lib/session";
 import { SignUpPrompt } from "@/components/guest/GuestGate";
+import Loader from "@/components/ui/Loader";
 
 /**
  * state: "checking" | "ok" | "expired" | "forbidden" | "guest". With precheck=false the file
@@ -53,10 +54,14 @@ export function MediaAccessNotice({ state, next, tone = "light", compact = false
 
     if (state === "checking") {
         return (
-            <div className={`w-full h-full min-h-[8rem] flex items-center justify-center gap-2 text-sm ${dark ? "text-white/80" : "text-slate-500"}`} role="status">
-                <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
-                {t("guest.openingFile")}
-            </div>
+            // The SOMABOX loader while the file is checked; white on the black player.
+            <Loader
+                variant="page"
+                size={56}
+                className="h-full min-h-[8rem]"
+                color={dark ? "#ffffff" : undefined}
+                label={t("guest.openingFile")}
+            />
         );
     }
 

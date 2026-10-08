@@ -1,6 +1,7 @@
 "use client";
 
 import { RefreshCcw } from "lucide-react";
+import Loader from "@/components/ui/Loader";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useCourseText } from "@/components/course/useCourseText";
 
@@ -8,16 +9,11 @@ import { useCourseText } from "@/components/course/useCourseText";
 // can accidentally .map() over null/undefined while a fetch is still in flight or
 // has failed. Every list-rendering course page should render through this instead
 // of hand-rolling its own ternary.
-export default function AsyncListState({ loading, error, data, onRetry, emptyMessage, emptyAction, skeletonRows = 3, children }) {
+export default function AsyncListState({ loading, error, data, onRetry, emptyMessage, emptyAction, skeletonRows: _skeletonRows = 3, children }) {
   const { t } = useCourseText();
   if (loading) {
-    return (
-      <div className="space-y-2">
-        {Array.from({ length: skeletonRows }).map((_, i) => (
-          <div key={i} className="h-12 rounded-xl bg-slate-100 dark:bg-slate-800 animate-pulse" />
-        ))}
-      </div>
-    );
+    // The SOMABOX logo loader, centred where the list will appear.
+    return <Loader variant="page" size={56} className="min-h-[30vh]" />;
   }
 
   if (error) {

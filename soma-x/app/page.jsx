@@ -9,6 +9,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useToast } from "@/context/ToastContext";
 import { renewMediaSession, safeNext, setSessionToken, takeNext } from "@/lib/session";
+import { startRouteLoading } from "@/components/global/RouteLoader";
 
 const AuthComp = () => {
     const { t } = useLanguage();
@@ -55,12 +56,14 @@ const AuthComp = () => {
             // The backend blocks everything else until the password is changed.
             if (data.user?.must_change_password) {
                 showToast(t('shell.login.mustChangePassword'), 'info');
+                startRouteLoading();
                 setTimeout(() => { window.location.href = '/account'; }, 600);
                 return;
             }
 
             showToast(fill(t('shell.login.welcomeToast'), { name: data.user?.full_name || t('shell.login.userFallback') }), 'success');
 
+            startRouteLoading();
             setTimeout(() => {
                 if (safeNext(next)) window.location.href = safeNext(next);
                 else if (userRole === 'teacher') window.location.href = '/manage/teacher';

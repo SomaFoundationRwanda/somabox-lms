@@ -14,6 +14,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { useGuestGate } from "@/components/guest/GuestGate";
 import { fill } from "@/lib/fill";
 import { FOCUS_RING } from "@/lib/a11y";
+import Loader from "@/components/ui/Loader";
 
 const POLL_MS = 5000;
 const ACTIVE = ["queued", "running"];
@@ -243,9 +244,7 @@ export default function SummaryPanel({ pathKey, state: given, adminControls = fa
 
     if (s.loading && !d) {
         return wrap(
-            <p className="flex items-center gap-2 text-sm text-slate-600" role="status">
-                <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> {t("explore.summary.loading")}
-            </p>
+            <Loader variant="page" size={40} className="min-h-[8rem]" label={t("explore.summary.loading")} />
         );
     }
 

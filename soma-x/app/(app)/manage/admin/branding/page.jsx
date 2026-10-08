@@ -8,6 +8,7 @@ import Unauthorized from "@/components/sections/Unauthorized";
 import { Button } from "@/components/ui/button";
 import { getUnitBranding, saveUnitBranding } from "@/lib/analytics-service";
 import { useLanguage } from "@/context/LanguageContext";
+import Loader from "@/components/ui/Loader";
 
 export default function BrandingSettingsPage() {
     const { SERVER_URL, authenticated, role, user } = useContext(DataContext);
@@ -55,7 +56,7 @@ export default function BrandingSettingsPage() {
     };
 
     if (loading) {
-        return <div className="p-8 text-center text-xs text-slate-600">{t("admin.branding.loading")}</div>;
+        return <Loader variant="page" label={t("admin.branding.loading")} />;
     }
 
     return (

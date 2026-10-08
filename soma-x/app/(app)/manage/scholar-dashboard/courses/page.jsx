@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import HeaderSection from "@/components/ui/HeaderSection";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/context/LanguageContext";
+import Loader from "@/components/ui/Loader";
 
 export default function ScholarCoursesPage() {
   const { SERVER_URL, user } = useContext(DataContext);
@@ -80,7 +81,7 @@ export default function ScholarCoursesPage() {
         {joinError ? <p className="text-xs text-rose-600">{joinError}</p> : null}
 
         {loading ? (
-          <p className="text-sm text-slate-500">{t("shell.common.loading")}</p>
+          <Loader variant="page" />
         ) : courses.length === 0 ? (
           <EmptyState message={t("learner.courses.empty")} />
         ) : (

@@ -7,6 +7,7 @@ import { useToast } from "@/context/ToastContext";
 import { formatInstantDate } from "@/lib/dates";
 import { useLanguage } from "@/context/LanguageContext";
 import { fill } from "@/lib/fill";
+import Loader from "@/components/ui/Loader";
 
 const MIN_REASON = 10;
 
@@ -125,7 +126,7 @@ export default function BaselinePanel({ SERVER_URL, courseId, isDraft, onChanged
   if (loadError && !state) {
     return <p className="text-xs text-rose-600" role="alert">{loadError}</p>;
   }
-  if (!state) return <p className="text-xs text-slate-500">{t("teacher.baseline.loading")}</p>;
+  if (!state) return <Loader variant="page" size={40} className="min-h-[8rem]" label={t("teacher.baseline.loading")} />;
 
   const status = state.status || "pending";
   const covered = Array.isArray(state.outcomesCovered) ? state.outcomesCovered.length : 0;
