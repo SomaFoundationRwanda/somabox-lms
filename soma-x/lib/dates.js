@@ -52,3 +52,27 @@ export function toDateInput(value) {
   const head = String(value).slice(0, 10);
   return isDateString(head) ? head : "";
 }
+
+/** An instant (ISO string or Date) as e.g. "3 minutes ago" / "yesterday" ("" if unusable). */
+export function formatRelative(value, now = Date.now()) {
+  if (!value) return "";
+  const t = new Date(value).getTime();
+  if (Number.isNaN(t)) return "";
+  const seconds = Math.round((t - now) / 1000);
+  const abs = Math.abs(seconds);
+  const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
+  if (abs < 45) return rtf.format(0, "second");
+  if (abs < 3600) return rtf.format(Math.round(seconds / 60), "minute");
+  if (abs < 86400) return rtf.format(Math.round(seconds / 3600), "hour");
+  if (abs < 86400 * 30) return rtf.format(Math.round(seconds / 86400), "day");
+  if (abs < 86400 * 365) return rtf.format(Math.round(seconds / (86400 * 30)), "month");
+  return rtf.format(Math.round(seconds / (86400 * 365)), "year");
+}
+
+/** An instant as a short local date and time, e.g. "13 Jan, 14:05" ("" if unusable). */
+export function formatDateTime(value) {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleString(undefined, { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+}

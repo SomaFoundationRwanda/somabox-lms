@@ -2,7 +2,7 @@
 import { useContext, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { Plus } from "lucide-react"
+import { Library, Plus } from "lucide-react"
 import DataContext from "@/context/DataContext"
 import { EmptyState } from "@/components/ui/empty-state"
 import CreateCourseModal from "@/components/teacher/CreateCourseModal"
@@ -28,14 +28,19 @@ export default function TeacherCoursesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-slate-900 dark:text-white">My Courses</h1>
           <p className="text-xs text-slate-600 dark:text-slate-400">Create and manage your courses.</p>
         </div>
-        <button onClick={() => setCreateOpen(true)} className="flex items-center gap-1.5 text-xs font-medium text-white bg-[#2E8282] hover:bg-[#1f6767] rounded-lg px-3 py-2 transition-colors">
-          <Plus className="w-3.5 h-3.5" /> New Course
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link href="/library/courses" className="flex items-center gap-1.5 text-xs font-medium text-[#2E8282] border border-[#2E8282]/40 hover:bg-teal-50 rounded-lg px-3 py-2 transition-colors">
+            <Library className="w-3.5 h-3.5" aria-hidden="true" /> Start from a shared course
+          </Link>
+          <button onClick={() => setCreateOpen(true)} className="flex items-center gap-1.5 text-xs font-medium text-white bg-[#2E8282] hover:bg-[#1f6767] rounded-lg px-3 py-2 transition-colors">
+            <Plus className="w-3.5 h-3.5" /> New Course
+          </button>
+        </div>
       </div>
 
       {loading ? (

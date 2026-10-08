@@ -1,5 +1,5 @@
 "use client"
-import { BookOpen, BookMarked, CalendarDays, Compass, Globe, LayoutDashboard, Library, LogOut, Menu, PanelLeftClose, PanelLeftOpen, RefreshCcw, UserRound, X } from "lucide-react";
+import { BookCopy, BookOpen, BookMarked, CalendarDays, Compass, Globe, LayoutDashboard, Library, LogOut, Menu, PanelLeftClose, PanelLeftOpen, RefreshCcw, UserRound, X } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { useContext, useEffect, useState } from "react";
@@ -61,7 +61,8 @@ export default function SomaboxNav() {
   const managementNavItems = (currentRole === 'admin' || currentRole === 'teacher')
     ? [
       { id: "manage-content", label: "Content", Icon: LayoutDashboard, to: "/manage/admin/manage-content", roles: ['admin', 'teacher'] },
-      { id: "sync", label: "Sync Content", Icon: RefreshCcw, to: "/manage/admin/sync", roles: ['admin'] },
+      { id: "sync", label: "Sync", Icon: RefreshCcw, to: "/manage/admin/sync", roles: ['admin'] },
+      { id: "course-library", label: "Course library", Icon: BookCopy, to: "/library/courses", roles: ['admin', 'teacher'] },
       { id: "manage-library", label: "Library", Icon: Library, to: "/manage/admin/library", roles: ['admin'] },
     ].filter(item => item.roles.includes(currentRole))
     : [];
@@ -74,6 +75,7 @@ export default function SomaboxNav() {
 
   const active = (to) => {
     if (to === dashboardLocation) return pathname === to;
+    if (to === "/library" && pathname.startsWith("/library/courses")) return false;
     return pathname === to || pathname.startsWith(to + "/");
   };
 

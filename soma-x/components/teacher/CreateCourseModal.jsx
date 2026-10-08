@@ -1,5 +1,6 @@
 "use client"
 import { useState } from "react"
+import Link from "next/link"
 import { X } from "lucide-react"
 
 const GRADE_OPTIONS = [
@@ -110,6 +111,11 @@ export default function CreateCourseModal({ SERVER_URL, onClose, onCreated }) {
           >
             {loading ? "Creating..." : "Create Course"}
           </button>
+          <p className="text-xs text-slate-500 text-center">
+            Or{" "}
+            <Link href="/library/courses" className="font-semibold text-[#2E8282] hover:underline">start from a shared course</Link>
+            {" "}in the course library.
+          </p>
         </div>
       </div>
     </div>

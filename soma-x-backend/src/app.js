@@ -14,6 +14,8 @@ import analyticsServices from './services/analytics.services.js';
 import notificationsServices from './services/notifications.service.js';
 import aiServices from './services/ai-proxy.services.js';
 import calendarServices from './services/calendar.services.js';
+import syncServices from './services/sync.services.js';
+import bundleServices from './services/bundles.services.js';
 
 // API routers in mount order. Exported so tests can enumerate every route.
 export const API_ROUTERS = [
@@ -28,6 +30,8 @@ export const API_ROUTERS = [
     ['/notifications', notificationsServices],
     ['/ai', aiServices],
     ['/calendar', calendarServices],
+    ['/sync', syncServices],
+    ['/bundles', bundleServices],
 ];
 
 export function createApp({ logRequests = true } = {}) {
@@ -38,6 +42,7 @@ export function createApp({ logRequests = true } = {}) {
         origin: true,
         methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
         allowedHeaders: ['Content-Type', 'Authorization'],
+        exposedHeaders: ['Content-Disposition'],
         optionsSuccessStatus: 204
     };
     app.use(cors(corsOptions));

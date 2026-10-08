@@ -3,8 +3,8 @@ import formatSize from "@/components/helpers/formatSize";
 import Unauthorized from "@/components/sections/Unauthorized";
 import DataContext from "@/context/DataContext";
 import { useContext, useEffect, useState } from "react";
-import ManageTitle from "@/components/manage/ManageTitle";
-import { Section, EmptyState } from "@/components/layout";
+import { PageHeader, Section, EmptyState } from "@/components/layout";
+import CloudSyncSection from "@/components/sync/CloudSyncSection";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, CheckCircle2, ChevronDown, ChevronRight, File, FolderClosed, FolderOpen, Loader2, X } from "lucide-react";
@@ -115,7 +115,7 @@ const TreeNode = ({ node, onCheck, checked }) => {
 };
 
 const ManageSync = () => {
-    const { authenticated } = useContext(DataContext);
+    const { authenticated, role } = useContext(DataContext);
     const [contentTree, setContentTree]         = useState([]);
     const [checked, setChecked]                 = useState({});
     const [cloudUnavailable, setCloudUnavailable] = useState(false);
@@ -269,14 +269,16 @@ const ManageSync = () => {
 
     return (
         <div className="min-h-screen pb-24 md:pb-8">
-            <div className="px-4 md:px-4">
-                <ManageTitle
-                    title="Sync Content"
-                    description="Choose folders and files from the cloud to download to this device, or remove downloaded content."
+            <div className="px-4 pt-4 flex flex-col gap-8 max-w-5xl">
+                <PageHeader
+                    eyebrow="Admin"
+                    title="Sync"
+                    description="Send this box's changes to the cloud, and download learning content from the cloud to this box."
                 />
-            </div>
 
-            <div className="px-4 md:px-4 space-y-4">
+                {role === "admin" ? <CloudSyncSection SERVER_URL={SERVER_URL} /> : null}
+
+            <div className="space-y-4 pt-6 border-t border-slate-200 dark:border-slate-800">
                 {/* Feedback banners */}
                 {(banner || confirm) && (
                     <div className="space-y-2">
@@ -297,7 +299,7 @@ const ManageSync = () => {
                     </div>
                 )}
 
-                <Section title="Cloud content">
+                <Section title="Download content from the cloud" description="Choose folders and files from the cloud to download to this box, or remove downloaded content.">
                     {/* Tree */}
                     {fetching ? (
                         <div className="flex flex-col gap-2 py-4">
@@ -379,6 +381,7 @@ const ManageSync = () => {
                         </div>
                     </div>
                 </Section>
+            </div>
             </div>
         </div>
     );

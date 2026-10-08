@@ -4,6 +4,7 @@ import { hydrateCaches } from './src/data/cache/index.js';
 import { createApp } from './src/app.js';
 import { recoverJobs } from './src/services/ai/jobs.js';
 import { scheduleUsagePurge } from './src/services/analytics.services.js';
+import { scheduleSync } from './src/services/sync/outbox.js';
 
 // Schema and migrations must be applied before any request is served.
 await initSchemas();
@@ -11,6 +12,8 @@ await hydrateCaches();
 // AI jobs that were running when the server stopped can't resume: mark them failed.
 await recoverJobs();
 scheduleUsagePurge();
+// Box-to-cloud sync runs on a schedule (SYNC_INTERVAL_MINUTES), never at login.
+scheduleSync();
 
 const app = createApp();
 

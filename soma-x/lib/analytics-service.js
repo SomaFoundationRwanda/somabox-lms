@@ -75,11 +75,14 @@ export async function saveUnitBranding(serverUrl, brandingData) {
     }
 }
 
+// Sends this box's waiting changes to the cloud now. Returns { ok, message } either way
+// (200 when sent, 503 when the cloud couldn't be reached).
 export async function triggerMeSync(serverUrl) {
     try {
         const res = await fetch(`${serverUrl}/analytics/me-sync`, { method: "POST" });
-        return await res.json();
-    } catch (err) {
-        return { message: err.message };
+        const payload = await res.json().catch(() => ({}));
+        return { ...payload, ok: res.ok, message: payload.message || (res.ok ? "Sync finished" : "Sync failed") };
+    } catch {
+        return { ok: false, message: "Couldn't reach this box. Check the connection and try again." };
     }
 }

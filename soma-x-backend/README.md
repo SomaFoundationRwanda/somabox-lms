@@ -33,16 +33,26 @@ test suite fails for routes without a policy.
 Setup creates `admin@mail.com` / `admin`. That account must set a new password on
 first login. Change it before the box is handed to a school.
 
-### Firebase cloud sync (optional)
-Cloud sync needs a Firebase service account key. **Never put the key in this repository.**
-Store it outside the repo (for example `/etc/somabox/firebase-service-account.json`,
-readable only by the service user) and point to it in `.env`:
+### Cloud sync (optional)
+The box works fully offline. Changes to synced tables (courses, outcomes, enrollments, grades,
+quiz attempts, outcome results, usage events, people) are captured by database triggers into
+`sync_outbox` and pushed on a schedule (never at login). Admins choose what leaves the box on
+the **Sync** admin page (default: anonymous IDs only, no names, emails, or written answers).
+
+Pick a destination in `.env` (with neither, records wait on the box until one is set):
 
 ```bash
+# Option 1: any HTTPS endpoint that accepts POST { boxId, records } (idempotent per record syncId)
+SYNC_URL=https://cloud.example.org/somabox/ingest
+SYNC_TOKEN=...                 # sent as a Bearer token
+# Option 2: Firestore (collection FIRESTORE_SYNC_COLLECTION, default "sync_records")
 FIREBASE_SERVICE_ACCOUNT_PATH=/etc/somabox/firebase-service-account.json
+# SYNC_TRANSPORT=http|firestore|none   # force one; otherwise SYNC_URL wins
+# SYNC_INTERVAL_MINUTES=15            # retries back off up to 6 hours while offline
 ```
 
-If the variable is unset, sync is skipped and everything else keeps working.
+**Never put the Firebase key in this repository.** Store it outside the repo (readable only by
+the service user).
 
 ## Running
 

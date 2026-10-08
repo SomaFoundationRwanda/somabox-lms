@@ -14,6 +14,7 @@ import aiRoutes from "./courses/ai.routes.js";
 import calendarRoutes from "./courses/calendar.routes.js";
 import baselineRoutes from "./courses/baseline.routes.js";
 import insightsRoutes from "./courses/insights.routes.js";
+import bundleRoutes from "./courses/bundle.routes.js";
 
 const router = express.Router();
 
@@ -32,6 +33,7 @@ for (const domain of [
   calendarRoutes,
   aiRoutes,
   insightsRoutes,
+  bundleRoutes,
 ]) {
   router.use(domain);
 }

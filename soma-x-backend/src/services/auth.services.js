@@ -1,6 +1,5 @@
 import express from 'express';
 import bcrypt from "bcrypt";
-import { runFirebaseSync } from './firebase-sync.service.js';
 import { serverDb } from '../helpers/db-manager.js';
 import { createSession, revokeSession } from '../helpers/auth.js';
 
@@ -31,9 +30,6 @@ router.post('/login', async (req, res) => {
         }
 
         const token = await createSession(row.id, req.headers['user-agent']);
-
-        // Trigger sync-manager in the background asynchronously
-        runFirebaseSync().catch(console.error);
 
         return res.json({
             message: 'Login successful',

@@ -1,8 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { Pencil, Target, Clock, Lock, CalendarClock } from "lucide-react";
+import { Pencil, Target, Clock, Lock, CalendarClock, CloudOff, AlertTriangle } from "lucide-react";
+import DataContext from "@/context/DataContext";
+import {
+  QUEUE_EVENT, clearNotice, clearPendingSubmission, getNotice, getPendingSubmission, isNetworkFailure, queueSubmission,
+} from "@/lib/submissionQueue";
 import { useCourse } from "@/context/CourseContext";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
 import { PageHeader, Section, List, EmptyState } from "@/components/layout";
@@ -35,6 +39,12 @@ export default function AssignmentDetailPage() {
   const [submitError, setSubmitError] = useState("");
   const [submitResult, setSubmitResult] = useState(null);
   const { showToast } = useToast();
+  const { user } = useContext(DataContext);
+  const learnerId = user?.id ?? null;
+  // A submission kept on this device because the box couldn't be reached, and a refusal from
+  // the server when it was re-sent later (shown until dismissed). See lib/submissionQueue.js.
+  const [pendingSubmission, setPendingSubmission] = useState(null);
+  const [queueNotice, setQueueNotice] = useState(null);
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -83,6 +93,37 @@ export default function AssignmentDetailPage() {
     return () => { cancelled = true; };
   }, [isTeacher, SERVER_URL, courseId]);
 
+  useEffect(() => {
+    if (!learnerId || !courseId || !assignmentId) return undefined;
+    const ids = { userId: learnerId, courseId, assignmentId };
+    setPendingSubmission(getPendingSubmission(ids));
+    setQueueNotice(getNotice(ids));
+    const onQueue = (e) => {
+      const d = e.detail || {};
+      if (String(d.courseId) !== String(courseId) || String(d.assignmentId) !== String(assignmentId)) return;
+      if (d.type === "queued") { setPendingSubmission(getPendingSubmission(ids)); setQueueNotice(null); }
+      if (d.type === "sent") { setPendingSubmission(getPendingSubmission(ids)); loadData(); }
+      if (d.type === "refused") { setPendingSubmission(getPendingSubmission(ids)); setQueueNotice(getNotice(ids) || { message: d.message }); loadData(); }
+    };
+    window.addEventListener(QUEUE_EVENT, onQueue);
+    return () => window.removeEventListener(QUEUE_EVENT, onQueue);
+  }, [learnerId, courseId, assignmentId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const dismissQueueNotice = () => {
+    clearNotice({ userId: learnerId, courseId, assignmentId });
+    setQueueNotice(null);
+  };
+
+  // No connection to the box: learners' work is kept on this device and sent later.
+  const keepOnDevice = () => {
+    if (isTeacher || !learnerId) return false;
+    const ids = { userId: learnerId, courseId, assignmentId };
+    if (!queueSubmission({ ...ids, body: submissionBody })) return false;
+    setPendingSubmission(getPendingSubmission(ids));
+    setSubmissionBody("");
+    return true;
+  };
+
   const submitAssignment = async () => {
     setSubmitError("");
     setSubmitResult(null);
@@ -93,7 +134,13 @@ export default function AssignmentDetailPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ body: submissionBody }),
       });
+      if (isNetworkFailure(res) && keepOnDevice()) return;
       const payload = await res.json().catch(() => ({}));
+      if (learnerId && res.status !== 401) {
+        // This answer replaces anything that was waiting on this device.
+        clearPendingSubmission({ userId: learnerId, courseId, assignmentId });
+        setPendingSubmission(null);
+      }
       if (!res.ok) {
         const fallback = { CLOSED: "This assignment is closed.", NOT_OPEN_YET: "This assignment is not open yet." }[payload.code];
         setSubmitError(payload.message || fallback || "Could not submit the assignment.");
@@ -104,7 +151,8 @@ export default function AssignmentDetailPage() {
       }
       loadData();
     } catch (err) {
-      setSubmitError(err.message || "Could not submit the assignment.");
+      if (isNetworkFailure(err) && keepOnDevice()) return;
+      setSubmitError(isNetworkFailure(err) ? "Couldn't reach the box. Check the connection and try again." : err.message || "Could not submit the assignment.");
     } finally {
       setSubmitting(false);
     }
@@ -492,6 +540,21 @@ export default function AssignmentDetailPage() {
                         />
                       </>
                     )}
+
+                    {pendingSubmission ? (
+                      <p role="status" className="text-xs font-semibold text-sky-900 bg-sky-50 border border-sky-200 dark:text-sky-200 dark:bg-sky-950/30 dark:border-sky-900 rounded-lg px-3 py-2 flex items-start gap-1.5">
+                        <CloudOff className="w-3.5 h-3.5 mt-px shrink-0" aria-hidden="true" />
+                        <span>Saved on this device — it will be sent when the connection is back.</span>
+                      </p>
+                    ) : null}
+
+                    {queueNotice ? (
+                      <div role="alert" className="text-xs text-rose-800 bg-rose-50 border border-rose-200 dark:text-rose-200 dark:bg-rose-950/30 dark:border-rose-900 rounded-lg px-3 py-2 flex items-start gap-2">
+                        <AlertTriangle className="w-3.5 h-3.5 mt-px shrink-0" aria-hidden="true" />
+                        <p className="flex-1"><span className="font-semibold">The work saved on this device couldn&apos;t be submitted:</span> {queueNotice.message}</p>
+                        <button type="button" onClick={dismissQueueNotice} className="shrink-0 font-semibold underline">Dismiss</button>
+                      </div>
+                    ) : null}
 
                     {submitError ? <p role="alert" className="text-xs font-semibold text-rose-600">{submitError}</p> : null}
 

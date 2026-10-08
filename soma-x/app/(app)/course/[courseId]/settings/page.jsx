@@ -13,6 +13,7 @@ import SetupChecklist from "@/components/teacher/SetupChecklist";
 import BaselinePanel from "@/components/teacher/BaselinePanel";
 import CourseSetupWizard from "@/components/teacher/CourseSetupWizard";
 import Explainer from "@/components/help/Explainer";
+import ShareCourseSection from "@/components/course/ShareCourseSection";
 
 // Settings > Course setup (teachers): the setup checklist, the Week 0 baseline and the guided wizard.
 function CourseSetupSection({ SERVER_URL, courseId, course, userEmail, onCourseChanged }) {
@@ -303,6 +304,7 @@ export default function CourseSettingsPage() {
   useEffect(() => {
     if (!isTeacher) return;
     const syncFromHash = () => {
+      if (window.location.hash === "#share") setTab("share");
       if (window.location.hash === "#course-setup") {
         setTab("setup");
         requestAnimationFrame(() => document.getElementById("course-setup")?.scrollIntoView({ block: "start" }));
@@ -414,9 +416,14 @@ export default function CourseSettingsPage() {
           {isTeacher && (
             <button onClick={() => setTab("setup")} className={`text-sm font-semibold px-3 py-2 border-b-2 ${tab === "setup" ? "border-[#203A3A] text-[#203A3A]" : "border-transparent text-slate-500"}`}>Course setup</button>
           )}
+          {isTeacher && (
+            <button onClick={() => setTab("share")} className={`text-sm font-semibold px-3 py-2 border-b-2 whitespace-nowrap ${tab === "share" ? "border-[#203A3A] text-[#203A3A]" : "border-transparent text-slate-500"}`}>Share</button>
+          )}
         </div>
 
-        {tab === "setup" && isTeacher ? (
+        {tab === "share" && isTeacher ? (
+          <ShareCourseSection SERVER_URL={SERVER_URL} courseId={courseId} />
+        ) : tab === "setup" && isTeacher ? (
           <CourseSetupSection
             SERVER_URL={SERVER_URL}
             courseId={courseId}

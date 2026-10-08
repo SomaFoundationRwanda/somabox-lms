@@ -4,6 +4,8 @@ import { requireRole } from '../helpers/auth.js';
 import { analyticsScope } from './insights/scope.js';
 import { courseInsights } from './insights/metrics.js';
 import { SCHOOL_TIMEZONE } from './courses/schedule.js';
+import { pushOutbox } from './sync/outbox.js';
+import { runMessage } from './sync.services.js';
 
 const router = express.Router();
 const requireAdmin = requireRole('admin');
@@ -487,16 +489,15 @@ router.post('/branding', requireAdmin, async (req, res) => {
     }
 });
 
-// M&E Real-Time Sync endpoint
+// "Sync now" from the branding/M&E screen: pushes the sync outbox (older clients call this).
 router.post('/me-sync', requireAdmin, async (req, res) => {
     try {
-        await localDb.prepare(`
-            UPDATE unit_branding SET last_synced_at = CURRENT_TIMESTAMP WHERE id = 1
-        `).run();
-        return res.json({
-            message: 'M&E Ambassador real-time data sync completed',
-            syncedAt: new Date().toISOString(),
-            status: 'success'
+        const result = await pushOutbox();
+        const ok = ['ok', 'nothing_to_send'].includes(result.status);
+        return res.status(ok ? 200 : 503).json({
+            ...result,
+            message: runMessage(result),
+            syncedAt: ok ? new Date().toISOString() : null,
         });
     } catch (error) {
         console.error('Error performing M&E sync:', error);

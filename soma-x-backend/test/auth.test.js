@@ -103,6 +103,16 @@ const POLICY = {
   "GET /calendar/me": "any",
   "GET /calendar/me.ics": "any",
   "GET /calendar/school": "admin",
+
+  "GET /sync/status": "admin",
+  "POST /sync/run": "admin",
+  "PUT /sync/settings": "admin",
+
+  "GET /bundles": "staff",
+  "GET /bundles/:bundleRowId": "staff",
+  "POST /bundles": "staff",
+  "POST /bundles/:bundleRowId/courses": "staff",
+  "POST /bundles/import": "staff",
 };
 
 let ctx;

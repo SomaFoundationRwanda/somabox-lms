@@ -1,8 +1,8 @@
 "use client"
 import { useEffect, useState } from "react";
-import { Globe, RefreshCw, ShieldCheck } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { getInclusivityGap, triggerMeSync } from "@/lib/analytics-service";
+import Link from "next/link";
+import { CloudUpload, Globe, ShieldCheck } from "lucide-react";
+import { getInclusivityGap } from "@/lib/analytics-service";
 
 // Average outcome result by group (rural/urban, gender, accessibility needs). Aggregates only:
 // any group with fewer than `minGroupSize` learners with results comes back null and is listed
@@ -11,9 +11,6 @@ import { getInclusivityGap, triggerMeSync } from "@/lib/analytics-service";
 export default function InclusivityGapReport({ serverUrl }) {
     const [report, setReport] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [syncing, setSyncing] = useState(false);
-    const [syncMsg, setSyncMsg] = useState("");
-
     const loadReport = async () => {
         if (!serverUrl) return;
         setLoading(true);
@@ -26,15 +23,6 @@ export default function InclusivityGapReport({ serverUrl }) {
         loadReport();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [serverUrl]);
-
-    const handleSync = async () => {
-        setSyncing(true);
-        setSyncMsg("");
-        const res = await triggerMeSync(serverUrl);
-        setSyncing(false);
-        setSyncMsg(res.message || "Sync finished");
-        setTimeout(() => setSyncMsg(""), 4000);
-    };
 
     if (loading) {
         return <div className="h-40 rounded-xl bg-slate-100 dark:bg-slate-800 animate-pulse" aria-label="Loading the inclusivity report" />;
@@ -92,20 +80,14 @@ export default function InclusivityGapReport({ serverUrl }) {
                         {report.scholarsWithData != null ? ` Based on ${report.scholarsWithData} of ${report.totalScholars ?? "—"} learners.` : ""}
                     </p>
                 </div>
-                <Button
-                    onClick={handleSync}
-                    disabled={syncing}
-                    variant="outline"
-                    className="h-8 px-3 text-[11px] font-bold border-slate-200 dark:border-slate-800 flex items-center gap-1.5 rounded-xl"
+                <Link
+                    href="/manage/admin/sync"
+                    className="inline-flex items-center gap-1.5 h-8 px-3 text-[11px] font-bold rounded-xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900"
                 >
-                    <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} aria-hidden="true" />
-                    {syncing ? 'Syncing…' : 'Sync to the cloud'}
-                </Button>
+                    <CloudUpload className="w-3.5 h-3.5" aria-hidden="true" />
+                    Cloud sync
+                </Link>
             </div>
-
-            {syncMsg && (
-                <p role="status" className="text-xs font-semibold text-emerald-800 dark:text-emerald-300">{syncMsg}</p>
-            )}
 
             <dl className="divide-y divide-slate-100 dark:divide-slate-800 rounded-xl border border-slate-200 dark:border-slate-800">
                 {rows.map((r) => (
