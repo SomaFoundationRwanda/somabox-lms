@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
 import { DataTable } from "@/components/layout";
-import { DeltaText, fmtGain, fmtPct, relativeDay } from "./bits";
+import { DeltaText, fmtGain, fmtPct, fmtRate, relativeDay } from "./bits";
+import { useAttendanceText } from "@/components/attendance/text";
 
 const nameOf = (l) => l.name || l.email || "Learner";
 
@@ -21,6 +22,7 @@ const SORTS = {
   late: (l) => l.timeliness?.late,
   missing: (l) => l.timeliness?.missing,
   active: (l) => (l.engagement?.lastActivityAt ? new Date(l.engagement.lastActivityAt).getTime() : null),
+  attendance: (l) => l.attendance?.rate,
   flags: (l) => (l.risk?.reasons?.length || 0),
 };
 
@@ -41,6 +43,7 @@ export function ReasonChips({ risk }) {
 export default function LearnersTab({ data, flaggedOnly, setFlaggedOnly }) {
   const { courseId } = useCourse();
   const router = useRouter();
+  const { tx } = useAttendanceText();
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState({ key: "name", dir: "asc" });
   const learners = Array.isArray(data.learners) ? data.learners : [];
@@ -115,6 +118,7 @@ export default function LearnersTab({ data, flaggedOnly, setFlaggedOnly }) {
           { key: "onTime", header: "On time", sortable: true, align: "right", render: (l) => l.timeliness?.onTime ?? "—" },
           { key: "late", header: "Late", sortable: true, align: "right", render: (l) => l.timeliness?.late ?? "—" },
           { key: "missing", header: "Missing", sortable: true, align: "right", render: (l) => <span className={l.timeliness?.missing ? "font-semibold text-rose-700 dark:text-rose-400" : ""}>{l.timeliness?.missing ?? "—"}</span> },
+          { key: "attendance", header: tx("colAttendance"), sortable: true, align: "right", render: (l) => (l.attendance?.rate == null ? <span className="text-xs text-slate-400 whitespace-nowrap">{tx("noneCounted")}</span> : <span className={l.risk?.reasons?.some((r) => r.code === "absent_in_a_row" || r.code === "low_attendance") ? "font-semibold text-rose-700 dark:text-rose-400" : ""}>{fmtRate(l.attendance.rate)}</span>) },
           { key: "active", header: "Last active", sortable: true, className: "whitespace-nowrap text-xs text-slate-600 dark:text-slate-300", render: (l) => relativeDay(l.engagement?.lastActivityAt) },
           { key: "flags", header: "Flags", sortable: true, className: "min-w-[12rem]", render: (l) => <ReasonChips risk={l.risk} /> },
         ]}

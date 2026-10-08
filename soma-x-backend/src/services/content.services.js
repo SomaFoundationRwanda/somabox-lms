@@ -1,4 +1,5 @@
 import fs from "fs";
+import { requireMediaAccess } from '../helpers/media.js';
 import express from "express";
 import path from "path";
 import multer from "multer";
@@ -125,7 +126,7 @@ router.get("/custom-content/summary", async (req, res) => {
     }
 });
 
-router.get("/content/:slug", async (req, res) => {
+router.get("/content/:slug", requireMediaAccess(), async (req, res) => {
     const slug = req.params.slug;
 
     // 1. Try Custom Content (localDb)
@@ -317,6 +318,6 @@ router.patch("/manager/toggle", requireContentManager, express.json(), async (re
     }
 });
 
-router.use('/files', express.static(CONTENT_DIR));
+router.use('/files', requireMediaAccess(), express.static(CONTENT_DIR));
 
 export default router;

@@ -2,12 +2,16 @@
 import React, { useState, useEffect } from 'react';
 import { ReactReader } from 'react-reader';
 import { AlertTriangle, X } from 'lucide-react';
+import { MediaAccessNotice } from '@/components/guest/MediaAccess';
+import { getSessionToken } from '@/lib/session';
 
 const EpubReader = ({ url, title, onClose }) => {
     const [location, setLocation] = useState(null)
     const [data, setData] = useState(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
+    // "guest" | "expired" | "forbidden" when the book couldn't be opened for sign-in reasons.
+    const [access, setAccess] = useState(null)
     const renditionRef = React.useRef(null)
 
     useEffect(() => {
@@ -15,7 +19,20 @@ const EpubReader = ({ url, title, onClose }) => {
             try {
                 setLoading(true)
                 setError(null)
-                const response = await fetch(url)
+                setAccess(null)
+                // The book is fetched here (with the session token and the media cookie,
+                // credentials: "include" via the fetch wrapper) and handed to epub.js as a Blob,
+                // so epub.js itself makes no credentialed requests.
+                const signedIn = Boolean(getSessionToken())
+                const response = await fetch(url, { credentials: 'include' })
+                if (response.status === 401) {
+                    setAccess(signedIn ? 'expired' : 'guest')
+                    return
+                }
+                if (response.status === 403) {
+                    setAccess('forbidden')
+                    return
+                }
                 if (!response.ok) throw new Error(`Failed to fetch book: ${response.statusText}`)
                 const buffer = await response.arrayBuffer()
                 // Convert to Blob for better compatibility with epub.js
@@ -77,7 +94,9 @@ const EpubReader = ({ url, title, onClose }) => {
 
                 {/* Reader Container */}
                 <div className="flex-1 relative bg-white flex items-center justify-center overflow-hidden">
-                    {loading ? (
+                    {access ? (
+                        <MediaAccessNotice state={access} />
+                    ) : loading ? (
                         <div className="flex flex-col items-center gap-4">
                             <div className="w-12 h-12 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin"></div>
                             <p className="text-gray-500 font-medium">Opening your book...</p>

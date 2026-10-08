@@ -29,7 +29,7 @@
 | # | Gap | Why it blocks | Est. |
 |---|---|---|---|
 | B1 | **The Firebase key was never rotated** (P0-4). The key committed in `eb0f931` and pushed to GitHub is the same key still on disk: `soma-x-backend/service-account.json`, plus a copy in the untracked `apps/soma-x-backend/`. | Anyone with the repo history can write to the Firestore project. | S (user action in Google Cloud), then delete both local copies |
-| B2 | **Uploaded course files are served without login.** This covers `/course-files`, `/lessons` and `/course-covers` (`src/app.js`), and `/library/file/*` (`helpers/auth.js`). File names are `timestamp-name`. | Learner-visible worksheets of draft or private courses can be fetched by URL, including from another school's course on the same box. | M: short-lived signed URLs; page bodies store file URLs, so a rewrite on read is needed |
+| B2 | ~~Uploaded course files are served without login.~~ **Closed in Phase 12:** every file needs a signed-in person (signed media cookie); course files need course membership; guests browse the catalogue and are asked to sign up. **Still open:** Wikipedia/Kolibri served from separate servers (`10.0.0.1:8083/8081`) bypass the API. | Those two servers need a reverse proxy through the API. | S–M |
 | B3 | **Kinyarwanda UI text and explainers are untranslated**, and about 90% of UI text is hardcoded English (see i18n below). | The product is for Rwandan schools. | L, plus a native-speaking translator |
 | B4 | **Most screens have never been used in a browser.** Phases 2–11 were checked by `next build` and backend tests only. This includes the setup wizard, grading, Insights, AI drafts, sync, bundles, the offline queue and the new page renderer. | Untested UI ships with bugs no backend test can find. | M: one guided click-through per role, a short checklist, and fixes |
 | B5 | **The AI model has not been run with the LMS prompts.** All AI tests use fakes. | Output quality, Kinyarwanda in particular, and speed on the real box are unknown (§12.11). | S to run `node ai/scripts/structured_eval.mjs` on a box; quality review by teachers |
@@ -304,7 +304,7 @@ M.
 | 12.6 | Which teacher UI survives? | `(teacher-ui)`, the only one in use. |
 | 12.7 | SoL: merge into outcomes, or keep separate? | Separate, labelled practice, excluded from mastery. |
 | 12.8 | Retake policy, default `attempts_allowed` | Unlimited by default; a per-quiz limit, and teacher-granted extra attempts. |
-| 12.10 | Which data leaves the box; cloud retention | Sent: courses, enrolments, grades, results, events, people as anonymous IDs. No names, emails or written answers. Admins can change this. Cloud retention: undecided. |
+| 12.10 | Which data leaves the box; cloud retention | Sent: courses, enrolments, grades, results, attendance, events, people as anonymous IDs. No names, emails or written answers. Admins can change this. **Decided 2026-10-08: the cloud keeps records indefinitely** (no automatic deletion; the box's own usage-log retention is separate). |
 | 12.11 | AI hardware target | Not measured (B5). |
 | — | Encryption at rest on the box and in the browser | Undecided. |
-| — | Attendance in scope? | Not built. |
+| — | Attendance in scope? | **Decided 2026-10-08: yes.** Built in Phase 12. |

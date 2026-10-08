@@ -80,13 +80,17 @@ router.get('/growth-curves', async (req, res) => {
 });
 
 // Inclusivity gap: average outcome result by rural/urban, gender, and accessibility needs.
+// Only learners who answered the profile questions themselves count (older accounts hold
+// column defaults that would otherwise read as "urban, no disability").
 // Admins only, aggregates only, and any group with fewer than MIN_GROUP_SIZE learners with
 // results is reported as null (listed in `suppressed`).
 router.get('/inclusivity-gap', requireAdmin, async (req, res) => {
     try {
         const users = await serverDb.prepare(`
-            SELECT id, gender, is_rural, disability_status FROM users WHERE role = 'scholar'
+            SELECT id, gender, is_rural, disability_status FROM users
+            WHERE role = 'scholar' AND profile_completed_at IS NOT NULL
         `).all();
+        const allScholars = Number((await serverDb.prepare(`SELECT COUNT(*) AS n FROM users WHERE role = 'scholar'`).get()).n);
         const averages = await localDb.prepare(`
             SELECT user_id, AVG(pct) AS pct FROM outcome_results WHERE source_type <> 'baseline' GROUP BY user_id
         `).all();
@@ -122,7 +126,8 @@ router.get('/inclusivity-gap', requireAdmin, async (req, res) => {
         return res.json({
             source: 'outcome_results',
             minGroupSize: MIN_GROUP_SIZE,
-            totalScholars: users.length,
+            totalScholars: allScholars,
+            scholarsWithProfile: users.length,
             scholarsWithData,
             ruralVsUrban: {
                 ruralAverage,
@@ -414,6 +419,8 @@ async function personalData(userId) {
                 FROM longitudinal_progress WHERE LOWER(scholar_email) = LOWER(?) ORDER BY created_at`, email),
             diagnostic: await q(`SELECT overall_score, subject_breakdown, completed_at FROM diagnostic_results WHERE LOWER(scholar_email) = LOWER(?)`, email),
         },
+        attendance: await q(`SELECT s.course_id, s.session_date::text AS date, s.title, r.status, r.note
+            FROM attendance_records r JOIN attendance_sessions s ON s.id = r.session_id WHERE r.user_id = ? ORDER BY s.session_date`, userId),
         usageEvents: await q(`SELECT event_type, course_id, data, created_at FROM usage_events WHERE user_id = ? ORDER BY created_at`, userId),
     };
 }

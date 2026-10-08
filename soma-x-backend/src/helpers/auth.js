@@ -86,9 +86,19 @@ const PUBLIC_ROUTES = [
     { method: 'POST', path: '/auth/login' },
     { method: 'POST', path: '/auth/register' },
     { method: 'GET', path: '/analytics/branding' },
-    // Opened by <video>/<iframe>/PDF viewers, which can't send a bearer token.
-    // TODO: replace with short-lived signed URLs (see docs/99-gap-report.md).
+    { method: 'POST', path: '/auth/media-session' },
+    // The catalogue guests may browse before signing up (titles, categories, covers).
+    { method: 'GET', path: '/content/main-categories' },
+    { method: 'GET', path: '/content/levels/summary' },
+    { method: 'GET', path: '/content/custom-content/summary' },
+    { method: 'GET', path: '/library/books' },
+    { method: 'GET', path: '/library/categories' },
+    { method: 'GET', path: '/courses/public' },
+    // Files opened by <video>/<iframe>/PDF viewers, which can't send a bearer token. These
+    // routes check the signed media cookie themselves (helpers/media.js).
     { method: 'GET', prefix: '/library/file/' },
+    { method: 'GET', prefix: '/content/files/' },
+    { method: 'GET', prefix: '/content/content/' },
 ];
 
 // Reachable while a password change is pending, so the user can do it and log out.

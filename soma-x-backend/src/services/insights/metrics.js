@@ -5,6 +5,7 @@ import { diffDays, compareDates } from "@somabox/timeline";
 import { localDb } from "../../helpers/db-manager.js";
 import { loadCourseTimeline, SCHOOL_TIMEZONE } from "../courses/schedule.js";
 import { computeMastery, learnerOutcomeValues, MASTERY_THRESHOLD, RETEACH_THRESHOLD } from "../courses/results.js";
+import { attendanceByLearner, attendanceReasons } from "../courses/attendance.js";
 
 export const TRAJECTORY_LENGTH = 10;
 export const RISK_RULES = {
@@ -219,13 +220,14 @@ export async function courseInsights(courseId, { userId = null } = {}) {
   const today = tl.today;
   const learners = (await courseLearners(courseId)).filter((l) => userId == null || Number(l.id) === Number(userId));
   const ids = learners.map((l) => Number(l.id));
-  const [outcomes, items, records, act, results, values] = await Promise.all([
+  const [outcomes, items, records, act, results, values, attendance] = await Promise.all([
     localDb.prepare("SELECT id, code, title FROM outcomes WHERE course_id = ? ORDER BY id").all(courseId),
     gradedItems(tl),
     workRecords(courseId),
     activity(courseId),
     resultRows(courseId),
     learnerOutcomeValues(courseId, ids),
+    attendanceByLearner(courseId, ids),
   ]);
   const courseRunningDays = tl.startDate && compareDates(today, tl.startDate) >= 0 ? diffDays(tl.startDate, today) : null;
 
@@ -260,7 +262,11 @@ export async function courseInsights(courseId, { userId = null } = {}) {
     const rows = results.get(id) || [];
     const points = trajectory(rows);
     const toMastery = attemptsToMastery(rows);
-    const reasons = riskReasons({ overall, resultsCount: rows.length, timeliness, engagement, points, courseRunningDays, today });
+    const attended = attendance.get(id);
+    const reasons = [
+      ...riskReasons({ overall, resultsCount: rows.length, timeliness, engagement, points, courseRunningDays, today }),
+      ...attendanceReasons(attended),
+    ];
 
     return {
       id, email: l.email, name: l.full_name || l.email,
@@ -277,6 +283,7 @@ export async function courseInsights(courseId, { userId = null } = {}) {
       trajectory: points.slice(-TRAJECTORY_LENGTH),
       timeliness,
       engagement,
+      attendance: attended,
       work,
       risk: { flagged: reasons.length > 0, reasons },
     };
@@ -332,6 +339,8 @@ export async function courseInsights(courseId, { userId = null } = {}) {
       missing: learnerRows.reduce((s, l) => s + l.timeliness.missing, 0),
       atRisk: learnerRows.filter((l) => l.risk.flagged).length,
       activeLast7Days: learnerRows.filter((l) => l.engagement.activeDays7 > 0).length,
+      attendanceRate: round(mean(learnerRows.map((l) => l.attendance?.rate).filter((r) => r != null).map((r) => r * 100))),
+      learnersWithAttendance: learnerRows.filter((l) => l.attendance?.rate != null).length,
     },
   };
 }

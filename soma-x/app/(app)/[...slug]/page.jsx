@@ -1,6 +1,6 @@
 
 'use client'
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams, usePathname } from 'next/navigation';
 import { useContext, useEffect, useState, useMemo } from 'react';
 import HeaderSection from '@/components/ui/HeaderSection';
 import Link from 'next/link';
@@ -11,6 +11,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { Button } from '@/components/ui/button';
 import UniversalPlayerModal from '@/components/ui/UniversalPlayerModal';
 import Typography from '@/components/ui/Typography';
+import { useGuestGate } from '@/components/guest/GuestGate';
 
 // --- Helpers moved outside for performance and cleaner component scope ---
 
@@ -54,6 +55,22 @@ function ContentDisplayPage({ levelInfo, breadcrumbs, onBreadcrumbClick }) {
   const [selectedMedia, setSelectedMedia] = useState(null);
   const { t } = useLanguage();
   const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL;
+  const pathname = usePathname();
+  const { isGuest, requireAccount } = useGuestGate();
+
+  // Back from signing up (or logging in) to open something: ?open=<item id> opens it.
+  useEffect(() => {
+    if (isGuest || !levelInfo?.content?.length) return;
+    let openId = null;
+    try { openId = new URLSearchParams(window.location.search).get('open'); } catch { /* ignore */ }
+    if (!openId) return;
+    const item = levelInfo.content.find((entry) => String(entry.id) === openId);
+    if (item) {
+      setSelectedMedia(item);
+      setIsModalOpen(true);
+    }
+    window.history.replaceState(null, '', window.location.pathname);
+  }, [isGuest, levelInfo]);
 
   const filteredContent = useMemo(() => {
     if (!levelInfo?.content) return [];
@@ -84,6 +101,8 @@ function ContentDisplayPage({ levelInfo, breadcrumbs, onBreadcrumbClick }) {
   ];
 
   const handleItemClick = (item) => {
+    // Guests can browse; opening a video, book or audio needs an account.
+    if (!requireAccount(`${pathname}?open=${encodeURIComponent(item.id)}`)) return;
     setSelectedMedia(item);
     setIsModalOpen(true);
   };

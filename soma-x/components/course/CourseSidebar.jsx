@@ -9,6 +9,7 @@ import {
   ChevronDown,
   Menu,
   CalendarDays,
+  ClipboardCheck,
   ClipboardList,
   EyeOff,
   FileText,
@@ -46,6 +47,7 @@ const NAV_ICONS = {
   discussions: MessageSquare,
   settings: SettingsIcon,
   insights: BarChart3,
+  attendance: ClipboardCheck,
 };
 
 function useVisibleNav() {

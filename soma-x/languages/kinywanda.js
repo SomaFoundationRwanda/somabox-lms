@@ -1,6 +1,10 @@
+import rwAttendance from "./attendance/rw";
+import rwGuest from "./guest/rw";
 // Kinyarwanda explainers are not written yet: they fall back to English (marked as such)
 // until a native-speaking teacher translates languages/explainers/en.js.
 export default {
+    "attendance": rwAttendance,
+    "guest": rwGuest,
     "explainers": {},
     "nav": {
         "dashboard": "Ahabanza",

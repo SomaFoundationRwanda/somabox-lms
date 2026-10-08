@@ -14,12 +14,14 @@ import {
   BandChip, DeltaText, Figure, TrajectoryBars, WorkStateBadge, ErrorNote, LoadingRows,
   fmtGain, fmtPct, fmtRate, itemHref, relativeDay, ITEM_TYPE_LABELS,
 } from "@/components/insights/bits";
+import { useAttendanceText, attended } from "@/components/attendance/text";
 
 export default function LearnerInsightsPage() {
   const { userId } = useParams();
   const { SERVER_URL, courseId, isTeacher } = useCourse();
   const { role } = useContext(DataContext);
   const allowed = isTeacher || role === "admin";
+  const { tx, txn } = useAttendanceText();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -99,6 +101,22 @@ export default function LearnerInsightsPage() {
                   sub={`${l.timeliness?.onTime ?? 0} on time · ${l.timeliness?.late ?? 0} late · ${l.timeliness?.missing ?? 0} missing`}
                 />
               </dl>
+            </Section>
+
+            <Section divided title={tx("detailTitle")}>
+              {l.attendance?.counted ? (
+                <dl className="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4">
+                  <Figure label={tx("colRate")} value={fmtRate(l.attendance.rate)} sub={tx("attendedOf", { a: attended(l.attendance), n: l.attendance.counted })} />
+                  <Figure label={tx("colAbsences")} value={l.attendance.absent ?? 0} sub={l.attendance.lastAbsentOn ? tx("lastAbsentOn", { date: formatDate(l.attendance.lastAbsentOn) }) : tx("neverAbsent")} />
+                  <Figure label={tx("colRun")} value={l.attendance.consecutiveAbsences ?? 0} sub={tx("runHint")} />
+                  <Figure label={tx("statusLate")} value={l.attendance.late ?? 0} sub={txn("excusedCount", l.attendance.excused ?? 0)} />
+                </dl>
+              ) : (
+                <p className="text-sm text-slate-500">{tx("detailNone")}</p>
+              )}
+              <p className="mt-2 text-xs text-slate-500">
+                <Link href={`/course/${courseId}/attendance`} className="font-semibold text-[#0D9488] hover:underline">{tx("openAttendance")}</Link>
+              </p>
             </Section>
 
             <Section divided title="Outcomes">

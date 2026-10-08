@@ -261,7 +261,8 @@ router.get('/profile/view', async (req, res) => {
     try {
         const user = await serverDb.prepare(`
             SELECT id, email, full_name, role, phone, school_name, grade_level, preferred_language,
-                   gender, region_province, region_district, is_rural, disability_status, accessibility_profile, created_at
+                   gender, region_province, region_district, is_rural, disability_status, accessibility_profile, created_at,
+                   profile_completed_at
             FROM users
             WHERE id = ?
         `).get(req.user.id);
@@ -274,7 +275,9 @@ router.get('/profile/view', async (req, res) => {
         const hasProvince = Boolean(user.region_province && user.region_province !== 'Not Specified' && user.region_province.trim() !== '');
         const hasDistrict = Boolean(user.region_district && user.region_district !== 'Not Specified' && user.region_district.trim() !== '');
 
-        const isProfileComplete = hasGender && hasProvince && hasDistrict;
+        // Complete only once every required answer was given explicitly (see /profile/update).
+        // Admins aren't asked.
+        const isProfileComplete = user.role === 'admin' || (Boolean(user.profile_completed_at) && hasGender && hasProvince && hasDistrict);
 
         return res.json({
             ...user,
@@ -462,6 +465,8 @@ router.patch('/:id', requireAdmin, async (req, res) => {
     }
 });
 
+const DISABILITY_ANSWERS = ['none', 'visual', 'hearing', 'mobility', 'cognitive', 'other'];
+
 router.patch('/profile/update', async (req, res) => {
     try {
         const email = req.user.email;
@@ -495,6 +500,20 @@ router.patch('/profile/update', async (req, res) => {
 
         if (updates.length === 0) {
             return res.status(400).json({ message: 'No fields provided to update' });
+        }
+
+        // Finishing the profile step: every required answer must be in this request, chosen by the
+        // person (not a default), or the profile stays incomplete and they're asked again.
+        if (req.body.completeProfile) {
+            const missing = [];
+            if (!gender || gender === 'prefer_not_to_say') missing.push('gender');
+            if (!regionProvince || regionProvince === 'Not Specified') missing.push('province');
+            if (!regionDistrict || regionDistrict === 'Not Specified') missing.push('district');
+            if (typeof req.body.isRural !== 'boolean') missing.push('rural or urban');
+            if (!DISABILITY_ANSWERS.includes(disabilityStatus)) missing.push('accessibility needs');
+            if (req.user.role === 'scholar' && !gradeLevel) missing.push('grade');
+            if (missing.length) return res.status(400).json({ message: `Please answer: ${missing.join(', ')}`, missing });
+            updates.push('profile_completed_at = CURRENT_TIMESTAMP');
         }
 
         query += updates.join(', ') + ' WHERE id = ?';

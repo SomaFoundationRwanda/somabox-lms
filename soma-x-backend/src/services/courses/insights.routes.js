@@ -86,6 +86,7 @@ router.get("/:id/my-progress", async (req, res) => {
       outcomes: me.outcomes.map((o) => ({ ...outcomeInfo(titles.get(Number(o.outcomeId))), ...o, status: statusFor(o.current) })),
       trajectory: me.trajectory,
       timeliness: me.timeliness,
+      attendance: me.attendance,
       work: me.work,
     });
   } catch (error) {

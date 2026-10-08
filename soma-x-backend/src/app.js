@@ -4,6 +4,7 @@ import { config } from './config/index.js';
 import crypto from 'crypto';
 import fs from 'fs';
 import { authenticate, requireAuthUnlessPublic } from './helpers/auth.js';
+import { requireMediaAccess } from './helpers/media.js';
 import { localDb } from './helpers/db-manager.js';
 
 import cloudServices from './services/cloud.services.js';
@@ -45,6 +46,8 @@ export function createApp({ logRequests = true } = {}) {
         origin: true,
         methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
         allowedHeaders: ['Content-Type', 'Authorization'],
+        // The app on the same box (another port) sends the media cookie with credentials.
+        credentials: true,
         exposedHeaders: ['Content-Disposition'],
         optionsSuccessStatus: 204
     };
@@ -101,20 +104,23 @@ export function createApp({ logRequests = true } = {}) {
         });
     }
 
-    // Static content is loaded by <img>, <video> and iframes, which can't send a bearer
-    // token, so it is served before the auth gate.
-    // TODO(phase 4): course files should be enrollment-checked (signed URLs).
-    app.use('/khan-academy', express.static(config.paths.static.khan));
-    app.use('/w3schools', express.static(config.paths.static.w3schools));
-    app.use('/wikipedia', express.static(config.paths.static.wikipedia));
-    app.use('/lessons', express.static(config.paths.lessons));
+    // Who is calling (bearer token), if anyone. Nothing is refused here; see the gates below.
+    app.use(authenticate);
+
+    // Files are for signed-in people only. <img>, <video>, iframes, and PDF/EPUB viewers can't send
+    // a bearer token, so they carry the signed media cookie set at sign-in (helpers/media.js).
+    // Covers stay public so guests can browse the catalogue before signing up.
+    const media = requireMediaAccess();
+    app.use('/khan-academy', media, express.static(config.paths.static.khan));
+    app.use('/w3schools', media, express.static(config.paths.static.w3schools));
+    app.use('/wikipedia', media, express.static(config.paths.static.wikipedia));
+    app.use('/lessons', media, express.static(config.paths.lessons));
+    app.use('/course-files', requireMediaAccess({ courseFiles: true }), express.static(config.paths.courseFiles));
     app.use('/library-book-covers', express.static(config.paths.libraryCovers));
     app.use('/course-covers', express.static(config.paths.courseCovers));
-    app.use('/course-files', express.static(config.paths.courseFiles));
     app.use('/pdf-book-covers', express.static(config.paths.pdfCovers));
 
     // Every API route below requires a session unless listed in PUBLIC_ROUTES.
-    app.use(authenticate);
     app.use(requireAuthUnlessPublic);
 
     for (const [prefix, router] of API_ROUTERS) app.use(prefix, router);

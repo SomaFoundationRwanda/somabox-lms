@@ -1,10 +1,10 @@
 "use client"
 import { createContext, useEffect, useState, useCallback } from "react";
 import { X, AlertCircle, CheckCircle2, Loader2, ChevronDown, ChevronUp } from "lucide-react";
-import { clearSession, getSessionToken, installAuthFetch } from "@/lib/session";
+import { clearSession, getSessionToken, installAuthFetch, startMediaSessionKeepAlive } from "@/lib/session";
 import { clearUserQueue, pendingCount } from "@/lib/submissionQueue";
 
-// Attach the session token to every backend request from the first render on.
+// Attach the session token (and the media cookie) to every backend request from the first render on.
 installAuthFetch(process.env.NEXT_PUBLIC_SERVER_URL);
 
 const DataContext = createContext();
@@ -160,6 +160,13 @@ export function DataProvider({ children }) {
         setMounted(true);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    // Videos, PDFs, books and lessons load with the HttpOnly media cookie, not the bearer
+    // token. Renew it on load for people who signed in earlier, then every 6 hours.
+    useEffect(() => {
+        if (!authenticated) return undefined;
+        return startMediaSessionKeepAlive(SERVER_URL);
+    }, [authenticated, SERVER_URL]);
 
     const logout = useCallback(async () => {
         // Shared devices: work waiting in the offline submission queue belongs to this user.

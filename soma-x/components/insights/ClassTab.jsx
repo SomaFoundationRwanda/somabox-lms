@@ -5,10 +5,12 @@ import { useCourse } from "@/context/CourseContext";
 import { Section, List, ListRow } from "@/components/layout";
 import { moduleWeekLabel } from "@/lib/moduleLabels";
 import AiClassSummary from "./AiClassSummary";
+import { useAttendanceText } from "@/components/attendance/text";
 import { BandBar, DeltaText, Figure, basedOn, fmtPct, fmtRate, itemHref, ITEM_TYPE_LABELS } from "./bits";
 
 export default function ClassTab({ data, reload, onShowFlagged }) {
   const { courseId } = useCourse();
+  const { tx, txn } = useAttendanceText();
   const c = data.class || {};
   const thresholds = data.thresholds;
   const outcomes = Array.isArray(data.outcomes) ? data.outcomes : [];
@@ -59,6 +61,17 @@ export default function ClassTab({ data, reload, onShowFlagged }) {
               <button type="button" onClick={onShowFlagged} className="font-semibold text-[#0D9488] hover:underline">
                 See who and why
               </button>
+            )}
+          />
+          <Figure
+            label={tx("insightsRateLabel")}
+            value={fmtPct(c.attendanceRate)}
+            sub={c.attendanceRate == null ? tx("insightsNoAttendance") : (
+              <>
+                {txn("basedOnLearners", c.learnersWithAttendance ?? 0)}
+                {" · "}
+                <Link href={`/course/${courseId}/attendance`} className="font-semibold text-[#0D9488] hover:underline">{tx("openAttendance")}</Link>
+              </>
             )}
           />
           <Figure

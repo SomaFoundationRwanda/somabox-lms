@@ -1,3 +1,5 @@
+import FrameView from "@/components/guest/FrameView";
+
 export async function generateMetadata({ searchParams }) {
     const {slug} = await searchParams
     
@@ -28,11 +30,10 @@ export default async function Frame({ searchParams }) {
 		: `${SERVER_URL}/${slug}`;
 
     return (
-        <iframe
+        <FrameView
             src={iframeUrl}
-            className="w-full h-screen"
             title={`SomaBox Frame - ${slug}`}
-            style={{ border: "none" }}
+            next={`/frame?slug=${encodeURIComponent(slug)}`}
         />
     );
 }

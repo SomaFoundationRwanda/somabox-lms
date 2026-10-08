@@ -1,7 +1,8 @@
 'use client';
 
 import { Globe, ChevronRight } from 'lucide-react';
-import { useState } from 'react';
+import { useContext, useState } from 'react';
+import DataContext from '@/context/DataContext';
 import { useLanguage } from '@/context/LanguageContext';
 import Typography from './Typography';
 import Input from './input';
@@ -15,6 +16,8 @@ const HeaderSection = ({
   onBreadcrumbClick
 }) => {
   const { t, lang, setLang } = useLanguage();
+  // Guests (exploring without an account) have no notifications.
+  const { authenticated } = useContext(DataContext) || {};
   const [showLangMenu, setShowLangMenu] = useState(false);
 
   const languages = ["en", "fr", "rw", "sw", "es"];
@@ -104,7 +107,7 @@ const HeaderSection = ({
 
           {/* Right section: Language selector + Notifications — pushed left of illustration */}
           <div className="shrink-0 w-full md:w-fit md:mr-[260px] flex items-center gap-3">
-            <NotificationBellDrawer />
+            {authenticated ? <NotificationBellDrawer /> : null}
             <Input
               prefix={<Globe className="w-4 h-4 mr-2" />}
               value={lang}

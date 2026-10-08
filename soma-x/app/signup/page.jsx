@@ -4,10 +4,10 @@ import { ChevronDown, Eye, EyeOff, Globe } from "lucide-react";
 import { useLanguage } from '@/context/LanguageContext';
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useToast } from "@/context/ToastContext";
-import { setSessionToken } from "@/lib/session";
+import { renewMediaSession, safeNext, setSessionToken, takeNext } from "@/lib/session";
 
 export default function SignupPage() {
   const { t, setLang, lang } = useLanguage();
@@ -19,6 +19,13 @@ export default function SignupPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const languages = ["en", "fr", "rw", "sw", "es"];
+  // Where a guest was going when they were asked to sign up (?next=, or remembered).
+  const [next, setNext] = useState('');
+  useEffect(() => {
+    const target = takeNext();
+    setNext(target);
+    if (target) window.history.replaceState(null, '', `/signup?next=${encodeURIComponent(target)}`);
+  }, []);
 
   // Child-friendly password strength calculator
   const calculateStrength = (pwd) => {
@@ -76,9 +83,15 @@ export default function SignupPage() {
       }
 
       setSessionToken(data.token);
+      // Registration set the media cookie (credentials: "include"); renew it once more so
+      // files open straight away.
+      await renewMediaSession(SERVER_URL);
       showToast('Account created successfully! Redirecting to your dashboard...', 'success');
+      // New accounts always meet the mandatory profile step first: it opens on every
+      // signed-in page (and on /frame) until gender, location and grade are filled in, and
+      // then they're where they wanted to be.
       setTimeout(() => {
-        window.location.href = '/manage/scholar-dashboard';
+        window.location.href = safeNext(next) || '/manage/scholar-dashboard';
       }, 1000);
     } catch (err) {
       console.error('Signup error:', err);
@@ -315,10 +328,17 @@ export default function SignupPage() {
           {/* Sign in */}
           <p className="text-center text-[14px] text-slate-700 font-medium">
             Already have an account?{' '}
-            <Link href="/" className="text-accent-dark font-extrabold hover:underline underline-offset-2">
+            <Link href={next ? `/?next=${encodeURIComponent(next)}` : "/"} className="text-accent-dark font-extrabold hover:underline underline-offset-2">
               Sign In
             </Link>
           </p>
+          {next ? (
+            <p className="text-center text-[13px] text-slate-600 font-medium">{t("guest.gateWhy")}</p>
+          ) : (
+            <Link href="/home" className="block text-center text-[13px] text-slate-600 font-semibold hover:underline underline-offset-2">
+              {t("guest.exploreWithoutAccount")}
+            </Link>
+          )}
         </form>
       </div>
     </div>

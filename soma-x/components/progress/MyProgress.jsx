@@ -7,6 +7,7 @@ import Breadcrumbs from "@/components/course/Breadcrumbs";
 import { PageHeader, Section, List, ListRow, EmptyState } from "@/components/layout";
 import { formatDate, formatInstantDate } from "@/lib/dates";
 import { trackEvent } from "@/lib/usage";
+import { useAttendanceText, attended } from "@/components/attendance/text";
 import { fmtPct, TrajectoryBars, WorkStateBadge, itemHref, ITEM_TYPE_LABELS, LoadingRows, ErrorNote, bandFor } from "@/components/insights/bits";
 
 // A learner's own progress in one course: growth per outcome, recent results, and their work.
@@ -59,6 +60,7 @@ export default function MyProgress({ sectionKey = "progress" }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const tracked = useRef(false);
+  const { txn, tx } = useAttendanceText();
 
   const load = useCallback(async () => {
     if (!SERVER_URL || !courseId || !userEmail) return;
@@ -124,6 +126,13 @@ export default function MyProgress({ sectionKey = "progress" }) {
                 </p>
               </div>
             </Section>
+
+            {data.attendance?.counted > 0 ? (
+              <p className="-mt-4 text-sm text-slate-600 dark:text-slate-300">
+                {txn("youAttended", data.attendance.counted, { a: attended(data.attendance) })}.{" "}
+                <Link href={`/course/${courseId}/attendance`} className="font-semibold text-[#0D9488] hover:underline">{tx("openMyAttendance")}</Link>
+              </p>
+            ) : null}
 
             <Section title="Your outcomes" description="Each outcome now, compared with where you started (your Week 0 baseline). Practice doesn't count here.">
               {outcomes.length === 0 ? (

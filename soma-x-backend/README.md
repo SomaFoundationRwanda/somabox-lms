@@ -38,6 +38,8 @@ The box works fully offline. Changes to synced tables (courses, outcomes, enroll
 quiz attempts, outcome results, usage events, people) are captured by database triggers into
 `sync_outbox` and pushed on a schedule (never at login). Admins choose what leaves the box on
 the **Sync** admin page (default: anonymous IDs only, no names, emails, or written answers).
+The cloud keeps what it receives indefinitely (school decision, 2026-10-08); the receiver must
+not expire records. The box's own usage-log retention setting only applies on the box.
 
 Pick a destination in `.env` (with neither, records wait on the box until one is set):
 

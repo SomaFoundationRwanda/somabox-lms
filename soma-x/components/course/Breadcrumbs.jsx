@@ -23,6 +23,7 @@ const SECTION_LABELS = {
   settings: "Settings",
   ai: "AI drafts",
   insights: "Insights",
+  attendance: "Attendance",
   progress: "My progress",
 };
 

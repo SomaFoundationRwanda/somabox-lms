@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { Compass, Users } from "lucide-react";
 import DataContext from "@/context/DataContext";
 import AsyncListState from "@/components/course/AsyncListState";
+import { useGuestGate } from "@/components/guest/GuestGate";
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function DiscoverCoursesPage() {
   const router = useRouter();
@@ -13,6 +15,11 @@ export default function DiscoverCoursesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [joiningId, setJoiningId] = useState(null);
+  const { t } = useLanguage();
+  // Guests can see public courses; joining one needs an account.
+  const { isGuest, requireAccount } = useGuestGate();
+  // Back from signing up to join a course: ?join=<id> points it out (joining stays a click).
+  const [highlightId, setHighlightId] = useState(null);
 
   const userEmail = user?.email || "";
 
@@ -34,7 +41,20 @@ export default function DiscoverCoursesPage() {
 
   useEffect(() => { load(); }, [load]);
 
+  useEffect(() => {
+    if (isGuest || !courses?.length) return;
+    let joinId = null;
+    try { joinId = new URLSearchParams(window.location.search).get("join"); } catch { /* ignore */ }
+    if (!joinId) return;
+    setHighlightId(joinId);
+    window.history.replaceState(null, "", window.location.pathname);
+    requestAnimationFrame(() => {
+      document.getElementById(`course-${joinId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  }, [isGuest, courses]);
+
   const join = async (courseId) => {
+    if (!requireAccount(`/discover-courses?join=${encodeURIComponent(courseId)}`)) return;
     if (!userEmail) return;
     setJoiningId(courseId);
     try {
@@ -74,7 +94,11 @@ export default function DiscoverCoursesPage() {
           {(list) => (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {list.map((course) => (
-                <div key={course.id} className="rounded-xl border border-slate-200 bg-white overflow-hidden flex flex-col">
+                <div
+                  key={course.id}
+                  id={`course-${course.id}`}
+                  className={`rounded-xl border bg-white overflow-hidden flex flex-col ${String(course.id) === highlightId ? "border-[#203A3A] ring-2 ring-[#203A3A]/40" : "border-slate-200"}`}
+                >
                   {course.coverImageUrl ? (
                     <img src={`${SERVER_URL}${course.coverImageUrl}`} alt={course.title} className="w-full h-28 object-cover" />
                   ) : (
@@ -95,7 +119,7 @@ export default function DiscoverCoursesPage() {
                       disabled={joiningId === course.id}
                       className="mt-1 text-xs font-semibold text-white bg-[#203A3A] rounded-lg px-3 py-2 disabled:opacity-50"
                     >
-                      {joiningId === course.id ? "Joining..." : "Join Course"}
+                      {isGuest ? t("guest.signUpToJoin") : joiningId === course.id ? "Joining..." : "Join Course"}
                     </button>
                   </div>
                 </div>

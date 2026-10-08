@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import UniversalPlayerModal from "@/components/ui/UniversalPlayerModal";
 import { BookOpen } from "lucide-react";
+import { useGuestGate } from "@/components/guest/GuestGate";
 
 // react-reader (epub.js) loads only when a book is opened.
 const EpubReader = dynamic(() => import("./EpubReader"), { ssr: false });
@@ -26,6 +27,24 @@ const BooksPage = ({ selectedFilters, searchQuery }) => {
     const [selectedBook, setSelectedBook] = useState(null);
     const [imageErrors, setImageErrors] = useState({});
     const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL;
+    // Guests see the shelf and covers; reading a book needs an account.
+    const { isGuest, requireAccount } = useGuestGate();
+
+    const openBook = (book) => {
+        if (!requireAccount(`/library?book=${encodeURIComponent(book.id)}`)) return;
+        setSelectedBook(book);
+    };
+
+    // Back from signing up (or logging in) to read a book: ?book=<id> opens it.
+    useEffect(() => {
+        if (isGuest || !books.length) return;
+        let bookId = null;
+        try { bookId = new URLSearchParams(window.location.search).get("book"); } catch { /* ignore */ }
+        if (!bookId) return;
+        const book = books.find((b) => String(b.id) === bookId);
+        if (book) setSelectedBook(book);
+        window.history.replaceState(null, "", window.location.pathname);
+    }, [isGuest, books]);
 
     useEffect(() => {
         async function loadBooks() {
@@ -105,7 +124,7 @@ const BooksPage = ({ selectedFilters, searchQuery }) => {
                         <button
                             key={item.id ?? index}
                             type="button"
-                            onClick={() => setSelectedBook(item)}
+                            onClick={() => openBook(item)}
                             className="group text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488] focus-visible:ring-offset-2 rounded-xl"
                         >
                             {/* Cover */}

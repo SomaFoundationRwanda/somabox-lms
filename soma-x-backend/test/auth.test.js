@@ -16,9 +16,10 @@ const POLICY = {
   "GET /auth/me": "any",
   "GET /auth/verify-auth": "any",
   "POST /auth/logout": "any",
+  "POST /auth/media-session": "any",
   "GET /analytics/branding": "public",
   "GET /ai/health": "any",
-  "GET /library/file/:id": "public",
+  "GET /library/file/:id": "any", // signed media cookie or token
 
   "GET /users": "admin",
   "POST /users": "admin",
@@ -60,9 +61,9 @@ const POLICY = {
   "GET /analytics/my-data": "any",
   "GET /analytics/users/:userId/data": "admin",
 
-  "GET /content/main-categories": "any",
-  "GET /content/levels/summary": "any",
-  "GET /content/custom-content/summary": "any",
+  "GET /content/main-categories": "public", // catalogue guests may browse
+  "GET /content/levels/summary": "public", // catalogue guests may browse
+  "GET /content/custom-content/summary": "public", // catalogue guests may browse
   "GET /content/content/:slug": "any",
   "GET /content/manager/list": "staff",
   "POST /content/manager/create-folder": "staff",
@@ -73,8 +74,8 @@ const POLICY = {
   "POST /library/download": "admin",
   "POST /library/upload": "admin",
   "GET /library/download-status": "admin",
-  "GET /library/books": "any",
-  "GET /library/categories": "any",
+  "GET /library/books": "public", // catalogue guests may browse
+  "GET /library/categories": "public", // catalogue guests may browse
   "DELETE /library/book/:id": "admin",
 
   "GET /cloud/available-content": "admin",
@@ -94,7 +95,7 @@ const POLICY = {
   // Course routes that aren't about one existing course the caller belongs to.
   "POST /courses": "staff",
   "GET /courses/mine": "any",
-  "GET /courses/public": "any",
+  "GET /courses/public": "public", // catalogue guests may browse
   "GET /courses/all": "admin",
   "POST /courses/:id/join": "any",
   "POST /courses/:id/enroll": "any",
@@ -381,7 +382,7 @@ test("file routes reject paths outside their folders", async () => {
   const dl = await ctx.api("POST", "/cloud/download", { token, body: { files: ["/etc/passwd"] } });
   assert.equal(dl.status, 400);
 
-  const book = await ctx.api("GET", `/library/file/${encodeURIComponent("../../package")}`);
+  const book = await ctx.api("GET", `/library/file/${encodeURIComponent("../../package")}`, { token: ctx.tokens.student });
   assert.equal(book.status, 404);
 
   const list = await ctx.api("GET", `/content/manager/list?path=${encodeURIComponent("custom-content/../../")}`, { token: ctx.tokens.teacher });

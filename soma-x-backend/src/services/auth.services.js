@@ -2,6 +2,7 @@ import express from 'express';
 import bcrypt from "bcrypt";
 import { serverDb } from '../helpers/db-manager.js';
 import { createSession, revokeSession } from '../helpers/auth.js';
+import { setMediaCookie, clearMediaCookie } from '../helpers/media.js';
 
 const router = express.Router();
 
@@ -30,6 +31,7 @@ router.post('/login', async (req, res) => {
         }
 
         const token = await createSession(row.id, req.headers['user-agent']);
+        await setMediaCookie(res, row.id);
 
         return res.json({
             message: 'Login successful',
@@ -83,6 +85,7 @@ router.post('/register', async (req, res) => {
         `).get(email, fullName, passwordHash);
 
         const token = await createSession(row.id, req.headers['user-agent']);
+        await setMediaCookie(res, row.id);
         return res.status(201).json({
             message: 'Account created',
             token,
@@ -128,11 +131,23 @@ router.get('/verify-auth', sendCurrentUser);
 router.post('/logout', async (req, res) => {
     try {
         await revokeSession(req.sessionToken);
+        clearMediaCookie(res);
         return res.json({ message: 'Logged out' });
     } catch (error) {
         console.error('Logout error:', error);
         return res.status(500).json({ message: 'Internal server error' });
     }
+});
+
+// Renews the media cookie for a signed-in session (the app calls this on load and every few
+// hours), so files keep opening for people who signed in before the cookie existed or long ago.
+router.post('/media-session', async (req, res) => {
+    if (!req.user) {
+        clearMediaCookie(res);
+        return res.status(401).json({ message: 'Please log in to continue' });
+    }
+    await setMediaCookie(res, req.user.id);
+    return res.json({ ok: true });
 });
 
 export default router;

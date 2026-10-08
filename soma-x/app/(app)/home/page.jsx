@@ -9,12 +9,15 @@ import Link from "next/link";
 import { useLanguage } from '@/context/LanguageContext';
 import Typography from "@/components/ui/Typography";
 import { Button } from "@/components/ui/button";
+import { useGuestGate } from "@/components/guest/GuestGate";
 
 export default function SomaboxHomepage() {
     const router = useRouter();
     const { t } = useLanguage();
     const { mainCategories, customContentSummary } = useContext(DataContext);
     const [activeTab, setActiveTab] = useState(null);
+    // Web lessons (Khan Academy, W3Schools, Wikipedia...) open only with an account.
+    const { requireAccount } = useGuestGate();
 
     // --- Optimized State Handling with useMemo ---
 
@@ -133,6 +136,9 @@ export default function SomaboxHomepage() {
                                         <a
                                             key={index}
                                             href={`/frame?slug=${course.slug}`}
+                                            onClick={(e) => {
+                                                if (!requireAccount(`/frame?slug=${course.slug}`)) e.preventDefault();
+                                            }}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="block group rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-dark focus-visible:ring-offset-2"

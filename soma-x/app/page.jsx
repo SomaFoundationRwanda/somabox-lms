@@ -1,12 +1,12 @@
 "use client"
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLanguage } from '@/context/LanguageContext';
-import { ChevronDown, Eye, EyeOff, Globe, Loader2 } from "lucide-react";
+import { ChevronDown, Compass, Eye, EyeOff, Globe, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import Image from "next/image";
 import { useToast } from "@/context/ToastContext";
-import { setSessionToken } from "@/lib/session";
+import { renewMediaSession, safeNext, setSessionToken, takeNext } from "@/lib/session";
 
 const AuthComp = () => {
     const { t, setLang, lang } = useLanguage();
@@ -19,6 +19,16 @@ const AuthComp = () => {
     const [formData, setFormData] = useState({ email: '', password: '' });
     const [loginError, setLoginError] = useState('');
     const [loading, setLoading] = useState(false);
+    // Where a guest was going when they were asked to sign in (?next=, or remembered).
+    const [next, setNext] = useState("");
+    useEffect(() => {
+        const target = takeNext();
+        setNext(target);
+        if (target) {
+            // Keep it in the address bar so a reload, or the sign-up link, still knows it.
+            window.history.replaceState(null, "", `/?next=${encodeURIComponent(target)}`);
+        }
+    }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -38,6 +48,9 @@ const AuthComp = () => {
 
             const userRole = String(data.user?.role || 'scholar').toLowerCase();
             setSessionToken(data.token);
+            // The login response set the media cookie (this request used credentials:
+            // "include"); renew it once more so videos and books work straight away.
+            await renewMediaSession(SERVER_URL);
 
             // The backend blocks everything else until the password is changed.
             if (data.user?.must_change_password) {
@@ -49,7 +62,8 @@ const AuthComp = () => {
             showToast(`Welcome back, ${data.user?.full_name || 'User'}! Login successful.`, 'success');
 
             setTimeout(() => {
-                if (userRole === 'teacher') window.location.href = '/manage/teacher';
+                if (safeNext(next)) window.location.href = safeNext(next);
+                else if (userRole === 'teacher') window.location.href = '/manage/teacher';
                 else if (userRole === 'admin') window.location.href = '/manage/admin';
                 else window.location.href = '/manage/scholar-dashboard';
             }, 600);
@@ -155,6 +169,11 @@ const AuthComp = () => {
                         <p className="text-slate-600 text-[14px] font-medium mt-1">
                             Login to manage your account
                         </p>
+                        {next ? (
+                            <p className="text-accent-dark text-[13px] font-semibold mt-2">
+                                {t("guest.continueHint")}
+                            </p>
+                        ) : null}
                     </div>
 
                     {/* Email */}
@@ -234,10 +253,19 @@ const AuthComp = () => {
                     {/* Sign up */}
                     <p className="text-center text-[14px] text-slate-700 font-medium">
                         Don&apos;t have an account?{' '}
-                        <Link href="/signup" className="text-accent-dark font-extrabold hover:underline underline-offset-2">
+                        <Link href={next ? `/signup?next=${encodeURIComponent(next)}` : "/signup"} className="text-accent-dark font-extrabold hover:underline underline-offset-2">
                             Sign Up
                         </Link>
                     </p>
+
+                    {/* Explore as a guest */}
+                    <Link
+                        href="/home"
+                        className="w-full h-11 rounded-lg border-2 border-slate-300 hover:border-slate-400 text-[14px] font-bold text-slate-800 flex items-center justify-center gap-2 transition-colors"
+                    >
+                        <Compass className="w-4 h-4" aria-hidden="true" />
+                        {t("guest.exploreWithoutAccount")}
+                    </Link>
                 </form>
             </div>
         </div>

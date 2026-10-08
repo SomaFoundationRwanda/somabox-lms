@@ -11,6 +11,7 @@ export const DEFAULT_SCOPE = {
   grades: true,
   outcomeResults: true,
   events: true,
+  attendance: true,
   people: "pseudonymous", // "none" | "pseudonymous" | "full"
   submissionText: false,
 };
@@ -26,6 +27,8 @@ const CATEGORY = {
   quiz_attempts: "grades",
   outcome_results: "outcomeResults",
   usage_events: "events",
+  attendance_sessions: "attendance",
+  attendance_records: "attendance",
   users: "people",
 };
 
@@ -37,6 +40,8 @@ const EMAIL_COLUMNS = {
   assignment_submissions: ["scholar_email", "graded_by_teacher_email"],
   grade_audit_log: ["scholar_email", "changed_by"],
   submission_scores: ["graded_by"],
+  attendance_sessions: ["created_by"],
+  attendance_records: ["marked_by"],
 };
 const TEXT_COLUMNS = { assignment_submissions: ["body", "feedback"] };
 const PSEUDONYMOUS_USER_FIELDS = ["id", "sync_id", "role", "grade_level", "is_active", "created_at"];

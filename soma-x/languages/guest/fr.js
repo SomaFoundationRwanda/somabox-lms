@@ -1,0 +1,27 @@
+// guest screen text (fr). Keys must match en.js; checked by scripts/check-ui-translations.mjs.
+export default {
+    "banner": "Vous explorez en tant qu'invité. Inscrivez-vous pour regarder, lire et suivre des cours.",
+    "signUp": "S'inscrire",
+    "logIn": "Se connecter",
+    "haveAccount": "J'ai déjà un compte",
+    "notNow": "Pas maintenant",
+    "close": "Fermer",
+    "gateTitle": "Créez un compte gratuit pour ouvrir ceci",
+    "gateWhy": "Ainsi, votre apprentissage est enregistré et votre école peut vous accompagner.",
+    "gateReturn": "Nous vous ramènerons ici juste après.",
+    "exploreWithoutAccount": "Explorer sans compte",
+    "continueHint": "Connectez-vous pour reprendre là où vous en étiez.",
+    "navExplore": "Explorer",
+    "navLibrary": "Bibliothèque",
+    "navCourses": "Découvrir des cours",
+    "navLabel": "Explorer SomaBox",
+    "headerTitle": "Bienvenue sur SomaBox",
+    "headerSubtitle": "Découvrez gratuitement des leçons, des livres et des cours.",
+    "signUpToJoin": "S'inscrire pour rejoindre",
+    "openingFile": "Ouverture…",
+    "mediaExpiredTitle": "Votre session pour les fichiers a expiré — reconnectez-vous",
+    "mediaExpiredBody": "Reconnectez-vous pour continuer à regarder et à lire. Vous reviendrez sur cette page.",
+    "signInAgain": "Se reconnecter",
+    "language": "Langue",
+    "mediaForbidden": "Ce fichier appartient à un cours dont vous ne faites pas partie."
+};

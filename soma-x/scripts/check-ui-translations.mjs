@@ -15,11 +15,20 @@ const FILES = { en: "english", fr: "french", rw: "kinywanda", sw: "swahili", es:
 // The language files import their explainers with extension-less paths (bundler style), which
 // plain Node can't resolve. Explainers aren't checked here, so stub those imports out and load
 // each file's default export from source.
-async function load(name) {
-  const src = readFileSync(path.join(dir, `${name}.js`), "utf8")
+// Feature folders whose text lives in its own files (languages/<folder>/<code>.js), loaded
+// into the main file under the same key. Explainers are checked by check-explainers.mjs.
+const SUBTREES = ["attendance", "guest"];
+const CODES = { english: "en", french: "fr", kinywanda: "rw", swahili: "sw", spanish: "es" };
+
+async function loadModule(file) {
+  const src = readFileSync(file, "utf8")
     .replace(/^\s*import\s+(\w+)\s+from\s+["'][^"']+["'];?\s*$/gm, "const $1 = {};");
-  const mod = await import(`data:text/javascript;base64,${Buffer.from(src).toString("base64")}`);
-  const { explainers, ...rest } = mod.default; // eslint-disable-line no-unused-vars
+  return (await import(`data:text/javascript;base64,${Buffer.from(src).toString("base64")}`)).default;
+}
+
+async function load(name) {
+  const { explainers, ...rest } = await loadModule(path.join(dir, `${name}.js`)); // eslint-disable-line no-unused-vars
+  for (const sub of SUBTREES) rest[sub] = await loadModule(path.join(dir, sub, `${CODES[name]}.js`));
   return rest;
 }
 

@@ -1,3 +1,4 @@
+import { requireMediaAccess } from '../helpers/media.js';
 import express from 'express';
 import fs from 'fs';
 import path from 'path';
@@ -247,8 +248,9 @@ router.get('/books', async (req, res) => {
     }
 });
 
-// Public: opened directly by the PDF/EPUB viewer, which can't send a bearer token.
-router.get('/file/:id', (req, res) => {
+// Opened directly by the PDF/EPUB viewer, which can't send a bearer token: the signed media
+// cookie (set at sign-in) is checked instead.
+router.get('/file/:id', requireMediaAccess(), (req, res) => {
     if (!isBookId(req.params.id)) return res.status(404).json({ error: 'Book not found' });
     const epubPath = path.join(LIBRARY_DIR, `${req.params.id}.epub`);
     const pdfPath = path.join(LIBRARY_DIR, `${req.params.id}.pdf`);

@@ -1,0 +1,27 @@
+// guest screen text (sw). Keys must match en.js; checked by scripts/check-ui-translations.mjs.
+export default {
+    "banner": "Unavinjari kama mgeni. Jisajili ili utazame, usome na ujiunge na kozi.",
+    "signUp": "Jisajili",
+    "logIn": "Ingia",
+    "haveAccount": "Nina akaunti tayari",
+    "notNow": "Si sasa",
+    "close": "Funga",
+    "gateTitle": "Fungua akaunti ya bure ili ufungue hiki",
+    "gateWhy": "Ili masomo yako yahifadhiwe na shule yako iweze kukusaidia.",
+    "gateReturn": "Tutakurudisha hapa hapa baadaye.",
+    "exploreWithoutAccount": "Vinjari bila akaunti",
+    "continueHint": "Ingia ili uendelee ulipoishia.",
+    "navExplore": "Vinjari",
+    "navLibrary": "Maktaba",
+    "navCourses": "Gundua kozi",
+    "navLabel": "Vinjari SomaBox",
+    "headerTitle": "Karibu SomaBox",
+    "headerSubtitle": "Vinjari masomo, vitabu na kozi bure.",
+    "signUpToJoin": "Jisajili ili ujiunge",
+    "openingFile": "Inafunguliwa…",
+    "mediaExpiredTitle": "Muda wako wa kufungua faili umeisha — ingia tena",
+    "mediaExpiredBody": "Ingia tena ili uendelee kutazama na kusoma. Utarudi kwenye ukurasa huu.",
+    "signInAgain": "Ingia tena",
+    "language": "Lugha",
+    "mediaForbidden": "Faili hili ni la kozi ambayo haumo."
+};

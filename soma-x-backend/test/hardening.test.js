@@ -213,6 +213,7 @@ test("an enrolled learner never succeeds on a teacher-only course route", async 
     "GET /courses/:id/setup-status", "POST /courses/:id/enroll", "POST /courses/:id/accept-invite", "POST /courses/:id/join",
     "GET /courses/:id/rubrics", "GET /courses/:id/activity", "GET /courses/:id/module-items/sequence",
     "GET /courses/:id/module-items/sequence-position", "POST /courses/:id/module-items/:moduleItemId/progress",
+    "GET /courses/:id/attendance/me",
   ]);
   const routes = [];
   const walk = (prefix, stack) => {

@@ -66,8 +66,10 @@ export default function MandatoryProfileSetupModal() {
     const [province, setProvince] = useState('');
     const [district, setDistrict] = useState('');
     const [customDistrict, setCustomDistrict] = useState('');
-    const [isRural, setIsRural] = useState(false);
-    const [disabilityStatus, setDisabilityStatus] = useState('none');
+    // These two must be answered explicitly: a pre-ticked default would record "urban" or
+    // "no disability" for people who never chose (the school reports on these).
+    const [isRural, setIsRural] = useState(null);
+    const [disabilityStatus, setDisabilityStatus] = useState('');
     const [schoolName, setSchoolName] = useState('');
     const [gradeLevel, setGradeLevel] = useState('');
     const [preferredLanguage, setPreferredLanguage] = useState(lang || 'en');
@@ -95,8 +97,6 @@ export default function MandatoryProfileSetupModal() {
 
         const checkProfileCompleteness = async () => {
             try {
-                // Check if user already marked it completed locally
-                const isLocallyComplete = typeof window !== 'undefined' && localStorage.getItem(`somabox_profile_completed_${userEmail}`) === 'true';
                 const res = await fetch(`${SERVER_URL}/users/profile/view`);
                 if (!res.ok) {
                     setCheckingStatus(false);
@@ -110,29 +110,16 @@ export default function MandatoryProfileSetupModal() {
                 if (data.gender && data.gender !== 'prefer_not_to_say') setGender(data.gender);
                 if (data.region_province && data.region_province !== 'Not Specified') setProvince(data.region_province);
                 if (data.region_district && data.region_district !== 'Not Specified') setDistrict(data.region_district);
-                if (data.is_rural !== undefined) setIsRural(data.is_rural === 1);
-                if (data.disability_status) setDisabilityStatus(data.disability_status);
+                // Only reuse these once they were actually answered (older accounts hold defaults).
+                if (data.isProfileComplete && data.is_rural != null) setIsRural(Number(data.is_rural) === 1);
+                if (data.isProfileComplete && data.disability_status) setDisabilityStatus(data.disability_status);
                 if (data.school_name) setSchoolName(data.school_name);
                 if (data.grade_level) setGradeLevel(data.grade_level);
                 if (data.preferred_language) setPreferredLanguage(data.preferred_language);
 
-                // Check profile completeness
-                const hasGender = Boolean(data.gender && data.gender !== 'prefer_not_to_say' && data.gender.trim() !== '');
-                const hasProvince = Boolean(data.region_province && data.region_province !== 'Not Specified' && data.region_province.trim() !== '');
-                const hasDistrict = Boolean(data.region_district && data.region_district !== 'Not Specified' && data.region_district.trim() !== '');
-
-                const isComplete = Boolean(data.isProfileComplete || (hasGender && hasProvince && hasDistrict));
-
-                if (isComplete) {
-                    // Profile is already filled and complete: record completion flag and DO NOT show popup
-                    if (typeof window !== 'undefined') {
-                        localStorage.setItem(`somabox_profile_completed_${userEmail}`, 'true');
-                    }
-                    setIsOpen(false);
-                } else if (!isLocallyComplete) {
-                    // Profile is missing required information and not marked complete: show mandatory onboarding
-                    setIsOpen(true);
-                }
+                // The server decides: a profile counts as complete once every required answer was
+                // given explicitly (it records when). Nothing on this device can skip it.
+                setIsOpen(!data.isProfileComplete);
             } catch (err) {
                 console.error("Error checking profile completion:", err);
             } finally {
@@ -149,7 +136,7 @@ export default function MandatoryProfileSetupModal() {
     const isStep1Valid = fullName.trim() !== '' && !!gender;
     const isStep2Valid = !!province && (
         province === "International / Other" ? customDistrict.trim() !== '' : !!district
-    );
+    ) && isRural !== null && !!disabilityStatus;
     const isStep3Valid = currentRole !== 'scholar' || !!gradeLevel;
 
     const STEP_LABELS = { 1: "Personal Details", 2: "Location & Region", 3: "Academic Info" };
@@ -239,7 +226,8 @@ export default function MandatoryProfileSetupModal() {
                     disabilityStatus,
                     schoolName: schoolName.trim(),
                     gradeLevel,
-                    preferredLanguage
+                    preferredLanguage,
+                    completeProfile: true
                 })
             });
 
@@ -248,10 +236,6 @@ export default function MandatoryProfileSetupModal() {
                 throw new Error(errData.message || 'Failed to update profile');
             }
 
-            // Persist completion flag so it never prompts again
-            if (typeof window !== 'undefined') {
-                localStorage.setItem(`somabox_profile_completed_${userEmail}`, 'true');
-            }
             // Pick up the new name in the header and menus.
             await refreshUser();
             if (preferredLanguage) {
@@ -541,34 +525,33 @@ export default function MandatoryProfileSetupModal() {
                                         )}
                                     </div>
 
-                                    {/* Rural / Urban Checkbox */}
-                                    <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80 flex items-start gap-3">
-                                        <input
-                                            type="checkbox"
-                                            id="ruralOnboarding"
-                                            checked={isRural}
-                                            onChange={(e) => setIsRural(e.target.checked)}
-                                            className="mt-0.5 w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500 cursor-pointer"
-                                        />
-                                        <label htmlFor="ruralOnboarding" className="text-xs font-semibold text-slate-800 dark:text-slate-200 cursor-pointer select-none">
-                                            Located in Rural / Remote Community
-                                            <span className="block text-[11px] font-normal text-slate-500 dark:text-slate-400 mt-0.5">
-                                                Enables offline caching and low-bandwidth optimizations automatically.
-                                            </span>
-                                        </label>
-                                    </div>
+                                    {/* Rural / Urban: an explicit choice */}
+                                    <fieldset className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80">
+                                        <legend className="text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200 px-1">
+                                            Where do you live? <span className="text-rose-500">*</span>
+                                        </legend>
+                                        <div className="mt-2 grid grid-cols-2 gap-2">
+                                            {[{ value: true, label: "Rural / remote area" }, { value: false, label: "Town / city" }].map((opt) => (
+                                                <label key={opt.label} className={`flex items-center gap-2 min-h-[44px] px-3 rounded-lg border text-sm font-semibold cursor-pointer ${isRural === opt.value ? "border-teal-600 bg-teal-50 dark:bg-teal-950/40 text-teal-800 dark:text-teal-200" : "border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200"}`}>
+                                                    <input type="radio" name="ruralOnboarding" checked={isRural === opt.value} onChange={() => setIsRural(opt.value)} className="w-4 h-4 text-teal-600 focus:ring-teal-500" />
+                                                    {opt.label}
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </fieldset>
 
                                     {/* Inclusion & Disability Support */}
                                     <div>
                                         <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1.5">
-                                            Accessibility & Inclusion Support
+                                            Accessibility & Inclusion Support <span className="text-rose-500">*</span>
                                         </label>
                                         <select aria-label="Accessibility & Inclusion Support"
                                             value={disabilityStatus}
                                             onChange={(e) => setDisabilityStatus(e.target.value)}
                                             className="w-full h-11 px-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/60 text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all"
                                         >
-                                            <option value="none">None / Standard Interface</option>
+                                            <option value="" disabled>Choose one</option>
+                                            <option value="none">No disability or support need</option>
                                             <option value="visual">Visual Impairment (High Contrast / Screen Reader)</option>
                                             <option value="hearing">Hearing Impairment (Captions / Visual Cues)</option>
                                             <option value="mobility">Mobility / Motor Assistance</option>

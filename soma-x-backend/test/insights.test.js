@@ -217,6 +217,8 @@ test("admins: school view, retention setting with purge, inclusivity suppresses 
   assert.ok(school.body.courses.every((c) => "averageMastery" in c && "atRisk" in c && Array.isArray(c.teachers)));
   assert.equal((await asTeacher("GET", "/analytics/school")).status, 403);
 
+  // Only learners who answered the profile questions count in the gap report.
+  await db.prepare("UPDATE users SET profile_completed_at = NOW(), is_rural = 0 WHERE email = ?").run(USERS.student.email);
   const gap = (await asAdmin("GET", "/analytics/inclusivity-gap")).body;
   assert.equal(gap.source, "outcome_results");
   assert.equal(gap.ruralVsUrban.urbanAverage, null, "fewer than 5 learners: not reported");

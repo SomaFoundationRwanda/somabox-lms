@@ -8,6 +8,7 @@ import {
   FileText, FileArchive, FileSpreadsheet, FileCode2, Image as ImageIcon,
   Download, Eye, EyeOff, FileIcon, ZoomIn, ZoomOut, Loader2, AlertCircle,
 } from "lucide-react";
+import { MediaAccessNotice, useMediaAccess } from "@/components/guest/MediaAccess";
 
 // Relative upload paths point at the backend.
 export function resolveMediaUrl(url) {
@@ -61,6 +62,9 @@ export function FileAttachmentView({ attrs, Wrapper = "div" }) {
   const fileType = getFileTypeDetails(mime_type, filename);
   const IconComponent = fileType.icon;
   const canPreview = fileType.isPdf || fileType.isImage;
+  // Course files load with the media cookie. The PDF frame can't report a 401, so it's
+  // checked before it's shown; the image preview is checked only if it fails to load.
+  const access = useMediaAccess(fileUrl, { active: previewOpen && canPreview && !uploading, precheck: fileType.isPdf });
 
   // 1. Uploading State Card
   if (uploading) {
@@ -171,7 +175,9 @@ export function FileAttachmentView({ attrs, Wrapper = "div" }) {
         {/* Expanded Inline Preview Block */}
         {previewOpen && canPreview && (
           <div className="border-t border-slate-200 bg-slate-900/5 p-4 animate-in fade-in duration-200">
-            {fileType.isPdf ? (
+            {access.state !== "ok" ? (
+              <MediaAccessNotice state={access.state} compact />
+            ) : fileType.isPdf ? (
               <div className="space-y-3">
                 {/* PDF Toolbar */}
                 <div className="flex items-center justify-between bg-slate-800 text-white px-4 py-2 rounded-lg text-xs">
@@ -202,6 +208,7 @@ export function FileAttachmentView({ attrs, Wrapper = "div" }) {
                 {/* PDF Viewer Container */}
                 <div className="w-full h-[500px] rounded-lg overflow-hidden border border-slate-300 bg-white">
                   <iframe
+                    key={access.reloadKey}
                     src={`${fileUrl || url}#zoom=${zoom}`}
                     title={filename}
                     className="w-full h-full border-none"
@@ -211,7 +218,9 @@ export function FileAttachmentView({ attrs, Wrapper = "div" }) {
             ) : fileType.isImage ? (
               <div className="flex justify-center p-2 bg-slate-100/80 rounded-lg border border-slate-200">
                 <img
+                  key={access.reloadKey}
                   src={fileUrl || url}
+                  onError={access.onMediaError}
                   alt={filename}
                   className="max-h-[450px] w-auto object-contain rounded-md"
                 />
@@ -255,6 +264,9 @@ export function parseVideoSource(src = "") {
 export function VideoEmbedView({ attrs, Wrapper = "div" }) {
   const { src } = attrs;
   const videoInfo = parseVideoSource(src);
+  // Uploaded videos are relative backend paths, loaded with the media cookie.
+  const videoUrl = videoInfo.type === "html5" ? resolveMediaUrl(videoInfo.embedUrl) : videoInfo.embedUrl;
+  const access = useMediaAccess(videoInfo.type === "html5" ? videoUrl : "", { precheck: false });
 
   return (
     <Wrapper className="my-4 select-none">
@@ -268,9 +280,15 @@ export function VideoEmbedView({ attrs, Wrapper = "div" }) {
               allowFullScreen
               className="absolute inset-0 w-full h-full border-none"
             />
+          ) : access.state !== "ok" ? (
+            <div className="absolute inset-0">
+              <MediaAccessNotice state={access.state} tone="dark" compact />
+            </div>
           ) : (
             <video
-              src={videoInfo.embedUrl}
+              key={access.reloadKey}
+              onError={access.onMediaError}
+              src={videoUrl}
               controls
               className="absolute inset-0 w-full h-full object-contain"
             >
@@ -302,11 +320,16 @@ export const IMAGE_ALIGN_CLASSES = {
 export function ImageView({ attrs }) {
   const { url, alt_text = "", caption = "", alignment = "center", size = "medium" } = attrs;
   const imageUrl = resolveMediaUrl(url);
+  const access = useMediaAccess(imageUrl, { precheck: false });
   return (
     <div className="my-4 my-image-block">
       <div className={`flex flex-col ${IMAGE_ALIGN_CLASSES[alignment] || "mx-auto"} ${IMAGE_SIZE_PRESETS[size] || "max-w-[50%]"}`}>
         <div className="relative group rounded-xl overflow-hidden border transition-all border-slate-200">
+          {access.state !== "ok" ? <MediaAccessNotice state={access.state} compact /> : null}
           <img
+            key={access.reloadKey}
+            onError={access.onMediaError}
+            hidden={access.state !== "ok"}
             src={imageUrl || "/placeholder-image.png"}
             alt={alt_text || "Embedded image"}
             className="w-full h-auto object-cover rounded-xl"

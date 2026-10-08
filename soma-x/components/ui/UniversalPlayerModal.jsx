@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useContext } from 'react';
 import { X, Play, Pause, Volume2, VolumeX, Maximize, Minimize, SkipBack, SkipForward, FileText, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { MediaAccessNotice, useMediaAccess } from '@/components/guest/MediaAccess';
 
 const UniversalPlayerModal = ({
     isOpen,
@@ -33,6 +34,12 @@ const UniversalPlayerModal = ({
         const cleanUrl = url.startsWith('/') ? url : `/${url}`;
         return `${SERVER_URL}/content/files${encodeURI(cleanUrl)}`;
     };
+
+    // Files load with the media cookie (no crossOrigin attribute, so the browser sends it).
+    // Check it first: an expired cookie is renewed, or the person is asked to sign in again,
+    // instead of showing a broken player or a PDF frame full of JSON.
+    const mediaUrl = mediaItem?.url ? getMediaUrl(mediaItem.url) : '';
+    const { state: accessState, onMediaError, reloadKey } = useMediaAccess(mediaUrl, { active: Boolean(isOpen && mediaItem) });
 
     // Reset state when modal opens with new media
     useEffect(() => {
@@ -138,15 +145,24 @@ const UniversalPlayerModal = ({
 
     const renderMediaPlayer = () => {
         if (!mediaItem) return null;
+        if (mediaUrl && accessState !== 'ok') {
+            return (
+                <div className="w-full h-full flex items-center justify-center bg-black">
+                    <MediaAccessNotice state={accessState} tone="dark" />
+                </div>
+            );
+        }
 
         switch (mediaItem.type) {
             case 'video':
                 return (
                     <div className="relative w-full h-full bg-black overflow-hidden">
                         <video
+                            key={reloadKey}
                             ref={videoRef}
+                            onError={onMediaError}
                             onClick={togglePlay}
-                            src={getMediaUrl(mediaItem.url)}
+                            src={mediaUrl}
                             poster={mediaItem.thumbnail}
                             className="w-full h-full object-contain"
                             onTimeUpdate={handleTimeUpdate}
@@ -204,8 +220,10 @@ const UniversalPlayerModal = ({
                 return (
                     <div className="flex flex-col items-center justify-center h-full bg-accent-light text-white">
                         <audio
+                            key={reloadKey}
                             ref={audioRef}
-                            src={getMediaUrl(mediaItem.url)}
+                            onError={onMediaError}
+                            src={mediaUrl}
                             onTimeUpdate={handleTimeUpdate}
                             onLoadedMetadata={handleTimeUpdate}
                             onPlay={() => setIsPlaying(true)}
@@ -278,7 +296,8 @@ const UniversalPlayerModal = ({
                             <div className="flex-1 bg-gray-50 flex items-center justify-center">
                                 {mediaItem.url ? (
                                     <iframe
-                                        src={getMediaUrl(mediaItem.url)}
+                                        key={reloadKey}
+                                        src={mediaUrl}
                                         className="w-full h-full border-none"
                                         style={{ transform: `scale(${pdfZoom})` }}
                                         title={mediaItem.title}
@@ -324,7 +343,7 @@ const UniversalPlayerModal = ({
                             <h3 className="text-2xl font-bold mb-4">{mediaItem.title}</h3>
                             <p className="text-white/70 mb-6">External Link</p>
                             <a
-                                href={getMediaUrl(mediaItem.url)}
+                                href={mediaUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="inline-flex items-center px-6 py-3 bg-white/20 hover:bg-white/30 rounded-full transition-colors"

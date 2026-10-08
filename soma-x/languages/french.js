@@ -1,6 +1,10 @@
+import frAttendance from "./attendance/fr";
+import frGuest from "./guest/fr";
 import frExplainers from "./explainers/fr";
 
 export default {
+    "attendance": frAttendance,
+    "guest": frGuest,
     "explainers": frExplainers,
     "nav": {
         "dashboard": "Tableau de bord",

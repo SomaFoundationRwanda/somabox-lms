@@ -1,6 +1,10 @@
+import esAttendance from "./attendance/es";
+import esGuest from "./guest/es";
 import esExplainers from "./explainers/es";
 
 export default {
+    "attendance": esAttendance,
+    "guest": esGuest,
     "explainers": esExplainers,
     "nav": {
         "dashboard": "Tablero",
