@@ -4,9 +4,11 @@ import { useState, useRef } from "react";
 import { X, AlertCircle } from "lucide-react";
 import RichTextEditor from "@/components/course/editor/RichTextEditor";
 import AIAssistantWidget from "@/components/course/editor/AIAssistantWidget";
+import { useCourseText } from "@/components/course/useCourseText";
 
 export default function PageEditorModal({ open, onClose, onSave, initialData }) {
   const isEdit = Boolean(initialData?.id);
+  const { t, tf } = useCourseText();
   const [title, setTitle] = useState(initialData?.title || "");
   const [editorData, setEditorData] = useState({ json: null, html: "" });
   const [saving, setSaving] = useState(false);
@@ -24,7 +26,7 @@ export default function PageEditorModal({ open, onClose, onSave, initialData }) 
     if (editorRef.current) {
       const validation = editorRef.current.validateAltText();
       if (!validation.isValid) {
-        setAltWarning(`Add alt text for accessibility on all ${validation.missingCount} image(s) before saving.`);
+        setAltWarning(tf(validation.missingCount === 1 ? "editors.altWarningOne" : "editors.altWarningMany", { n: validation.missingCount }));
         return;
       }
     }
@@ -53,9 +55,9 @@ export default function PageEditorModal({ open, onClose, onSave, initialData }) 
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
           <h2 className="text-base font-bold text-slate-900">
-            {isEdit ? "Edit Page" : "New Page"}
+            {isEdit ? t("editors.editPage") : t("editors.newPage")}
           </h2>
-          <button aria-label="Close" onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400">
+          <button aria-label={t("common.close")} onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -63,11 +65,11 @@ export default function PageEditorModal({ open, onClose, onSave, initialData }) 
         {/* Body */}
         <div className="px-6 py-4 space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5">Title</label>
-            <input aria-label="Title"
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5">{t("common.title")}</label>
+            <input aria-label={t("common.title")}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Page title"
+              placeholder={t("editors.pageTitle")}
               className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[#203A3A] transition-colors"
             />
           </div>
@@ -87,7 +89,7 @@ export default function PageEditorModal({ open, onClose, onSave, initialData }) 
           )}
 
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5">Content</label>
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5">{t("editors.content")}</label>
             <RichTextEditor
               ref={editorRef}
               content={initialContent}
@@ -100,14 +102,14 @@ export default function PageEditorModal({ open, onClose, onSave, initialData }) 
         {/* Footer */}
         <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-100">
           <button onClick={onClose} className="text-xs font-semibold text-slate-600 hover:text-slate-800 px-4 py-2 rounded-lg hover:bg-slate-50">
-            Cancel
+            {t("common.cancel")}
           </button>
           <button
             onClick={handleSave}
             disabled={saving || !title.trim()}
             className="text-xs font-semibold text-white bg-[#203A3A] hover:bg-[#162727] disabled:opacity-50 rounded-lg px-4 py-2 transition-colors"
           >
-            {saving ? "Saving..." : isEdit ? "Save Changes" : "Create Page"}
+            {saving ? t("common.saving") : isEdit ? t("editors.saveChanges") : t("editors.createPage")}
           </button>
         </div>
       </div>

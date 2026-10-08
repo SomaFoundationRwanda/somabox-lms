@@ -6,9 +6,12 @@ import { Library, Plus } from "lucide-react"
 import DataContext from "@/context/DataContext"
 import { EmptyState } from "@/components/ui/empty-state"
 import CreateCourseModal from "@/components/teacher/CreateCourseModal"
+import { useLanguage } from "@/context/LanguageContext"
+import { fill } from "@/lib/fill"
 
 export default function TeacherCoursesPage() {
   const { SERVER_URL, user } = useContext(DataContext)
+  const { t } = useLanguage()
   const [courses, setCourses] = useState([])
   const [loading, setLoading] = useState(true)
   const [createOpen, setCreateOpen] = useState(false)
@@ -30,23 +33,23 @@ export default function TeacherCoursesPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white">My Courses</h1>
-          <p className="text-xs text-slate-600 dark:text-slate-400">Create and manage your courses.</p>
+          <h1 className="text-xl font-bold text-slate-900 dark:text-white">{t("teacher.courses.title")}</h1>
+          <p className="text-xs text-slate-600 dark:text-slate-400">{t("teacher.courses.subtitle")}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Link href="/library/courses" className="flex items-center gap-1.5 text-xs font-medium text-[#2E8282] border border-[#2E8282]/40 hover:bg-teal-50 rounded-lg px-3 py-2 transition-colors">
-            <Library className="w-3.5 h-3.5" aria-hidden="true" /> Start from a shared course
+            <Library className="w-3.5 h-3.5" aria-hidden="true" /> {t("teacher.courses.fromShared")}
           </Link>
           <button onClick={() => setCreateOpen(true)} className="flex items-center gap-1.5 text-xs font-medium text-white bg-[#2E8282] hover:bg-[#1f6767] rounded-lg px-3 py-2 transition-colors">
-            <Plus className="w-3.5 h-3.5" /> New Course
+            <Plus className="w-3.5 h-3.5" /> {t("teacher.common.newCourse")}
           </button>
         </div>
       </div>
 
       {loading ? (
-        <p className="text-sm text-slate-600">Loading...</p>
+        <p className="text-sm text-slate-600">{t("teacher.common.loading")}</p>
       ) : courses.length === 0 ? (
-        <div className="w-full flex justify-center py-8"><EmptyState message="No courses yet. Create your first course to get started." /></div>
+        <div className="w-full flex justify-center py-8"><EmptyState message={t("teacher.courses.empty")} /></div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {courses.map((course) => (
@@ -62,8 +65,8 @@ export default function TeacherCoursesPage() {
               </div>
               <div className="p-4">
                 <p className="text-base font-semibold text-slate-700 dark:text-slate-200 mb-1">{course.title}</p>
-                <p className="text-xs text-slate-600">{course.grade} · {course.studentCount} student{course.studentCount === 1 ? "" : "s"}</p>
-                <p className="text-[10px] text-slate-400 mt-2">Course code: {course.id}</p>
+                <p className="text-xs text-slate-600">{course.grade} · {fill(t(course.studentCount === 1 ? "teacher.common.oneStudent" : "teacher.common.manyStudents"), { count: course.studentCount ?? 0 })}</p>
+                <p className="text-[10px] text-slate-400 mt-2">{fill(t("teacher.courses.courseCode"), { code: course.id })}</p>
               </div>
             </Link>
           ))}

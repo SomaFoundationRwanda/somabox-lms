@@ -1,3 +1,9 @@
+import enShell from "./shell/en";
+import enLearner from "./learner/en";
+import enCourse from "./course/en";
+import enProgress from "./progress/en";
+import enAdmin from "./admin/en";
+import enTeacher from "./teacher/en";
 import enSchool from "./school/en";
 import enExplore from "./explore/en";
 import enAttendance from "./attendance/en";
@@ -9,6 +15,12 @@ export default {
     "guest": enGuest,
     "explore": enExplore,
     "school": enSchool,
+    "shell": enShell,
+    "learner": enLearner,
+    "course": enCourse,
+    "progress": enProgress,
+    "admin": enAdmin,
+    "teacher": enTeacher,
     "explainers": enExplainers,
     "nav": {
         "dashboard": "Dashboard",

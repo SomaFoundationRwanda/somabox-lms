@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import Typography from "./Typography";
 import { SearchIcon } from "lucide-react";
 import Link from "next/link";
+import { useLanguage } from "@/context/LanguageContext";
 
 type InputVariant = "text" | "email" | "password" | "number" | "textarea" | "select";
 
@@ -67,6 +68,8 @@ export default function Input({
 }: InputProps) {
     const generatedId = useId();
     const inputId = id || generatedId;
+    // Safe outside the LanguageProvider (falls back to English).
+    const translate = useLanguage()?.t;
 
     const tagMap: Record<InputVariant, ElementType> = {
         text: "input",
@@ -137,7 +140,7 @@ export default function Input({
                         )}
                         disabled={disabled}
                     >
-                        <SelectValue placeholder={placeholder || "Select..."} className="text-gray-800 font-medium"/>
+                        <SelectValue placeholder={placeholder || (translate?.("shell.common.select") ?? "Select…")} className="text-gray-800 font-medium"/>
                     </SelectTrigger>
                     <SelectContent className="bg-white border rounded-md shadow-lg">
                         {options.map((opt) => (

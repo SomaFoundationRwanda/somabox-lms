@@ -2,12 +2,14 @@
 
 import { RefreshCcw } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
+import { useCourseText } from "@/components/course/useCourseText";
 
 // Enforces the loading -> error -> empty -> data sequence structurally, so no page
 // can accidentally .map() over null/undefined while a fetch is still in flight or
 // has failed. Every list-rendering course page should render through this instead
 // of hand-rolling its own ternary.
 export default function AsyncListState({ loading, error, data, onRetry, emptyMessage, emptyAction, skeletonRows = 3, children }) {
+  const { t } = useCourseText();
   if (loading) {
     return (
       <div className="space-y-2">
@@ -28,7 +30,7 @@ export default function AsyncListState({ loading, error, data, onRetry, emptyMes
             onClick={onRetry}
             className="flex items-center gap-1.5 text-xs font-semibold text-rose-700 hover:text-rose-900 shrink-0"
           >
-            <RefreshCcw className="w-3.5 h-3.5" /> Retry
+            <RefreshCcw className="w-3.5 h-3.5" /> {t("common.retry")}
           </button>
         ) : null}
       </div>
@@ -37,7 +39,7 @@ export default function AsyncListState({ loading, error, data, onRetry, emptyMes
 
   if (!Array.isArray(data) || data.length === 0) {
     return (
-      <EmptyState compact title={emptyMessage || "Nothing here yet."} action={emptyAction || null} />
+      <EmptyState compact title={emptyMessage || t("common.nothingHere")} action={emptyAction || null} />
     );
   }
 

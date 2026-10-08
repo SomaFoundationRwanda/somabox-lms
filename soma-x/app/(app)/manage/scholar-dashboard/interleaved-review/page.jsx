@@ -5,9 +5,12 @@ import { ArrowLeft, Shuffle, Sparkles } from "lucide-react";
 import DataContext from "@/context/DataContext";
 import { Button } from "@/components/ui/button";
 import PracticeLabel from "@/components/sol/PracticeLabel";
+import { useLanguage } from "@/context/LanguageContext";
+import { fill } from "@/lib/fill";
 
 export default function InterleavedReviewPage() {
     const { SERVER_URL, user } = useContext(DataContext);
+    const { t } = useLanguage();
     const [sessionData, setSessionData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [currentIdx, setCurrentIdx] = useState(0);
@@ -37,7 +40,7 @@ export default function InterleavedReviewPage() {
     }, [SERVER_URL, scholarEmail]);
 
     if (loading) {
-        return <div className="p-8 text-center text-sm font-semibold text-slate-600">Loading review session...</div>;
+        return <div className="p-8 text-center text-sm font-semibold text-slate-600">{t("learner.review.loading")}</div>;
     }
 
     const questions = sessionData?.questions || [];
@@ -58,23 +61,23 @@ export default function InterleavedReviewPage() {
         <div className="min-h-screen pb-12 p-4 md:p-6 max-w-3xl mx-auto">
             <div className="flex items-center justify-between mb-6">
                 <Link href="/manage/scholar-dashboard" className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors">
-                    <ArrowLeft className="w-4 h-4" /> Back to Dashboard
+                    <ArrowLeft className="w-4 h-4" /> {t("learner.review.backToDashboard")}
                 </Link>
                 <span className="text-[10px] font-black uppercase tracking-wider px-3 py-1 bg-teal-50 text-teal-700 dark:bg-teal-950/60 dark:text-teal-300 rounded-full border border-teal-200 dark:border-teal-800">
-                    Mixed Review
+                    {t("learner.dashboard.interleaved")}
                 </span>
             </div>
 
             {questions.length === 0 ? (
                 <div className="bg-white dark:bg-[#0f1318] border border-slate-200 dark:border-slate-800 rounded-3xl p-8 shadow-xl text-center">
                     <Shuffle className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                    <h2 className="text-lg font-black text-slate-900 dark:text-white mb-2">Not enough completed lessons yet</h2>
+                    <h2 className="text-lg font-black text-slate-900 dark:text-white mb-2">{t("learner.review.notEnoughTitle")}</h2>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mb-6 max-w-sm mx-auto">
-                        {sessionData?.description || "Complete lessons with questions in at least two classes to unlock a mixed review session."}
+                        {sessionData?.description || t("learner.review.notEnoughBody")}
                     </p>
                     <Link href="/manage/scholar-dashboard">
                         <Button className="bg-[#203A3A] hover:bg-[#162727] text-white text-xs font-bold px-8 h-10 rounded-xl">
-                            Return to Dashboard
+                            {t("learner.review.returnToDashboard")}
                         </Button>
                     </Link>
                 </div>
@@ -86,7 +89,7 @@ export default function InterleavedReviewPage() {
                         </div>
                         <div>
                             <h1 className="text-base font-black text-slate-900 dark:text-white">
-                                {sessionData?.title || "Mixed Review"}
+                                {sessionData?.title || t("learner.dashboard.interleaved")}
                             </h1>
                             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                                 {sessionData?.description}
@@ -99,7 +102,7 @@ export default function InterleavedReviewPage() {
                         <span className="px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-extrabold">
                             {q?.subject} · {q?.topic}
                         </span>
-                        <span className="text-slate-600">Question {currentIdx + 1} of {questions.length}</span>
+                        <span className="text-slate-600">{fill(t("learner.diagnostic.questionOf"), { n: currentIdx + 1, total: questions.length })}</span>
                     </div>
 
                     <div className="bg-slate-50 dark:bg-slate-900/60 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 mb-4">
@@ -109,12 +112,12 @@ export default function InterleavedReviewPage() {
                     </div>
 
                     <div className="mb-4">
-                        <label className="text-xs font-semibold text-slate-600 mb-1.5 block">Try answering it again from memory:</label>
-                        <textarea aria-label="Try answering it again from memory"
+                        <label className="text-xs font-semibold text-slate-600 mb-1.5 block">{t("learner.review.recallLabel")}</label>
+                        <textarea aria-label={t("learner.review.recallLabel")}
                             value={recallText}
                             onChange={(e) => setRecallText(e.target.value)}
                             rows={3}
-                            placeholder="Write your answer..."
+                            placeholder={t("learner.review.answerPlaceholder")}
                             className="w-full text-sm border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 outline-none focus:border-[#2E8282] bg-white dark:bg-slate-900"
                         />
                     </div>
@@ -122,7 +125,7 @@ export default function InterleavedReviewPage() {
                     {q?.previousAnswer ? (
                         revealedPrevious ? (
                             <div className="rounded-xl border border-teal-100 bg-teal-50 dark:bg-teal-950/30 dark:border-teal-900 p-3 mb-4">
-                                <p className="text-[10px] font-bold uppercase tracking-wider text-teal-700 dark:text-teal-400 mb-1">What you answered last time</p>
+                                <p className="text-[10px] font-bold uppercase tracking-wider text-teal-700 dark:text-teal-400 mb-1">{t("learner.review.lastAnswer")}</p>
                                 <p className="text-xs text-slate-700 dark:text-slate-300">{q.previousAnswer}</p>
                             </div>
                         ) : (
@@ -131,7 +134,7 @@ export default function InterleavedReviewPage() {
                                 onClick={() => setRevealedPrevious(true)}
                                 className="text-xs font-semibold text-[#2E8282] hover:underline mb-4"
                             >
-                                Show what I answered last time
+                                {t("learner.review.showLast")}
                             </button>
                         )
                     ) : null}
@@ -141,21 +144,21 @@ export default function InterleavedReviewPage() {
                             onClick={handleNext}
                             className="bg-[#203A3A] hover:bg-[#162727] text-white text-xs font-bold px-6 h-10 rounded-xl"
                         >
-                            {currentIdx + 1 < questions.length ? "Next Question" : "Finish"}
+                            {currentIdx + 1 < questions.length ? t("learner.diagnostic.next") : t("learner.review.finish")}
                         </Button>
                     </div>
                 </div>
             ) : (
                 <div className="bg-white dark:bg-[#0f1318] border border-slate-200 dark:border-slate-800 rounded-3xl p-8 shadow-xl text-center">
                     <Sparkles className="w-16 h-16 text-teal-500 mx-auto mb-3" />
-                    <h2 className="text-xl font-black text-slate-900 dark:text-white mb-2">Review Complete!</h2>
+                    <h2 className="text-xl font-black text-slate-900 dark:text-white mb-2">{t("learner.review.completeTitle")}</h2>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mb-6">
-                        You revisited {reviewedCount} question{reviewedCount === 1 ? "" : "s"} across your completed lessons.
+                        {fill(t(reviewedCount === 1 ? "learner.review.revisitedOne" : "learner.review.revisitedMany"), { n: reviewedCount })}
                     </p>
                     <p className="-mt-4 mb-6"><PracticeLabel /></p>
                     <Link href="/manage/scholar-dashboard">
                         <Button className="bg-[#203A3A] hover:bg-[#162727] text-white text-xs font-bold px-8 h-10 rounded-xl">
-                            Return to Dashboard
+                            {t("learner.review.returnToDashboard")}
                         </Button>
                     </Link>
                 </div>

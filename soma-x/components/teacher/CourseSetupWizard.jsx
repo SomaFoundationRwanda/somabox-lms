@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { CheckCircle2, ChevronRight, Sparkles, Plus, Trash2, ArrowRight, Target, Calendar, BookOpen, Layers } from "lucide-react";
-import { moduleWeekLabel } from "@/lib/moduleLabels";
 import { isDateString, todayIn } from "@somabox/timeline";
 import { formatDate, toDateInput } from "@/lib/dates";
 import BaselinePanel from "./BaselinePanel";
@@ -11,8 +10,19 @@ import useAiStatus from "@/lib/useAiStatus";
 import { startAiJob } from "@/lib/ai";
 import { AiStatusNote } from "@/components/ai/AiBits";
 import AiJobPanel from "@/components/ai/AiJobPanel";
+import { useLanguage } from "@/context/LanguageContext";
+import { fill } from "@/lib/fill";
+
+// moduleWeekLabel, in the current language.
+function weekLabelT(m, t) {
+  if (!m) return "";
+  if (m.kind === "baseline") return t("teacher.wizard.week0Label");
+  if (m.kind === "unassigned" || m.week_offset === null || m.week_offset === undefined) return t("teacher.wizard.unassigned");
+  return fill(t("teacher.wizard.weekN"), { n: m.week_offset });
+}
 
 export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, course, onCompleted }) {
+  const { t } = useLanguage();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -63,7 +73,7 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
   // Step 1: Save Course details & next
   const saveStep1 = async () => {
     if (!isDateString(setupForm.startDate)) {
-      setError("Choose a start date.");
+      setError(t("teacher.wizard.chooseStart"));
       return;
     }
     setLoading(true);
@@ -80,11 +90,11 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
       });
       if (!res.ok) {
         const payload = await res.json().catch(() => ({}));
-        throw new Error(payload?.message || "Failed to update course details");
+        throw new Error(payload?.message || t("teacher.wizard.updateFailed"));
       }
       setStep(2);
     } catch (err) {
-      setError(err.message || "Failed to update course details");
+      setError(err.message || t("teacher.wizard.updateFailed"));
     } finally {
       setLoading(false);
     }
@@ -100,7 +110,7 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: newOutcomeTitle.trim(),
-          description: "Core outcome statement",
+          description: t("teacher.wizard.coreOutcome"),
         }),
       });
       setNewOutcomeTitle("");
@@ -115,7 +125,7 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
   // Step 2: AI proposes an outline (outcomes + weeks) as a draft the teacher reviews inline.
   const proposeAiOutcomes = async () => {
     const topic = (aiTopic || setupForm.title).trim();
-    if (!topic) { setError("Say what the course is about first."); return; }
+    if (!topic) { setError(t("teacher.wizard.topicFirst")); return; }
     setAiStarting("outline");
     setError("");
     const r = await startAiJob(SERVER_URL, courseId, { kind: "outline", input: { topic, weeks: Number(setupForm.lengthWeeks) || 4 } });
@@ -130,8 +140,8 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
     try {
       // Week 0 is the baseline module and is created by kind, not by offset.
       const body = Number(weekOffset) === 0
-        ? { title: "Week 0: Baseline", kind: "baseline" }
-        : { title: `Week ${weekOffset}: Module Title`, weekOffset };
+        ? { title: t("teacher.baseline.week0Title"), kind: "baseline" }
+        : { title: fill(t("teacher.wizard.newWeekTitle"), { n: weekOffset }), weekOffset };
       const res = await fetch(`${SERVER_URL}/courses/${courseId}/modules`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -139,7 +149,7 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
       });
       if (!res.ok) {
         const payload = await res.json().catch(() => ({}));
-        setError(payload.message || "Failed to add week");
+        setError(payload.message || t("teacher.wizard.addWeekFailed"));
       }
       await loadWizardData();
     } catch (err) {
@@ -175,22 +185,22 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
       } else {
         const data = await res.json().catch(() => ({}));
         const blocking = Array.isArray(data.blocking) ? data.blocking.map((b) => b.message).filter(Boolean) : [];
-        setError(data.message || "This course can't open yet.");
+        setError(data.message || t("teacher.setup.cantOpenYet"));
         setOpenErrors(blocking);
       }
     } catch (err) {
-      setError("Failed to open course");
+      setError(t("teacher.wizard.openFailed"));
     } finally {
       setLoading(false);
     }
   };
 
   const STEPS = [
-    { num: 1, label: "Course Setup" },
-    { num: 2, label: "Outcomes" },
-    { num: 3, label: "Baseline" },
-    { num: 4, label: "Modules Timeline" },
-    { num: 5, label: "Syllabus Preview" },
+    { num: 1, label: t("teacher.wizard.stepSetup") },
+    { num: 2, label: t("teacher.wizard.stepOutcomes") },
+    { num: 3, label: t("teacher.wizard.stepBaseline") },
+    { num: 4, label: t("teacher.wizard.stepModules") },
+    { num: 5, label: t("teacher.wizard.stepSyllabus") },
   ];
 
   return (
@@ -200,11 +210,11 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
         <div className="bg-white rounded-xl p-4 md:p-6 border border-slate-200">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
-              <span className="text-xs font-bold uppercase tracking-wider text-[#0D9488]">Guided Setup</span>
-              <h1 className="text-2xl font-black text-slate-900 mt-1">Setup Your Course Timeline</h1>
+              <span className="text-xs font-bold uppercase tracking-wider text-[#0D9488]">{t("teacher.wizard.guided")}</span>
+              <h1 className="text-2xl font-black text-slate-900 mt-1">{t("teacher.wizard.heading")}</h1>
             </div>
             <span className="text-xs font-semibold bg-teal-50 text-[#0D9488] border border-teal-200 px-3 py-1.5 rounded-full">
-              Step {step} of 5
+              {fill(t("teacher.wizard.stepOf"), { step, total: 5 })}
             </span>
           </div>
 
@@ -248,38 +258,38 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
         {step === 1 && (
           <div className="bg-white rounded-xl p-4 md:p-6 border border-slate-200 space-y-4">
             <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-[#0D9488]" /> Step 1: Course Setup & Relative Timing Anchor
+              <Calendar className="w-5 h-5 text-[#0D9488]" /> {t("teacher.wizard.step1Title")}
             </h2>
             <p className="text-xs text-slate-600">
-              Set your course title, start date, and length. All module unlock dates and assignment due dates will be calculated relative to this start date.
+              {t("teacher.wizard.step1Help")}
             </p>
 
             <div className="space-y-4 max-w-md pt-2">
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Course Title *</label>
-                <input aria-label="Course Title"
+                <label className="text-xs font-bold text-slate-700 block mb-1">{t("teacher.createCourse.courseTitle")} *</label>
+                <input aria-label={t("teacher.createCourse.courseTitle")}
                   type="text"
                   value={setupForm.title}
                   onChange={(e) => setSetupForm((p) => ({ ...p, title: e.target.value }))}
                   className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:border-[#0D9488]"
-                  placeholder="e.g. Primary 5 Mathematics"
+                  placeholder={t("teacher.wizard.titlePlaceholder")}
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Start Date (Date Anchor) *</label>
-                <input aria-label="Start Date (Date Anchor)"
+                <label className="text-xs font-bold text-slate-700 block mb-1">{t("teacher.wizard.startDate")} *</label>
+                <input aria-label={t("teacher.wizard.startDate")}
                   type="date"
                   value={setupForm.startDate}
                   onChange={(e) => setSetupForm((p) => ({ ...p, startDate: e.target.value }))}
                   className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:border-[#0D9488]"
                 />
-                <p className="text-[11px] text-slate-500 mt-1">Week 1 starts on this date. A Week 0 baseline, if you add one, is the 7 days before it.</p>
+                <p className="text-[11px] text-slate-500 mt-1">{t("teacher.wizard.startHelp")}</p>
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Duration (Length in Weeks)</label>
-                <input aria-label="Duration (Length in Weeks)"
+                <label className="text-xs font-bold text-slate-700 block mb-1">{t("teacher.wizard.duration")}</label>
+                <input aria-label={t("teacher.wizard.duration")}
                   type="number"
                   min={1}
                   max={52}
@@ -295,7 +305,7 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
                   disabled={loading || !setupForm.title.trim()}
                   className="flex items-center gap-2 px-5 py-2.5 bg-[#203A3A] text-white rounded-xl text-sm font-semibold hover:bg-[#182c2c] transition-colors disabled:opacity-50"
                 >
-                  Continue to Outcomes <ChevronRight className="w-4 h-4" />
+                  {t("teacher.wizard.toOutcomes")} <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
             </div>
@@ -308,10 +318,10 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                  <Target className="w-5 h-5 text-[#0D9488]" /> Step 2: Define Core Learning Outcomes
+                  <Target className="w-5 h-5 text-[#0D9488]" /> {t("teacher.wizard.step2Title")}
                 </h2>
                 <p className="text-xs text-slate-600 mt-0.5">
-                  Outcomes are the core backbone of your course. Graded assignments & quizzes tag these outcomes to measure student mastery.
+                  {t("teacher.wizard.step2Help")}
                 </p>
               </div>
 
@@ -319,8 +329,8 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
                 <div className="flex flex-wrap items-center gap-2">
                   <input
                     type="text"
-                    placeholder="What is the course about?"
-                    aria-label="Course topic for the AI"
+                    placeholder={t("teacher.createCourse.descriptionPlaceholder")}
+                    aria-label={t("teacher.wizard.aiTopic")}
                     value={aiTopic}
                     onChange={(e) => setAiTopic(e.target.value)}
                     className="text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]"
@@ -330,7 +340,7 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
                     disabled={aiStarting === "outline" || (outlineJob && ["queued", "running"].includes(outlineJob.status))}
                     className="flex items-center gap-1 text-xs font-semibold text-white bg-[#0D9488] hover:bg-teal-700 disabled:opacity-50 px-3 py-1.5 rounded-lg transition-colors"
                   >
-                    <Sparkles className="w-3.5 h-3.5" /> {aiStarting === "outline" ? "Starting…" : "AI Propose Outcomes"}
+                    <Sparkles className="w-3.5 h-3.5" /> {aiStarting === "outline" ? t("teacher.wizard.starting") : t("teacher.wizard.aiPropose")}
                   </button>
                 </div>
               ) : null}
@@ -343,7 +353,7 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
                 SERVER_URL={SERVER_URL}
                 courseId={courseId}
                 job={outlineJob}
-                label={`Course outline: ${Number(setupForm.lengthWeeks) || 4} weeks`}
+                label={fill(t("teacher.wizard.outlineLabel"), { n: Number(setupForm.lengthWeeks) || 4 })}
                 outcomes={outcomes}
                 onApproved={() => loadWizardData()}
                 onClose={() => setOutlineJob(null)}
@@ -351,11 +361,11 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
             ) : null}
 
             <div className="flex gap-2 max-w-md pt-2">
-              <input aria-label="Enter outcome title (e.g. Can solve linear equations)"
+              <input aria-label={t("teacher.wizard.outcomePlaceholder")}
                 type="text"
                 value={newOutcomeTitle}
                 onChange={(e) => setNewOutcomeTitle(e.target.value)}
-                placeholder="Enter outcome title (e.g. Can solve linear equations)"
+                placeholder={t("teacher.wizard.outcomePlaceholder")}
                 className="flex-1 text-sm border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-[#0D9488]"
               />
               <button
@@ -363,14 +373,14 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
                 disabled={loading || !newOutcomeTitle.trim()}
                 className="px-4 py-2 bg-[#203A3A] text-white rounded-xl text-xs font-semibold hover:bg-[#182c2c] transition-colors"
               >
-                Add Outcome
+                {t("teacher.wizard.addOutcome")}
               </button>
             </div>
 
             {/* List outcomes */}
             <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl">
               {outcomes.length === 0 ? (
-                <div className="p-4 text-xs text-slate-500 text-center">No outcomes added yet. Use AI proposal or add manually above.</div>
+                <div className="p-4 text-xs text-slate-500 text-center">{t("teacher.wizard.noOutcomes")}</div>
               ) : (
                 outcomes.map((o) => (
                   <div key={o.id} className="p-3.5 flex items-start gap-3">
@@ -385,13 +395,13 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
             </div>
 
             <div className="pt-4 flex justify-between">
-              <button onClick={() => setStep(1)} className="px-4 py-2 text-xs font-semibold text-slate-600">Back</button>
+              <button onClick={() => setStep(1)} className="px-4 py-2 text-xs font-semibold text-slate-600">{t("teacher.wizard.back")}</button>
               <button
                 onClick={() => setStep(3)}
                 disabled={outcomes.length === 0}
                 className="flex items-center gap-2 px-5 py-2.5 bg-[#203A3A] text-white rounded-xl text-sm font-semibold hover:bg-[#182c2c] transition-colors disabled:opacity-50"
               >
-                Continue to Baseline Assessment <ChevronRight className="w-4 h-4" />
+                {t("teacher.wizard.toBaseline")} <ChevronRight className="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -401,12 +411,10 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
         {step === 3 && (
           <div className="bg-white rounded-xl p-4 md:p-6 border border-slate-200 space-y-4">
             <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-[#0D9488]" /> Step 3: Week 0 Baseline Diagnostic Assessment
+              <BookOpen className="w-5 h-5 text-[#0D9488]" /> {t("teacher.wizard.step3Title")}
             </h2>
             <p className="text-xs text-slate-600">
-              A short, ungraded check before Week 1. Each question is tagged with an outcome, and each learner&apos;s
-              starting point per outcome is calculated from their answers. Build it from outcome-tagged quiz questions,
-              then approve it, or skip it with a recorded reason.
+              {t("teacher.wizard.step3Help")}
             </p>
 
             <BaselinePanel
@@ -418,12 +426,12 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
             />
 
             <div className="pt-4 flex justify-between">
-              <button onClick={() => setStep(2)} className="px-4 py-2 text-xs font-semibold text-slate-600">Back</button>
+              <button onClick={() => setStep(2)} className="px-4 py-2 text-xs font-semibold text-slate-600">{t("teacher.wizard.back")}</button>
               <button
                 onClick={() => setStep(4)}
                 className="flex items-center gap-2 px-5 py-2.5 bg-[#203A3A] text-white rounded-xl text-sm font-semibold hover:bg-[#182c2c] transition-colors"
               >
-                Continue to Modules Timeline <ChevronRight className="w-4 h-4" />
+                {t("teacher.wizard.toModules")} <ChevronRight className="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -435,10 +443,10 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                  <Layers className="w-5 h-5 text-[#0D9488]" /> Step 4: Modules Timeline & Week Slots
+                  <Layers className="w-5 h-5 text-[#0D9488]" /> {t("teacher.wizard.step4Title")}
                 </h2>
                 <p className="text-xs text-slate-600">
-                  Modules store relative week slots (Week 1, Week 2...). Items inside store relative release and due days.
+                  {t("teacher.wizard.step4Help")}
                 </p>
               </div>
 
@@ -449,7 +457,7 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
                 disabled={loading}
                 className="flex items-center gap-1.5 text-xs font-semibold text-white bg-[#0D9488] hover:bg-teal-700 px-3.5 py-2 rounded-xl transition-colors"
               >
-                <Plus className="w-3.5 h-3.5" /> Add Week Slot
+                <Plus className="w-3.5 h-3.5" /> {t("teacher.wizard.addWeekSlot")}
               </button>
             </div>
 
@@ -457,14 +465,14 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
             <div className="space-y-3 pt-2">
               {modules.length === 0 ? (
                 <div className="py-6 text-center text-xs text-slate-500">
-                  No weekly modules created yet. Click "Add Week Slot" above to create week slots.
+                  {t("teacher.wizard.noModules")}
                 </div>
               ) : (
                 modules.map((m) => (
                   <div key={m.id} className="py-3 border-b border-slate-100 last:border-b-0 space-y-2">
                     <div className="flex items-center justify-between">
                       <div>
-                        <span className="text-[10px] font-bold text-[#0D9488] uppercase tracking-wider">{moduleWeekLabel(m)}</span>
+                        <span className="text-[10px] font-bold text-[#0D9488] uppercase tracking-wider">{weekLabelT(m, t)}</span>
                         <h4 className="text-sm font-bold text-slate-800">{m.title}</h4>
                       </div>
 
@@ -474,32 +482,32 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
                           disabled={aiStarting === `fill-${m.id}` || fillStarted[m.id]}
                           className="flex items-center gap-1 text-xs font-medium text-teal-700 bg-teal-50 border border-teal-200 hover:bg-teal-100 disabled:opacity-50 px-3 py-1.5 rounded-lg transition-colors"
                         >
-                          <Sparkles className="w-3.5 h-3.5 text-[#0D9488]" /> {fillStarted[m.id] ? "AI drafts on the way" : "AI Fill Week (Page + Quiz + Assignment)"}
+                          <Sparkles className="w-3.5 h-3.5 text-[#0D9488]" /> {fillStarted[m.id] ? t("teacher.wizard.aiOnTheWay") : t("teacher.wizard.aiFillWeek")}
                         </button>
                       ) : null}
                     </div>
                     {fillStarted[m.id] ? (
                       <p role="status" className="text-xs text-slate-600">
-                        Started. The drafts will appear in{" "}
-                        <Link href={`/course/${courseId}/ai`} className="font-semibold text-[#0D9488] hover:underline">AI drafts</Link>
-                        {" "}in a few minutes. Nothing is added to the week until you approve it there.
+                        {t("teacher.wizard.startedBefore")}{" "}
+                        <Link href={`/course/${courseId}/ai`} className="font-semibold text-[#0D9488] hover:underline">{t("teacher.wizard.aiDrafts")}</Link>
+                        {" "}{t("teacher.wizard.startedAfter")}
                       </p>
                     ) : null}
 
-                    <p className="text-xs text-slate-500">{(m.items || []).length} item(s) in this module</p>
+                    <p className="text-xs text-slate-500">{fill(t("teacher.wizard.itemsInModule"), { count: (m.items || []).length })}</p>
                   </div>
                 ))
               )}
             </div>
 
             <div className="pt-4 flex justify-between">
-              <button onClick={() => setStep(3)} className="px-4 py-2 text-xs font-semibold text-slate-600">Back</button>
+              <button onClick={() => setStep(3)} className="px-4 py-2 text-xs font-semibold text-slate-600">{t("teacher.wizard.back")}</button>
               <button
                 onClick={() => setStep(5)}
                 disabled={modules.length === 0}
                 className="flex items-center gap-2 px-5 py-2.5 bg-[#203A3A] text-white rounded-xl text-sm font-semibold hover:bg-[#182c2c] transition-colors disabled:opacity-50"
               >
-                Preview Auto-Built Syllabus <ChevronRight className="w-4 h-4" />
+                {t("teacher.wizard.toSyllabus")} <ChevronRight className="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -509,20 +517,20 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
         {step === 5 && (
           <div className="bg-white rounded-xl p-4 md:p-6 border border-slate-200 space-y-4">
             <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-[#0D9488]" /> Step 5: Auto-Built Syllabus Preview
+              <BookOpen className="w-5 h-5 text-[#0D9488]" /> {t("teacher.wizard.step5Title")}
             </h2>
             <p className="text-xs text-slate-600">
-              Syllabus is generated automatically from course outcomes, weekly modules, relative dates, and grading weights.
+              {t("teacher.wizard.step5Help")}
             </p>
 
             <div className="pt-4 border-t border-slate-100 space-y-4">
               <div>
                 <h3 className="text-base font-bold text-slate-900">{setupForm.title}</h3>
-                <p className="text-xs text-slate-500">Starts: {formatDate(setupForm.startDate) || "Not set"} · Duration: {setupForm.lengthWeeks} Weeks</p>
+                <p className="text-xs text-slate-500">{fill(t("teacher.wizard.startsLine"), { date: formatDate(setupForm.startDate) || t("teacher.wizard.notSet"), weeks: setupForm.lengthWeeks })}</p>
               </div>
 
               <div>
-                <h4 className="text-xs font-bold uppercase text-slate-500 mb-1">Learning Outcomes ({outcomes.length})</h4>
+                <h4 className="text-xs font-bold uppercase text-slate-500 mb-1">{fill(t("teacher.wizard.outcomesCount"), { count: outcomes.length })}</h4>
                 <ul className="list-disc list-inside text-xs text-slate-700 space-y-0.5">
                   {outcomes.map((o) => (
                     <li key={o.id}>{o.title}</li>
@@ -531,12 +539,12 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
               </div>
 
               <div>
-                <h4 className="text-xs font-bold uppercase text-slate-500 mb-1">Weekly Timeline ({modules.length} Modules)</h4>
+                <h4 className="text-xs font-bold uppercase text-slate-500 mb-1">{fill(t("teacher.wizard.timelineCount"), { count: modules.length })}</h4>
                 <div className="space-y-1">
                   {modules.map((m) => (
                     <div key={m.id} className="text-xs text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 flex justify-between">
                       <span className="font-semibold">{m.title}</span>
-                      <span className="text-slate-400">{moduleWeekLabel(m)}</span>
+                      <span className="text-slate-400">{weekLabelT(m, t)}</span>
                     </div>
                   ))}
                 </div>
@@ -544,13 +552,13 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
             </div>
 
             <div className="pt-4 flex justify-between items-center">
-              <button onClick={() => setStep(4)} className="px-4 py-2 text-xs font-semibold text-slate-600">Back</button>
+              <button onClick={() => setStep(4)} className="px-4 py-2 text-xs font-semibold text-slate-600">{t("teacher.wizard.back")}</button>
               <button
                 onClick={openCourseFinal}
                 disabled={loading}
                 className="flex items-center gap-2 px-6 py-3 bg-[#0D9488] text-white rounded-xl text-sm font-bold hover:bg-teal-700 transition-colors shadow-sm"
               >
-                Open Course & Launch Weekly Loop <ArrowRight className="w-4 h-4" />
+                {t("teacher.wizard.openLaunch")} <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           </div>

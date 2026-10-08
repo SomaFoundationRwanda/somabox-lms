@@ -5,36 +5,43 @@ import {
   FileText, ClipboardList, HelpCircle, Upload, MessageSquare, Minus,
   Eye, EyeOff, Pencil, Trash2, GripVertical,
 } from "lucide-react";
-import { formatDate } from "@/lib/dates";
+import { toLocalDate } from "@/lib/dates";
+import { useCourseText } from "@/components/course/useCourseText";
 
+// Labels come from course.modules.status.<key>.
 const ITEM_STATUS_HINTS = {
-  upcoming: { label: "Not open yet", cls: "text-sky-700 bg-sky-50 border-sky-200" },
-  past_due: { label: "Past due", cls: "text-amber-700 bg-amber-50 border-amber-200" },
-  closed: { label: "Closed", cls: "text-slate-500 bg-slate-50 border-slate-200" },
+  upcoming: { cls: "text-sky-700 bg-sky-50 border-sky-200" },
+  past_due: { cls: "text-amber-700 bg-amber-50 border-amber-200" },
+  closed: { cls: "text-slate-500 bg-slate-50 border-slate-200" },
 };
 
 const SHORT_DATE = { weekday: "short", day: "numeric", month: "short" };
 
 // "Opens Tue 13 Jan · Due Fri 16 Jan · Closes Sun 18 Jan" (only the parts that exist);
 // "Opens Day 0 · Due Day 4" when the course has no start date yet; "No dates yet" otherwise.
-function itemScheduleText(item) {
+function itemScheduleText(item, tf, t, locale) {
   const parts = [];
   const isPlain = item.item_type === "page" || item.item_type === "file";
+  const fmt = (value) => {
+    const d = toLocalDate(value);
+    if (!d) return "";
+    try { return d.toLocaleDateString(locale, SHORT_DATE); } catch { return d.toLocaleDateString(undefined, SHORT_DATE); }
+  };
   if (item.releaseDate) {
-    parts.push(`Opens ${formatDate(item.releaseDate, SHORT_DATE)}`);
-    if (item.dueDate) parts.push(`Due ${formatDate(item.dueDate, SHORT_DATE)}`);
-    if (item.closeDate) parts.push(`Closes ${formatDate(item.closeDate, SHORT_DATE)}`);
+    parts.push(tf("modules.schedule.opens", { date: fmt(item.releaseDate) }));
+    if (item.dueDate) parts.push(tf("modules.schedule.due", { date: fmt(item.dueDate) }));
+    if (item.closeDate) parts.push(tf("modules.schedule.closes", { date: fmt(item.closeDate) }));
     return parts.join(" · ");
   }
   const day = (v) => (v === null || v === undefined || v === "" ? null : Number(v));
   const release = day(item.release_day);
   const due = isPlain ? null : day(item.due_day);
   const close = isPlain ? null : day(item.close_day);
-  if (release !== null) parts.push(`Opens Day ${release}`);
-  if (due !== null) parts.push(`Due Day ${due}`);
-  if (close !== null) parts.push(`Closes Day ${close}`);
+  if (release !== null) parts.push(tf("modules.schedule.opensDay", { n: release }));
+  if (due !== null) parts.push(tf("modules.schedule.dueDay", { n: due }));
+  if (close !== null) parts.push(tf("modules.schedule.closesDay", { n: close }));
   // Every row shows a date: fall back to an honest "No dates yet".
-  return parts.length > 0 ? parts.join(" · ") : "No dates yet";
+  return parts.length > 0 ? parts.join(" · ") : t("home.noDatesYet");
 }
 
 const ITEM_ICONS = {
@@ -52,6 +59,7 @@ export default function ModuleItemRow({ item, courseId, isTeacher, onTogglePubli
   const attributes = dnd?.attributes || {};
   const listeners = dnd?.listeners || {};
   const isDragging = Boolean(dnd?.isDragging);
+  const { t, tf, locale } = useCourseText();
 
   const style = {
     ...(dnd?.style || {}),
@@ -69,7 +77,7 @@ export default function ModuleItemRow({ item, courseId, isTeacher, onTogglePubli
     : item.item_type === "discussion" ? `/course/${courseId}/discussions/${item.content_id}`
     : `/course/${courseId}/files`;
 
-  const schedule = itemScheduleText(item);
+  const schedule = itemScheduleText(item, tf, t, locale);
   const statusHint = ITEM_STATUS_HINTS[item.status];
 
   // Sub-header rendering
@@ -83,7 +91,7 @@ export default function ModuleItemRow({ item, courseId, isTeacher, onTogglePubli
       >
         <div className="flex items-center gap-2 min-w-0">
           {isTeacher && (
-            <button {...listeners} aria-label="Drag to reorder sub-header" className="cursor-grab active:cursor-grabbing p-0.5 text-slate-300 hover:text-slate-500 shrink-0">
+            <button {...listeners} aria-label={t("modules.dragSubHeader")} className="cursor-grab active:cursor-grabbing p-0.5 text-slate-300 hover:text-slate-500 shrink-0">
               <GripVertical className="w-3.5 h-3.5" />
             </button>
           )}
@@ -93,10 +101,10 @@ export default function ModuleItemRow({ item, courseId, isTeacher, onTogglePubli
         </div>
         {isTeacher && (
           <div className="flex items-center gap-0.5 shrink-0">
-            <button onClick={onEdit} className="p-1 rounded hover:bg-white text-slate-400" title="Edit" aria-label={`Edit ${item.title}`}>
+            <button onClick={onEdit} className="p-1 rounded hover:bg-white text-slate-400" title={t("common.edit")} aria-label={tf("modules.editNamed", { title: item.title })}>
               <Pencil className="w-3 h-3" />
             </button>
-            <button onClick={onDelete} className="p-1 rounded hover:bg-white text-rose-400" title="Delete" aria-label={`Delete ${item.title}`}>
+            <button onClick={onDelete} className="p-1 rounded hover:bg-white text-rose-400" title={t("common.delete")} aria-label={tf("modules.deleteNamed", { title: item.title })}>
               <Trash2 className="w-3 h-3" />
             </button>
           </div>
@@ -125,11 +133,11 @@ export default function ModuleItemRow({ item, courseId, isTeacher, onTogglePubli
           className="text-[10px] font-bold text-[#0D9488] bg-teal-50 border border-teal-200 px-2 py-0.5 rounded-full shrink-0 ml-1"
           title={outcomes.map((o) => [o.code, o.title].filter(Boolean).join(" — ")).join("\n")}
         >
-          Target: {outcomes.map((o) => o.code || o.title).filter(Boolean).join(", ") || "Outcome Tagged"}
+          {tf("modules.target", { outcomes: outcomes.map((o) => o.code || o.title).filter(Boolean).join(", ") || t("modules.outcomeTagged") })}
         </span>
       ) : needsOutcome ? (
         <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full shrink-0 ml-1">
-          ⚠️ Missing Outcome
+          ⚠️ {t("modules.missingOutcome")}
         </span>
       ) : null}
 
@@ -139,7 +147,7 @@ export default function ModuleItemRow({ item, courseId, isTeacher, onTogglePubli
           {schedule && <span>{schedule}</span>}
           {statusHint && (
             <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${statusHint.cls}`}>
-              {statusHint.label}
+              {t(`modules.status.${item.status}`)}
             </span>
           )}
         </div>
@@ -156,7 +164,7 @@ export default function ModuleItemRow({ item, courseId, isTeacher, onTogglePubli
     >
       <div className="flex items-center gap-1.5 min-w-0 flex-1">
         {isTeacher && (
-          <button {...listeners} className="cursor-grab active:cursor-grabbing p-0.5 text-slate-200 hover:text-slate-400 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity shrink-0" aria-label="Drag to reorder item">
+          <button {...listeners} className="cursor-grab active:cursor-grabbing p-0.5 text-slate-200 hover:text-slate-400 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity shrink-0" aria-label={t("modules.dragItem")}>
             <GripVertical className="w-3.5 h-3.5" />
           </button>
         )}
@@ -171,13 +179,13 @@ export default function ModuleItemRow({ item, courseId, isTeacher, onTogglePubli
 
       {isTeacher && (
         <div className="flex items-center gap-0.5 shrink-0 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100 transition-opacity">
-          <button onClick={onTogglePublish} className="p-1 rounded hover:bg-white" title={item.published ? "Unpublish" : "Publish"} aria-label={`${item.published ? "Unpublish" : "Publish"} ${item.title}`}>
+          <button onClick={onTogglePublish} className="p-1 rounded hover:bg-white" title={item.published ? t("modules.unpublish") : t("modules.publish")} aria-label={tf(item.published ? "modules.unpublishNamed" : "modules.publishNamed", { title: item.title })}>
             {item.published ? <Eye className="w-3.5 h-3.5 text-emerald-600" /> : <EyeOff className="w-3.5 h-3.5 text-slate-400" />}
           </button>
-          <button onClick={onEdit} className="p-1 rounded hover:bg-white text-slate-400" title="Edit" aria-label={`Edit ${item.title}`}>
+          <button onClick={onEdit} className="p-1 rounded hover:bg-white text-slate-400" title={t("common.edit")} aria-label={tf("modules.editNamed", { title: item.title })}>
             <Pencil className="w-3.5 h-3.5" />
           </button>
-          <button onClick={onDelete} className="p-1 rounded hover:bg-white text-rose-400" title="Delete" aria-label={`Delete ${item.title}`}>
+          <button onClick={onDelete} className="p-1 rounded hover:bg-white text-rose-400" title={t("common.delete")} aria-label={tf("modules.deleteNamed", { title: item.title })}>
             <Trash2 className="w-3.5 h-3.5" />
           </button>
         </div>

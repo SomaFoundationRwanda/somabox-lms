@@ -2,6 +2,8 @@
 import { useContext, useMemo, useState } from "react"
 import DataContext from "@/context/DataContext"
 import BrightnessSlider from "@/components/ui/BrightnessSlider"
+import { useLanguage } from "@/context/LanguageContext"
+import { LANGUAGE_NAMES } from "@/components/global/LanguageSwitcher"
 
 function Section({ title, children }) {
   return (
@@ -43,6 +45,7 @@ function Toggle({ enabled, onChange, label }) {
 
 export default function TeacherSettingsPage() {
   const { logout, user } = useContext(DataContext)
+  const { t, lang, setLang } = useLanguage()
 
   const teacherEmail = user?.email || "";
 
@@ -54,62 +57,60 @@ export default function TeacherSettingsPage() {
   const [emailNotifications, setEmailNotifications] = useState(true)
   const [assignmentAlerts, setAssignmentAlerts] = useState(true)
   const [studentJoinAlerts, setStudentJoinAlerts] = useState(false)
-  const [language, setLanguage] = useState("en")
 
   return (
     <div className="max-w-2xl">
-      <h1 className="text-xl font-semibold text-slate-800 dark:text-white mb-6">Settings</h1>
+      <h1 className="text-xl font-semibold text-slate-800 dark:text-white mb-6">{t("teacher.settings.title")}</h1>
 
-      <Section title="Account">
-        <Row label="Name" description="Your display name">
+      <Section title={t("teacher.settings.account")}>
+        <Row label={t("teacher.settings.name")} description={t("teacher.settings.nameHelp")}>
           <span className="text-sm text-slate-500 dark:text-slate-400">{teacherName || "—"}</span>
         </Row>
-        <Row label="Email" description="Your login email">
+        <Row label={t("teacher.settings.email")} description={t("teacher.settings.emailHelp")}>
           <span className="text-sm text-slate-500 dark:text-slate-400">{teacherEmail || "—"}</span>
         </Row>
-        <Row label="Role">
-          <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[#2E8282]/10 text-[#2E8282]">Teacher</span>
+        <Row label={t("teacher.settings.role")}>
+          <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[#2E8282]/10 text-[#2E8282]">{t("teacher.settings.teacherRole")}</span>
         </Row>
       </Section>
 
-      <Section title="Display">
-        <Row label="Brightness" description="Adjust screen brightness to your preference">
+      <Section title={t("teacher.settings.display")}>
+        <Row label={t("teacher.settings.brightness")} description={t("teacher.settings.brightnessHelp")}>
           <BrightnessSlider className="w-32" />
         </Row>
-        <Row label="Language" description="Interface language">
+        <Row label={t("teacher.settings.language")} description={t("teacher.settings.languageHelp")}>
           <select
-            aria-label="Language"
-            value={language}
-            onChange={(e) => setLanguage(e.target.value)}
+            aria-label={t("teacher.settings.language")}
+            value={lang}
+            onChange={(e) => setLang(e.target.value)}
             className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none focus:border-[#2E8282]"
           >
-            <option value="en">English</option>
-            <option value="fr">Français</option>
-            <option value="rw">Kinyarwanda</option>
-            <option value="sw">Swahili</option>
+            {Object.entries(LANGUAGE_NAMES).map(([code, name]) => (
+              <option key={code} value={code}>{name}</option>
+            ))}
           </select>
         </Row>
       </Section>
 
-      <Section title="Notifications">
-        <Row label="Email notifications" description="Receive updates via email">
-          <Toggle enabled={emailNotifications} onChange={setEmailNotifications} label="Email notifications" />
+      <Section title={t("teacher.settings.notifications")}>
+        <Row label={t("teacher.settings.emailNotifications")} description={t("teacher.settings.emailNotificationsHelp")}>
+          <Toggle enabled={emailNotifications} onChange={setEmailNotifications} label={t("teacher.settings.emailNotifications")} />
         </Row>
-        <Row label="Assignment alerts" description="Notify when students complete assignments">
-          <Toggle enabled={assignmentAlerts} onChange={setAssignmentAlerts} label="Assignment alerts" />
+        <Row label={t("teacher.settings.assignmentAlerts")} description={t("teacher.settings.assignmentAlertsHelp")}>
+          <Toggle enabled={assignmentAlerts} onChange={setAssignmentAlerts} label={t("teacher.settings.assignmentAlerts")} />
         </Row>
-        <Row label="Student join alerts" description="Notify when a student joins your class">
-          <Toggle enabled={studentJoinAlerts} onChange={setStudentJoinAlerts} label="Student join alerts" />
+        <Row label={t("teacher.settings.joinAlerts")} description={t("teacher.settings.joinAlertsHelp")}>
+          <Toggle enabled={studentJoinAlerts} onChange={setStudentJoinAlerts} label={t("teacher.settings.joinAlerts")} />
         </Row>
       </Section>
 
-      <Section title="Account Actions">
-        <Row label="Sign out" description="Log out of your account">
+      <Section title={t("teacher.settings.accountActions")}>
+        <Row label={t("teacher.settings.signOut")} description={t("teacher.settings.signOutHelp")}>
           <button
             onClick={logout}
             className="text-sm px-4 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
           >
-            Sign Out
+            {t("teacher.settings.signOutButton")}
           </button>
         </Row>
       </Section>

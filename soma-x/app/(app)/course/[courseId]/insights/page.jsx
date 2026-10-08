@@ -13,16 +13,19 @@ import ClassTab from "@/components/insights/ClassTab";
 import OutcomesTab from "@/components/insights/OutcomesTab";
 import LearnersTab from "@/components/insights/LearnersTab";
 import ItemsTab from "@/components/insights/ItemsTab";
+import { useProgressText, fmtDateTime } from "@/components/progress/text";
 
+// Tab labels: insights.tabs.<key> in languages/progress.
 const TABS = [
-  { key: "class", label: "Class" },
-  { key: "outcomes", label: "Outcomes" },
-  { key: "learners", label: "Learners" },
-  { key: "items", label: "Items" },
+  { key: "class" },
+  { key: "outcomes" },
+  { key: "learners" },
+  { key: "items" },
 ];
 
 function TeacherInsights() {
   const { SERVER_URL, courseId, course } = useCourse();
+  const { tp, locale } = useProgressText();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -42,13 +45,14 @@ function TeacherInsights() {
     try {
       const res = await fetch(`${SERVER_URL}/courses/${courseId}/insights`);
       const payload = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(payload.message || "Couldn't load insights.");
+      if (!res.ok) throw new Error(payload.message || tp("insights.loadFailed"));
       setData(payload);
     } catch (err) {
-      setError(err.message || "Couldn't load insights.");
+      setError(err.message || tp("insights.loadFailed"));
     } finally {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [SERVER_URL, courseId]);
 
   useEffect(() => { load(); }, [load]);
@@ -90,13 +94,13 @@ function TeacherInsights() {
       <Breadcrumbs sectionKey="insights" />
       <div className="p-4 md:p-6 space-y-6 max-w-6xl">
         <PageHeader
-          title="Insights"
+          title={tp("insights.title")}
           help="pages.insights"
-          description={`How ${data?.course?.title || course?.title || "this course"} is going, from graded work and graded quizzes only. Practice doesn't count. Growth is measured against each outcome's Week 0 baseline.`}
-          meta={data?.today ? <span>Figures as of {new Date(`${data.today}T12:00:00`).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}</span> : null}
+          description={tp("insights.description", { course: data?.course?.title || course?.title || tp("insights.thisCourse") })}
+          meta={data?.today ? <span>{tp("insights.figuresAsOf", { date: fmtDateTime(new Date(`${data.today}T12:00:00`), locale, { day: "numeric", month: "short", year: "numeric" }) })}</span> : null}
         />
 
-        <div role="tablist" aria-label="Insights views" className="flex gap-1 overflow-x-auto border-b border-slate-200 dark:border-slate-800" onKeyDown={onTabKey}>
+        <div role="tablist" aria-label={tp("insights.tabsLabel")} className="flex gap-1 overflow-x-auto border-b border-slate-200 dark:border-slate-800" onKeyDown={onTabKey}>
           {TABS.map((t) => {
             const selected = t.key === tab;
             return (
@@ -114,7 +118,7 @@ function TeacherInsights() {
                   selected ? "border-[#0D9488] text-[#0D9488]" : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
                 }`}
               >
-                {t.label}
+                {tp(`insights.tabs.${t.key}`)}
               </button>
             );
           })}

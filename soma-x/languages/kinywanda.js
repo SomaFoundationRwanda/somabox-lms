@@ -1,3 +1,9 @@
+import rwShell from "./shell/rw";
+import rwLearner from "./learner/rw";
+import rwCourse from "./course/rw";
+import rwProgress from "./progress/rw";
+import rwAdmin from "./admin/rw";
+import rwTeacher from "./teacher/rw";
 import rwSchool from "./school/rw";
 import rwExplore from "./explore/rw";
 import rwAttendance from "./attendance/rw";
@@ -9,6 +15,12 @@ export default {
     "guest": rwGuest,
     "explore": rwExplore,
     "school": rwSchool,
+    "shell": rwShell,
+    "learner": rwLearner,
+    "course": rwCourse,
+    "progress": rwProgress,
+    "admin": rwAdmin,
+    "teacher": rwTeacher,
     "explainers": {},
     "nav": {
         "dashboard": "Ahabanza",
@@ -137,9 +149,9 @@ export default {
         "scholar": "Umunyeshuri"
     },
     "notFound": "Ibikubiyemo ntibyabonetse",
-    "loadingCategories": "Loading categories...",
-    "exploreTopics": "Explore the topics below",
-    "notContent": "There is no content here yet.",
+    "loadingCategories": "Ibyiciro biraza...",
+    "exploreTopics": "Sura ingingo ziri hepfo",
+    "notContent": "Nta bikubiyemo biri hano.",
     "noContent": "Ibikubiyemo wasabye ntibyari byashoboye gutangizwa",
     "thePath": "Inzira",
     "doesNotExist": "Ntibibaho",

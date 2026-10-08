@@ -3,8 +3,10 @@
 import PageContent from "./PageContent";
 import { Eye, EyeOff, Edit, Users, CheckCircle } from "lucide-react";
 import { PageHeader } from "@/components/layout";
+import { useCourseText } from "@/components/course/useCourseText";
 
 export default function TeacherPageChrome({ page, onEdit, onTogglePublish }) {
+  const { t, tf } = useCourseText();
   const stats = page?.teacherStats || null;
 
   return (
@@ -26,12 +28,12 @@ export default function TeacherPageChrome({ page, onEdit, onTogglePublish }) {
               {page.published ? (
                 <>
                   <Eye className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Published</span>
+                  <span>{t("common.published")}</span>
                 </>
               ) : (
                 <>
                   <EyeOff className="w-3.5 h-3.5 text-amber-600" />
-                  <span>Draft (Unpublished)</span>
+                  <span>{t("pageView.draftUnpublished")}</span>
                 </>
               )}
             </button>
@@ -39,12 +41,12 @@ export default function TeacherPageChrome({ page, onEdit, onTogglePublish }) {
               <span className="inline-flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400">
                 <Users className="w-3.5 h-3.5 text-[#203A3A]" />
                 <span>
-                  <strong>{stats.viewedCount}</strong>/{stats.totalEnrolled} students viewed
+                  {tf("pageView.viewed", { n: stats.viewedCount, total: stats.totalEnrolled })}
                 </span>
                 <span className="text-slate-300">·</span>
                 <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
                 <span>
-                  <strong>{stats.completedCount}</strong> completed
+                  {tf("pageView.completedCount", { n: stats.completedCount })}
                 </span>
               </span>
             )}
@@ -57,7 +59,7 @@ export default function TeacherPageChrome({ page, onEdit, onTogglePublish }) {
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-[#203A3A] hover:bg-[#162727] rounded-lg transition-colors"
           >
             <Edit className="w-3.5 h-3.5" />
-            <span>Edit Page</span>
+            <span>{t("editors.editPage")}</span>
           </button>
         }
       />

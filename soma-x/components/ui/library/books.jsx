@@ -4,6 +4,7 @@ import UniversalPlayerModal from "@/components/ui/UniversalPlayerModal";
 import { BookOpen, Film, Music } from "lucide-react";
 import { useGuestGate } from "@/components/guest/GuestGate";
 import { useLanguage } from "@/context/LanguageContext";
+import { fill } from "@/lib/fill";
 import { libraryCoverUrl, libraryFileUrl, libraryShelf, libraryViewer } from "./libraryEntry";
 
 // react-reader (epub.js) loads only when a book is opened.
@@ -89,8 +90,8 @@ const BooksPage = ({ books = [], loading = false, shelf = null, searchQuery }) =
                 <div className="w-14 h-14 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center mb-3">
                     <BookOpen className="w-6 h-6 text-slate-500" />
                 </div>
-                <p className="text-[13px] font-semibold text-slate-500">No books found</p>
-                <p className="text-[11px] text-slate-600 mt-1">Try adjusting your search or category filters</p>
+                <p className="text-[13px] font-semibold text-slate-500">{t("learner.library.noBooks")}</p>
+                <p className="text-[11px] text-slate-600 mt-1">{t("learner.library.noBooksHint")}</p>
             </div>
         );
     }
@@ -104,10 +105,10 @@ const BooksPage = ({ books = [], loading = false, shelf = null, searchQuery }) =
                         <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-400 to-violet-500 flex items-center justify-center">
                             <BookOpen size={13} className="text-white" />
                         </div>
-                        <p className="text-[13px] font-bold text-slate-800">Books</p>
+                        <p className="text-[13px] font-bold text-slate-800">{t("books") || "Books"}</p>
                     </div>
                     <span className="text-[10px] font-medium px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-slate-500">
-                        {filteredBooks.length} {filteredBooks.length === 1 ? "book" : "books"}
+                        {filteredBooks.length === 1 ? t("learner.library.oneBook") : fill(t("learner.library.nBooks"), { n: filteredBooks.length })}
                     </span>
                 </div>
 

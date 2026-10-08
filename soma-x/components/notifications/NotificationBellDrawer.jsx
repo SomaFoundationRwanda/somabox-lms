@@ -7,6 +7,9 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import DataContext from '@/context/DataContext';
+import { useLanguage } from '@/context/LanguageContext';
+import { fill } from '@/lib/fill';
+import { formatDate } from '@/components/helpers/localeDate';
 import { 
     fetchNotifications, markNotificationAsRead, 
     markAllNotificationsAsRead, deleteNotification 
@@ -14,6 +17,7 @@ import {
 
 export default function NotificationBellDrawer({ className = "" }) {
     const { authenticated, isDark, user } = useContext(DataContext);
+    const { t, lang } = useLanguage();
     const [open, setOpen] = useState(false);
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
@@ -71,11 +75,11 @@ export default function NotificationBellDrawer({ className = "" }) {
         const d = new Date(dateStr);
         const diffMs = Date.now() - d.getTime();
         const diffMins = Math.floor(diffMs / (1000 * 60));
-        if (diffMins < 1) return 'Just now';
-        if (diffMins < 60) return `${diffMins}m ago`;
+        if (diffMins < 1) return t('shell.time.justNow');
+        if (diffMins < 60) return fill(t('shell.time.minutesAgo'), { n: diffMins });
         const diffHours = Math.floor(diffMins / 60);
-        if (diffHours < 24) return `${diffHours}h ago`;
-        return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        if (diffHours < 24) return fill(t('shell.time.hoursAgo'), { n: diffHours });
+        return formatDate(d, lang, { month: 'short', day: 'numeric' });
     };
 
     const filteredList = filter === 'unread'
@@ -97,7 +101,7 @@ export default function NotificationBellDrawer({ className = "" }) {
                     dm ? 'bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-slate-700/60' 
                        : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 shadow-sm'
                 }`}
-                aria-label="Notifications"
+                aria-label={t('shell.notifications.title')}
             >
                 <Bell className="w-4 h-4" />
                 {unreadCount > 0 && (
@@ -124,10 +128,10 @@ export default function NotificationBellDrawer({ className = "" }) {
                         {/* Header */}
                         <div className="p-4 border-b flex items-center justify-between" style={{ borderColor: borderCol }}>
                             <div className="flex items-center gap-2">
-                                <h3 className="font-extrabold text-sm" style={{ color: titleCol }}>Notifications</h3>
+                                <h3 className="font-extrabold text-sm" style={{ color: titleCol }}>{t('shell.notifications.title')}</h3>
                                 {unreadCount > 0 && (
                                     <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-teal-500/10 text-teal-600 border border-teal-500/20">
-                                        {unreadCount} new
+                                        {fill(t('shell.notifications.newCount'), { n: unreadCount })}
                                     </span>
                                 )}
                             </div>
@@ -137,10 +141,10 @@ export default function NotificationBellDrawer({ className = "" }) {
                                         onClick={handleMarkAllRead}
                                         className="text-[11px] font-bold text-teal-600 hover:text-teal-700 dark:text-teal-400 flex items-center gap-1 px-2 py-1 rounded-md hover:bg-teal-50 dark:hover:bg-teal-950/40 transition-colors"
                                     >
-                                        <CheckCheck className="w-3.5 h-3.5" /> Read all
+                                        <CheckCheck className="w-3.5 h-3.5" /> {t('shell.notifications.readAll')}
                                     </button>
                                 )}
-                                <button aria-label="Close"
+                                <button aria-label={t('shell.common.close')}
                                     onClick={() => setOpen(false)}
                                     className="p-1 text-slate-600 hover:text-slate-600 rounded-md transition-colors"
                                 >
@@ -159,7 +163,7 @@ export default function NotificationBellDrawer({ className = "" }) {
                                         : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
                                 }`}
                             >
-                                All ({notifications.length})
+                                {t('shell.notifications.all')} ({notifications.length})
                             </button>
                             <button
                                 onClick={() => setFilter('unread')}
@@ -169,7 +173,7 @@ export default function NotificationBellDrawer({ className = "" }) {
                                         : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
                                 }`}
                             >
-                                Unread ({unreadCount})
+                                {t('shell.notifications.unread')} ({unreadCount})
                             </button>
                         </div>
 
@@ -181,7 +185,7 @@ export default function NotificationBellDrawer({ className = "" }) {
                                         <Bell className="w-5 h-5 opacity-50" />
                                     </div>
                                     <p className="text-xs font-semibold" style={{ color: textMuted }}>
-                                        {filter === 'unread' ? 'No unread notifications' : 'No notifications yet'}
+                                        {filter === 'unread' ? t('shell.notifications.noUnread') : t('shell.notifications.none')}
                                     </p>
                                 </div>
                             ) : (
@@ -237,7 +241,7 @@ export default function NotificationBellDrawer({ className = "" }) {
                                                             onClick={(e) => { e.stopPropagation(); handleMarkAsRead(n.id); }}
                                                             className="sr-only focus:not-sr-only focus:mt-1 focus:inline-block text-[11px] font-bold text-accent-dark underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]"
                                                         >
-                                                            Mark as read
+                                                            {t('shell.notifications.markRead')}
                                                         </button>
                                                     )}
 
@@ -249,7 +253,7 @@ export default function NotificationBellDrawer({ className = "" }) {
                                                                 onClick={() => setOpen(false)}
                                                                 className="inline-flex items-center gap-1 text-[11px] font-extrabold text-accent-dark hover:underline"
                                                             >
-                                                                {isProfileReminder ? 'Complete Profile' : 'View Details'}
+                                                                {isProfileReminder ? t('shell.notifications.completeProfile') : t('shell.notifications.viewDetails')}
                                                                 <ChevronRight className="w-3 h-3" />
                                                             </Link>
                                                         </div>
@@ -260,8 +264,8 @@ export default function NotificationBellDrawer({ className = "" }) {
                                                 <button
                                                     onClick={(e) => handleDelete(n.id, e)}
                                                     className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488] p-1 text-slate-600 hover:text-rose-600 rounded transition-all absolute right-3 top-3"
-                                                    title="Dismiss"
-                                                    aria-label={`Dismiss notification: ${n.title}`}
+                                                    title={t('shell.notifications.dismiss')}
+                                                    aria-label={fill(t('shell.notifications.dismissNamed'), { title: n.title })}
                                                 >
                                                     <Trash2 className="w-3.5 h-3.5" />
                                                 </button>

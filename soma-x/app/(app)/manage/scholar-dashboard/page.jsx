@@ -12,10 +12,13 @@ import ProfileCompletionBanner from "@/components/notifications/ProfileCompletio
 import AssignmentBell from "@/components/notifications/AssignmentBell";
 import { getDiagnosticStatus } from "@/lib/sol-service";
 import { SOL_QUIZ_ENABLED } from "@/lib/featureFlags";
+import { useLanguage } from "@/context/LanguageContext";
+import { fill } from "@/lib/fill";
 
 const ScholarDashboard = () => {
     const { authenticated, role, SERVER_URL, isDark, user } = useContext(DataContext);
     const router = useRouter();
+    const { t } = useLanguage();
     const ACCENT = isDark ? "#0D9488" : "#203A3A";
 
     const currentRole = useMemo(() => (role || ""), [role]);
@@ -70,10 +73,10 @@ const ScholarDashboard = () => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({}),
             });
-            if (!res.ok) throw new Error((await res.json()).message || "Failed to join");
+            if (!res.ok) throw new Error((await res.json()).message || t("learner.discover.joinFailed"));
             router.push(`/course/${courseId}/home`);
         } catch (err) {
-            setJoinError(err.message || "Failed to join course");
+            setJoinError(err.message || t("learner.discover.joinFailed"));
             setJoiningId(null);
         }
     };
@@ -127,10 +130,10 @@ const ScholarDashboard = () => {
 
                     <div className="relative z-10">
                         <h2 className="text-[16px] sm:text-[18px] font-black text-white leading-tight tracking-tight">
-                            Keep Learning, Even Offline
+                            {t("learner.dashboard.offlineTitle")}
                         </h2>
                         <p className="text-white/40 text-[11px] leading-relaxed mt-1">
-                            Browse books and materials in your Library anytime — no internet connection needed.
+                            {t("learner.dashboard.offlineBody")}
                         </p>
                     </div>
 
@@ -141,7 +144,7 @@ const ScholarDashboard = () => {
                             onMouseEnter={e => e.currentTarget.style.backgroundColor = "#2d5050"}
                             onMouseLeave={e => e.currentTarget.style.backgroundColor = ACCENT}
                         >
-                            Browse the Library
+                            {t("learner.dashboard.browseLibrary")}
                         </button>
                     </Link>
                 </div>
@@ -179,11 +182,11 @@ const ScholarDashboard = () => {
                                 <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
                                     <div className="space-y-3 max-w-2xl">
                                         <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-tight flex items-center gap-2">
-                                            <span>You&apos;re All Settled In!</span>
+                                            <span>{t("learner.dashboard.settledTitle")}</span>
                                             <Sparkles className="w-6 h-6 text-teal-400 shrink-0" />
                                         </h2>
                                         <p className="text-slate-500 text-xs sm:text-sm leading-relaxed">
-                                            Your account is active and ready to go. Your teacher will add you to your course soon — this is standard procedure, so no action is needed on your part! In the meantime, feel free to explore independent learning materials in the open Library.
+                                            {t("learner.dashboard.settledBody")}
                                         </p>
                                     </div>
 
@@ -191,14 +194,14 @@ const ScholarDashboard = () => {
                                         <Link href="/library" className="w-full sm:w-auto">
                                             <Button className="w-full sm:w-auto h-11 px-6 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-teal-950/40 transition-all">
                                                 <BookOpen className="w-4 h-4" />
-                                                Browse the Library
+                                                {t("learner.dashboard.browseLibrary")}
                                                 <ArrowRight className="w-4 h-4" />
                                             </Button>
                                         </Link>
                                         <Link href="/manage/scholar-dashboard/interleaved-review" className="w-full sm:w-auto">
                                             <Button variant="outline" className="w-full sm:w-auto h-11 px-5 rounded-xl border-white/20 hover:bg-white/10 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 backdrop-blur-sm">
                                                 <Shuffle className="w-4 h-4 text-teal-400" />
-                                                Try Practice Topics
+                                                {t("learner.dashboard.tryPractice")}
                                             </Button>
                                         </Link>
                                     </div>
@@ -210,11 +213,11 @@ const ScholarDashboard = () => {
                                 {hasEnrolled ? (
                                     <div className="bg-white rounded-[5px] p-3 sm:p-4">
                                         <div className="flex items-center justify-between mb-3">
-                                            <p className="text-[13px] sm:text-[14px] font-bold text-slate-900">My Courses</p>
+                                            <p className="text-[13px] sm:text-[14px] font-bold text-slate-900">{t("learner.dashboard.myCourses")}</p>
                                             <Link href="/manage/scholar-dashboard/courses"
                                                 className="text-[11px] font-semibold hover:underline underline-offset-2"
                                                 style={{ color: ACCENT }}>
-                                                View all
+                                                {t("learner.dashboard.viewAll")}
                                             </Link>
                                         </div>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -231,8 +234,8 @@ const ScholarDashboard = () => {
                                                         <p className="text-[12px] font-bold text-slate-900 truncate">{course.title}</p>
                                                         <div className="space-y-1">
                                                             <div className="flex items-center justify-between text-[10px] text-slate-500">
-                                                                <span>Progress</span>
-                                                                <span className="font-semibold text-slate-700">{course.progress == null ? "No graded work yet" : `${course.progress}%`}</span>
+                                                                <span>{t("learner.dashboard.progress")}</span>
+                                                                <span className="font-semibold text-slate-700">{course.progress == null ? t("learner.dashboard.noGradedWork") : `${course.progress}%`}</span>
                                                             </div>
                                                             <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
                                                                 <div className="h-full rounded-full transition-all duration-700" style={{ width: `${course.progress ?? 0}%`, backgroundColor: ACCENT }} />
@@ -240,7 +243,7 @@ const ScholarDashboard = () => {
                                                         </div>
                                                         <Link href={`/course/${course.id}/home`} className="mt-auto">
                                                             <Button className="w-full h-8 text-[11px] font-semibold rounded-[5px]" style={{ backgroundColor: ACCENT }}>
-                                                                Continue
+                                                                {t("learner.dashboard.continue")}
                                                             </Button>
                                                         </Link>
                                                     </div>
@@ -255,7 +258,7 @@ const ScholarDashboard = () => {
                                     <div className="bg-white rounded-[5px] p-3 sm:p-4">
                                         <div className="flex items-center gap-2 mb-3">
                                             <Compass className="w-4 h-4 text-slate-500" />
-                                            <p className="text-[13px] sm:text-[14px] font-bold text-slate-900">Explore Public Courses</p>
+                                            <p className="text-[13px] sm:text-[14px] font-bold text-slate-900">{t("learner.dashboard.publicCourses")}</p>
                                         </div>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                             {publicCourses.map((course) => (
@@ -277,7 +280,7 @@ const ScholarDashboard = () => {
                                                         ) : null}
                                                         <div className="flex items-center gap-1 text-[10px] text-slate-400">
                                                             <Users className="w-3 h-3" />
-                                                            <span>{course.studentCount} enrolled</span>
+                                                            <span>{fill(t(course.studentCount === 1 ? "learner.discover.oneEnrolled" : "learner.discover.nEnrolled"), { n: course.studentCount })}</span>
                                                         </div>
                                                         <Button
                                                             onClick={() => joinCourse(course.id)}
@@ -285,7 +288,7 @@ const ScholarDashboard = () => {
                                                             className="w-full h-8 text-[11px] font-semibold rounded-[5px] mt-auto disabled:opacity-50"
                                                             style={{ backgroundColor: ACCENT }}
                                                         >
-                                                            {joiningId === course.id ? "Joining..." : "Join Course"}
+                                                            {joiningId === course.id ? t("learner.discover.joining") : t("learner.discover.join")}
                                                         </Button>
                                                     </div>
                                                 </div>
@@ -299,17 +302,17 @@ const ScholarDashboard = () => {
 
                     {/* Quick access — 2-col grid on mobile, list on xl */}
                     <div className="bg-white rounded-[5px] p-3 sm:p-4">
-                        <p className="text-[13px] sm:text-[14px] font-bold text-slate-900 mb-3">Quick Access</p>
+                        <p className="text-[13px] sm:text-[14px] font-bold text-slate-900 mb-3">{t("learner.dashboard.quickAccess")}</p>
 
                         <div className="grid grid-cols-2 xl:grid-cols-1 gap-1.5 xl:gap-0.5">
                             {[
-                                { label: "My Courses", sub: hasEnrolled ? `${enrolledCourses.length} joined` : "Not enrolled yet", icon: BookOpen, href: "/manage/scholar-dashboard/courses", color: "text-blue-600 bg-blue-50" },
-                                { label: "Assignments", sub: "View your work", icon: GraduationCap, href: "/manage/scholar-dashboard/courses", color: "text-amber-600 bg-amber-50" },
-                                { label: "Discover Courses", sub: "Browse & join public courses", icon: Compass, href: "/discover-courses", color: "text-teal-600 bg-teal-50" },
-                                { label: "Interleaved Review", sub: "Independent practice", icon: Shuffle, href: "/manage/scholar-dashboard/interleaved-review", color: "text-violet-600 bg-violet-50" },
-                                { label: "Library", sub: "Browse materials & books", icon: Layers, href: "/library", color: "text-green-600 bg-green-50" },
-                            ].map(({ label, sub, icon: Icon, href, color }) => (
-                                <Link key={label} href={href}>
+                                { id: "courses", label: t("learner.dashboard.myCourses"), sub: hasEnrolled ? fill(t("learner.dashboard.nJoined"), { n: enrolledCourses.length }) : t("learner.dashboard.notEnrolled"), icon: BookOpen, href: "/manage/scholar-dashboard/courses", color: "text-blue-600 bg-blue-50" },
+                                { id: "assignments", label: t("shell.assignments.title"), sub: t("learner.dashboard.viewWork"), icon: GraduationCap, href: "/manage/scholar-dashboard/courses", color: "text-amber-600 bg-amber-50" },
+                                { id: "discover", label: t("shell.nav.discoverCourses"), sub: t("learner.dashboard.discoverSub"), icon: Compass, href: "/discover-courses", color: "text-teal-600 bg-teal-50" },
+                                { id: "review", label: t("learner.dashboard.interleaved"), sub: t("learner.dashboard.interleavedSub"), icon: Shuffle, href: "/manage/scholar-dashboard/interleaved-review", color: "text-violet-600 bg-violet-50" },
+                                { id: "library", label: t("nav.library") || "Library", sub: t("learner.dashboard.librarySub"), icon: Layers, href: "/library", color: "text-green-600 bg-green-50" },
+                            ].map(({ id, label, sub, icon: Icon, href, color }) => (
+                                <Link key={id} href={href}>
                                     <div className="flex items-center gap-2.5 p-2 sm:p-2.5 rounded-[5px] hover:bg-slate-50 transition-colors group cursor-pointer">
                                         <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-[5px] flex items-center justify-center shrink-0 ${color}`}>
                                             <Icon className="w-[13px] h-[13px] sm:w-[15px] sm:h-[15px]" />

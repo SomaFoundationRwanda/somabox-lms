@@ -7,9 +7,11 @@ import { useCourse } from "@/context/CourseContext";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
 import { PageHeader, List, ListRow, EmptyState } from "@/components/layout";
 import { ExplainerText } from "@/components/help/Explainer";
+import { useCourseText } from "@/components/course/useCourseText";
 
 export default function PagesListPage() {
   const { SERVER_URL, courseId, userEmail, isTeacher } = useCourse();
+  const { t } = useCourseText();
   const [pages, setPages] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -35,22 +37,22 @@ export default function PagesListPage() {
       <Breadcrumbs sectionKey="pages" />
       <div className="p-4 md:p-6 space-y-6 max-w-4xl">
         <PageHeader help="pages.pages"
-          title="Pages"
-          description="Pages provide readings and study content bound to module week slots."
+          title={t("nav.pages")}
+          description={t("lists.pagesDescription")}
           actions={isTeacher ? (
             <Link
               href={`/course/${courseId}/modules`}
               className="flex items-center gap-1.5 text-xs font-semibold text-white bg-[#0D9488] hover:bg-teal-700 rounded-lg px-3.5 py-2 transition-colors"
             >
-              <Plus className="w-3.5 h-3.5" /> Add from Modules
+              <Plus className="w-3.5 h-3.5" /> {t("lists.addFromModules")}
             </Link>
           ) : null}
         />
 
         {pages.length === 0 ? (
-          <EmptyState compact title={loading ? "Loading pages..." : "No pages created yet."} description={loading ? undefined : <ExplainerText k="pages.pages" />} />
+          <EmptyState compact title={loading ? t("lists.loadingPages") : t("lists.noPages")} description={loading ? undefined : <ExplainerText k="pages.pages" />} />
         ) : (
-          <List label="Pages">
+          <List label={t("nav.pages")}>
             {pages.map((p) => (
               <ListRow
                 key={p.id}
@@ -59,7 +61,7 @@ export default function PagesListPage() {
                 href={`/course/${courseId}/pages/${p.id}`}
                 actions={
                   <Link href={`/course/${courseId}/pages/${p.id}`} className="text-xs font-semibold text-[#0D9488] hover:underline">
-                    Read &rarr;
+                    {t("lists.read")} &rarr;
                   </Link>
                 }
               />

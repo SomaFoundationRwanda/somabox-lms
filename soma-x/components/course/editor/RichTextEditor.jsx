@@ -10,6 +10,7 @@ import { CustomImageNode } from "./nodes/CustomImageNode";
 import { FileAttachmentNode } from "./nodes/FileAttachmentNode";
 import { VideoEmbedNode } from "./nodes/VideoEmbedNode";
 import { useCourse } from "@/context/CourseContext";
+import { useCourseText } from "@/components/course/useCourseText";
 
 function detectVideoUrl(url = "") {
   const isYt = /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/.test(url);
@@ -26,6 +27,7 @@ const RichTextEditor = forwardRef(function RichTextEditor(
   ref
 ) {
   const { SERVER_URL, courseId } = useCourse();
+  const { t, tf } = useCourseText();
 
   const handleFileUploadAndInsert = useCallback(
     async (file, editorInstance) => {
@@ -64,7 +66,7 @@ const RichTextEditor = forwardRef(function RichTextEditor(
         });
 
         const data = await res.json();
-        if (!res.ok) throw new Error(data.message || "File upload failed");
+        if (!res.ok) throw new Error(data.message || t("editor.uploadFailed"));
 
         const mime = (file.type || data.mime_type || "").toLowerCase();
         const fileId = data.file_id || data.id;
@@ -174,17 +176,17 @@ const RichTextEditor = forwardRef(function RichTextEditor(
                   file_size: file.size,
                   mime_type: file.type || "",
                   uploading: false,
-                  error: err.message || "Upload failed",
+                  error: err.message || t("editor.uploadFailed"),
                 },
               })
               .run();
           }
         } else {
-          alert(`Failed to upload file: ${err.message}`);
+          alert(tf("editor.uploadFailedNamed", { message: err.message || "" }));
         }
       }
     },
-    [SERVER_URL, courseId]
+    [SERVER_URL, courseId, t, tf]
   );
 
   const editor = useEditor({

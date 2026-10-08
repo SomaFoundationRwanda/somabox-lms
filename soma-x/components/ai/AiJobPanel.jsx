@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { X } from "lucide-react";
-import { aiFetch, useAiJob, JOB_KIND_LABELS } from "@/lib/ai";
+import { aiFetch, useAiJob } from "@/lib/ai";
+import { useProgressText, jobKindLabel, fillNode } from "@/components/progress/text";
 import { JobProgress } from "./AiBits";
 import DraftCard, { ApprovedNote } from "./DraftCard";
 
@@ -14,6 +15,7 @@ import DraftCard, { ApprovedNote } from "./DraftCard";
  * onApproved(draft, result) after a draft is added; onClose() hides the panel.
  */
 export default function AiJobPanel({ SERVER_URL, courseId, job: initialJob, label, outcomes: outcomesProp, modules, confirmApprove, onApproved, onClose }) {
+  const { tp } = useProgressText();
   const [drafts, setDrafts] = useState(null);
   const [loadError, setLoadError] = useState("");
   const [outcomes, setOutcomes] = useState(outcomesProp || null);
@@ -43,12 +45,12 @@ export default function AiJobPanel({ SERVER_URL, courseId, job: initialJob, labe
         <JobProgress
           className="flex-1"
           job={job}
-          label={label || JOB_KIND_LABELS[initialJob?.kind]}
+          label={label || jobKindLabel(tp, initialJob?.kind)}
           onCancel={cancel}
           cancelling={cancelling}
         />
         {finished && onClose ? (
-          <button type="button" onClick={onClose} aria-label="Close" className="p-1.5 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800">
+          <button type="button" onClick={onClose} aria-label={tp("common.close")} className="p-1.5 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800">
             <X className="w-4 h-4" />
           </button>
         ) : null}
@@ -57,7 +59,7 @@ export default function AiJobPanel({ SERVER_URL, courseId, job: initialJob, labe
       {loadError ? <p role="alert" className="text-xs text-rose-600">{loadError}</p> : null}
 
       {job?.status === "done" && drafts && drafts.length === 0 ? (
-        <p className="text-xs text-slate-500">The AI didn&apos;t produce a draft. Try again with more detail.</p>
+        <p className="text-xs text-slate-500">{tp("ai.noDraft")}</p>
       ) : null}
 
       {(drafts || []).map((d) => {
@@ -66,7 +68,7 @@ export default function AiJobPanel({ SERVER_URL, courseId, job: initialJob, labe
           return <ApprovedNote key={d.id} draft={{ ...d, ...decision.draft }} courseId={courseId} message={decision.message} />;
         }
         if (decision?.status === "rejected") {
-          return <p key={d.id} className="text-xs text-slate-500">Draft rejected. Nothing was added.</p>;
+          return <p key={d.id} className="text-xs text-slate-500">{tp("ai.rejectedNote")}</p>;
         }
         return (
           <DraftCard
@@ -88,7 +90,7 @@ export default function AiJobPanel({ SERVER_URL, courseId, job: initialJob, labe
 
       {job?.status === "done" && drafts?.length ? (
         <p className="text-[11px] text-slate-500">
-          Drafts also wait in <Link href={`/course/${courseId}/ai`} className="font-semibold text-[#0D9488] hover:underline">AI drafts</Link> if you want to decide later.
+          {fillNode(tp("ai.alsoWaitIn", { link: "{link}" }), { link: <Link href={`/course/${courseId}/ai`} className="font-semibold text-[#0D9488] hover:underline">{tp("ai.draftsLink")}</Link> })}
         </p>
       ) : null}
     </div>

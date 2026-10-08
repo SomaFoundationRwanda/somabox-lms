@@ -5,6 +5,7 @@ import {
   Bold, Italic, Underline, Heading1, Heading2, Heading3,
   List, ListOrdered, Link as LinkIcon, Unlink, Quote, Minus, Code,
 } from "lucide-react";
+import { useCourseText } from "@/components/course/useCourseText";
 
 function ToolbarButton({ onClick, isActive, children, title }) {
   return (
@@ -28,6 +29,7 @@ function ToolbarDivider() {
 }
 
 export default function EditorToolbar({ editor }) {
+  const { t } = useCourseText();
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
 
@@ -51,21 +53,21 @@ export default function EditorToolbar({ editor }) {
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
         isActive={editor.isActive("heading", { level: 1 })}
-        title="Heading 1"
+        title={t("editor.heading1")}
       >
         <Heading1 className="w-4 h-4" />
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
         isActive={editor.isActive("heading", { level: 2 })}
-        title="Heading 2"
+        title={t("editor.heading2")}
       >
         <Heading2 className="w-4 h-4" />
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
         isActive={editor.isActive("heading", { level: 3 })}
-        title="Heading 3"
+        title={t("editor.heading3")}
       >
         <Heading3 className="w-4 h-4" />
       </ToolbarButton>
@@ -76,21 +78,21 @@ export default function EditorToolbar({ editor }) {
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBold().run()}
         isActive={editor.isActive("bold")}
-        title="Bold"
+        title={t("editor.bold")}
       >
         <Bold className="w-4 h-4" />
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleItalic().run()}
         isActive={editor.isActive("italic")}
-        title="Italic"
+        title={t("editor.italic")}
       >
         <Italic className="w-4 h-4" />
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleUnderline().run()}
         isActive={editor.isActive("underline")}
-        title="Underline"
+        title={t("editor.underline")}
       >
         <Underline className="w-4 h-4" />
       </ToolbarButton>
@@ -101,14 +103,14 @@ export default function EditorToolbar({ editor }) {
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBulletList().run()}
         isActive={editor.isActive("bulletList")}
-        title="Bullet List"
+        title={t("editor.bulletList")}
       >
         <List className="w-4 h-4" />
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleOrderedList().run()}
         isActive={editor.isActive("orderedList")}
-        title="Numbered List"
+        title={t("editor.numberedList")}
       >
         <ListOrdered className="w-4 h-4" />
       </ToolbarButton>
@@ -119,21 +121,21 @@ export default function EditorToolbar({ editor }) {
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBlockquote().run()}
         isActive={editor.isActive("blockquote")}
-        title="Block Quote"
+        title={t("editor.quote")}
       >
         <Quote className="w-4 h-4" />
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleCodeBlock().run()}
         isActive={editor.isActive("codeBlock")}
-        title="Code Block"
+        title={t("editor.codeBlock")}
       >
         <Code className="w-4 h-4" />
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.chain().focus().setHorizontalRule().run()}
         isActive={false}
-        title="Horizontal Rule"
+        title={t("editor.divider")}
       >
         <Minus className="w-4 h-4" />
       </ToolbarButton>
@@ -151,7 +153,7 @@ export default function EditorToolbar({ editor }) {
           }
         }}
         isActive={editor.isActive("link")}
-        title={editor.isActive("link") ? "Remove Link" : "Add Link"}
+        title={editor.isActive("link") ? t("editor.removeLink") : t("editor.addLink")}
       >
         {editor.isActive("link") ? <Unlink className="w-4 h-4" /> : <LinkIcon className="w-4 h-4" />}
       </ToolbarButton>
@@ -159,7 +161,7 @@ export default function EditorToolbar({ editor }) {
       {/* Link input popover */}
       {showLinkInput && (
         <div className="flex items-center gap-1.5 ml-1 bg-white border border-slate-200 rounded-lg px-2 py-1 shadow-sm">
-          <input aria-label="Link URL"
+          <input aria-label={t("editor.linkUrl")}
             type="url"
             value={linkUrl}
             onChange={(e) => setLinkUrl(e.target.value)}
@@ -173,9 +175,9 @@ export default function EditorToolbar({ editor }) {
             onClick={setLink}
             className="text-[10px] font-semibold text-white bg-[#203A3A] rounded px-2 py-0.5"
           >
-            Set
+            {t("editor.setLink")}
           </button>
-          <button aria-label="Cancel link"
+          <button aria-label={t("editor.cancelLink")}
             type="button"
             onClick={() => setShowLinkInput(false)}
             className="text-[10px] text-slate-400 hover:text-slate-600"
@@ -188,7 +190,7 @@ export default function EditorToolbar({ editor }) {
       <ToolbarDivider />
 
       {/* Insert Image */}
-      <label className="p-1.5 rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-700 cursor-pointer transition-colors" title="Insert Image">
+      <label className="p-1.5 rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-700 cursor-pointer transition-colors" title={t("editor.insertImage")}>
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <rect x="3" y="3" width="18" height="18" rx="2" ry="2" strokeWidth="2" />
           <circle cx="8.5" cy="8.5" r="1.5" strokeWidth="2" />
@@ -210,7 +212,7 @@ export default function EditorToolbar({ editor }) {
       </label>
 
       {/* Attach File */}
-      <label className="p-1.5 rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-700 cursor-pointer transition-colors" title="Attach File">
+      <label className="p-1.5 rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-700 cursor-pointer transition-colors" title={t("editor.attachFile")}>
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>

@@ -1,7 +1,9 @@
 "use client"
 import { useEffect, useState } from "react";
 import { useLanguage } from '@/context/LanguageContext';
-import { ChevronDown, Compass, Eye, EyeOff, Globe, Loader2 } from "lucide-react";
+import { Compass, Eye, EyeOff, Loader2 } from "lucide-react";
+import LanguageSwitcher from "@/components/global/LanguageSwitcher";
+import { fill } from "@/lib/fill";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import Image from "next/image";
@@ -9,11 +11,9 @@ import { useToast } from "@/context/ToastContext";
 import { renewMediaSession, safeNext, setSessionToken, takeNext } from "@/lib/session";
 
 const AuthComp = () => {
-    const { t, setLang, lang } = useLanguage();
+    const { t } = useLanguage();
     const { showToast } = useToast();
-    const [showLangMenu, setShowLangMenu] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
-    const languages = ["en", "fr", "rw", "sw", "es"];
     const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL;
 
     const [formData, setFormData] = useState({ email: '', password: '' });
@@ -42,7 +42,7 @@ const AuthComp = () => {
             });
             const data = await response.json();
             if (!response.ok) {
-                const msg = data.message || 'Invalid credentials. Please try again.';
+                const msg = data.message || t('shell.login.invalidCredentials');
                 throw new Error(msg);
             }
 
@@ -54,12 +54,12 @@ const AuthComp = () => {
 
             // The backend blocks everything else until the password is changed.
             if (data.user?.must_change_password) {
-                showToast('Please set a new password before continuing.', 'info');
+                showToast(t('shell.login.mustChangePassword'), 'info');
                 setTimeout(() => { window.location.href = '/account'; }, 600);
                 return;
             }
 
-            showToast(`Welcome back, ${data.user?.full_name || 'User'}! Login successful.`, 'success');
+            showToast(fill(t('shell.login.welcomeToast'), { name: data.user?.full_name || t('shell.login.userFallback') }), 'success');
 
             setTimeout(() => {
                 if (safeNext(next)) window.location.href = safeNext(next);
@@ -68,9 +68,9 @@ const AuthComp = () => {
                 else window.location.href = '/manage/scholar-dashboard';
             }, 600);
         } catch (err) {
-            const errMsg = err.message || 'Something went wrong. Please try again.';
+            const errMsg = err.message || t('shell.common.somethingWrong');
             setLoginError(errMsg);
-            showToast(`Login failed: ${errMsg}`, 'error');
+            showToast(fill(t('shell.login.failedToast'), { message: errMsg }), 'error');
         } finally {
             setLoading(false);
         }
@@ -126,36 +126,7 @@ const AuthComp = () => {
 
                 {/* Language selector */}
                 <div className="absolute top-6 right-6 z-10">
-                    <div className="relative">
-                        <button
-                            type="button"
-                            onClick={() => setShowLangMenu(!showLangMenu)}
-                            className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 transition-colors"
-                        >
-                            <Globe className="w-4 h-4" />
-                            {lang.toUpperCase()}
-                            <ChevronDown className="w-3.5 h-3.5 opacity-60" />
-                        </button>
-
-                        {showLangMenu && (
-                            <div className="absolute top-11 right-0 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden min-w-[100px]">
-                                {languages.map((l) => (
-                                    <button
-                                        key={l}
-                                        type="button"
-                                        onClick={() => { setLang(l); setShowLangMenu(false); }}
-                                        className={`w-full text-left px-4 py-2.5 text-sm font-semibold transition-colors ${
-                                            lang === l
-                                                ? 'bg-slate-100 text-accent-dark'
-                                                : 'text-slate-700 hover:bg-slate-50'
-                                        }`}
-                                    >
-                                        {l.toUpperCase()}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-                    </div>
+                    <LanguageSwitcher compact />
                 </div>
 
                 {/* Form */}
@@ -164,10 +135,10 @@ const AuthComp = () => {
                     {/* Form header */}
                     <div className="mb-6">
                         <h2 className="text-2xl font-bold text-slate-900 tracking-tight leading-tight">
-                            Welcome Back!
+                            {t("shell.login.formTitle")}
                         </h2>
                         <p className="text-slate-600 text-[14px] font-medium mt-1">
-                            Login to manage your account
+                            {t("shell.login.formSubtitle")}
                         </p>
                         {next ? (
                             <p className="text-accent-dark text-[13px] font-semibold mt-2">
@@ -198,7 +169,7 @@ const AuthComp = () => {
                     {/* Password */}
                     <div className="space-y-1.5">
                         <label htmlFor="auth-password" className="block text-[12px] font-bold text-slate-800 uppercase tracking-wider">
-                            Password
+                            {t("shell.login.password")}
                         </label>
                         <div className="relative">
                             <input
@@ -214,7 +185,7 @@ const AuthComp = () => {
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
                                 className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5 text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-md transition-colors"
-                                aria-label="Toggle password visibility"
+                                aria-label={t("shell.login.togglePassword")}
                             >
                                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                             </button>
@@ -239,7 +210,7 @@ const AuthComp = () => {
                             className="w-full h-11 text-[15px] font-bold rounded-lg bg-accent-dark hover:bg-black text-white shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
                             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                            {loading ? "Signing in…" : t("auth.authLogin") || "Login"}
+                            {loading ? t("shell.login.signingIn") : t("auth.authLogin") || "Login"}
                         </Button>
                     </div>
 
@@ -249,15 +220,15 @@ const AuthComp = () => {
                             <div className="w-full border-t-2 border-slate-300" />
                         </div>
                         <div className="relative flex justify-center">
-                            <span className="bg-white px-3 text-[12px] text-slate-600 font-bold uppercase tracking-wider">or</span>
+                            <span className="bg-white px-3 text-[12px] text-slate-600 font-bold uppercase tracking-wider">{t("shell.login.or")}</span>
                         </div>
                     </div>
 
                     {/* Sign up */}
                     <p className="text-center text-[14px] text-slate-700 font-medium">
-                        Don&apos;t have an account?{' '}
+                        {t("shell.login.noAccount")}{' '}
                         <Link href={next ? `/signup?next=${encodeURIComponent(next)}` : "/signup"} className="text-accent-dark font-extrabold hover:underline underline-offset-2">
-                            Sign Up
+                            {t("shell.login.signUp")}
                         </Link>
                     </p>
 

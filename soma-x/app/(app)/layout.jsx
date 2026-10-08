@@ -6,9 +6,10 @@ import { GuestGateProvider } from "@/components/guest/GuestGate";
 import { GuestBanner, GuestHeader, GuestNav } from "@/components/guest/GuestShell";
 import DataContext from "@/context/DataContext";
 import { useToast } from "@/context/ToastContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { loginUrlWithNext } from "@/lib/session";
 import { startSubmissionQueue } from "@/lib/submissionQueue";
-import { useContext, useEffect } from "react";
+import { useContext, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 // Routes in this group that need an account. Everything else here is for exploring as a
@@ -26,6 +27,10 @@ const Spinner = () => (
 export default function AppLayout({ children }) {
   const { authLoading, authenticated, user, SERVER_URL } = useContext(DataContext);
   const { showToast } = useToast();
+  const { t } = useLanguage();
+  // The submission queue lives across language changes; read the current t when it reports.
+  const tRef = useRef(t);
+  tRef.current = t;
   const router = useRouter();
   const pathname = usePathname();
   const explore = isExploreRoute(pathname);
@@ -52,7 +57,7 @@ export default function AppLayout({ children }) {
   useEffect(() => {
     if (!learnerId) return undefined;
     return startSubmissionQueue(SERVER_URL, learnerId, {
-      onSent: () => showToast("Your work was sent", "success"),
+      onSent: () => showToast(tRef.current("shell.toasts.workSent"), "success"),
       onRefused: (_entry, message) => showToast(message, "error", 8000),
     });
   }, [learnerId, SERVER_URL, showToast]);

@@ -30,8 +30,8 @@ const AdminPortal = () => {
             allowedRoles: ['admin'],
         },
         {
-            title: "Accessibility & Analytics",
-            subtitle: "Inclusivity M&E, equity gaps & growth curves",
+            title: t("admin.home.analyticsTitle"),
+            subtitle: t("admin.home.analyticsSubtitle"),
             href: "/manage/admin/analytics",
             icon: BarChart3,
             allowedRoles: ['admin'],
@@ -44,15 +44,15 @@ const AdminPortal = () => {
             allowedRoles: ['admin', 'teacher'],
         },
         {
-            title: "Manage Library",
-            subtitle: "Download and manage books from the cloud",
+            title: t("admin.home.libraryTitle"),
+            subtitle: t("admin.home.librarySubtitle"),
             href: "/manage/admin/library",
             icon: Library,
             allowedRoles: ['admin'],
         },
         {
-            title: "AI assistant",
-            subtitle: "Switch AI on or off, per school or per person, and see how it's used",
+            title: t("admin.home.aiTitle"),
+            subtitle: t("admin.home.aiSubtitle"),
             href: "/manage/admin/ai",
             icon: Sparkles,
             allowedRoles: ['admin'],
@@ -65,8 +65,8 @@ const AdminPortal = () => {
             allowedRoles: ['admin'],
         },
         {
-            title: "Unit Branding",
-            subtitle: "Partner school logo & M&E settings",
+            title: t("admin.home.brandingTitle"),
+            subtitle: t("admin.home.brandingSubtitle"),
             href: "/manage/admin/branding",
             icon: Palette,
             allowedRoles: ['admin'],
@@ -81,23 +81,23 @@ const AdminPortal = () => {
 
             <div className="px-4 pt-4 flex flex-col gap-8">
                 <PageHeader
-                    eyebrow="Admin"
-                    title="Administration"
-                    description="Manage users, content, sync, branding and analytics for this unit."
+                    eyebrow={t("admin.home.eyebrow")}
+                    title={t("admin.home.title")}
+                    description={t("admin.home.description")}
                     actions={
                         <button
                             onClick={() => setSendNotifModal(true)}
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold transition-colors"
                         >
                             <Megaphone size={13} />
-                            <span className="hidden sm:inline">Broadcast Notification</span>
+                            <span className="hidden sm:inline">{t("admin.home.broadcast")}</span>
                         </button>
                     }
                 />
 
                 {/* Quick Actions */}
-                <Section title="Quick actions">
-                    <List label="Admin tools">
+                <Section title={t("admin.home.quickActions")}>
+                    <List label={t("admin.home.adminTools")}>
                         {options.map((option) => {
                             const Icon = option.icon;
                             return (
@@ -117,15 +117,15 @@ const AdminPortal = () => {
                 {/* Accessibility & Analytics M&E Section (Admin Only) */}
                 {userRole === 'admin' && (
                     <Section
-                        title="Accessibility, inclusivity & growth analytics"
-                        description="Admin reserved"
+                        title={t("admin.home.analyticsSection")}
+                        description={t("admin.home.adminReserved")}
                         divided
                         actions={
                             <Link
                                 href="/manage/admin/analytics"
                                 className="inline-flex items-center gap-1 text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline"
                             >
-                                Open Full Analytics Hub
+                                {t("admin.home.openAnalytics")}
                                 <ChevronRight className="w-3.5 h-3.5" />
                             </Link>
                         }
@@ -139,7 +139,7 @@ const AdminPortal = () => {
 
                 {/* Courses on this box */}
                 {userRole === 'admin' && (
-                    <Section title="Courses" description="Every course on this box, with its teacher and learners" divided>
+                    <Section title={t("admin.home.coursesTitle")} description={t("admin.home.coursesDescription")} divided>
                         <AllCourses serverUrl={SERVER_URL} />
                     </Section>
                 )}
@@ -148,7 +148,7 @@ const AdminPortal = () => {
                 {userRole === 'admin' && (
                     <Section
                         title={t("AdminTable.tableTitle")}
-                        description="Manage roles and credentials"
+                        description={t("admin.home.usersDescription")}
                         divided
                         actions={
                             <AddUserDrawer

@@ -5,6 +5,8 @@ import Link from "next/link";
 import { AlertTriangle, CheckCircle2, Circle, ChevronRight, Rocket, Settings } from "lucide-react";
 import { useToast } from "@/context/ToastContext";
 import Explainer from "@/components/help/Explainer";
+import { useLanguage } from "@/context/LanguageContext";
+import { fill } from "@/lib/fill";
 
 /** True when a teacher still has something to look at: a draft course, an unfinished checklist item, or warnings. */
 export function setupNeedsAttention(status) {
@@ -19,6 +21,7 @@ export function setupNeedsAttention(status) {
  */
 export default function SetupChecklist({ courseId, SERVER_URL, status, onChanged, showSettingsLink = true }) {
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const [opening, setOpening] = useState(false);
   const [openErrors, setOpenErrors] = useState([]);
 
@@ -41,13 +44,13 @@ export default function SetupChecklist({ courseId, SERVER_URL, status, onChanged
       const payload = await res.json().catch(() => ({}));
       if (!res.ok) {
         const blocking = Array.isArray(payload?.blocking) ? payload.blocking.map((b) => b.message).filter(Boolean) : [];
-        setOpenErrors(blocking.length > 0 ? blocking : [payload?.message || "This course can't open yet."]);
+        setOpenErrors(blocking.length > 0 ? blocking : [payload?.message || t("teacher.setup.cantOpenYet")]);
         return;
       }
-      showToast(payload?.message || "Course opened", "success");
+      showToast(payload?.message || t("teacher.setup.opened"), "success");
       onChanged?.();
     } catch {
-      setOpenErrors(["Could not open the course. Check your connection and try again."]);
+      setOpenErrors([t("teacher.setup.openFailed")]);
     } finally {
       setOpening(false);
     }
@@ -57,20 +60,18 @@ export default function SetupChecklist({ courseId, SERVER_URL, status, onChanged
     <section aria-labelledby="setup-checklist-title" className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <h2 id="setup-checklist-title" className="text-sm font-bold text-slate-900 dark:text-white inline-flex items-center gap-2">Course setup <Explainer k="pages.setup" variant="icon" /></h2>
+          <h2 id="setup-checklist-title" className="text-sm font-bold text-slate-900 dark:text-white inline-flex items-center gap-2">{t("teacher.setup.title")} <Explainer k="pages.setup" variant="icon" /></h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            {isDraft
-              ? "This course is a draft. Learners can't see it until you open it."
-              : "The course is open. These items still need a look."}
-            {" "}{doneCount} of {checklist.length} done.
+            {isDraft ? t("teacher.setup.draftNote") : t("teacher.setup.openNote")}
+            {" "}{fill(t("teacher.setup.doneCount"), { done: doneCount, total: checklist.length })}
           </p>
         </div>
         {isDraft && (
-          <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 bg-amber-100 px-2.5 py-1 rounded-full">Draft</span>
+          <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 bg-amber-100 px-2.5 py-1 rounded-full">{t("teacher.setup.draft")}</span>
         )}
       </div>
 
-      <ul aria-label="Setup checklist" className="divide-y divide-slate-100 dark:divide-slate-800 border border-slate-200 dark:border-slate-800 rounded-xl">
+      <ul aria-label={t("teacher.setup.checklist")} className="divide-y divide-slate-100 dark:divide-slate-800 border border-slate-200 dark:border-slate-800 rounded-xl">
         {checklist.map((item) => (
           <li key={item.id}>
             <Link
@@ -83,11 +84,11 @@ export default function SetupChecklist({ courseId, SERVER_URL, status, onChanged
                 <Circle className="w-4 h-4 text-slate-300 shrink-0" aria-hidden="true" />
               )}
               <span className={`flex-1 min-w-0 text-sm ${item.done ? "text-slate-500" : "text-slate-800 font-medium"}`}>
-                <span className="sr-only">{item.done ? "Done: " : "Not done: "}</span>
+                <span className="sr-only">{item.done ? t("teacher.setup.srDone") : t("teacher.setup.srNotDone")}{" "}</span>
                 {item.label}
               </span>
               {item.blocking && !item.done && (
-                <span className="text-[10px] font-bold uppercase text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full shrink-0">Required</span>
+                <span className="text-[10px] font-bold uppercase text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full shrink-0">{t("teacher.setup.required")}</span>
               )}
               <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" aria-hidden="true" />
             </Link>
@@ -98,7 +99,7 @@ export default function SetupChecklist({ courseId, SERVER_URL, status, onChanged
       {warnings.length > 0 && (
         <div className="space-y-2">
           <h3 className="text-xs font-bold uppercase text-amber-700 flex items-center gap-1.5">
-            <AlertTriangle className="w-3.5 h-3.5" aria-hidden="true" /> Worth checking
+            <AlertTriangle className="w-3.5 h-3.5" aria-hidden="true" /> {t("teacher.setup.worthChecking")}
           </h3>
           <ul className="divide-y divide-amber-200 border border-amber-200 rounded-xl overflow-hidden">
             {warnings.map((w) => (
@@ -106,7 +107,7 @@ export default function SetupChecklist({ courseId, SERVER_URL, status, onChanged
                 <p className="text-xs font-medium text-amber-900 flex-1 min-w-[12rem]">{w.message}</p>
                 {w.href && (
                   <Link href={w.href} className="text-xs font-bold text-amber-700 hover:underline shrink-0">
-                    Fix &rarr;
+                    {t("teacher.setup.fix")} &rarr;
                   </Link>
                 )}
               </li>
@@ -117,7 +118,7 @@ export default function SetupChecklist({ courseId, SERVER_URL, status, onChanged
 
       {openErrors.length > 0 && (
         <div role="alert" className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 space-y-1">
-          <p className="font-bold">The course can't open yet:</p>
+          <p className="font-bold">{t("teacher.setup.cantOpenTitle")}</p>
           <ul className="list-disc list-inside space-y-0.5">
             {openErrors.map((m, i) => <li key={i}>{m}</li>)}
           </ul>
@@ -130,7 +131,7 @@ export default function SetupChecklist({ courseId, SERVER_URL, status, onChanged
             href={`/course/${courseId}/settings#course-setup`}
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0D9488] hover:underline"
           >
-            <Settings className="w-3.5 h-3.5" aria-hidden="true" /> Course setup in Settings
+            <Settings className="w-3.5 h-3.5" aria-hidden="true" /> {t("teacher.setup.inSettings")}
           </Link>
         ) : <span />}
         {isDraft && (
@@ -141,10 +142,10 @@ export default function SetupChecklist({ courseId, SERVER_URL, status, onChanged
               disabled={!status.canOpen || opening}
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#0D9488] hover:bg-teal-700 text-white rounded-xl text-sm font-bold transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Rocket className="w-4 h-4" aria-hidden="true" /> {opening ? "Opening..." : "Open course"}
+              <Rocket className="w-4 h-4" aria-hidden="true" /> {opening ? t("teacher.setup.opening") : t("teacher.setup.openCourse")}
             </button>
             {!status.canOpen && (
-              <span className="text-[11px] text-slate-500">Finish the required items first.</span>
+              <span className="text-[11px] text-slate-500">{t("teacher.setup.finishRequired")}</span>
             )}
           </div>
         )}

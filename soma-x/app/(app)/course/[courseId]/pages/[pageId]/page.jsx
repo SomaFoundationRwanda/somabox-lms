@@ -10,17 +10,24 @@ import StudentPageChrome from "@/components/course/pages/StudentPageChrome";
 import PrevNextNav from "@/components/course/navigation/PrevNextNav";
 import { AlertCircle } from "lucide-react";
 import { useItemOpened } from "@/lib/usage";
+import { useCourseText } from "@/components/course/useCourseText";
+
+function EditorLoading() {
+  const { t } = useCourseText();
+  return <p className="text-sm text-slate-500 p-3">{t("pageView.loadingEditor")}</p>;
+}
 
 // The editor (TipTap) loads only when a teacher clicks Edit; reading uses PageContent.
 const RichTextEditor = dynamic(() => import("@/components/course/editor/RichTextEditor"), {
   ssr: false,
-  loading: () => <p className="text-sm text-slate-500 p-3">Loading editor…</p>,
+  loading: () => <EditorLoading />,
 });
 
 export default function PageDetailPage() {
   const { courseId, pageId } = useParams();
   useItemOpened("page", pageId, courseId);
   const { SERVER_URL, userEmail, isTeacher } = useCourse();
+  const { t, tf } = useCourseText();
   const [page, setPage] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -66,7 +73,7 @@ export default function PageDetailPage() {
     if (editorRef.current) {
       const validation = editorRef.current.validateAltText();
       if (!validation.isValid) {
-        setAltWarning(`Add alt text for accessibility on all ${validation.missingCount} image(s) before saving.`);
+        setAltWarning(tf(validation.missingCount === 1 ? "editors.altWarningOne" : "editors.altWarningMany", { n: validation.missingCount }));
         return;
       }
     }
@@ -102,8 +109,8 @@ export default function PageDetailPage() {
     return "";
   };
 
-  if (loading) return <div className="p-6"><p className="text-sm text-slate-500">Loading...</p></div>;
-  if (!page) return <div className="p-6"><p className="text-sm text-rose-600">Page not found.</p></div>;
+  if (loading) return <div className="p-6"><p className="text-sm text-slate-500">{t("common.loading")}</p></div>;
+  if (!page) return <div className="p-6"><p className="text-sm text-rose-600">{t("pageView.notFound")}</p></div>;
 
   return (
     <div>
@@ -112,12 +119,12 @@ export default function PageDetailPage() {
         {editing ? (
           <div className="space-y-4">
             <div>
-              <label htmlFor="page-title" className="block text-xs font-semibold text-slate-600 mb-1">Page Title</label>
+              <label htmlFor="page-title" className="block text-xs font-semibold text-slate-600 mb-1">{t("editors.pageTitle")}</label>
               <input
                 id="page-title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Page Title"
+                placeholder={t("editors.pageTitle")}
                 className="w-full text-lg font-bold border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[#203A3A]"
               />
             </div>
@@ -131,7 +138,7 @@ export default function PageDetailPage() {
             )}
 
             <div>
-              <p className="block text-xs font-semibold text-slate-600 mb-1">Content</p>
+              <p className="block text-xs font-semibold text-slate-600 mb-1">{t("editors.content")}</p>
               <RichTextEditor
                 ref={editorRef}
                 content={getEditorContent()}
@@ -148,7 +155,7 @@ export default function PageDetailPage() {
                   onChange={(e) => setPublished(e.target.checked)}
                   className="rounded border-slate-300 text-[#203A3A] focus:ring-[#203A3A]"
                 />
-                Published (visible to students)
+                {t("pageView.publishedVisible")}
               </label>
 
               <div className="flex items-center gap-2">
@@ -157,7 +164,7 @@ export default function PageDetailPage() {
                   onClick={() => { setEditing(false); setAltWarning(null); }}
                   className="text-xs font-medium text-slate-500 hover:text-slate-700 px-3 py-2"
                 >
-                  Cancel
+                  {t("common.cancel")}
                 </button>
                 <button
                   type="button"
@@ -165,7 +172,7 @@ export default function PageDetailPage() {
                   disabled={saving}
                   className="text-xs font-semibold text-white bg-[#203A3A] hover:bg-[#162727] disabled:opacity-50 rounded-lg px-5 py-2.5 transition-colors shadow-sm"
                 >
-                  {saving ? "Saving..." : "Save Changes"}
+                  {saving ? t("common.saving") : t("editors.saveChanges")}
                 </button>
               </div>
             </div>

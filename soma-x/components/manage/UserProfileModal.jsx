@@ -6,6 +6,7 @@ import {
     Mail, MapPin, Megaphone, Phone, ShieldCheck, User, UserCheck, UserX, X
 } from "lucide-react";
 import DataContext from "@/context/DataContext";
+import { LANGUAGE_NAMES } from "@/components/global/LanguageSwitcher";
 import { useLanguage } from "@/context/LanguageContext";
 
 function getInitials(name, email) {
@@ -13,23 +14,27 @@ function getInitials(name, email) {
     return (email?.[0] || "?").toUpperCase();
 }
 
-function formatDate(raw) {
-    if (!raw) return "Not specified";
+// A date in the UI language ("rw" falls back to English where Intl lacks Kinyarwanda); null if unusable.
+function formatDate(raw, lang) {
+    if (!raw) return null;
     const d = new Date(raw);
-    if (isNaN(d.getTime())) return "Not specified";
-    return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+    if (isNaN(d.getTime())) return null;
+    const opts = { month: "long", day: "numeric", year: "numeric" };
+    try { return d.toLocaleDateString(lang === "rw" ? ["rw", "en-RW", "en"] : lang, opts); } catch { return d.toLocaleDateString("en", opts); }
 }
+
+const GENDERS = ["male", "female", "other", "non_binary"];
 
 export default function UserProfileModal({ user, isOpen, onClose, onEdit, onSendNotif }) {
     const { isDark } = useContext(DataContext);
-    const { t } = useLanguage();
+    const { t, lang } = useLanguage();
 
     if (!isOpen || !user) return null;
 
     const dm = isDark;
     const isInactive = user.is_active === 0;
     const initials = getInitials(user.full_name, user.email);
-    const joined = formatDate(user.created_at);
+    const joined = formatDate(user.created_at, lang) || t("admin.user.notSpecified");
 
     const roleColors = {
         admin: { bg: "bg-purple-100 dark:bg-purple-950/60", text: "text-purple-700 dark:text-purple-300", border: "border-purple-300 dark:border-purple-800" },
@@ -45,7 +50,7 @@ export default function UserProfileModal({ user, isOpen, onClose, onEdit, onSend
                 
                 {/* Header Banner */}
                 <div className="relative px-6 pt-6 pb-5 bg-gradient-to-r from-slate-900 via-teal-950 to-slate-900 text-white shrink-0">
-                    <button aria-label="Close"
+                    <button aria-label={t("admin.library.close")}
                         onClick={onClose}
                         className="absolute top-4 right-4 text-slate-600 hover:text-white p-1.5 rounded-xl hover:bg-white/10 transition-colors"
                     >
@@ -60,7 +65,7 @@ export default function UserProfileModal({ user, isOpen, onClose, onEdit, onSend
                         <div className="min-w-0 flex-1 pr-6 space-y-1">
                             <div className="flex items-center flex-wrap gap-2">
                                 <h2 className="text-lg font-black tracking-tight truncate">
-                                    {user.full_name || "Unnamed User"}
+                                    {user.full_name || t("admin.user.unnamed")}
                                 </h2>
                                 <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${roleStyle.bg} ${roleStyle.text} ${roleStyle.border}`}>
                                     {t(`role.${user.role}`) || user.role}
@@ -71,7 +76,7 @@ export default function UserProfileModal({ user, isOpen, onClose, onEdit, onSend
                                         : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
                                 }`}>
                                     <span className={`w-1.5 h-1.5 rounded-full ${isInactive ? "bg-slate-400" : "bg-emerald-400"}`} />
-                                    {isInactive ? "Inactive Account" : "Active Account"}
+                                    {isInactive ? t("admin.profile.inactiveAccount") : t("admin.profile.activeAccount")}
                                 </span>
                             </div>
 
@@ -97,30 +102,30 @@ export default function UserProfileModal({ user, isOpen, onClose, onEdit, onSend
                         {/* Section 1: Contact & Personal Details */}
                         <div className="bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 space-y-3">
                             <h3 className="text-xs font-black uppercase tracking-wider text-teal-700 dark:text-teal-400 flex items-center gap-1.5">
-                                <User size={14} /> Personal & Contact Info
+                                <User size={14} /> {t("admin.user.personal")}
                             </h3>
 
                             <div className="space-y-2 text-xs">
                                 <div>
-                                    <span className="text-[10px] font-bold text-slate-600 uppercase block">Phone Number</span>
+                                    <span className="text-[10px] font-bold text-slate-600 uppercase block">{t("admin.user.phone")}</span>
                                     <span className="font-semibold text-slate-900 dark:text-white flex items-center gap-1.5 mt-0.5">
                                         <Phone size={12} className="text-slate-600" />
-                                        {user.phone || "Not specified"}
+                                        {user.phone || t("admin.user.notSpecified")}
                                     </span>
                                 </div>
 
                                 <div>
-                                    <span className="text-[10px] font-bold text-slate-600 uppercase block">Gender Identity</span>
+                                    <span className="text-[10px] font-bold text-slate-600 uppercase block">{t("admin.user.gender")}</span>
                                     <span className="font-semibold capitalize text-slate-900 dark:text-white mt-0.5 block">
-                                        {user.gender && user.gender !== "prefer_not_to_say" ? user.gender.replace("_", " ") : "Not specified"}
+                                        {user.gender && user.gender !== "prefer_not_to_say" ? (GENDERS.includes(user.gender) ? t(`admin.user.genders.${user.gender}`) : user.gender.replace("_", " ")) : t("admin.user.notSpecified")}
                                     </span>
                                 </div>
 
                                 <div>
-                                    <span className="text-[10px] font-bold text-slate-600 uppercase block">Preferred Language</span>
+                                    <span className="text-[10px] font-bold text-slate-600 uppercase block">{t("admin.user.preferredLanguage")}</span>
                                     <span className="font-semibold text-slate-900 dark:text-white flex items-center gap-1.5 mt-0.5">
                                         <Globe2 size={12} className="text-slate-600" />
-                                        {user.preferred_language ? user.preferred_language.toUpperCase() : "English"}
+                                        {user.preferred_language ? (LANGUAGE_NAMES[user.preferred_language] || user.preferred_language.toUpperCase()) : LANGUAGE_NAMES.en}
                                     </span>
                                 </div>
                             </div>
@@ -129,27 +134,27 @@ export default function UserProfileModal({ user, isOpen, onClose, onEdit, onSend
                         {/* Section 2: School & Academic Info */}
                         <div className="bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 space-y-3">
                             <h3 className="text-xs font-black uppercase tracking-wider text-teal-700 dark:text-teal-400 flex items-center gap-1.5">
-                                <GraduationCap size={14} /> School & Academic Profile
+                                <GraduationCap size={14} /> {t("admin.profile.schoolAcademic")}
                             </h3>
 
                             <div className="space-y-2 text-xs">
                                 <div>
-                                    <span className="text-[10px] font-bold text-slate-600 uppercase block">School / Institution</span>
+                                    <span className="text-[10px] font-bold text-slate-600 uppercase block">{t("admin.user.school")}</span>
                                     <span className="font-semibold text-slate-900 dark:text-white flex items-center gap-1.5 mt-0.5">
                                         <Building2 size={12} className="text-slate-600" />
-                                        {user.school_name || "Not assigned"}
+                                        {user.school_name || t("admin.user.notAssigned")}
                                     </span>
                                 </div>
 
                                 <div>
-                                    <span className="text-[10px] font-bold text-slate-600 uppercase block">Grade / Class Level</span>
+                                    <span className="text-[10px] font-bold text-slate-600 uppercase block">{t("admin.user.gradeLevel")}</span>
                                     <span className="font-semibold text-slate-900 dark:text-white mt-0.5 block">
-                                        {user.grade_level || "Not specified"}
+                                        {user.grade_level || t("admin.user.notSpecified")}
                                     </span>
                                 </div>
 
                                 <div>
-                                    <span className="text-[10px] font-bold text-slate-600 uppercase block">Date Joined Platform</span>
+                                    <span className="text-[10px] font-bold text-slate-600 uppercase block">{t("admin.profile.joinedPlatform")}</span>
                                     <span className="font-semibold text-slate-900 dark:text-white flex items-center gap-1.5 mt-0.5">
                                         <Calendar size={12} className="text-slate-600" />
                                         {joined}
@@ -161,35 +166,35 @@ export default function UserProfileModal({ user, isOpen, onClose, onEdit, onSend
                         {/* Section 3: Geographic & Demographic Details */}
                         <div className="bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 space-y-3 md:col-span-2">
                             <h3 className="text-xs font-black uppercase tracking-wider text-teal-700 dark:text-teal-400 flex items-center gap-1.5">
-                                <MapPin size={14} /> Geographic & Demographic Data
+                                <MapPin size={14} /> {t("admin.profile.geo")}
                             </h3>
 
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
                                 <div>
-                                    <span className="text-[10px] font-bold text-slate-600 uppercase block">Province / Region</span>
+                                    <span className="text-[10px] font-bold text-slate-600 uppercase block">{t("admin.profile.province")}</span>
                                     <span className="font-semibold text-slate-900 dark:text-white mt-0.5 block">
-                                        {user.region_province || "Not Specified"}
+                                        {user.region_province || t("admin.user.notSpecified")}
                                     </span>
                                 </div>
 
                                 <div>
-                                    <span className="text-[10px] font-bold text-slate-600 uppercase block">District</span>
+                                    <span className="text-[10px] font-bold text-slate-600 uppercase block">{t("admin.addUser.district")}</span>
                                     <span className="font-semibold text-slate-900 dark:text-white mt-0.5 block">
-                                        {user.region_district || "Not Specified"}
+                                        {user.region_district || t("admin.user.notSpecified")}
                                     </span>
                                 </div>
 
                                 <div>
-                                    <span className="text-[10px] font-bold text-slate-600 uppercase block">Location Type</span>
+                                    <span className="text-[10px] font-bold text-slate-600 uppercase block">{t("admin.user.locationType")}</span>
                                     <span className="font-semibold text-slate-900 dark:text-white mt-0.5 block">
-                                        {user.is_rural === 1 ? "Rural Learner" : "Urban / Semi-urban"}
+                                        {user.is_rural === 1 ? t("admin.user.rural") : t("admin.user.urban")}
                                     </span>
                                 </div>
 
                                 <div>
-                                    <span className="text-[10px] font-bold text-slate-600 uppercase block">Disability Status</span>
+                                    <span className="text-[10px] font-bold text-slate-600 uppercase block">{t("admin.user.disability")}</span>
                                     <span className="font-semibold text-slate-900 dark:text-white mt-0.5 block capitalize">
-                                        {user.disability_status || "None"}
+                                        {user.disability_status || t("admin.user.none")}
                                     </span>
                                 </div>
                             </div>
@@ -203,7 +208,7 @@ export default function UserProfileModal({ user, isOpen, onClose, onEdit, onSend
                         onClick={onClose}
                         className="px-4 h-10 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-xs font-bold text-slate-800 dark:text-white transition-colors"
                     >
-                        Close Profile
+                        {t("admin.profile.close")}
                     </button>
 
                     <div className="flex items-center gap-2">
@@ -212,7 +217,7 @@ export default function UserProfileModal({ user, isOpen, onClose, onEdit, onSend
                                 onClick={() => { onClose(); onSendNotif(user.email); }}
                                 className="flex items-center gap-1.5 px-4 h-10 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold shadow-md transition-colors"
                             >
-                                <Megaphone size={14} /> Send Notification
+                                <Megaphone size={14} /> {t("admin.profile.sendNotification")}
                             </button>
                         )}
                         {onEdit && (
@@ -220,7 +225,7 @@ export default function UserProfileModal({ user, isOpen, onClose, onEdit, onSend
                                 onClick={() => { onClose(); onEdit(user); }}
                                 className="flex items-center gap-1.5 px-4 h-10 rounded-xl bg-slate-900 dark:bg-white hover:bg-slate-800 text-white dark:text-slate-900 text-xs font-black shadow-md transition-colors"
                             >
-                                Edit Profile
+                                {t("admin.users.editProfile")}
                             </button>
                         )}
                     </div>

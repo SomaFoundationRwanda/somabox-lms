@@ -13,6 +13,7 @@ import dynamic from "next/dynamic";
 import { clickableProps } from "@/lib/a11y";
 import Link from "next/link";
 import { useLanguage } from "@/context/LanguageContext";
+import { fill } from "@/lib/fill";
 import { libraryCoverUrl, libraryFileUrl, libraryShelf, libraryViewer } from "@/components/ui/library/libraryEntry";
 
 // What the library can hold: books, videos and audio.
@@ -81,7 +82,7 @@ function LibraryUploadModal({ onClose, onSubmit }) {
             setStatus('done');
             setTimeout(onClose, 1200);
         } catch (err) {
-            setErrorMsg(err.message || 'Upload failed.');
+            setErrorMsg(err.message || t("admin.library.uploadFailed"));
             setStatus('error');
         }
     };
@@ -93,10 +94,10 @@ function LibraryUploadModal({ onClose, onSubmit }) {
                     <div className="w-7 h-7 rounded-[5px] bg-slate-100 flex items-center justify-center shrink-0">
                         <Upload className="w-3.5 h-3.5 text-slate-600" />
                     </div>
-                    <h2 className="text-[14px] font-black text-slate-900">Upload Content</h2>
+                    <h2 className="text-[14px] font-black text-slate-900">{t("admin.library.uploadTitle")}</h2>
                 </div>
                 {status !== 'uploading' && (
-                    <button aria-label="Close"
+                    <button aria-label={t("admin.library.close")}
                         onClick={onClose}
                         className="w-7 h-7 flex items-center justify-center rounded-[5px] text-slate-600 hover:bg-slate-100 transition-colors"
                     >
@@ -109,10 +110,10 @@ function LibraryUploadModal({ onClose, onSubmit }) {
                 <div className="px-5 py-5 space-y-5">
                     <div>
                         <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest block mb-2">
-                            File
+                            {t("admin.library.file")}
                         </p>
                         <div
-                            {...clickableProps(() => fileInputRef.current?.click(), "Choose a file, or drop one here")}
+                            {...clickableProps(() => fileInputRef.current?.click(), t("admin.library.chooseFile"))}
                             onDrop={handleDrop}
                             onDragOver={handleDragOver}
                             onDragLeave={handleDragLeave}
@@ -143,7 +144,7 @@ function LibraryUploadModal({ onClose, onSubmit }) {
                                             <p className="text-[10px] text-slate-600 mt-0.5">{formatBytes(file.size)}</p>
                                         </div>
                                     </div>
-                                    <p className="text-[10px] text-slate-600 mt-2">Click to change file</p>
+                                    <p className="text-[10px] text-slate-600 mt-2">{t("admin.library.changeFile")}</p>
                                 </>
                             ) : (
                                 <>
@@ -152,7 +153,7 @@ function LibraryUploadModal({ onClose, onSubmit }) {
                                     </div>
                                     <div className="text-center">
                                         <p className="text-[12px] font-semibold text-slate-600">
-                                            Drop a file here or <span className="text-[#0D9488] underline underline-offset-2">browse</span>
+                                            {t("admin.library.dropHere")} <span className="text-[#0D9488] underline underline-offset-2">{t("admin.library.browse")}</span>
                                         </p>
                                         <p className="text-[10px] text-slate-600 mt-0.5">{t("explore.manager.allowedTypes")}</p>
                                     </div>
@@ -164,13 +165,13 @@ function LibraryUploadModal({ onClose, onSubmit }) {
                     {file && (
                         <div>
                             <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest block mb-2">
-                                Book Name
+                                {t("admin.library.bookName")}
                             </label>
-                            <input aria-label="Book Name"
+                            <input aria-label={t("admin.library.bookName")}
                                 type="text"
                                 value={bookName}
                                 onChange={(e) => setBookName(e.target.value)}
-                                placeholder="Enter book name"
+                                placeholder={t("admin.library.bookNamePlaceholder")}
                                 className="w-full h-10 px-3 rounded-[5px] border border-slate-200 bg-white text-[13px] outline-none focus:border-[#0D9488] focus:ring-1 focus:ring-[#0D9488] transition-all"
                                 required
                             />
@@ -181,7 +182,7 @@ function LibraryUploadModal({ onClose, onSubmit }) {
                         <div className="flex items-center gap-3 px-3 py-2.5 rounded-[5px] bg-blue-50 border border-blue-100">
                             <Loader2 className="w-4 h-4 text-blue-500 animate-spin shrink-0" />
                             <div className="flex-1 min-w-0">
-                                <p className="text-[12px] font-semibold text-blue-700">Uploading…</p>
+                                <p className="text-[12px] font-semibold text-blue-700">{t("admin.library.uploading")}</p>
                                 <div className="h-1 w-full bg-blue-100 rounded-full mt-1.5 overflow-hidden">
                                     <div className="h-full bg-blue-500 rounded-full animate-pulse w-3/4" />
                                 </div>
@@ -191,7 +192,7 @@ function LibraryUploadModal({ onClose, onSubmit }) {
                     {status === 'done' && (
                         <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-[5px] bg-green-50 border border-green-100">
                             <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
-                            <p className="text-[12px] font-semibold text-green-700">Upload complete!</p>
+                            <p className="text-[12px] font-semibold text-green-700">{t("admin.library.uploadDone")}</p>
                         </div>
                     )}
                     {status === 'error' && (
@@ -210,7 +211,7 @@ function LibraryUploadModal({ onClose, onSubmit }) {
                             disabled={status === 'uploading'}
                             className="flex-1 h-9 rounded-[5px] border border-slate-200 text-[12px] font-semibold text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-40"
                         >
-                            Cancel
+                            {t("admin.common.cancel")}
                         </button>
                         <Button
                             type="submit"
@@ -218,8 +219,8 @@ function LibraryUploadModal({ onClose, onSubmit }) {
                             className="flex-1 h-9 rounded-[5px] text-[12px] font-semibold gap-1.5 bg-[#0D9488] hover:bg-[#0f766e] text-white"
                         >
                             {status === 'uploading'
-                                ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Uploading…</>
-                                : <><Upload className="w-3.5 h-3.5" /> Upload</>
+                                ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> {t("admin.library.uploading")}</>
+                                : <><Upload className="w-3.5 h-3.5" /> {t("admin.library.upload")}</>
                             }
                         </Button>
                     </div>
@@ -231,6 +232,7 @@ function LibraryUploadModal({ onClose, onSubmit }) {
 
 /* ── Inline feedback banner ── */
 const Banner = ({ type, message, onDismiss }) => {
+    const { t } = useLanguage();
     const styles = {
         error:   "bg-red-50 border-red-200 text-red-700",
         warning: "bg-amber-50 border-amber-200 text-amber-700",
@@ -240,7 +242,7 @@ const Banner = ({ type, message, onDismiss }) => {
         <div className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-[5px] border text-[12px] font-medium ${styles[type]}`}>
             <span className="flex-1">{message}</span>
             {onDismiss && (
-                <button aria-label="Dismiss message" onClick={onDismiss} className="shrink-0 opacity-60 hover:opacity-100">
+                <button aria-label={t("admin.sync.dismiss")} onClick={onDismiss} className="shrink-0 opacity-60 hover:opacity-100">
                     <X className="w-3.5 h-3.5" />
                 </button>
             )}
@@ -249,15 +251,18 @@ const Banner = ({ type, message, onDismiss }) => {
 };
 
 /* ── Inline confirmation ── */
-const ConfirmBanner = ({ message, onConfirm, onCancel }) => (
+const ConfirmBanner = ({ message, onConfirm, onCancel }) => {
+    const { t } = useLanguage();
+    return (
     <div className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-[5px] border bg-amber-50 border-amber-200">
         <p className="text-[12px] font-medium text-amber-800 flex-1">{message}</p>
         <div className="flex gap-2 shrink-0">
-            <button onClick={onCancel} className="text-[11px] px-3 h-7 rounded-full border border-amber-300 text-amber-700 font-semibold hover:bg-amber-100 transition-colors">Cancel</button>
-            <button onClick={onConfirm} className="text-[11px] px-3 h-7 rounded-full bg-amber-500 text-white font-semibold hover:bg-amber-600 transition-colors">Delete</button>
+            <button onClick={onCancel} className="text-[11px] px-3 h-7 rounded-full border border-amber-300 text-amber-700 font-semibold hover:bg-amber-100 transition-colors">{t("admin.common.cancel")}</button>
+            <button onClick={onConfirm} className="text-[11px] px-3 h-7 rounded-full bg-amber-500 text-white font-semibold hover:bg-amber-600 transition-colors">{t("admin.common.delete")}</button>
         </div>
     </div>
-);
+    );
+};
 
 const ManageLibrary = () => {
     const { authenticated } = useContext(DataContext);
@@ -300,7 +305,7 @@ const ManageLibrary = () => {
     const handleDownload = async () => {
         const selected = Object.values(selectedBooks).filter(Boolean);
         if (selected.length === 0) {
-            setBanner({ type: 'warning', message: 'Please select at least one book to download.' });
+            setBanner({ type: 'warning', message: t("admin.library.selectBook") });
             return;
         }
         try {
@@ -321,19 +326,19 @@ const ManageLibrary = () => {
             const res = await fetch(`${SERVER_URL}/library/book/${id}`, { method: 'DELETE' });
             if (res.ok) {
                 loadLocalBooks();
-                setBanner({ type: 'success', message: 'Book deleted successfully.' });
+                setBanner({ type: 'success', message: t("admin.library.deleted") });
             } else {
-                setBanner({ type: 'error', message: 'Failed to delete book.' });
+                setBanner({ type: 'error', message: t("admin.library.deleteFailed") });
             }
         } catch (err) {
             console.error(err);
-            setBanner({ type: 'error', message: 'An error occurred while deleting.' });
+            setBanner({ type: 'error', message: t("admin.library.deleteError") });
         }
     };
 
     const handleDelete = (id, name) => {
         setConfirm({
-            message: `Delete "${name}"? This cannot be undone.`,
+            message: fill(t("admin.library.confirmDelete"), { name }),
             onConfirm: () => { setConfirm(null); executeDelete(id); },
         });
     };
@@ -365,11 +370,11 @@ const ManageLibrary = () => {
         });
 
         if (res.ok) {
-            setBanner({ type: 'success', message: 'Book uploaded successfully!' });
+            setBanner({ type: 'success', message: t("admin.library.uploaded") });
             loadLocalBooks();
         } else {
             const data = await res.json();
-            throw new Error(data.error || 'Failed to upload book.');
+            throw new Error(data.error || t("admin.library.uploadFailed"));
         }
     };
 
@@ -382,7 +387,7 @@ const ManageLibrary = () => {
     const cloudColumns = [
         {
             key: "select",
-            header: "Select",
+            header: t("admin.library.colSelect"),
             className: "w-10 whitespace-nowrap",
             render: (book) => {
                 const isLocal = isDownloaded(book);
@@ -397,7 +402,7 @@ const ManageLibrary = () => {
         },
         {
             key: "name",
-            header: "Name",
+            header: t("admin.library.colName"),
             render: (book) => {
                 const isLocal = isDownloaded(book);
                 return (
@@ -406,7 +411,7 @@ const ManageLibrary = () => {
                             <p className="text-[12px] font-medium text-slate-800 dark:text-slate-100">{book.book_name}</p>
                             {isLocal && (
                                 <span className="text-[11px] bg-green-50 text-green-600 px-2 py-0.5 rounded-full font-bold border border-green-100">
-                                    Downloaded
+                                    {t("admin.sync.downloaded")}
                                 </span>
                             )}
                         </div>
@@ -420,7 +425,7 @@ const ManageLibrary = () => {
     const localColumns = [
         {
             key: "name",
-            header: "Name",
+            header: t("admin.library.colName"),
             render: (book) => {
                 const coverUrl = libraryCoverUrl(SERVER_URL, book);
                 return (
@@ -440,7 +445,7 @@ const ManageLibrary = () => {
         },
         {
             key: "action",
-            header: "Action",
+            header: t("admin.library.colAction"),
             align: "right",
             render: (book) => (
                 <div className="flex items-center justify-end gap-1">
@@ -449,14 +454,14 @@ const ManageLibrary = () => {
                         className="inline-flex items-center gap-1.5 text-[11px] h-7 px-3 rounded-full text-[#0D9488] hover:bg-teal-50 font-semibold transition-colors"
                     >
                         <Eye className="w-3 h-3" />
-                        Open
+                        {t("admin.library.open")}
                     </button>
                     <button
                         onClick={() => handleDelete(book.id, book.name)}
                         className="inline-flex items-center gap-1.5 text-[11px] h-7 px-3 rounded-full text-red-600 hover:bg-red-50 font-semibold transition-colors"
                     >
                         <Trash2 className="w-3 h-3" />
-                        Delete
+                        {t("admin.common.delete")}
                     </button>
                 </div>
             ),
@@ -467,15 +472,15 @@ const ManageLibrary = () => {
         <div className="min-h-screen pb-24 md:pb-8">
             <div className="px-4 md:px-4">
                 <ManageTitle
-                    title="Manage Library"
-                    description="Download books from the cloud or add your own, and manage what is stored on this device."
+                    title={t("admin.home.libraryTitle")}
+                    description={t("admin.library.description")}
                     actions={
                         <Button
                             onClick={() => setShowUploadModal(true)}
                             className="h-8 px-4 rounded-[5px] text-[12px] gap-1.5 flex items-center bg-[#0D9488] hover:bg-[#0f766e] text-white"
                         >
                             <Upload className="w-3.5 h-3.5" />
-                            Add a book from computer
+                            {t("admin.library.addFromComputer")}
                         </Button>
                     }
                 />
@@ -510,18 +515,18 @@ const ManageLibrary = () => {
 
                     {/* ── Available on Cloud ── */}
                     <Section
-                        title="Available on Cloud"
-                        description={`${books.length} books`}
+                        title={t("admin.library.onCloud")}
+                        description={fill(t(books.length === 1 ? "admin.library.oneBook" : "admin.library.manyBooks"), { count: books.length })}
                         className="min-w-0"
                     >
                         <DataTable
-                            caption="Books available on the cloud"
+                            caption={t("admin.library.cloudCaption")}
                             columns={cloudColumns}
                             rows={fetching ? [] : books}
                             rowClassName={(book) => (isDownloaded(book) ? "bg-green-50/60 dark:bg-green-950/20" : "")}
                             empty={fetching ? (
-                                <span className="inline-flex items-center gap-2 text-[12px] font-semibold"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading books…</span>
-                            ) : "No books available"}
+                                <span className="inline-flex items-center gap-2 text-[12px] font-semibold"><Loader2 className="w-3.5 h-3.5 animate-spin" /> {t("admin.library.loadingBooks")}</span>
+                            ) : t("admin.library.noBooks")}
                             className="max-h-[500px] overflow-y-auto"
                         />
                         <div className="flex items-center justify-between gap-3 pt-3">
@@ -533,7 +538,7 @@ const ManageLibrary = () => {
                                 }`}>
                                     {downloadStatus === 'downloading' && <Loader2 className="w-3 h-3 animate-spin" />}
                                     {downloadStatus === 'finished'    && <CheckCircle2 className="w-3 h-3" />}
-                                    {downloadStatus}
+                                    {["downloading", "finished", "failed"].includes(downloadStatus) ? t(`admin.sync.status.${downloadStatus}`) : downloadStatus}
                                 </span>
                             ) : <span />}
                             <Button
@@ -542,22 +547,22 @@ const ManageLibrary = () => {
                                 className="h-8 px-4 rounded-[5px] text-[12px] gap-1.5"
                             >
                                 {downloadStatus === "downloading" && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                                Download Selected
+                                {t("admin.library.downloadSelected")}
                             </Button>
                         </div>
                     </Section>
 
                     {/* ── Downloaded Books ── */}
                     <Section
-                        title="Downloaded Books"
-                        description={`${localBooks.length} books`}
+                        title={t("admin.library.downloadedBooks")}
+                        description={fill(t(localBooks.length === 1 ? "admin.library.oneBook" : "admin.library.manyBooks"), { count: localBooks.length })}
                         className="min-w-0"
                     >
                         <DataTable
-                            caption="Books downloaded to this device"
+                            caption={t("admin.library.localCaption")}
                             columns={localColumns}
                             rows={localBooks}
-                            empty="No books downloaded yet"
+                            empty={t("admin.library.noneDownloaded")}
                             className="max-h-[500px] overflow-y-auto"
                         />
                     </Section>

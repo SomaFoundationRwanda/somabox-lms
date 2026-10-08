@@ -41,12 +41,12 @@ const ProfileCard = () => {
     // Show loading state
     if (loading) {
         return (
-            <section className="relative cursor-pointer bg-white border border-slate-100 px-2.5 shadow-sm flex items-center justify-around rounded-full w-[11rem] h-10">
+            <section className="relative cursor-pointer bg-white border border-slate-100 px-2.5 shadow-sm flex items-center justify-around rounded-full w-10 sm:w-[11rem] h-10">
                 <div className="w-6 h-6 px-3 flex items-center justify-center rounded-[100%] bg-amber-400">
                     <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
                 </div>
-                <div>
-                    <p className="ml-3 text-xs font-bold text-slate-600">Loading...</p>
+                <div className="hidden sm:block">
+                    <p className="ml-3 text-xs font-bold text-slate-600">{t("shell.common.loading")}</p>
                 </div>
             </section>
         );
@@ -54,9 +54,9 @@ const ProfileCard = () => {
 
     return (
         <DropdownMenu>
-            <DropdownMenuTrigger className="outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488] rounded-full">
+            <DropdownMenuTrigger aria-label={t("shell.profile.menu")} className="outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488] rounded-full">
                 <section
-                    className={`relative hover:opacity-90 cursor-pointer shadow-sm border border-transparent flex items-center rounded-full w-[11rem] h-10 px-2 gap-2.5 transition-opacity`}
+                    className={`relative hover:opacity-90 cursor-pointer shadow-sm border border-transparent flex items-center rounded-full w-10 sm:w-[11rem] h-10 px-1 sm:px-2 gap-2.5 transition-opacity`}
                     style={{ backgroundColor: "#203A3A" }}>
                     {/* Profile picture or default icon */}
                     <Avatar
@@ -67,16 +67,16 @@ const ProfileCard = () => {
                     />
 
                     {/* Dynamic text based on login status */}
-                    <div className="flex flex-col justify-center text-left min-w-0">
+                    <div className="hidden sm:flex flex-col justify-center text-left min-w-0">
                         <p className={`text-xs ${isLoggedIn ? "hidden" : "visible"} font-bold text-white`}>
-                            Sign in
+                            {t("shell.profile.signIn")}
                         </p>
                         <div className={`${isLoggedIn ? "visible" : "hidden"} flex flex-col`}>
                             <p className="text-xs font-bold leading-tight truncate w-24 text-white">
                                 {getDisplayName()}
                             </p>
                             <p className="text-[11px] leading-tight capitalize text-slate-400 font-medium">
-                                {role}
+                                {t(`role.${role}`) || role}
                             </p>
                         </div>
                     </div>
@@ -107,7 +107,7 @@ const ProfileCard = () => {
                     style={{ color: titleColor }}
                 >
                     <Settings size={15} style={{ color: iconColor }} />
-                    <span className="text-[12px] font-semibold">Settings</span>
+                    <span className="text-[12px] font-semibold">{t("shell.profile.settings")}</span>
                 </DropdownMenuItem>
                 
                 <DropdownMenuItem 
@@ -118,7 +118,7 @@ const ProfileCard = () => {
                     style={{ color: titleColor }}
                 >
                     <UserRound size={15} style={{ color: iconColor }} />
-                    <span className="text-[12px] font-semibold">Account</span>
+                    <span className="text-[12px] font-semibold">{t("nav.account") || "Account"}</span>
                 </DropdownMenuItem>
                 
                 <DropdownMenuSeparator style={{ backgroundColor: borderColor }} />
@@ -131,7 +131,7 @@ const ProfileCard = () => {
                     style={{ color: "#fca5a5" }}
                 >
                     <LogOut size={15} />
-                    <span className="text-[12px] font-semibold">Logout</span>
+                    <span className="text-[12px] font-semibold">{t("shell.nav.logout")}</span>
                 </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>

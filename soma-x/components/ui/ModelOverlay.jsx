@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect } from "react";
+import { useLanguage } from "@/context/LanguageContext";
 
 const ModalOverlay = ({ children, onClose }) => {
+    const t = useLanguage()?.t;
     useEffect(() => {
         document.body.style.overflow = "hidden";
 
@@ -32,7 +34,7 @@ const ModalOverlay = ({ children, onClose }) => {
                 <button
                     onClick={onClose}
                     className="absolute top-3 right-3 text-black text-xl"
-                    aria-label="Close modal"
+                    aria-label={t?.("shell.common.close") ?? "Close"}
                 >
                     ×
                 </button>

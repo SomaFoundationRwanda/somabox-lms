@@ -7,6 +7,7 @@ import DataContext from "@/context/DataContext";
 import AsyncListState from "@/components/course/AsyncListState";
 import { useGuestGate } from "@/components/guest/GuestGate";
 import { useLanguage } from "@/context/LanguageContext";
+import { fill } from "@/lib/fill";
 
 export default function DiscoverCoursesPage() {
   const router = useRouter();
@@ -30,14 +31,14 @@ export default function DiscoverCoursesPage() {
       setError("");
       const res = await fetch(`${SERVER_URL}/courses/public`);
       const payload = await res.json();
-      if (!res.ok) throw new Error(payload.message || "Failed to load courses");
+      if (!res.ok) throw new Error(payload.message || t("learner.discover.loadFailed"));
       setCourses(payload.courses || []);
     } catch (err) {
-      setError(err.message || "Failed to load courses");
+      setError(err.message || t("learner.discover.loadFailed"));
     } finally {
       setLoading(false);
     }
-  }, [SERVER_URL]);
+  }, [SERVER_URL, t]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -63,10 +64,10 @@ export default function DiscoverCoursesPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({}),
       });
-      if (!res.ok) throw new Error((await res.json()).message || "Failed to join");
+      if (!res.ok) throw new Error((await res.json()).message || t("learner.discover.joinFailed"));
       router.push(`/course/${courseId}/home`);
     } catch (err) {
-      setError(err.message || "Failed to join course");
+      setError(err.message || t("learner.discover.joinFailed"));
       setJoiningId(null);
     }
   };
@@ -77,8 +78,8 @@ export default function DiscoverCoursesPage() {
         <div className="flex items-center gap-2">
           <Compass className="w-4 h-4 text-slate-500" />
           <div>
-            <h1 className="text-[17px] font-bold text-slate-900">Discover Courses</h1>
-            <p className="text-[11px] text-slate-600 hidden sm:block">Browse public courses and join instantly — no invite needed</p>
+            <h1 className="text-[17px] font-bold text-slate-900">{t("shell.nav.discoverCourses")}</h1>
+            <p className="text-[11px] text-slate-600 hidden sm:block">{t("learner.discover.subtitle")}</p>
           </div>
         </div>
       </div>
@@ -89,7 +90,7 @@ export default function DiscoverCoursesPage() {
           error={error}
           data={courses}
           onRetry={load}
-          emptyMessage="No public courses are available right now. Check back later."
+          emptyMessage={t("learner.discover.empty")}
         >
           {(list) => (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -112,14 +113,14 @@ export default function DiscoverCoursesPage() {
                     {course.description ? <p className="text-xs text-slate-600 line-clamp-2">{course.description}</p> : null}
                     <div className="flex items-center gap-1 text-xs text-slate-400 mt-auto pt-1">
                       <Users className="w-3.5 h-3.5" />
-                      <span>{course.studentCount} enrolled</span>
+                      <span>{fill(t(course.studentCount === 1 ? "learner.discover.oneEnrolled" : "learner.discover.nEnrolled"), { n: course.studentCount })}</span>
                     </div>
                     <button
                       onClick={() => join(course.id)}
                       disabled={joiningId === course.id}
                       className="mt-1 text-xs font-semibold text-white bg-[#203A3A] rounded-lg px-3 py-2 disabled:opacity-50"
                     >
-                      {isGuest ? t("guest.signUpToJoin") : joiningId === course.id ? "Joining..." : "Join Course"}
+                      {isGuest ? t("guest.signUpToJoin") : joiningId === course.id ? t("learner.discover.joining") : t("learner.discover.join")}
                     </button>
                   </div>
                 </div>

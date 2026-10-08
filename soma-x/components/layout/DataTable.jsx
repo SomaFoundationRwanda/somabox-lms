@@ -1,3 +1,7 @@
+"use client";
+
+import { useLanguage } from "@/context/LanguageContext";
+
 // A real <table> for tabular data (admin lists, gradebooks). On narrow screens it scrolls
 // horizontally inside its own box instead of the page.
 //
@@ -5,7 +9,9 @@
 // columns: [{ key, header, render?(row) -> node, className?, align?: 'left'|'right'|'center', hideOnMobile?, sortable? }]
 // Sorting is optional and controlled: pass sort = { key, dir: 'asc'|'desc' } and onSort(key);
 // sortable columns get a header button and aria-sort. The caller sorts the rows.
-export default function DataTable({ columns, rows, rowKey = (r) => r.id, caption, empty = "Nothing to show.", onRowClick, rowClassName, className = "", sort, onSort }) {
+export default function DataTable({ columns, rows, rowKey = (r) => r.id, caption, empty, onRowClick, rowClassName, className = "", sort, onSort }) {
+  const { t } = useLanguage();
+  const emptyText = empty ?? t("course.common.nothingToShow") ?? "Nothing to show.";
   const alignClass = { right: "text-right", center: "text-center", left: "text-left" };
   return (
     <div className={`overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 ${className}`}>
@@ -40,7 +46,7 @@ export default function DataTable({ columns, rows, rowKey = (r) => r.id, caption
         </thead>
         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
           {rows.length === 0 ? (
-            <tr><td colSpan={columns.length} className="px-3 py-6 text-center text-slate-500">{empty}</td></tr>
+            <tr><td colSpan={columns.length} className="px-3 py-6 text-center text-slate-500">{emptyText}</td></tr>
           ) : rows.map((row) => (
             <tr
               key={rowKey(row)}

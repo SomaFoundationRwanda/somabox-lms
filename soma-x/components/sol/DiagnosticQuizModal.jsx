@@ -4,6 +4,12 @@ import { Award, BookOpen, Brain, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { submitDiagnosticQuiz } from "@/lib/sol-service";
 import PracticeLabel from "@/components/sol/PracticeLabel";
+import { useLanguage } from "@/context/LanguageContext";
+import { fill } from "@/lib/fill";
+
+// The questions themselves stay in English: they test English-language items (e.g. synonyms),
+// so translating them would change what they measure. The screen around them is translated.
+const SUBJECT_KEYS = { Mathematics: "math", Science: "science", Literacy: "literacy" };
 
 const DIAGNOSTIC_QUESTIONS = [
     { id: 1, subject: "Mathematics", question: "What is 15% of 200?", options: ["20", "25", "30", "35"], correct: 2 },
@@ -14,6 +20,7 @@ const DIAGNOSTIC_QUESTIONS = [
 ];
 
 export default function DiagnosticQuizModal({ isOpen, onClose, serverUrl, scholarEmail }) {
+    const { t } = useLanguage();
     const [step, setStep] = useState(0);
     const [answers, setAnswers] = useState({});
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -68,22 +75,22 @@ export default function DiagnosticQuizModal({ isOpen, onClose, serverUrl, schola
                             </span>
                             <div>
                                 <span className="text-[10px] font-black uppercase tracking-wider text-teal-600 dark:text-teal-400">
-                                    Baseline Assessment
+                                    {t("learner.diagnostic.eyebrow")}
                                 </span>
                                 <h3 className="text-lg font-black text-slate-900 dark:text-white">
-                                    Getting Started Quiz
+                                    {t("learner.diagnostic.title")}
                                 </h3>
                             </div>
                         </div>
 
                         <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-                            Welcome to SOMABOX! A few quick questions to get a sense of where you're starting from.
+                            {t("learner.diagnostic.intro")}
                         </p>
                         <p className="mb-4"><PracticeLabel /></p>
 
                         <div className="flex items-center justify-between text-xs font-bold text-slate-500 mb-2">
-                            <span>Subject: {currentQ.subject}</span>
-                            <span>Question {step + 1} of {DIAGNOSTIC_QUESTIONS.length}</span>
+                            <span>{fill(t("learner.diagnostic.subject"), { subject: t(`learner.diagnostic.subjects.${SUBJECT_KEYS[currentQ.subject]}`) || currentQ.subject })}</span>
+                            <span>{fill(t("learner.diagnostic.questionOf"), { n: step + 1, total: DIAGNOSTIC_QUESTIONS.length })}</span>
                         </div>
 
                         <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full mb-4 overflow-hidden">
@@ -125,7 +132,7 @@ export default function DiagnosticQuizModal({ isOpen, onClose, serverUrl, schola
                                 disabled={answers[currentQ.id] === undefined || isSubmitting}
                                 className="bg-[#203A3A] hover:bg-[#162727] text-white text-xs font-extrabold px-6 h-10 rounded-xl"
                             >
-                                {step + 1 < DIAGNOSTIC_QUESTIONS.length ? "Next Question" : (isSubmitting ? "Submitting..." : "Complete Assessment")}
+                                {step + 1 < DIAGNOSTIC_QUESTIONS.length ? t("learner.diagnostic.next") : (isSubmitting ? t("learner.diagnostic.submitting") : t("learner.diagnostic.finish"))}
                             </Button>
                         </div>
                     </div>
@@ -133,16 +140,16 @@ export default function DiagnosticQuizModal({ isOpen, onClose, serverUrl, schola
                     <div className="text-center py-6">
                         <Award className="w-16 h-16 text-teal-500 mx-auto mb-3 animate-bounce" />
                         <h3 className="text-xl font-black text-slate-900 dark:text-white mb-1">
-                            Done!
+                            {t("learner.diagnostic.done")}
                         </h3>
                         <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto mb-6">
-                            Thanks for completing the quiz — you're ready to start your classes.
+                            {t("learner.diagnostic.doneBody")}
                         </p>
                         <Button
                             onClick={onClose}
                             className="bg-[#203A3A] hover:bg-[#162727] text-white text-xs font-bold px-8 h-10 rounded-xl"
                         >
-                            Go to Dashboard
+                            {t("learner.diagnostic.toDashboard")}
                         </Button>
                     </div>
                 )}

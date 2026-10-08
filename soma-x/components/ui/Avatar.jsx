@@ -1,4 +1,7 @@
+"use client";
+
 import { useState } from "react";
+import { useLanguage } from "@/context/LanguageContext";
 import AvatarFallback from "./AvatarFallBack";
 import { clickableProps } from "@/lib/a11y";
 
@@ -12,12 +15,14 @@ const sizeClasses = {
 export default function Avatar({
   src,
   size = "small",
-  alt = "Profile image",
+  alt,
   isLoggedIn = false,
   showStatus = false,
   onClick
 }) {
   const [error, setError] = useState(false);
+  const t = useLanguage()?.t;
+  alt = alt ?? (t?.("shell.common.profileImage") ?? "Profile image");
 
   return (
     <div className="relative flex-shrink-0 group">

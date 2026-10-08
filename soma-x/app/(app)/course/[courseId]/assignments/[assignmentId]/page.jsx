@@ -15,8 +15,7 @@ import RubricSection, { RubricTable } from "@/components/course/grading/RubricSe
 import SubmissionGrader, { LateBadge } from "@/components/course/grading/SubmissionGrader";
 import { fmtPoints, pctOf } from "@/lib/rubric";
 import PrevNextNav from "@/components/course/navigation/PrevNextNav";
-import { moduleWeekLabel } from "@/lib/moduleLabels";
-import { formatDate } from "@/lib/dates";
+import { useCourseText } from "@/components/course/useCourseText";
 import ScheduleFields, { initialScheduleValues, scheduleError, schedulePayload } from "@/components/course/modules/editors/ScheduleFields";
 import { useItemOpened } from "@/lib/usage";
 
@@ -26,6 +25,8 @@ export default function AssignmentDetailPage() {
   const { courseId, assignmentId } = useParams();
   useItemOpened("assignment", assignmentId, courseId);
   const { SERVER_URL, userEmail, isTeacher } = useCourse();
+  const { t, tf, weekLabel, fmtDay, fmtDate, fmtDateTime } = useCourseText();
+  const formatDate = (d) => fmtDay(d);
   const [assignment, setAssignment] = useState(null);
   const [modules, setModules] = useState([]);
   const [outcomes, setOutcomes] = useState([]);
@@ -142,17 +143,17 @@ export default function AssignmentDetailPage() {
         setPendingSubmission(null);
       }
       if (!res.ok) {
-        const fallback = { CLOSED: "This assignment is closed.", NOT_OPEN_YET: "This assignment is not open yet." }[payload.code];
-        setSubmitError(payload.message || fallback || "Could not submit the assignment.");
+        const fallback = { CLOSED: t("assignment.closed"), NOT_OPEN_YET: t("assignment.notOpenYet") }[payload.code];
+        setSubmitError(payload.message || fallback || t("assignment.submitFailed"));
       } else {
         setSubmitResult(payload);
         setSubmissionBody("");
-        showToast(payload.late ? "Submitted late" : "Submitted", payload.late ? "warning" : "success");
+        showToast(payload.late ? t("assignment.submittedLate") : t("assignment.submitted"), payload.late ? "warning" : "success");
       }
       loadData();
     } catch (err) {
       if (isNetworkFailure(err) && keepOnDevice()) return;
-      setSubmitError(isNetworkFailure(err) ? "Couldn't reach the box. Check the connection and try again." : err.message || "Could not submit the assignment.");
+      setSubmitError(isNetworkFailure(err) ? t("share.unreachable") : err.message || t("assignment.submitFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -179,7 +180,7 @@ export default function AssignmentDetailPage() {
 
   const saveEdit = async () => {
     if (!editForm.title.trim()) return;
-    const timingError = scheduleError(editForm.schedule);
+    const timingError = scheduleError(editForm.schedule, t);
     if (timingError) { setSaveError(timingError); return; }
     setSaving(true);
     setSaveError("");
@@ -197,7 +198,7 @@ export default function AssignmentDetailPage() {
         });
         if (!res.ok) {
           const payload = await res.json().catch(() => ({}));
-          setSaveError(payload.message || "Failed to update outcome tags.");
+          setSaveError(payload.message || t("assignment.outcomeTagsFailed"));
           return false;
         }
         return true;
@@ -218,7 +219,7 @@ export default function AssignmentDetailPage() {
         });
         if (!res.ok) {
           const payload = await res.json().catch(() => ({}));
-          setSaveError(payload.message || "Failed to save assignment.");
+          setSaveError(payload.message || t("modules.errors.saveAssignment"));
           return false;
         }
         return true;
@@ -241,17 +242,17 @@ export default function AssignmentDetailPage() {
     }
   };
 
-  if (loading) return <div className="p-6"><p className="text-sm text-slate-500">Loading assignment details...</p></div>;
-  if (!assignment) return <div className="p-6"><p className="text-sm text-rose-600">Assignment not found.</p></div>;
+  if (loading) return <div className="p-6"><p className="text-sm text-slate-500">{t("assignment.loading")}</p></div>;
+  if (!assignment) return <div className="p-6"><p className="text-sm text-rose-600">{t("assignment.notFound")}</p></div>;
 
   const currentModule = assignment.module || modules.find(m => m.id === assignment.module_id) || null;
   const dueText = listing?.dueDate
-    ? `Due ${formatDate(listing.dueDate)}${listing.closeDate ? ` · Closes ${formatDate(listing.closeDate)}` : ""}`
+    ? `${tf("modules.schedule.due", { date: formatDate(listing.dueDate) })}${listing.closeDate ? ` · ${tf("modules.schedule.closes", { date: formatDate(listing.closeDate) })}` : ""}`
     : listing && listing.due_day != null
-      ? `Due: Day ${listing.due_day}`
+      ? tf("modules.schedule.dueDay", { n: listing.due_day })
       : assignment.due_at
-        ? `Due ${new Date(assignment.due_at).toLocaleDateString()}`
-        : "No due date";
+        ? tf("common.dueOn", { date: fmtDate(assignment.due_at) })
+        : t("common.noDueDate");
   const submissions = Array.isArray(assignment.submissions) ? assignment.submissions : [];
   const rubricSignature = rubric ? `${rubric.id}:${(rubric.criteria || []).map((c) => c.id).join(",")}` : "none";
   const submittedEmails = new Set(submissions.map((x) => String(x.scholar_email).toLowerCase()));
@@ -274,7 +275,7 @@ export default function AssignmentDetailPage() {
           meta={
             <>
               <span className="text-xs font-bold text-[#0D9488] bg-teal-50 border border-teal-200 px-2.5 py-1 rounded-full">
-                Module: {currentModule ? `${moduleWeekLabel(currentModule)} - ${currentModule.title}` : "Not in a module"}
+                {tf("assignment.module", { module: currentModule ? `${weekLabel(currentModule)} - ${currentModule.title}` : t("assignment.notInModule") })}
               </span>
               <span className="text-xs font-semibold text-slate-500 flex items-center gap-1">
                 <Clock className="w-3.5 h-3.5 text-slate-400" /> {dueText}
@@ -286,18 +287,18 @@ export default function AssignmentDetailPage() {
               onClick={startEditing}
               className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg transition-colors"
             >
-              <Pencil className="w-3.5 h-3.5" /> Edit Assignment
+              <Pencil className="w-3.5 h-3.5" /> {t("editors.editAssignment")}
             </button>
           ) : null}
         >
           {/* Outcome Tags */}
           <div className="flex items-center gap-2 flex-wrap pt-2">
             <span className="text-xs font-bold text-slate-500 flex items-center gap-1">
-              <Target className="w-3.5 h-3.5 text-[#0D9488]" /> Target Outcomes:
+              <Target className="w-3.5 h-3.5 text-[#0D9488]" /> {t("assignment.targetOutcomes")}
             </span>
             {itemOutcomes.length === 0 ? (
               <span className="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full">
-                ⚠️ Missing Outcome Tag
+                ⚠️ {t("modules.missingOutcome")}
               </span>
             ) : (
               itemOutcomes.map((t) => (
@@ -311,10 +312,10 @@ export default function AssignmentDetailPage() {
 
         {/* EDIT FORM (If Teacher Editing) */}
         {editing ? (
-          <Section title="Edit assignment flow & parameters">
+          <Section title={t("editors.editAssignment")}>
             <div className="space-y-5">
               <div>
-                <label htmlFor="assignment-title" className="block text-xs font-bold text-slate-700 mb-1">Title *</label>
+                <label htmlFor="assignment-title" className="block text-xs font-bold text-slate-700 mb-1">{t("common.title")} *</label>
                 <input
                   id="assignment-title"
                   value={editForm.title}
@@ -325,7 +326,7 @@ export default function AssignmentDetailPage() {
 
               {/* Module & relative timing */}
               <div>
-                <label htmlFor="assignment-module" className="block text-xs font-bold text-slate-700 mb-1">Tied Module Week *</label>
+                <label htmlFor="assignment-module" className="block text-xs font-bold text-slate-700 mb-1">{t("assignment.moduleWeek")} *</label>
                 <select
                   id="assignment-module"
                   value={editForm.moduleId}
@@ -334,7 +335,7 @@ export default function AssignmentDetailPage() {
                 >
                   {modules.map((m) => (
                     <option key={m.id} value={m.id}>
-                      {moduleWeekLabel(m)}: {m.title}
+                      {weekLabel(m)}: {m.title}
                     </option>
                   ))}
                 </select>
@@ -348,7 +349,7 @@ export default function AssignmentDetailPage() {
 
               {/* Outcome Selection */}
               <fieldset className="space-y-2">
-                <legend className="block text-xs font-bold text-slate-700 mb-1">Tagged Course Outcomes (Mandatory for Publish)</legend>
+                <legend className="block text-xs font-bold text-slate-700 mb-1">{t("assignment.taggedOutcomes")}</legend>
                 <div className="space-y-1">
                   {outcomes.map((o) => {
                     const isChecked = editForm.selectedOutcomeIds.includes(o.id);
@@ -373,7 +374,7 @@ export default function AssignmentDetailPage() {
               </fieldset>
 
               <div>
-                <label htmlFor="assignment-instructions" className="block text-xs font-bold text-slate-700 mb-1">Instructions</label>
+                <label htmlFor="assignment-instructions" className="block text-xs font-bold text-slate-700 mb-1">{t("assignment.instructions")}</label>
                 <textarea
                   id="assignment-instructions"
                   value={editForm.description}
@@ -388,9 +389,9 @@ export default function AssignmentDetailPage() {
               )}
 
               <div className="flex justify-end gap-2 pt-2">
-                <button onClick={() => setEditing(false)} className="text-xs font-semibold text-slate-500 px-4 py-2">Cancel</button>
+                <button onClick={() => setEditing(false)} className="text-xs font-semibold text-slate-500 px-4 py-2">{t("common.cancel")}</button>
                 <button onClick={saveEdit} disabled={saving} className="text-xs font-bold text-white bg-[#0D9488] hover:bg-teal-700 px-5 py-2.5 rounded-lg">
-                  {saving ? "Saving..." : "Save Changes"}
+                  {saving ? t("common.saving") : t("editors.saveChanges")}
                 </button>
               </div>
             </div>
@@ -398,8 +399,8 @@ export default function AssignmentDetailPage() {
         ) : (
           /* DISPLAY VIEW (BOTH TEACHER & STUDENT) */
           <>
-            <Section title="Assignment instructions">
-              <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap">{assignment.description || "Complete the problem set and submit your response below."}</p>
+            <Section title={t("assignment.instructionsTitle")}>
+              <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap">{assignment.description || t("assignment.defaultInstructions")}</p>
             </Section>
 
             {isTeacher ? (
@@ -417,13 +418,13 @@ export default function AssignmentDetailPage() {
 
                 <Section
                   divided
-                  title="Submissions"
-                  description={rubric ? "Open a submission to score it against the rubric." : "Open a submission to enter a grade."}
+                  title={t("assignment.submissions")}
+                  description={rubric ? t("assignment.submissionsRubricHelp") : t("assignment.submissionsHelp")}
                 >
                   {submissions.length === 0 && !extraRow ? (
-                    <EmptyState compact title="No submissions yet." />
+                    <EmptyState compact title={t("assignment.noSubmissions")} />
                   ) : (
-                    <List label="Submissions">
+                    <List label={t("assignment.submissions")}>
                       {extraRow ? (
                         <SubmissionGrader
                           key={`extra-${extraRow.scholar_email}-${rubricSignature}`}
@@ -456,7 +457,7 @@ export default function AssignmentDetailPage() {
                     <div className="mt-3 flex flex-wrap items-end gap-2">
                       <div>
                         <label htmlFor="grade-without-submission" className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
-                          Grade a learner without a submission
+                          {t("assignment.gradeWithout")}
                         </label>
                         <select
                           id="grade-without-submission"
@@ -464,7 +465,7 @@ export default function AssignmentDetailPage() {
                           onChange={(e) => setExtraLearner(e.target.value)}
                           className="text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-lg px-2.5 py-1.5 max-w-full"
                         >
-                          <option value="">Choose a learner…</option>
+                          <option value="">{t("assignment.chooseLearner")}</option>
                           {learnersWithout.map((p) => (
                             <option key={p.email} value={p.email}>{p.fullName || p.email}</option>
                           ))}
@@ -477,65 +478,65 @@ export default function AssignmentDetailPage() {
             ) : (
               <>
                 {rubric ? (
-                  <Section divided title="Rubric" description={`Your work is scored on these criteria and converted to a grade out of ${fmtPoints(assignment.points_possible)}.`}>
+                  <Section divided title={t("assignment.rubric")} description={tf("assignment.rubricHelp", { n: fmtPoints(assignment.points_possible) })}>
                     <RubricTable rubric={rubric} scores={mine?.grade != null ? myScores : undefined} />
                   </Section>
                 ) : null}
 
-                <Section divided title="Your submission">
+                <Section divided title={t("assignment.yourSubmission")}>
                   <div className="space-y-4">
                     <dl className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-slate-600 dark:text-slate-400">
-                      {deadlines.releaseDate ? <div className="flex gap-1"><dt className="font-semibold">Opens</dt><dd>{formatDate(deadlines.releaseDate)}</dd></div> : null}
-                      {deadlines.dueDate ? <div className="flex gap-1"><dt className="font-semibold">Due</dt><dd>{formatDate(deadlines.dueDate)}</dd></div> : null}
-                      {deadlines.closeDate ? <div className="flex gap-1"><dt className="font-semibold">Closes</dt><dd>{formatDate(deadlines.closeDate)}</dd></div> : null}
-                      {!deadlines.releaseDate && !deadlines.dueDate && !deadlines.closeDate ? <div>No deadlines set.</div> : null}
+                      {deadlines.releaseDate ? <div className="flex gap-1"><dt className="font-semibold">{t("assignment.opens")}</dt><dd>{formatDate(deadlines.releaseDate)}</dd></div> : null}
+                      {deadlines.dueDate ? <div className="flex gap-1"><dt className="font-semibold">{t("assignment.due")}</dt><dd>{formatDate(deadlines.dueDate)}</dd></div> : null}
+                      {deadlines.closeDate ? <div className="flex gap-1"><dt className="font-semibold">{t("assignment.closes")}</dt><dd>{formatDate(deadlines.closeDate)}</dd></div> : null}
+                      {!deadlines.releaseDate && !deadlines.dueDate && !deadlines.closeDate ? <div>{t("assignment.noDeadlines")}</div> : null}
                     </dl>
 
                     {mine ? (
                       <div className="border-l-4 border-teal-500 pl-3 py-1 space-y-1">
                         <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex flex-wrap items-center gap-2">
-                          {mine.submitted_at ? `Submitted ${new Date(mine.submitted_at).toLocaleString()}` : "Graded without a submission"}
+                          {mine.submitted_at ? tf("assignment.submittedAt", { date: fmtDateTime(mine.submitted_at) }) : t("assignment.gradedWithout")}
                           {mine.is_late ? <LateBadge /> : null}
                         </p>
                         {mine.grade != null ? (
                           <p className="text-sm font-bold text-slate-900 dark:text-white">
-                            Grade: {fmtPoints(mine.grade)} / {fmtPoints(assignment.points_possible)}
+                            {tf("assignment.grade", { grade: fmtPoints(mine.grade), total: fmtPoints(assignment.points_possible) })}
                             {pctOf(mine.grade, assignment.points_possible) != null ? ` (${fmtPoints(pctOf(mine.grade, assignment.points_possible))}%)` : ""}
                           </p>
                         ) : (
-                          <p className="text-xs text-slate-500">Not graded yet.</p>
+                          <p className="text-xs text-slate-500">{t("assignment.notGraded")}</p>
                         )}
                         {mine.feedback ? (
-                          <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap"><span className="font-semibold">Feedback:</span> {mine.feedback}</p>
+                          <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap"><span className="font-semibold">{t("assignment.feedback")}</span> {mine.feedback}</p>
                         ) : null}
                       </div>
                     ) : null}
 
                     {submitResult?.late ? (
                       <p role="status" className="text-xs font-semibold text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 flex items-center gap-1.5">
-                        <Clock className="w-3.5 h-3.5" /> Submitted after the due date: it is marked late.
+                        <Clock className="w-3.5 h-3.5" /> {t("assignment.markedLate")}
                       </p>
                     ) : null}
 
                     {deadlines.notOpenYet ? (
                       <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                        <CalendarClock className="w-4 h-4 text-slate-400" /> Opens on {formatDate(deadlines.releaseDate) || deadlines.releaseDate}.
+                        <CalendarClock className="w-4 h-4 text-slate-400" /> {tf("assignment.opensOn", { date: formatDate(deadlines.releaseDate) || deadlines.releaseDate })}
                       </p>
                     ) : deadlines.isClosed ? (
                       <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                        <Lock className="w-4 h-4 text-slate-400" /> This assignment is closed.
+                        <Lock className="w-4 h-4 text-slate-400" /> {t("assignment.closed")}
                       </p>
                     ) : (
                       <>
                         {deadlines.isLate ? (
-                          <p className="text-xs font-semibold text-amber-800">The due date has passed. You can still submit, but it will be marked late.</p>
+                          <p className="text-xs font-semibold text-amber-800">{t("assignment.latePossible")}</p>
                         ) : null}
                         <textarea
                           value={submissionBody}
                           onChange={(e) => setSubmissionBody(e.target.value)}
                           rows={6}
-                          placeholder="Write your response here..."
-                          aria-label="Your assignment response"
+                          placeholder={t("assignment.responsePlaceholder")}
+                          aria-label={t("assignment.responseLabel")}
                           className="w-full text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-lg p-4 outline-none focus:border-[#0D9488]"
                         />
                       </>
@@ -544,15 +545,15 @@ export default function AssignmentDetailPage() {
                     {pendingSubmission ? (
                       <p role="status" className="text-xs font-semibold text-sky-900 bg-sky-50 border border-sky-200 dark:text-sky-200 dark:bg-sky-950/30 dark:border-sky-900 rounded-lg px-3 py-2 flex items-start gap-1.5">
                         <CloudOff className="w-3.5 h-3.5 mt-px shrink-0" aria-hidden="true" />
-                        <span>Saved on this device — it will be sent when the connection is back.</span>
+                        <span>{t("assignment.savedOnDevice")}</span>
                       </p>
                     ) : null}
 
                     {queueNotice ? (
                       <div role="alert" className="text-xs text-rose-800 bg-rose-50 border border-rose-200 dark:text-rose-200 dark:bg-rose-950/30 dark:border-rose-900 rounded-lg px-3 py-2 flex items-start gap-2">
                         <AlertTriangle className="w-3.5 h-3.5 mt-px shrink-0" aria-hidden="true" />
-                        <p className="flex-1"><span className="font-semibold">The work saved on this device couldn&apos;t be submitted:</span> {queueNotice.message}</p>
-                        <button type="button" onClick={dismissQueueNotice} className="shrink-0 font-semibold underline">Dismiss</button>
+                        <p className="flex-1"><span className="font-semibold">{t("assignment.queueRefused")}</span> {queueNotice.message}</p>
+                        <button type="button" onClick={dismissQueueNotice} className="shrink-0 font-semibold underline">{t("assignment.dismiss")}</button>
                       </div>
                     ) : null}
 
@@ -563,7 +564,7 @@ export default function AssignmentDetailPage() {
                       disabled={submitting || deadlines.notOpenYet || deadlines.isClosed}
                       className="px-6 py-2.5 bg-[#0D9488] hover:bg-teal-700 disabled:opacity-50 disabled:hover:bg-[#0D9488] text-white font-bold text-xs rounded-lg transition-colors"
                     >
-                      {submitting ? "Submitting..." : mine?.submitted_at ? "Resubmit assignment" : "Submit assignment"}
+                      {submitting ? t("assignment.submitting") : mine?.submitted_at ? t("assignment.resubmit") : t("assignment.submit")}
                     </button>
                   </div>
                 </Section>

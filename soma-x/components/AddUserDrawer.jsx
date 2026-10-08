@@ -12,9 +12,9 @@ import { fill } from "@/lib/fill";
 
 /* ── Role config ── */
 const ROLES = [
-    { value: "scholar", label: "Scholar", Icon: GraduationCap, color: "text-sky-600 bg-sky-50" },
-    { value: "teacher", label: "Teacher", Icon: User,           color: "text-emerald-600 bg-emerald-50" },
-    { value: "admin",   label: "Admin",   Icon: ShieldCheck,    color: "text-purple-600 bg-purple-50" },
+    { value: "scholar", labelKey: "role.scholar", Icon: GraduationCap, color: "text-sky-600 bg-sky-50" },
+    { value: "teacher", labelKey: "role.teacher", Icon: User,           color: "text-emerald-600 bg-emerald-50" },
+    { value: "admin",   labelKey: "role.admin",   Icon: ShieldCheck,    color: "text-purple-600 bg-purple-50" },
 ];
 
 function getInitials(name, email) {
@@ -87,11 +87,11 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
 
         const requiresFullProfile = !restrictToLoginInfo;
         if (!email || (requiresFullProfile && !fullName) || (!user && !password) || (requiresFullProfile && !selectedRole)) {
-            setError("Please fill in all required fields.");
+            setError(t("admin.addUser.fillRequired"));
             return;
         }
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-            setError("Please enter a valid email address.");
+            setError(t("admin.addUser.invalidEmail"));
             return;
         }
 
@@ -115,9 +115,9 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
 
             const res  = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
             const data = await res.json();
-            if (!res.ok) throw new Error(data.message || `Failed to ${user ? "update" : "add"} user`);
+            if (!res.ok) throw new Error(data.message || t(user ? "admin.addUser.updateFailed" : "admin.addUser.addFailed"));
 
-            const successMsg = `User ${user ? "updated" : "created"} successfully!`;
+            const successMsg = t(user ? "admin.addUser.updated" : "admin.addUser.created");
             setSuccess(successMsg);
             showToast(successMsg, "success");
             if (!user) { setEmail(""); setFullName(""); setPassword(""); setSelectedRole("teacher"); }
@@ -127,7 +127,7 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
             else setTimeout(handleClose, 1200);
         } catch (err) {
             setError(err.message);
-            showToast(`Action failed: ${err.message}`, "error");
+            showToast(fill(t("admin.addUser.actionFailed"), { error: err.message }), "error");
             console.error(err);
         } finally {
             setLoading(false);
@@ -136,7 +136,7 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
 
     const roleConfig  = ROLES.find(r => r.value === selectedRole) || ROLES[1];
     const initials    = getInitials(fullName, email);
-    const displayName = fullName.trim() || email || "New User";
+    const displayName = fullName.trim() || email || t("admin.addUser.newUser");
 
     return (
         <>
@@ -161,12 +161,12 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
                                 </div>
                                 <div>
                                     <h2 className="text-[14px] font-black text-slate-900 leading-tight">
-                                        {user ? "Edit User" : "Add User"}
+                                        {user ? t("admin.addUser.editTitle") : t("admin.addUser.addTitle")}
                                     </h2>
                                 </div>
                             </div>
                             {!loading && (
-                                <button aria-label="Close"
+                                <button aria-label={t("admin.library.close")}
                                     onClick={handleClose}
                                     className="w-7 h-7 flex items-center justify-center rounded-[5px] text-slate-600 hover:bg-slate-100 transition-colors"
                                 >
@@ -192,7 +192,7 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
                                     </div>
                                     <span className={`flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${roleConfig.color}`}>
                                         <roleConfig.Icon className="w-3 h-3" />
-                                        {roleConfig.label}
+                                        {t(roleConfig.labelKey)}
                                     </span>
                                 </div>
 
@@ -200,10 +200,10 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
                                 {!restrictToLoginInfo && (
                                     <div>
                                         <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest block mb-2">
-                                            Role
+                                            {t("admin.users.colRole")}
                                         </label>
                                         <div className="grid grid-cols-3 gap-2">
-                                            {ROLES.map(({ value, label, Icon, color }) => (
+                                            {ROLES.map(({ value, labelKey, Icon, color }) => (
                                                 <button
                                                     key={value}
                                                     type="button"
@@ -220,7 +220,7 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
                                                     }`}>
                                                         <Icon className="w-3.5 h-3.5" />
                                                     </div>
-                                                    {label}
+                                                    {t(labelKey)}
                                                 </button>
                                             ))}
                                         </div>
@@ -230,13 +230,13 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
                                 {!restrictToLoginInfo && (
                                     <div>
                                         <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest block mb-2">
-                                            Full Name
+                                            {t("admin.addUser.fullName")}
                                         </label>
-                                        <input aria-label="Full Name"
+                                        <input aria-label={t("admin.addUser.fullName")}
                                             type="text"
                                             value={fullName}
                                             onChange={(e) => setFullName(e.target.value)}
-                                            placeholder="e.g. Amara Ndiaye"
+                                            placeholder={t("admin.addUser.fullNamePlaceholder")}
                                             disabled={loading}
                                             className="w-full h-10 px-3 rounded-[5px] border border-slate-200 bg-slate-50 text-[13px] text-slate-800 placeholder:text-slate-400 outline-none focus:border-slate-400 focus:bg-white transition-all disabled:opacity-50"
                                         />
@@ -247,62 +247,62 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
                                 {!restrictToLoginInfo && (
                                     <div className="space-y-3 pt-2 border-t border-slate-100">
                                         <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider block">
-                                            Demographic & Inclusivity Settings (V2.1)
+                                            {t("admin.addUser.demographics")}
                                         </label>
 
                                         <div className="grid grid-cols-2 gap-2">
                                             <div>
-                                                <label className="text-[10px] font-bold text-slate-500 block mb-1">Gender</label>
-                                                <select aria-label="Gender"
+                                                <label className="text-[10px] font-bold text-slate-500 block mb-1">{t("admin.addUser.gender")}</label>
+                                                <select aria-label={t("admin.addUser.gender")}
                                                     value={gender}
                                                     onChange={(e) => setGender(e.target.value)}
                                                     disabled={loading}
                                                     className="w-full h-9 px-2 rounded-[5px] border border-slate-200 bg-slate-50 text-xs text-slate-800 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]"
                                                 >
-                                                    <option value="prefer_not_to_say">Prefer Not To Say</option>
-                                                    <option value="female">Female</option>
-                                                    <option value="male">Male</option>
-                                                    <option value="non_binary">Non-binary</option>
+                                                    <option value="prefer_not_to_say">{t("admin.addUser.preferNot")}</option>
+                                                    <option value="female">{t("admin.user.genders.female")}</option>
+                                                    <option value="male">{t("admin.user.genders.male")}</option>
+                                                    <option value="non_binary">{t("admin.user.genders.non_binary")}</option>
                                                 </select>
                                             </div>
 
                                             <div>
-                                                <label className="text-[10px] font-bold text-slate-500 block mb-1">Accessibility / Disability</label>
-                                                <select aria-label="Accessibility / Disability"
+                                                <label className="text-[10px] font-bold text-slate-500 block mb-1">{t("admin.addUser.disability")}</label>
+                                                <select aria-label={t("admin.addUser.disability")}
                                                     value={disabilityStatus}
                                                     onChange={(e) => setDisabilityStatus(e.target.value)}
                                                     disabled={loading}
                                                     className="w-full h-9 px-2 rounded-[5px] border border-slate-200 bg-slate-50 text-xs text-slate-800 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]"
                                                 >
-                                                    <option value="none">None</option>
-                                                    <option value="visual">Visual Impairment</option>
-                                                    <option value="hearing">Hearing Impairment</option>
-                                                    <option value="mobility">Mobility Impairment</option>
-                                                    <option value="cognitive">Cognitive / Learning</option>
-                                                    <option value="other">Other</option>
+                                                    <option value="none">{t("admin.user.none")}</option>
+                                                    <option value="visual">{t("admin.addUser.visual")}</option>
+                                                    <option value="hearing">{t("admin.addUser.hearing")}</option>
+                                                    <option value="mobility">{t("admin.addUser.mobility")}</option>
+                                                    <option value="cognitive">{t("admin.addUser.cognitive")}</option>
+                                                    <option value="other">{t("admin.user.genders.other")}</option>
                                                 </select>
                                             </div>
                                         </div>
 
                                         <div className="grid grid-cols-2 gap-2">
                                             <div>
-                                                <label className="text-[10px] font-bold text-slate-500 block mb-1">Province</label>
-                                                <input aria-label="Province"
+                                                <label className="text-[10px] font-bold text-slate-500 block mb-1">{t("admin.addUser.province")}</label>
+                                                <input aria-label={t("admin.addUser.province")}
                                                     type="text"
                                                     value={regionProvince}
                                                     onChange={(e) => setRegionProvince(e.target.value)}
-                                                    placeholder="e.g. Kigali / Northern"
+                                                    placeholder={t("admin.addUser.provincePlaceholder")}
                                                     disabled={loading}
                                                     className="w-full h-9 px-2.5 rounded-[5px] border border-slate-200 bg-slate-50 text-xs text-slate-800 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]"
                                                 />
                                             </div>
                                             <div>
-                                                <label className="text-[10px] font-bold text-slate-500 block mb-1">District</label>
-                                                <input aria-label="District"
+                                                <label className="text-[10px] font-bold text-slate-500 block mb-1">{t("admin.addUser.district")}</label>
+                                                <input aria-label={t("admin.addUser.district")}
                                                     type="text"
                                                     value={regionDistrict}
                                                     onChange={(e) => setRegionDistrict(e.target.value)}
-                                                    placeholder="e.g. Gasabo / Musanze"
+                                                    placeholder={t("admin.addUser.districtPlaceholder")}
                                                     disabled={loading}
                                                     className="w-full h-9 px-2.5 rounded-[5px] border border-slate-200 bg-slate-50 text-xs text-slate-800 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]"
                                                 />
@@ -319,7 +319,7 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
                                                 className="rounded border-slate-300 text-teal-600 focus:ring-teal-500"
                                             />
                                             <label htmlFor="isRuralCheck" className="text-xs font-bold text-slate-700 cursor-pointer">
-                                                Located in Rural / Remote Region (M&E Equity Tracking)
+                                                {t("admin.addUser.rural")}
                                             </label>
                                         </div>
                                     </div>
@@ -328,9 +328,9 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
                                 {/* ── Email ── */}
                                 <div>
                                     <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest block mb-2">
-                                        Email
+                                        {t("admin.addUser.email")}
                                     </label>
-                                    <input aria-label="Email"
+                                    <input aria-label={t("admin.addUser.email")}
                                         type="email"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
@@ -343,23 +343,23 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
                                 {/* ── Password ── */}
                                 <div>
                                     <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest block mb-2">
-                                        {user ? "New Password" : "Password"}
-                                        {user && <span className="normal-case font-medium text-slate-600 ml-1">(leave blank to keep current)</span>}
+                                        {user ? t("admin.addUser.newPassword") : t("admin.addUser.password")}
+                                        {user && <span className="normal-case font-medium text-slate-600 ml-1">{t("admin.addUser.keepCurrentParen")}</span>}
                                     </label>
                                     <div className="relative">
                                         <input
                                             type={showPassword ? "text" : "password"}
-                                            aria-label="Password"
+                                            aria-label={t("admin.addUser.password")}
                                             value={password}
                                             onChange={(e) => setPassword(e.target.value)}
-                                            placeholder={user ? "Leave blank to keep current" : "••••••••"}
+                                            placeholder={user ? t("admin.addUser.keepCurrent") : "••••••••"}
                                             disabled={loading}
                                             className="w-full h-10 px-3 pr-10 rounded-[5px] border border-slate-200 bg-slate-50 text-[13px] text-slate-800 placeholder:text-slate-400 outline-none focus:border-slate-400 focus:bg-white transition-all disabled:opacity-50"
                                         />
                                         <button
                                             type="button"
                                             onClick={() => setShowPassword(s => !s)}
-                                            aria-label={showPassword ? "Hide password" : "Show password"}
+                                            aria-label={showPassword ? t("admin.addUser.hidePassword") : t("admin.addUser.showPassword")}
                                             aria-pressed={showPassword}
                                             className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-600 transition-colors"
                                             tabIndex={-1}
@@ -412,7 +412,7 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
                                         disabled={loading}
                                         className="flex-1 h-9 rounded-[5px] border border-slate-200 text-[12px] font-semibold text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-40"
                                     >
-                                        Cancel
+                                        {t("admin.common.cancel")}
                                     </button>
                                     <Button
                                         type="submit"
@@ -426,8 +426,8 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
                                         className="flex-1 h-9 rounded-[5px] text-[12px] font-semibold gap-1.5"
                                     >
                                         {loading
-                                            ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Saving…</>
-                                            : user ? "Update User" : "Add User"
+                                            ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> {t("admin.addUser.saving")}</>
+                                            : user ? t("admin.addUser.update") : t("admin.addUser.addTitle")
                                         }
                                     </Button>
                                 </div>

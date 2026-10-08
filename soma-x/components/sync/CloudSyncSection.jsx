@@ -4,65 +4,82 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, CheckCircle2, CloudOff, Loader2, RefreshCw, Clock } from "lucide-react";
 import { useToast } from "@/context/ToastContext";
 import { Section, List, ListRow } from "@/components/layout";
-import { formatDateTime, formatRelative } from "@/lib/dates";
+import { useLanguage } from "@/context/LanguageContext";
+import { fill } from "@/lib/fill";
 import DeviceCard from "@/components/sync/DeviceCard";
 
 // Cloud sync (admins): changes made on this box wait in a queue and are sent to the cloud on a
 // schedule. This shows where the queue stands, lets an admin send now, and sets what may leave
 // the box.
 
-const RUN_LABELS = {
-  ok: "Sent",
-  failed: "Couldn't reach the cloud",
-  not_configured: "Not set up",
-  nothing_to_send: "Nothing to send",
-};
+// Run statuses, scope toggles and people options are translated under admin.cloud.
+const RUN_STATUSES = ["ok", "failed", "not_configured", "nothing_to_send"];
+const SCOPE_TOGGLES = ["courses", "enrollments", "grades", "outcomeResults", "events"];
+const PEOPLE_OPTIONS = ["none", "pseudonymous", "full"];
 
-const SCOPE_TOGGLES = [
-  { key: "courses", label: "Courses and outcomes", help: "Course titles, weeks, pages, quizzes, assignments and the outcomes they teach." },
-  { key: "enrollments", label: "Enrollments", help: "Who is in which course, and as teacher or learner." },
-  { key: "grades", label: "Grades and quiz results", help: "Marks on assignments and quiz scores." },
-  { key: "outcomeResults", label: "Outcome results", help: "How each learner is doing on each outcome. Used for school and district reports." },
-  { key: "events", label: "Usage events", help: "Which pages and tools are opened, so the team can see what helps. No written work." },
-];
+// Intl locales for the UI language ("rw" falls back to English where Intl lacks Kinyarwanda).
+const intlLocales = (lang) => (lang === "rw" ? ["rw", "en-RW", "en"] : [lang || "en"]);
 
-const PEOPLE_OPTIONS = [
-  { value: "none", label: "No personal details", help: "Results are sent without saying whose they are." },
-  { value: "pseudonymous", label: "Anonymous IDs only (recommended)", help: "The cloud sees a random ID for each person, never names or emails. Progress can still be followed over time." },
-  { value: "full", label: "Names and emails", help: "The cloud sees who each person is." },
-];
+/** An instant as e.g. "3 minutes ago", in the UI language ("" if unusable). */
+function formatRelativeIn(value, lang, now = Date.now()) {
+  if (!value) return "";
+  const t = new Date(value).getTime();
+  if (Number.isNaN(t)) return "";
+  const seconds = Math.round((t - now) / 1000);
+  const abs = Math.abs(seconds);
+  let rtf;
+  try { rtf = new Intl.RelativeTimeFormat(intlLocales(lang), { numeric: "auto" }); } catch { rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" }); }
+  if (abs < 45) return rtf.format(0, "second");
+  if (abs < 3600) return rtf.format(Math.round(seconds / 60), "minute");
+  if (abs < 86400) return rtf.format(Math.round(seconds / 3600), "hour");
+  if (abs < 86400 * 30) return rtf.format(Math.round(seconds / 86400), "day");
+  if (abs < 86400 * 365) return rtf.format(Math.round(seconds / (86400 * 30)), "month");
+  return rtf.format(Math.round(seconds / (86400 * 365)), "year");
+}
 
-const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+/** An instant as a short local date and time, in the UI language ("" if unusable). */
+function formatDateTimeIn(value, lang) {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  const opts = { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" };
+  try { return d.toLocaleString(intlLocales(lang), opts); } catch { return d.toLocaleString("en", opts); }
+}
+
+// "{count} thing(s)" with separate one/many keys.
+const countText = (t, n, oneKey, manyKey) => fill(t(n === 1 ? oneKey : manyKey), { count: n });
 
 function StatusLine({ status }) {
+  const { t, lang } = useLanguage();
+  const formatRelative = (v) => formatRelativeIn(v, lang);
   const lastRun = status.runs?.[0];
   const failing = status.configured && (status.failedAttempts > 0 || lastRun?.status === "failed") && status.pending > 0;
 
   let icon, title, detail, tone;
   if (!status.configured) {
     icon = <CloudOff className="w-5 h-5 text-slate-400" aria-hidden="true" />;
-    title = "Not set up on this box yet";
-    detail = "Everything keeps working on this box. To send changes to the cloud, an administrator sets SYNC_URL or a Firebase key in the box's settings file and restarts it.";
+    title = t("admin.cloud.notSetUpTitle");
+    detail = t("admin.cloud.notSetUpDetail");
     tone = "text-slate-800 dark:text-slate-100";
   } else if (failing) {
     icon = <AlertTriangle className="w-5 h-5 text-amber-600" aria-hidden="true" />;
-    title = "Couldn't reach the cloud last time — will retry";
-    const tries = status.failedAttempts > 0 ? `Tried ${plural(status.failedAttempts, "time", "times")}` : "The last try failed";
-    const when = lastRun?.startedAt ? `, most recently ${formatRelative(lastRun.startedAt)}` : "";
-    detail = `${tries}${when}. ${plural(status.pending, "change is", "changes are")} safe on this box and will be sent when the connection works.`;
+    title = t("admin.cloud.failingTitle");
+    const tries = status.failedAttempts > 0 ? countText(t, status.failedAttempts, "admin.cloud.triedOne", "admin.cloud.triedMany") : t("admin.cloud.lastTryFailed");
+    const when = lastRun?.startedAt ? fill(t("admin.cloud.mostRecently"), { when: formatRelative(lastRun.startedAt) }) : "";
+    detail = `${tries}${when}. ${countText(t, status.pending, "admin.cloud.safeOne", "admin.cloud.safeMany")}`;
     tone = "text-amber-800 dark:text-amber-300";
   } else if (!status.pending) {
     icon = <CheckCircle2 className="w-5 h-5 text-emerald-600" aria-hidden="true" />;
-    title = "Up to date";
-    detail = "Nothing is waiting to be sent.";
+    title = t("admin.cloud.upToDate");
+    detail = t("admin.cloud.nothingWaiting");
     tone = "text-emerald-800 dark:text-emerald-300";
   } else {
     icon = <Clock className="w-5 h-5 text-[#0D9488]" aria-hidden="true" />;
-    const since = status.oldestPendingAt ? ` since ${formatRelative(status.oldestPendingAt)}` : "";
-    title = `${plural(status.pending, "change", "changes")} waiting${since}`;
+    title = countText(t, status.pending, "admin.cloud.waitingOne", "admin.cloud.waitingMany");
+    if (status.oldestPendingAt) title += ` ${fill(t("admin.cloud.since"), { when: formatRelative(status.oldestPendingAt) })}`;
     detail = status.intervalMinutes
-      ? `They are sent automatically about every ${plural(status.intervalMinutes, "minute", "minutes")}.`
-      : "They are sent automatically on a schedule.";
+      ? countText(t, status.intervalMinutes, "admin.cloud.everyMinute", "admin.cloud.everyMinutes")
+      : t("admin.cloud.onSchedule");
     tone = "text-slate-800 dark:text-slate-100";
   }
 
@@ -73,24 +90,25 @@ function StatusLine({ status }) {
         <p className={`text-sm font-bold ${tone}`}>{title}</p>
         <p className="text-xs text-slate-500 dark:text-slate-400">{detail}</p>
         {failing && lastRun?.details?.error ? (
-          <p className="mt-1 text-[11px] text-slate-500 break-words">Details for support: {lastRun.details.error}</p>
+          <p className="mt-1 text-[11px] text-slate-500 break-words">{t("admin.cloud.supportDetails")} {lastRun.details.error}</p>
         ) : null}
       </div>
     </div>
   );
 }
 
-function runSummary(run) {
+function runSummary(run, t) {
   const d = run.details || {};
   const parts = [];
-  if (d.sent != null) parts.push(`${d.sent} sent`);
-  if (d.skipped) parts.push(`${d.skipped} not allowed to leave the box`);
-  if (d.pending) parts.push(`${d.pending} still waiting`);
+  if (d.sent != null) parts.push(fill(t("admin.cloud.sentCount"), { count: d.sent }));
+  if (d.skipped) parts.push(fill(t("admin.cloud.skippedCount"), { count: d.skipped }));
+  if (d.pending) parts.push(fill(t("admin.cloud.pendingCount"), { count: d.pending }));
   return parts.join(" · ");
 }
 
 function ScopeForm({ SERVER_URL, scope, onSaved }) {
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const [form, setForm] = useState(scope);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -111,11 +129,11 @@ function ScopeForm({ SERVER_URL, scope, onSaved }) {
         body: JSON.stringify({ scope: form }),
       });
       const payload = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(payload.message || "Couldn't save what leaves this box.");
+      if (!res.ok) throw new Error(payload.message || t("admin.cloud.scopeSaveFailed"));
       onSaved(payload.scope || form);
-      showToast("Saved. This applies to changes sent from now on.", "success");
+      showToast(t("admin.cloud.scopeSaved"), "success");
     } catch (err) {
-      setError(err.message || "Couldn't save what leaves this box.");
+      setError(err.message || t("admin.cloud.scopeSaveFailed"));
     } finally {
       setSaving(false);
     }
@@ -126,38 +144,38 @@ function ScopeForm({ SERVER_URL, scope, onSaved }) {
   return (
     <form onSubmit={save} className="space-y-4">
       <fieldset className="space-y-2">
-        <legend className="sr-only">Kinds of information</legend>
-        {SCOPE_TOGGLES.map((t) => (
-          <label key={t.key} className="flex items-start gap-3 cursor-pointer">
+        <legend className="sr-only">{t("admin.cloud.kinds")}</legend>
+        {SCOPE_TOGGLES.map((key) => (
+          <label key={key} className="flex items-start gap-3 cursor-pointer">
             <input
               type="checkbox"
-              checked={!!form[t.key]}
-              onChange={() => toggle(t.key)}
+              checked={!!form[key]}
+              onChange={() => toggle(key)}
               className="mt-1 h-4 w-4 shrink-0 accent-[#0D9488]"
             />
             <span className="min-w-0">
-              <span className="block text-sm font-semibold text-slate-800 dark:text-slate-100">{t.label}</span>
-              <span className="block text-xs text-slate-500 dark:text-slate-400">{t.help}</span>
+              <span className="block text-sm font-semibold text-slate-800 dark:text-slate-100">{t(`admin.cloud.scope.${key}.label`)}</span>
+              <span className="block text-xs text-slate-500 dark:text-slate-400">{t(`admin.cloud.scope.${key}.help`)}</span>
             </span>
           </label>
         ))}
       </fieldset>
 
       <fieldset className="space-y-2">
-        <legend className="text-sm font-semibold text-slate-800 dark:text-slate-100 mb-1">People</legend>
-        {PEOPLE_OPTIONS.map((o) => (
-          <label key={o.value} className="flex items-start gap-3 cursor-pointer">
+        <legend className="text-sm font-semibold text-slate-800 dark:text-slate-100 mb-1">{t("admin.cloud.people")}</legend>
+        {PEOPLE_OPTIONS.map((value) => (
+          <label key={value} className="flex items-start gap-3 cursor-pointer">
             <input
               type="radio"
               name="sync-people"
-              value={o.value}
-              checked={form.people === o.value}
-              onChange={() => setForm((f) => ({ ...f, people: o.value }))}
+              value={value}
+              checked={form.people === value}
+              onChange={() => setForm((f) => ({ ...f, people: value }))}
               className="mt-1 h-4 w-4 shrink-0 accent-[#0D9488]"
             />
             <span className="min-w-0">
-              <span className="block text-sm text-slate-800 dark:text-slate-100">{o.label}</span>
-              <span className="block text-xs text-slate-500 dark:text-slate-400">{o.help}</span>
+              <span className="block text-sm text-slate-800 dark:text-slate-100">{t(`admin.cloud.peopleOptions.${value}.label`)}</span>
+              <span className="block text-xs text-slate-500 dark:text-slate-400">{t(`admin.cloud.peopleOptions.${value}.help`)}</span>
             </span>
           </label>
         ))}
@@ -171,8 +189,8 @@ function ScopeForm({ SERVER_URL, scope, onSaved }) {
           className="mt-1 h-4 w-4 shrink-0 accent-[#0D9488]"
         />
         <span className="min-w-0">
-          <span className="block text-sm font-semibold text-slate-800 dark:text-slate-100">Learners&apos; written answers and teacher feedback</span>
-          <span className="block text-xs text-slate-500 dark:text-slate-400">What learners write in assignments and what teachers write back. Off unless you need it.</span>
+          <span className="block text-sm font-semibold text-slate-800 dark:text-slate-100">{t("admin.cloud.writtenLabel")}</span>
+          <span className="block text-xs text-slate-500 dark:text-slate-400">{t("admin.cloud.writtenHelp")}</span>
         </span>
       </label>
 
@@ -181,11 +199,11 @@ function ScopeForm({ SERVER_URL, scope, onSaved }) {
           <AlertTriangle className="w-4 h-4 shrink-0 mt-px" aria-hidden="true" />
           <span>
             {form.people === "full" && form.submissionText
-              ? "Names, emails and learners' own writing will leave this box. "
+              ? t("admin.cloud.riskBoth")
               : form.people === "full"
-                ? "Names and emails will leave this box. "
-                : "Learners' own writing will leave this box. "}
-            Only choose this if your school has agreed to it and the cloud is allowed to hold personal information.
+                ? t("admin.cloud.riskNames")
+                : t("admin.cloud.riskWriting")}{" "}
+            {t("admin.cloud.riskAgree")}
           </span>
         </p>
       ) : null}
@@ -198,11 +216,11 @@ function ScopeForm({ SERVER_URL, scope, onSaved }) {
           disabled={!dirty || saving}
           className="text-xs font-semibold text-white bg-[#203A3A] hover:bg-[#162727] disabled:opacity-50 rounded-lg px-4 py-2"
         >
-          {saving ? "Saving..." : "Save"}
+          {saving ? t("admin.analytics.saving") : t("admin.analytics.save")}
         </button>
         {dirty ? (
           <button type="button" onClick={() => setForm(scope)} className="text-xs font-semibold text-slate-600 hover:text-slate-900 px-2 py-2">
-            Undo changes
+            {t("admin.cloud.undoChanges")}
           </button>
         ) : null}
       </div>
@@ -212,6 +230,9 @@ function ScopeForm({ SERVER_URL, scope, onSaved }) {
 
 export default function CloudSyncSection({ SERVER_URL }) {
   const { showToast } = useToast();
+  const { t, lang } = useLanguage();
+  const formatRelative = (v) => formatRelativeIn(v, lang);
+  const formatDateTime = (v) => formatDateTimeIn(v, lang);
   const [status, setStatus] = useState(null);
   const [error, setError] = useState("");
   const [running, setRunning] = useState(false);
@@ -222,13 +243,13 @@ export default function CloudSyncSection({ SERVER_URL }) {
     try {
       const res = await fetch(`${SERVER_URL}/sync/status`);
       const payload = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(payload.message || "Couldn't load the cloud sync status.");
+      if (!res.ok) throw new Error(payload.message || t("admin.cloud.statusFailed"));
       setStatus(payload);
       setError("");
     } catch (err) {
-      setError(err.message || "Couldn't load the cloud sync status.");
+      setError(err.message || t("admin.cloud.statusFailed"));
     }
-  }, [SERVER_URL]);
+  }, [SERVER_URL]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { load(); }, [load]);
 
@@ -239,11 +260,11 @@ export default function CloudSyncSection({ SERVER_URL }) {
       const res = await fetch(`${SERVER_URL}/sync/run`, { method: "POST" });
       const payload = await res.json().catch(() => ({}));
       const ok = res.ok && (payload.status === "ok" || payload.status === "nothing_to_send");
-      const text = payload.message || (res.ok ? "Sync finished." : "Sync failed.");
+      const text = payload.message || (res.ok ? t("admin.cloud.syncFinished") : t("admin.cloud.syncFailed"));
       setRunMessage({ ok, text });
       showToast(text, ok ? "success" : "error");
     } catch {
-      const text = "Couldn't reach this box. Check the connection and try again.";
+      const text = t("admin.cloud.boxUnreachable");
       setRunMessage({ ok: false, text });
       showToast(text, "error");
     } finally {
@@ -255,8 +276,8 @@ export default function CloudSyncSection({ SERVER_URL }) {
   return (
     <div className="flex flex-col gap-8">
       <Section
-        title="Cloud sync"
-        description="This box keeps working without internet. Changes wait here and are sent to the cloud on a schedule, never when someone logs in."
+        title={t("admin.analytics.cloudSync")}
+        description={t("admin.cloud.description")}
         actions={
           <button
             type="button"
@@ -265,23 +286,23 @@ export default function CloudSyncSection({ SERVER_URL }) {
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#203A3A] hover:bg-[#162727] disabled:opacity-50 rounded-lg px-3 py-2"
           >
             {running ? <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" /> : <RefreshCw className="w-3.5 h-3.5" aria-hidden="true" />}
-            {running ? "Syncing..." : "Sync now"}
+            {running ? t("admin.cloud.syncing") : t("admin.cloud.syncNow")}
           </button>
         }
       >
         {error ? <p role="alert" className="text-sm text-rose-600">{error}</p> : null}
-        {!status && !error ? <div className="h-14 rounded-lg bg-slate-100 dark:bg-slate-800 animate-pulse" aria-label="Loading the cloud sync status" /> : null}
+        {!status && !error ? <div className="h-14 rounded-lg bg-slate-100 dark:bg-slate-800 animate-pulse" aria-label={t("admin.cloud.loadingStatus")} /> : null}
         {status ? (
           <div className="space-y-3">
             <StatusLine status={status} />
             <p className="text-xs text-slate-600 dark:text-slate-300">
-              Last successful sync:{" "}
+              {t("admin.cloud.lastSuccess")}{" "}
               {status.lastSuccessAt ? (
                 <time dateTime={status.lastSuccessAt} title={formatDateTime(status.lastSuccessAt)} className="font-semibold">
                   {formatRelative(status.lastSuccessAt)} ({formatDateTime(status.lastSuccessAt)})
                 </time>
               ) : (
-                <span className="font-semibold">never</span>
+                <span className="font-semibold">{t("admin.cloud.never")}</span>
               )}
             </p>
             {runMessage ? (
@@ -294,20 +315,20 @@ export default function CloudSyncSection({ SERVER_URL }) {
       {status?.device ? <DeviceCard device={status.device} /> : null}
 
       {status ? (
-        <Section divided title="Recent syncs">
+        <Section divided title={t("admin.cloud.recent")}>
           {status.runs?.length ? (
-            <List label="Recent syncs">
+            <List label={t("admin.cloud.recent")}>
               {status.runs.map((run, i) => (
                 <ListRow
                   key={`${run.startedAt}-${i}`}
                   tone={run.status === "failed" ? "warning" : "default"}
-                  title={RUN_LABELS[run.status] || run.status}
-                  subtitle={[formatDateTime(run.startedAt), runSummary(run), run.details?.error].filter(Boolean).join(" · ") || undefined}
+                  title={RUN_STATUSES.includes(run.status) ? t(`admin.cloud.runStatus.${run.status}`) : run.status}
+                  subtitle={[formatDateTime(run.startedAt), runSummary(run, t), run.details?.error].filter(Boolean).join(" · ") || undefined}
                 />
               ))}
             </List>
           ) : (
-            <p className="text-xs text-slate-500">No syncs yet.</p>
+            <p className="text-xs text-slate-500">{t("admin.cloud.noSyncs")}</p>
           )}
         </Section>
       ) : null}
@@ -315,8 +336,8 @@ export default function CloudSyncSection({ SERVER_URL }) {
       {status?.scope ? (
         <Section
           divided
-          title="What leaves this box"
-          description="Only what is ticked here is sent to the cloud. Everything else stays on this box."
+          title={t("admin.cloud.scopeTitle")}
+          description={t("admin.cloud.scopeHelp")}
         >
           <ScopeForm SERVER_URL={SERVER_URL} scope={status.scope} onSaved={(scope) => setStatus((s) => ({ ...s, scope }))} />
         </Section>
@@ -324,8 +345,8 @@ export default function CloudSyncSection({ SERVER_URL }) {
 
       {status?.boxId ? (
         <p className="text-[11px] text-slate-400">
-          Box ID (for support): <span className="font-mono select-all">{status.boxId}</span>
-          {status.transport ? ` · sends by ${status.transport === "firestore" ? "Firebase" : "web address"}` : ""}
+          {t("admin.cloud.boxId")} <span className="font-mono select-all">{status.boxId}</span>
+          {status.transport ? ` · ${status.transport === "firestore" ? fill(t("admin.cloud.sendsBy"), { via: "Firebase" }) : fill(t("admin.cloud.sendsBy"), { via: t("admin.cloud.webAddress") })}` : ""}
         </p>
       ) : null}
     </div>

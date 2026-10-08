@@ -1,11 +1,11 @@
 'use client';
 
-import { Globe, ChevronRight } from 'lucide-react';
-import { useContext, useState } from 'react';
+import { ChevronRight } from 'lucide-react';
+import { useContext } from 'react';
 import DataContext from '@/context/DataContext';
 import { useLanguage } from '@/context/LanguageContext';
 import Typography from './Typography';
-import Input from './input';
+
 import { Button } from './button';
 import NotificationBellDrawer from '../notifications/NotificationBellDrawer';
 
@@ -15,12 +15,9 @@ const HeaderSection = ({
   breadcrumbs,
   onBreadcrumbClick
 }) => {
-  const { t, lang, setLang } = useLanguage();
+  const { t } = useLanguage();
   // Guests (exploring without an account) have no notifications.
   const { authenticated } = useContext(DataContext) || {};
-  const [showLangMenu, setShowLangMenu] = useState(false);
-
-  const languages = ["en", "fr", "rw", "sw", "es"];
 
   return (
     <div>
@@ -59,7 +56,7 @@ const HeaderSection = ({
           />
           <img
             src="/images/header-banner.png"
-            alt="Learning illustration"
+            alt={t("shell.headerSection.illustrationAlt")}
             className="h-[115%] w-auto object-contain object-bottom relative z-10 opacity-90"
             style={{ filter: "drop-shadow(0 0 20px rgba(32,180,180,0.15))" }}
           />
@@ -105,19 +102,9 @@ const HeaderSection = ({
             </div>
           </div>
 
-          {/* Right section: Language selector + Notifications — pushed left of illustration */}
+          {/* Right section: notifications (the language picker is in the page header on every screen) */}
           <div className="shrink-0 w-full md:w-fit md:mr-[260px] flex items-center gap-3">
             {authenticated ? <NotificationBellDrawer /> : null}
-            <Input
-              prefix={<Globe className="w-4 h-4 mr-2" />}
-              value={lang}
-              id="language-select"
-              ariaLabel="Language"
-              variant="select"
-              options={languages.map((l) => ({ value: l, label: l.toUpperCase() }))}
-              onChange={(value) => setLang(value)}
-              className="bg-white/90 backdrop-blur-md text-black border-none shadow-xl h-12 w-full md:min-w-[120px] rounded-xl font-bold"
-            />
           </div>
         </div>
       </header>

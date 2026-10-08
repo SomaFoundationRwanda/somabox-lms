@@ -6,11 +6,13 @@ import { useCourse } from "@/context/CourseContext";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
 import { PageHeader, Section, List } from "@/components/layout";
 import { useItemOpened } from "@/lib/usage";
+import { useCourseText } from "@/components/course/useCourseText";
 
 export default function DiscussionThreadPage() {
   const { courseId, discussionId } = useParams();
   useItemOpened("discussion", discussionId, courseId);
   const { SERVER_URL, userEmail, isTeacher } = useCourse();
+  const { t, tf } = useCourseText();
   const [discussion, setDiscussion] = useState(null);
   const [loading, setLoading] = useState(true);
   const [reply, setReply] = useState("");
@@ -42,7 +44,7 @@ export default function DiscussionThreadPage() {
     });
     if (!res.ok) {
       const payload = await res.json().catch(() => ({}));
-      setGradedError(payload.message || "Failed to update discussion.");
+      setGradedError(payload.message || t("discussions.updateFailed"));
     }
     setSavingGraded(false);
     load();
@@ -61,8 +63,8 @@ export default function DiscussionThreadPage() {
     load();
   };
 
-  if (loading) return <div className="p-6"><p className="text-sm text-slate-500">Loading...</p></div>;
-  if (!discussion) return <div className="p-6"><p className="text-sm text-rose-600">Discussion not found.</p></div>;
+  if (loading) return <div className="p-6"><p className="text-sm text-slate-500">{t("common.loading")}</p></div>;
+  if (!discussion) return <div className="p-6"><p className="text-sm text-rose-600">{t("discussions.notFound")}</p></div>;
 
   return (
     <div>
@@ -70,13 +72,13 @@ export default function DiscussionThreadPage() {
       <div className="p-4 md:p-6 space-y-6 max-w-2xl">
         <PageHeader help="items.discussion"
           title={discussion.title}
-          meta={discussion.graded ? <span className="text-[10px] font-bold uppercase text-teal-600 bg-teal-50 rounded-full px-1.5 py-0.5">Graded</span> : null}
+          meta={discussion.graded ? <span className="text-[10px] font-bold uppercase text-teal-600 bg-teal-50 rounded-full px-1.5 py-0.5">{t("quizKinds.graded")}</span> : null}
         >
           {discussion.body ? <p className="text-sm text-slate-700 dark:text-slate-300 mt-2 whitespace-pre-wrap">{discussion.body}</p> : null}
         </PageHeader>
 
         {isTeacher ? (
-          <Section title="Grading">
+          <Section title={t("discussions.grading")}>
             <div className="flex flex-wrap items-center gap-2">
               {!discussion.graded ? (
                 <input
@@ -84,8 +86,8 @@ export default function DiscussionThreadPage() {
                   min="0"
                   value={pointsInput}
                   onChange={(e) => setPointsInput(e.target.value)}
-                  placeholder="Points possible"
-                  aria-label="Points possible"
+                  placeholder={t("editors.pointsPossible")}
+                  aria-label={t("editors.pointsPossible")}
                   className="w-28 text-sm border border-slate-200 rounded-lg px-2 py-1.5 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]"
                 />
               ) : null}
@@ -94,11 +96,11 @@ export default function DiscussionThreadPage() {
                 disabled={savingGraded}
                 className="text-xs font-semibold text-white bg-[#203A3A] rounded-lg px-3 py-1.5 disabled:opacity-50"
               >
-                {discussion.graded ? "Remove grading" : "Mark as graded"}
+                {discussion.graded ? t("discussions.removeGrading") : t("discussions.markGraded")}
               </button>
               {discussion.graded ? (
                 <span className="text-xs text-slate-500">
-                  {discussion.points_possible} pt{discussion.points_possible === 1 ? "" : "s"} · syncs to Assignments & Grades
+                  {tf("common.points", { n: discussion.points_possible })} · {t("discussions.syncs")}
                 </span>
               ) : null}
             </div>
@@ -108,11 +110,11 @@ export default function DiscussionThreadPage() {
           </Section>
         ) : null}
 
-        <Section title={`Replies (${discussion.replies.length})`}>
+        <Section title={tf("discussions.repliesCount", { n: discussion.replies.length })}>
           {discussion.replies.length === 0 ? (
-            <p className="text-sm text-slate-500">No replies yet — be the first.</p>
+            <p className="text-sm text-slate-500">{t("discussions.noReplies")}</p>
           ) : (
-            <List label="Replies">
+            <List label={t("discussions.replies")}>
               {discussion.replies.map((r) => (
                 <li key={r.id} className="px-3 py-3">
                   <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">{r.authorName}</p>
@@ -123,8 +125,8 @@ export default function DiscussionThreadPage() {
           )}
 
           <div className="mt-3 flex items-center gap-2">
-            <input value={reply} onChange={(e) => setReply(e.target.value)} placeholder="Write a reply..." aria-label="Write a reply" className="flex-1 min-w-0 text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[#203A3A]" />
-            <button onClick={postReply} className="text-xs font-semibold text-white bg-[#203A3A] rounded-lg px-3 py-2">Reply</button>
+            <input value={reply} onChange={(e) => setReply(e.target.value)} placeholder={t("discussions.replyPlaceholder")} aria-label={t("discussions.replyPlaceholder")} className="flex-1 min-w-0 text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[#203A3A]" />
+            <button onClick={postReply} className="text-xs font-semibold text-white bg-[#203A3A] rounded-lg px-3 py-2">{t("discussions.reply")}</button>
           </div>
         </Section>
       </div>

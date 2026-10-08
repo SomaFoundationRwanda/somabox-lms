@@ -7,10 +7,13 @@ import { PageHeader, Section, EmptyState } from "@/components/layout";
 import CloudSyncSection from "@/components/sync/CloudSyncSection";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
+import { useLanguage } from "@/context/LanguageContext";
+import { fill } from "@/lib/fill";
 import { AlertCircle, CheckCircle2, ChevronDown, ChevronRight, File, FolderClosed, FolderOpen, Loader2, X } from "lucide-react";
 
 /* ── Inline feedback banner ── */
 const Banner = ({ type, message, onDismiss }) => {
+    const { t } = useLanguage();
     const styles = {
         error:   "bg-red-50 border-red-200 text-red-700",
         warning: "bg-amber-50 border-amber-200 text-amber-700",
@@ -21,7 +24,7 @@ const Banner = ({ type, message, onDismiss }) => {
         <div className={`flex items-start justify-between gap-3 px-3 py-2.5 rounded-[5px] border text-[12px] font-medium ${styles[type]}`}>
             <span className="flex-1">{message}</span>
             {onDismiss && (
-                <button aria-label="Dismiss message" onClick={onDismiss} className="shrink-0 opacity-60 hover:opacity-100 mt-0.5">
+                <button aria-label={t("admin.sync.dismiss")} onClick={onDismiss} className="shrink-0 opacity-60 hover:opacity-100 mt-0.5">
                     <X className="w-3.5 h-3.5" />
                 </button>
             )}
@@ -30,7 +33,9 @@ const Banner = ({ type, message, onDismiss }) => {
 };
 
 /* ── Inline confirmation panel ── */
-const ConfirmBanner = ({ message, onConfirm, onCancel }) => (
+const ConfirmBanner = ({ message, onConfirm, onCancel }) => {
+    const { t } = useLanguage();
+    return (
     <div className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-[5px] border bg-amber-50 border-amber-200">
         <p className="text-[12px] font-medium text-amber-800 flex-1">{message}</p>
         <div className="flex gap-2 shrink-0">
@@ -38,20 +43,22 @@ const ConfirmBanner = ({ message, onConfirm, onCancel }) => (
                 onClick={onCancel}
                 className="text-[11px] px-3 h-7 rounded-full border border-amber-300 text-amber-700 font-semibold hover:bg-amber-100 transition-colors"
             >
-                Cancel
+                {t("admin.common.cancel")}
             </button>
             <button
                 onClick={onConfirm}
                 className="text-[11px] px-3 h-7 rounded-full bg-amber-500 text-white font-semibold hover:bg-amber-600 transition-colors"
             >
-                Confirm
+                {t("admin.common.confirm")}
             </button>
         </div>
     </div>
-);
+    );
+};
 
 /* ── Recursive TreeNode ── */
 const TreeNode = ({ node, onCheck, checked }) => {
+    const { t } = useLanguage();
     const [collapsed, setCollapsed] = useState(true);
 
     if (node.type === "folder") {
@@ -73,7 +80,7 @@ const TreeNode = ({ node, onCheck, checked }) => {
                         <span className="text-[12px] font-semibold text-slate-700 dark:text-slate-200">{node.name}</span>
                         {node.isDownloaded && (
                             <span className="text-[11px] bg-green-50 text-green-600 px-2 py-0.5 rounded-full font-bold">
-                                Downloaded
+                                {t("admin.sync.downloaded")}
                             </span>
                         )}
                         <span className="ml-auto text-slate-500">
@@ -103,7 +110,7 @@ const TreeNode = ({ node, onCheck, checked }) => {
                 <span className="text-[12px] text-slate-600 flex-1">{node.name}</span>
                 {node.isDownloaded && (
                     <span className="text-[11px] bg-green-50 text-green-600 px-2 py-0.5 rounded-full font-bold">
-                        Downloaded
+                        {t("admin.sync.downloaded")}
                     </span>
                 )}
                 <span className="text-[11px] text-slate-600">{formatSize(node.size)}</span>
@@ -116,6 +123,7 @@ const TreeNode = ({ node, onCheck, checked }) => {
 
 const ManageSync = () => {
     const { authenticated, role, refreshExplore } = useContext(DataContext);
+    const { t } = useLanguage();
     const [contentTree, setContentTree]         = useState([]);
     const [checked, setChecked]                 = useState({});
     const [cloudUnavailable, setCloudUnavailable] = useState(false);
@@ -185,7 +193,7 @@ const ManageSync = () => {
     const handleDownload = async () => {
         const selected = getCheckedFiles(contentTree, checked);
         if (selected.length === 0) {
-            setBanner({ type: 'warning', message: 'Please select at least one file or folder to download.' });
+            setBanner({ type: 'warning', message: t("admin.sync.selectToDownload") });
             return;
         }
 
@@ -200,7 +208,7 @@ const ManageSync = () => {
 
         if (alreadyDownloaded.length > 0) {
             setConfirm({
-                message: `${alreadyDownloaded.length} selected item${alreadyDownloaded.length > 1 ? 's are' : ' is'} already downloaded and will be skipped. Proceed?`,
+                message: fill(t(alreadyDownloaded.length > 1 ? "admin.sync.manyAlready" : "admin.sync.oneAlready"), { count: alreadyDownloaded.length }),
                 onConfirm: () => { setConfirm(null); executeDownload(selected); },
             });
             return;
@@ -218,17 +226,17 @@ const ManageSync = () => {
                 body: JSON.stringify({ paths: selectedPaths }),
             });
             if (res.ok) {
-                setBanner({ type: 'success', message: 'Content deleted successfully.' });
+                setBanner({ type: 'success', message: t("admin.sync.deleted") });
                 setChecked({});
                 setRefetch(r => !r);
                 refreshExplore?.();
             } else {
                 const data = await res.json();
-                setBanner({ type: 'error', message: `Delete failed: ${data.error || 'Unknown error'}` });
+                setBanner({ type: 'error', message: fill(t("admin.sync.deleteFailed"), { error: data.error || t("admin.sync.unknownError") }) });
             }
         } catch (err) {
             console.error(err);
-            setBanner({ type: 'error', message: 'An error occurred while deleting content.' });
+            setBanner({ type: 'error', message: t("admin.sync.deleteError") });
         } finally {
             setDeleting(false);
         }
@@ -237,11 +245,11 @@ const ManageSync = () => {
     const handleDelete = () => {
         const selectedPaths = Object.keys(checked).filter(p => checked[p]);
         if (selectedPaths.length === 0) {
-            setBanner({ type: 'warning', message: 'Please select at least one file or folder to delete.' });
+            setBanner({ type: 'warning', message: t("admin.sync.selectToDelete") });
             return;
         }
         setConfirm({
-            message: `Delete ${selectedPaths.length} item${selectedPaths.length > 1 ? 's' : ''}? This will remove files and database records.`,
+            message: fill(t(selectedPaths.length > 1 ? "admin.sync.confirmDeleteMany" : "admin.sync.confirmDeleteOne"), { count: selectedPaths.length }),
             onConfirm: () => { setConfirm(null); executeDelete(); },
         });
     };
@@ -277,9 +285,9 @@ const ManageSync = () => {
         <div className="min-h-screen pb-24 md:pb-8">
             <div className="px-4 pt-4 flex flex-col gap-8 max-w-5xl">
                 <PageHeader
-                    eyebrow="Admin"
-                    title="Sync"
-                    description="Send this box's changes to the cloud, and download learning content from the cloud to this box."
+                    eyebrow={t("admin.home.eyebrow")}
+                    title={t("admin.sync.title")}
+                    description={t("admin.sync.description")}
                 />
 
                 {role === "admin" ? <CloudSyncSection SERVER_URL={SERVER_URL} /> : null}
@@ -305,7 +313,7 @@ const ManageSync = () => {
                     </div>
                 )}
 
-                <Section title="Download content from the cloud" description="Choose folders and files from the cloud to download to this box, or remove downloaded content.">
+                <Section title={t("admin.sync.downloadTitle")} description={t("admin.sync.downloadHelp")}>
                     {/* Tree */}
                     {fetching ? (
                         <div className="flex flex-col gap-2 py-4">
@@ -316,12 +324,12 @@ const ManageSync = () => {
                     ) : cloudUnavailable ? (
                         <EmptyState
                             icon={<AlertCircle className="w-8 h-8 text-red-300" />}
-                            title="Remote server is not available"
+                            title={t("admin.sync.remoteUnavailable")}
                         />
                     ) : contentTree.length === 0 ? (
                         <EmptyState
                             icon={<FolderClosed className="w-8 h-8" />}
-                            title="No content available"
+                            title={t("admin.sync.noContent")}
                         />
                     ) : (
                         <div className="rounded-xl border border-slate-200 dark:border-slate-800 p-2 space-y-0.5 overflow-x-auto">
@@ -337,7 +345,7 @@ const ManageSync = () => {
                         <div className="flex items-center gap-3 flex-wrap">
                             {selectedCount > 0 && (
                                 <span className="text-[11px] font-semibold text-slate-500">
-                                    {selectedCount} selected
+                                    {fill(t("admin.sync.selected"), { count: selectedCount })}
                                 </span>
                             )}
                             {downloadStatus !== 'init' && (
@@ -349,7 +357,7 @@ const ManageSync = () => {
                                 }`}>
                                     {downloadStatus === 'downloading' && <Loader2 className="w-3 h-3 animate-spin" />}
                                     {downloadStatus === 'finished'    && <CheckCircle2 className="w-3 h-3" />}
-                                    {downloadStatus}
+                                    {["downloading", "finished", "failed"].includes(downloadStatus) ? t(`admin.sync.status.${downloadStatus}`) : downloadStatus}
                                 </span>
                             )}
                         </div>
@@ -361,7 +369,7 @@ const ManageSync = () => {
                                     onClick={() => setRefetch(r => !r)}
                                     className="h-8 px-4 rounded-[5px] text-[12px]"
                                 >
-                                    Retry
+                                    {t("admin.common.retry")}
                                 </Button>
                             ) : (
                                 <>
@@ -371,7 +379,7 @@ const ManageSync = () => {
                                         className="h-8 px-4 rounded-[5px] text-[12px] gap-1.5"
                                     >
                                         {downloadStatus === "downloading" && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                                        Download
+                                        {t("admin.sync.download")}
                                     </Button>
                                     <Button
                                         variant="destructive"
@@ -380,7 +388,7 @@ const ManageSync = () => {
                                         className="h-8 px-4 rounded-[5px] text-[12px] gap-1.5"
                                     >
                                         {deleting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                                        Delete
+                                        {t("admin.common.delete")}
                                     </Button>
                                 </>
                             )}

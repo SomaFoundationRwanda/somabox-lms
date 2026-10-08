@@ -4,9 +4,13 @@ import { useCallback, useContext, useEffect, useState } from "react";
 import Link from "next/link";
 import { ClipboardList, AlertTriangle } from "lucide-react";
 import DataContext from "@/context/DataContext";
+import { useLanguage } from "@/context/LanguageContext";
+import { fill } from "@/lib/fill";
+import { formatDate } from "@/components/helpers/localeDate";
 
 export default function AssignmentBell({ className = "" }) {
     const { authenticated, isDark, SERVER_URL, user } = useContext(DataContext);
+    const { t, lang } = useLanguage();
     const [open, setOpen] = useState(false);
     const [outstanding, setOutstanding] = useState([]);
     const [outstandingCount, setOutstandingCount] = useState(0);
@@ -39,9 +43,8 @@ export default function AssignmentBell({ className = "" }) {
     }, [authenticated, userEmail, load]);
 
     const formatDue = (dueAt) => {
-        if (!dueAt) return "No due date";
-        const d = new Date(dueAt);
-        return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+        if (!dueAt) return t("shell.assignments.noDueDate");
+        return formatDate(dueAt, lang, { month: "short", day: "numeric" });
     };
 
     const dm = isDark;
@@ -57,7 +60,7 @@ export default function AssignmentBell({ className = "" }) {
                 className={`relative p-2.5 rounded-full transition-all duration-200 cursor-pointer ${dm ? "bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-slate-700/60"
                         : "bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 shadow-sm"
                     }`}
-                aria-label="Outstanding assignments"
+                aria-label={t("shell.assignments.outstandingLabel")}
             >
                 <ClipboardList className="w-4 h-4" />
                 {outstandingCount > 0 && (
@@ -75,9 +78,9 @@ export default function AssignmentBell({ className = "" }) {
                         style={{ backgroundColor: popoverBg, borderColor: borderCol }}
                     >
                         <div className="p-3.5 border-b flex items-center justify-between" style={{ borderColor: borderCol }}>
-                            <h3 className="font-extrabold text-sm" style={{ color: titleCol }}>Assignments</h3>
+                            <h3 className="font-extrabold text-sm" style={{ color: titleCol }}>{t("shell.assignments.title")}</h3>
                             <span className="text-[11px] font-semibold" style={{ color: textMuted }}>
-                                {outstandingCount} outstanding
+                                {fill(t("shell.assignments.outstandingCount"), { n: outstandingCount })}
                             </span>
                         </div>
 
@@ -91,7 +94,7 @@ export default function AssignmentBell({ className = "" }) {
                                     <div className="w-10 h-10 mx-auto rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600">
                                         <ClipboardList className="w-5 h-5 opacity-50" />
                                     </div>
-                                    <p className="text-xs font-semibold" style={{ color: textMuted }}>You're all caught up — nothing outstanding.</p>
+                                    <p className="text-xs font-semibold" style={{ color: textMuted }}>{t("shell.assignments.caughtUp")}</p>
                                 </div>
                             ) : (
                                 outstanding.map((a) => (
@@ -111,7 +114,7 @@ export default function AssignmentBell({ className = "" }) {
                                                 <p className="text-xs font-bold truncate" style={{ color: titleCol }}>{a.title}</p>
                                                 <p className="text-[11px] truncate" style={{ color: textMuted }}>{a.course_title}</p>
                                                 <p className={`text-[10px] font-semibold mt-1 ${a.overdue ? "text-rose-600" : ""}`} style={a.overdue ? {} : { color: textMuted }}>
-                                                    {a.overdue ? `Overdue — was due ${formatDue(a.due_at)}` : `Due ${formatDue(a.due_at)}`}
+                                                    {fill(t(a.overdue ? "shell.assignments.overdueWasDue" : "shell.assignments.due"), { date: formatDue(a.due_at) })}
                                                 </p>
                                             </div>
                                         </div>
@@ -126,7 +129,7 @@ export default function AssignmentBell({ className = "" }) {
                                 onClick={() => setOpen(false)}
                                 className="block text-center text-[11px] font-bold text-teal-600 hover:text-teal-700 py-1.5"
                             >
-                                View all assignments
+                                {t("shell.assignments.viewAll")}
                             </Link>
                         </div>
                     </div>

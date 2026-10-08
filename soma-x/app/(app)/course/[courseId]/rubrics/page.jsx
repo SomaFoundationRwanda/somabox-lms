@@ -6,9 +6,11 @@ import { ListChecks, Target, Lock } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
 import { PageHeader, Section, DataTable, EmptyState } from "@/components/layout";
+import { useCourseText } from "@/components/course/useCourseText";
 
 export default function RubricsPage() {
   const { SERVER_URL, courseId, userEmail } = useCourse();
+  const { t, tf } = useCourseText();
   const [rubrics, setRubrics] = useState([]);
   const [outcomes, setOutcomes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -39,23 +41,23 @@ export default function RubricsPage() {
       <Breadcrumbs sectionKey="rubrics" />
       <div className="p-4 md:p-6 space-y-8 max-w-4xl">
         <PageHeader help="pages.rubrics"
-          eyebrow="Rubric library"
-          title="Course rubrics"
-          description="Rubrics are instantiated directly within assignment forms from course learning outcome mastery levels. Each rubric belongs to one assignment — edit it from that assignment."
+          eyebrow={t("rubrics.eyebrow")}
+          title={t("rubrics.title")}
+          description={t("rubrics.description")}
           meta={
             <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full inline-flex items-center gap-1">
-              <Lock className="w-3 h-3" /> Read-Only View
+              <Lock className="w-3 h-3" /> {t("rubrics.readOnly")}
             </span>
           }
         />
 
         {/* One Section per instantiated rubric; criteria as a table */}
         {rubrics.length === 0 ? (
-          <Section title={<span className="flex items-center gap-2"><ListChecks className="w-4 h-4 text-[#0D9488]" /> Rubrics in assignments</span>}>
+          <Section title={<span className="flex items-center gap-2"><ListChecks className="w-4 h-4 text-[#0D9488]" /> {t("rubrics.inAssignments")}</span>}>
             <EmptyState
               compact
-              title={loading ? "Loading rubrics..." : "No assignment rubrics instantiated yet."}
-              description={loading ? undefined : "Create or edit an assignment to instantiate a rubric from tagged outcomes."}
+              title={loading ? t("rubrics.loading") : t("rubrics.empty")}
+              description={loading ? undefined : t("rubrics.emptyHelp")}
             />
           </Section>
         ) : (
@@ -69,19 +71,19 @@ export default function RubricsPage() {
                   href={`/course/${courseId}/assignments/${r.assignment_id}`}
                   className="font-semibold text-[#0D9488] hover:underline"
                 >
-                  Assignment: {r.assignment_title || `#${r.assignment_id}`}
+                  {tf("rubrics.assignment", { title: r.assignment_title || `#${r.assignment_id}` })}
                 </Link>
               ) : null}
             >
               <DataTable
-                caption={`Criteria for ${r.title}`}
+                caption={tf("rubrics.criteriaFor", { title: r.title })}
                 rows={(r.criteria || []).map((c, idx) => ({ ...c, _key: c.id ?? idx }))}
                 rowKey={(c) => c._key}
-                empty="No criteria yet."
+                empty={t("rubrics.noCriteria")}
                 columns={[
                   {
                     key: "title",
-                    header: "Criterion",
+                    header: t("rubrics.criterion"),
                     render: (c) => (
                       <div className="min-w-0 space-y-0.5">
                         <span className="font-semibold text-slate-800 dark:text-slate-100">{c.title}</span>
@@ -91,7 +93,7 @@ export default function RubricsPage() {
                   },
                   {
                     key: "outcome",
-                    header: "Outcome",
+                    header: t("rubrics.outcome"),
                     render: (c) => c.outcome_code ? (
                       <span
                         className="text-[10px] font-bold text-[#0D9488] bg-teal-50 border border-teal-200 px-2 py-0.5 rounded-full"
@@ -101,7 +103,7 @@ export default function RubricsPage() {
                       </span>
                     ) : <span className="text-slate-400">—</span>,
                   },
-                  { key: "points", header: "Points", align: "right", render: (c) => <span className="font-bold text-[#0D9488] whitespace-nowrap">{c.points} pts</span> },
+                  { key: "points", header: t("rubrics.points"), align: "right", render: (c) => <span className="font-bold text-[#0D9488] whitespace-nowrap">{tf("common.points", { n: c.points })}</span> },
                 ]}
               />
             </Section>
@@ -111,17 +113,17 @@ export default function RubricsPage() {
         {/* Mastery skeleton reference */}
         <Section
           divided
-          title={<span className="flex items-center gap-2"><Target className="w-4 h-4 text-[#0D9488]" /> Outcome mastery criteria skeletons</span>}
-          description="These outcome mastery level criteria serve as the skeleton when instantiating new assignment rubrics."
+          title={<span className="flex items-center gap-2"><Target className="w-4 h-4 text-[#0D9488]" /> {t("rubrics.skeletons")}</span>}
+          description={t("rubrics.skeletonsHelp")}
         >
           <DataTable
-            caption="Outcome mastery criteria skeletons"
+            caption={t("rubrics.skeletons")}
             rows={outcomes}
-            empty="No outcomes defined yet."
+            empty={t("syllabus.noOutcomes")}
             columns={[
               {
                 key: "outcome",
-                header: "Outcome",
+                header: t("rubrics.outcome"),
                 render: (o) => (
                   <div className="flex items-start gap-2 min-w-0">
                     <span className="text-[10px] font-bold text-[#0D9488] bg-teal-50 px-2 py-0.5 rounded border border-teal-200 shrink-0">
@@ -131,10 +133,10 @@ export default function RubricsPage() {
                   </div>
                 ),
               },
-              { key: "exceeds", header: "Exceeds", align: "center", render: () => "4 pts" },
-              { key: "meets", header: "Meets", align: "center", render: () => "3 pts" },
-              { key: "approaching", header: "Approaching", align: "center", render: () => "2 pts" },
-              { key: "below", header: "Below", align: "center", render: () => "1 pt" },
+              { key: "exceeds", header: t("rubrics.exceeds"), align: "center", render: () => tf("common.points", { n: 4 }) },
+              { key: "meets", header: t("rubrics.meets"), align: "center", render: () => tf("common.points", { n: 3 }) },
+              { key: "approaching", header: t("rubrics.approaching"), align: "center", render: () => tf("common.points", { n: 2 }) },
+              { key: "below", header: t("rubrics.below"), align: "center", render: () => t("rubrics.onePoint") },
             ]}
           />
         </Section>

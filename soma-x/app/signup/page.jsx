@@ -1,6 +1,7 @@
 "use client";
 
-import { BadgeCheck, ChevronDown, Eye, EyeOff, Globe } from "lucide-react";
+import { BadgeCheck, Eye, EyeOff } from "lucide-react";
+import LanguageSwitcher from "@/components/global/LanguageSwitcher";
 import { useLanguage } from '@/context/LanguageContext';
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -11,9 +12,8 @@ import { renewMediaSession, safeNext, setSessionToken, takeNext } from "@/lib/se
 import { fill } from "@/lib/fill";
 
 export default function SignupPage() {
-  const { t, setLang, lang } = useLanguage();
+  const { t } = useLanguage();
   const { showToast } = useToast();
-  const [showLangMenu, setShowLangMenu] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({ email: '', password: '', confirmPassword: '', name: '' });
   const [showPassword, setShowPassword] = useState(false);
@@ -21,7 +21,6 @@ export default function SignupPage() {
   const [error, setError] = useState('');
   // The learner code the server gave the new account (e.g. GSK-0012), shown before moving on.
   const [learnerCode, setLearnerCode] = useState('');
-  const languages = ["en", "fr", "rw", "sw", "es"];
   // Where a guest was going when they were asked to sign up (?next=, or remembered).
   const [next, setNext] = useState('');
   useEffect(() => {
@@ -33,16 +32,16 @@ export default function SignupPage() {
   // Child-friendly password strength calculator
   const calculateStrength = (pwd) => {
     if (!pwd) return { score: 0, label: '', color: 'bg-slate-200' };
-    if (pwd.length < 6) return { score: 1, label: 'Too short (6+ characters needed)', color: 'bg-rose-500', text: 'text-rose-500' };
+    if (pwd.length < 6) return { score: 1, label: t('shell.signup.strengthShort'), color: 'bg-rose-500', text: 'text-rose-500' };
     
     let points = 1;
     if (pwd.length >= 8) points++;
     if (/[0-9]/.test(pwd) || /[^A-Za-z0-9]/.test(pwd)) points++;
     if (/[A-Z]/.test(pwd) && /[a-z]/.test(pwd)) points++;
 
-    if (points <= 2) return { score: 2, label: 'Fair (Add numbers or symbols)', color: 'bg-amber-500', text: 'text-amber-600' };
-    if (points === 3) return { score: 3, label: 'Good password!', color: 'bg-teal-500', text: 'text-teal-600' };
-    return { score: 4, label: 'Awesome strong password!', color: 'bg-emerald-500', text: 'text-emerald-600' };
+    if (points <= 2) return { score: 2, label: t('shell.signup.strengthFair'), color: 'bg-amber-500', text: 'text-amber-600' };
+    if (points === 3) return { score: 3, label: t('shell.signup.strengthGood'), color: 'bg-teal-500', text: 'text-teal-600' };
+    return { score: 4, label: t('shell.signup.strengthStrong'), color: 'bg-emerald-500', text: 'text-emerald-600' };
   };
 
   const strength = calculateStrength(formData.password);
@@ -52,14 +51,14 @@ export default function SignupPage() {
     setError('');
 
     if (formData.password.length < 6) {
-      const msg = "Password must be at least 6 characters long";
+      const msg = t("shell.signup.passwordTooShort");
       setError(msg);
       showToast(msg, "error");
       return;
     }
 
     if (formData.password !== formData.confirmPassword) {
-      const msg = "Passwords don't match";
+      const msg = t("shell.signup.passwordsDontMatch");
       setError(msg);
       showToast(msg, "error");
       return;
@@ -79,9 +78,9 @@ export default function SignupPage() {
 
       const data = await response.json();
       if (!response.ok) {
-        const msg = data.message || 'Failed to create account';
+        const msg = data.message || t('shell.signup.createFailed');
         setError(msg);
-        showToast(`Signup failed: ${msg}`, 'error');
+        showToast(fill(t('shell.signup.failedToast'), { message: msg }), 'error');
         return;
       }
 
@@ -95,7 +94,7 @@ export default function SignupPage() {
         setLearnerCode(data.user.learner_code);
         return;
       }
-      showToast('Account created successfully! Redirecting to your dashboard...', 'success');
+      showToast(t('shell.signup.createdToast'), 'success');
       // New accounts always meet the mandatory profile step first: it opens on every
       // signed-in page (and on /frame) until gender, location and grade are filled in, and
       // then they're where they wanted to be.
@@ -104,7 +103,7 @@ export default function SignupPage() {
       }, 1000);
     } catch (err) {
       console.error('Signup error:', err);
-      const msg = 'An error occurred during signup';
+      const msg = t('shell.signup.errorDuringSignup');
       setError(msg);
       showToast(msg, 'error');
     } finally {
@@ -148,10 +147,10 @@ export default function SignupPage() {
           {/* Headline */}
           <div className="space-y-1.5 md:space-y-2">
             <h1 className="text-white font-bold text-xl md:text-3xl leading-tight tracking-tight whitespace-nowrap">
-              Create Account
+              {t("shell.signup.title")}
             </h1>
             <p className="text-white/70 text-sm md:text-base font-medium leading-relaxed max-w-xs mx-auto">
-              Join the SomaBox learning community
+              {t("shell.signup.subtitle")}
             </p>
           </div>
         </div>
@@ -162,33 +161,7 @@ export default function SignupPage() {
 
         {/* Language selector */}
         <div className="absolute top-6 right-6 z-10">
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setShowLangMenu(!showLangMenu)}
-              className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 transition-colors"
-            >
-              <Globe className="w-4 h-4" />
-              {lang.toUpperCase()}
-              <ChevronDown className="w-3.5 h-3.5 opacity-60" />
-            </button>
-
-            {showLangMenu && (
-              <div className="absolute top-11 right-0 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden min-w-[100px]">
-                {languages.map((l) => (
-                  <button
-                    key={l}
-                    type="button"
-                    onClick={() => { setLang(l); setShowLangMenu(false); }}
-                    className={`w-full text-left px-4 py-2.5 text-sm font-semibold transition-colors ${lang === l ? 'bg-slate-100 text-accent-dark' : 'text-slate-700 hover:bg-slate-50'
-                      }`}
-                  >
-                    {l.toUpperCase()}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          <LanguageSwitcher compact />
         </div>
 
         {learnerCode ? (
@@ -217,22 +190,22 @@ export default function SignupPage() {
           {/* Form header */}
           <div className="mb-6">
             <h2 className="text-2xl font-bold text-slate-900 tracking-tight leading-tight">
-              Get Started
+              {t("shell.signup.formTitle")}
             </h2>
             <p className="text-slate-600 text-[14px] font-medium mt-1">
-              Create your account to begin learning
+              {t("shell.signup.formSubtitle")}
             </p>
           </div>
 
           {/* Full name */}
           <div className="space-y-1.5">
             <label htmlFor="signup-name" className="block text-[12px] font-bold text-slate-800 uppercase tracking-wider">
-              Full Name
+              {t("shell.signup.fullName")}
             </label>
             <input
               type="text"
               id="signup-name"
-              placeholder="Jane Doe"
+              placeholder={t("shell.signup.namePlaceholder")}
               required
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               className="w-full h-11 rounded-lg bg-white border-2 border-slate-300 hover:border-slate-400 focus:border-accent-dark px-3.5 text-[14px] text-slate-900 font-semibold placeholder:text-slate-500 shadow-sm outline-none transition-colors"
@@ -242,12 +215,12 @@ export default function SignupPage() {
           {/* Email */}
           <div className="space-y-1.5">
             <label htmlFor="signup-email" className="block text-[12px] font-bold text-slate-800 uppercase tracking-wider">
-              Email
+              {t("shell.signup.email")}
             </label>
             <input
               type="email"
               id="signup-email"
-              placeholder="you@example.com"
+              placeholder={t("shell.signup.emailPlaceholder")}
               required
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               className="w-full h-11 rounded-lg bg-white border-2 border-slate-300 hover:border-slate-400 focus:border-accent-dark px-3.5 text-[14px] text-slate-900 font-semibold placeholder:text-slate-500 shadow-sm outline-none transition-colors"
@@ -257,7 +230,7 @@ export default function SignupPage() {
           {/* Password */}
           <div className="space-y-1.5">
             <label htmlFor="signup-password" className="block text-[12px] font-bold text-slate-800 uppercase tracking-wider">
-              Password
+              {t("shell.login.password")}
             </label>
             <div className="relative">
               <input
@@ -272,7 +245,7 @@ export default function SignupPage() {
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5 text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-md transition-colors"
-                aria-label="Toggle password visibility"
+                aria-label={t("shell.login.togglePassword")}
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -293,7 +266,7 @@ export default function SignupPage() {
                 </div>
                 {strength.label && (
                   <p className={`text-[12px] font-extrabold ${strength.text}`}>
-                    Strength: {strength.label}
+                    {t("shell.signup.strength")} {strength.label}
                   </p>
                 )}
               </div>
@@ -303,7 +276,7 @@ export default function SignupPage() {
           {/* Confirm password */}
           <div className="space-y-1.5">
             <label htmlFor="signup-confirm" className="block text-[12px] font-bold text-slate-800 uppercase tracking-wider">
-              Confirm Password
+              {t("shell.signup.confirmPassword")}
             </label>
             <div className="relative">
               <input
@@ -318,7 +291,7 @@ export default function SignupPage() {
                 type="button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5 text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-md transition-colors"
-                aria-label="Toggle confirm password visibility"
+                aria-label={t("shell.signup.toggleConfirm")}
               >
                 {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -340,7 +313,7 @@ export default function SignupPage() {
               disabled={loading}
               className="w-full h-11 text-[15px] font-bold rounded-lg bg-accent-dark hover:bg-black text-white shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? "Creating account…" : "Create Account"}
+              {loading ? t("shell.signup.creating") : t("shell.signup.create")}
             </Button>
           </div>
 
@@ -350,15 +323,15 @@ export default function SignupPage() {
               <div className="w-full border-t-2 border-slate-300" />
             </div>
             <div className="relative flex justify-center">
-              <span className="bg-white px-3 text-[12px] text-slate-600 font-bold uppercase tracking-wider">or</span>
+              <span className="bg-white px-3 text-[12px] text-slate-600 font-bold uppercase tracking-wider">{t("shell.login.or")}</span>
             </div>
           </div>
 
           {/* Sign in */}
           <p className="text-center text-[14px] text-slate-700 font-medium">
-            Already have an account?{' '}
+            {t("shell.signup.haveAccount")}{' '}
             <Link href={next ? `/?next=${encodeURIComponent(next)}` : "/"} className="text-accent-dark font-extrabold hover:underline underline-offset-2">
-              Sign In
+              {t("shell.signup.signIn")}
             </Link>
           </p>
           {next ? (

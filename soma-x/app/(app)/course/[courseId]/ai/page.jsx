@@ -7,9 +7,9 @@ import { useCourse } from "@/context/CourseContext";
 import { useToast } from "@/context/ToastContext";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
 import { PageHeader, Section, List, EmptyState } from "@/components/layout";
-import { moduleWeekLabel } from "@/lib/moduleLabels";
 import useAiStatus from "@/lib/useAiStatus";
-import { aiFetch, cancelAiJob, isActiveJob, JOB_KIND_LABELS } from "@/lib/ai";
+import { aiFetch, cancelAiJob, isActiveJob } from "@/lib/ai";
+import { useProgressText, jobKindLabel, weekLabel } from "@/components/progress/text";
 import { AiStatusNote, JobProgress } from "@/components/ai/AiBits";
 import DraftCard, { ApprovedNote, DecidedDraftRow } from "@/components/ai/DraftCard";
 
@@ -26,6 +26,7 @@ function writeDismissed(set) {
 export default function AiDraftsPage() {
   const { SERVER_URL, courseId, isTeacher, course, loading: courseLoading } = useCourse();
   const { showToast } = useToast();
+  const { tp } = useProgressText();
   const aiStatus = useAiStatus();
 
   const [jobs, setJobs] = useState([]);
@@ -120,7 +121,7 @@ export default function AiDraftsPage() {
       <div>
         <Breadcrumbs sectionKey="ai" />
         <div className="p-4 md:p-6 max-w-4xl">
-          <EmptyState compact title="Not available" description="AI drafts are only for this course's teachers." />
+          <EmptyState compact title={tp("ai.page.notAvailable")} description={tp("ai.page.teachersOnly")} />
         </div>
       </div>
     );
@@ -133,7 +134,7 @@ export default function AiDraftsPage() {
 
   const jobLabel = (j) => {
     const m = j.moduleId ? moduleFor(j.moduleId) : null;
-    return `${JOB_KIND_LABELS[j.kind] || j.kind}${m ? ` · ${moduleWeekLabel(m)}${m.title ? `: ${m.title}` : ""}` : ""}`;
+    return `${jobKindLabel(tp, j.kind)}${m ? ` · ${weekLabel(tp, m)}${m.title ? `: ${m.title}` : ""}` : ""}`;
   };
 
   return (
@@ -141,12 +142,12 @@ export default function AiDraftsPage() {
       <Breadcrumbs sectionKey="ai" />
       <div className="p-4 md:p-6 space-y-8 max-w-4xl">
         <PageHeader
-          eyebrow={<span className="inline-flex items-center gap-1"><Sparkles className="w-3 h-3" /> AI assistant</span>}
-          title="AI drafts"
-          description="Everything the AI writes is a draft. Nothing reaches learners until you add a draft to the course (it arrives unpublished in the chosen week) and then publish those items yourself."
+          eyebrow={<span className="inline-flex items-center gap-1"><Sparkles className="w-3 h-3" /> {tp("ai.page.eyebrow")}</span>}
+          title={tp("ai.page.title")}
+          description={tp("ai.page.description")}
           actions={
             <Link href={`/course/${courseId}/modules`} className="text-xs font-semibold text-[#203A3A] dark:text-teal-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg px-3 py-2">
-              Go to Modules
+              {tp("ai.page.goToModules")}
             </Link>
           }
         >
@@ -159,13 +160,13 @@ export default function AiDraftsPage() {
         ) : null}
 
         <Section
-          title="In progress"
-          description="Generation runs in the background on the school box and can take a few minutes. You can leave this page; drafts will be waiting here."
+          title={tp("ai.page.inProgress")}
+          description={tp("ai.page.inProgressHint")}
         >
           {visibleJobs.length === 0 ? (
-            <EmptyState compact title={loading ? "Loading…" : "Nothing running"} description={loading ? undefined : "Start AI help from a week on the Modules page, from Outcomes, or from an assignment's rubric."} />
+            <EmptyState compact title={loading ? tp("common.loadingDots") : tp("ai.page.nothingRunning")} description={loading ? undefined : tp("ai.page.nothingRunningHint")} />
           ) : (
-            <List label="AI jobs">
+            <List label={tp("ai.page.jobsList")}>
               {visibleJobs.map((j) => (
                 <li key={j.id} className={`px-3 py-3 ${j.status === "failed" ? "bg-rose-50/60 dark:bg-rose-950/20" : ""}`}>
                   <JobProgress
@@ -183,11 +184,11 @@ export default function AiDraftsPage() {
 
         <Section
           divided
-          title={`Waiting for review${pending.length ? ` (${pending.length})` : ""}`}
-          description="Check each draft, edit anything that's wrong, then add it to the course or reject it."
+          title={`${tp("ai.page.waiting")}${pending.length ? ` (${pending.length})` : ""}`}
+          description={tp("ai.page.waitingHint")}
         >
           {pending.length === 0 ? (
-            <EmptyState compact icon={<Inbox className="w-6 h-6" />} title={loading ? "Loading…" : "No drafts waiting"} />
+            <EmptyState compact icon={<Inbox className="w-6 h-6" />} title={loading ? tp("common.loadingDots") : tp("ai.page.noneWaiting")} />
           ) : (
             <div className="space-y-4">
               {pending.map((d) => (
@@ -225,13 +226,13 @@ export default function AiDraftsPage() {
             className="flex items-center gap-1.5 text-sm font-bold text-slate-900 dark:text-white"
           >
             {showDecided ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-            Recently decided ({decided.length})
+            {tp("ai.page.recentlyDecided", { n: decided.length })}
           </button>
           {showDecided ? (
             decided.length === 0 ? (
-              <p className="mt-2 text-xs text-slate-500">No drafts have been added or rejected yet.</p>
+              <p className="mt-2 text-xs text-slate-500">{tp("ai.page.noneDecided")}</p>
             ) : (
-              <List label="Decided drafts" className="mt-3">
+              <List label={tp("ai.page.decidedList")} className="mt-3">
                 {decided.map((d) => (
                   <DecidedDraftRow key={d.id} draft={d} modules={modules} outcomes={outcomes} courseId={courseId} />
                 ))}

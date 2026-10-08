@@ -1,3 +1,9 @@
+import esShell from "./shell/es";
+import esLearner from "./learner/es";
+import esCourse from "./course/es";
+import esProgress from "./progress/es";
+import esAdmin from "./admin/es";
+import esTeacher from "./teacher/es";
 import esSchool from "./school/es";
 import esExplore from "./explore/es";
 import esAttendance from "./attendance/es";
@@ -9,6 +15,12 @@ export default {
     "guest": esGuest,
     "explore": esExplore,
     "school": esSchool,
+    "shell": esShell,
+    "learner": esLearner,
+    "course": esCourse,
+    "progress": esProgress,
+    "admin": esAdmin,
+    "teacher": esTeacher,
     "explainers": esExplainers,
     "nav": {
         "dashboard": "Tablero",

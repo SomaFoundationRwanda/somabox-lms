@@ -9,29 +9,20 @@ import { useToast } from "@/context/ToastContext";
 import Unauthorized from "@/components/sections/Unauthorized";
 import { PageHeader, Section, List, EmptyState } from "@/components/layout";
 import { formatInstantDate } from "@/lib/dates";
+import { useLanguage } from "@/context/LanguageContext";
+import { fill } from "@/lib/fill";
 
 // Course library (teachers and admins): bundles exported from courses on this box or uploaded
 // as files. Creating a course from a bundle always makes a NEW draft course.
 
-const SOURCE_LABELS = {
-  upload: "Uploaded",
-  export: "Exported from a course on this box",
-  cloud: "From the cloud",
-};
+// Labels live in shell.courseLibrary (sources.*, itemTypes.*); unknown values show as they are.
+const SOURCE_KEYS = ["upload", "export", "cloud"];
+const ITEM_TYPE_KEYS = ["page", "quiz", "assignment", "discussion", "sub_header", "file", "external_url"];
 
-const ITEM_TYPE_LABELS = {
-  page: "Page",
-  quiz: "Quiz",
-  assignment: "Assignment",
-  discussion: "Discussion",
-  sub_header: "Heading",
-  file: "File",
-  external_url: "Link",
-};
-
-const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
-const networkMessage = (err, fallback) =>
-  err?.name === "TypeError" ? "Couldn't reach the box. Check the connection and try again." : err?.message || fallback;
+// "{n} weeks" / "1 week": oneKey and manyKey are full translation keys.
+const plural = (t, n, oneKey, manyKey) => fill(t(n === 1 ? oneKey : manyKey), { n });
+const networkMessage = (t, err, fallback) =>
+  err?.name === "TypeError" ? t("shell.courseLibrary.unreachable") : err?.message || fallback;
 
 function Warnings({ items }) {
   if (!items?.length) return null;
@@ -45,6 +36,7 @@ function Warnings({ items }) {
 }
 
 function BundlePreview({ SERVER_URL, entryId }) {
+  const { t } = useLanguage();
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
 
@@ -54,27 +46,27 @@ function BundlePreview({ SERVER_URL, entryId }) {
       try {
         const res = await fetch(`${SERVER_URL}/bundles/${entryId}`);
         const payload = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(payload.message || "Couldn't load this bundle.");
+        if (!res.ok) throw new Error(payload.message || t("shell.courseLibrary.bundleLoadFailed"));
         if (!cancelled) setData(payload.bundle || {});
       } catch (err) {
-        if (!cancelled) setError(networkMessage(err, "Couldn't load this bundle."));
+        if (!cancelled) setError(networkMessage(t, err, t("shell.courseLibrary.bundleLoadFailed")));
       }
     })();
     return () => { cancelled = true; };
-  }, [SERVER_URL, entryId]);
+  }, [SERVER_URL, entryId, t]);
 
   if (error) return <p role="alert" className="text-xs text-rose-600">{error}</p>;
-  if (!data) return <p className="text-xs text-slate-500 flex items-center gap-1.5"><Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" /> Loading the preview...</p>;
+  if (!data) return <p className="text-xs text-slate-500 flex items-center gap-1.5"><Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" /> {t("shell.courseLibrary.loadingPreview")}</p>;
 
   const modules = Array.isArray(data.modules) ? data.modules : [];
   const outcomes = Array.isArray(data.outcomes) ? data.outcomes : [];
-  const weekLabel = (m) => (m.kind === "baseline" ? "Week 0 (baseline)" : `Week ${m.weekOffset}`);
+  const weekLabel = (m) => (m.kind === "baseline" ? t("shell.courseLibrary.weekBaseline") : fill(t("shell.courseLibrary.weekN"), { n: m.weekOffset }));
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_16rem] gap-4 text-xs">
       <div className="min-w-0">
-        <h4 className="font-bold text-slate-700 dark:text-slate-200 mb-1">Weeks</h4>
-        {modules.length === 0 ? <p className="text-slate-500">No weeks.</p> : (
+        <h4 className="font-bold text-slate-700 dark:text-slate-200 mb-1">{t("shell.courseLibrary.weeks")}</h4>
+        {modules.length === 0 ? <p className="text-slate-500">{t("shell.courseLibrary.noWeeks")}</p> : (
           <ol className="space-y-2">
             {modules.map((m, i) => (
               <li key={i} className="border-l-2 border-slate-200 dark:border-slate-700 pl-3">
@@ -83,20 +75,20 @@ function BundlePreview({ SERVER_URL, entryId }) {
                   <ul className="mt-0.5 space-y-0.5 text-slate-600 dark:text-slate-300">
                     {m.items.map((it, j) => (
                       <li key={j} className="flex flex-wrap gap-x-2">
-                        <span className="text-[10px] uppercase tracking-wide font-bold text-slate-400 w-20 shrink-0">{ITEM_TYPE_LABELS[it.type] || it.type}</span>
+                        <span className="text-[10px] uppercase tracking-wide font-bold text-slate-400 w-20 shrink-0">{ITEM_TYPE_KEYS.includes(it.type) ? t(`shell.courseLibrary.itemTypes.${it.type}`) : it.type}</span>
                         <span className="min-w-0 break-words">{it.title}</span>
                       </li>
                     ))}
                   </ul>
-                ) : <p className="text-slate-400">Nothing in this week.</p>}
+                ) : <p className="text-slate-400">{t("shell.courseLibrary.emptyWeek")}</p>}
               </li>
             ))}
           </ol>
         )}
       </div>
       <div className="min-w-0">
-        <h4 className="font-bold text-slate-700 dark:text-slate-200 mb-1">Outcomes</h4>
-        {outcomes.length === 0 ? <p className="text-slate-500">No outcomes.</p> : (
+        <h4 className="font-bold text-slate-700 dark:text-slate-200 mb-1">{t("shell.courseLibrary.outcomes")}</h4>
+        {outcomes.length === 0 ? <p className="text-slate-500">{t("shell.courseLibrary.noOutcomes")}</p> : (
           <ul className="space-y-1 text-slate-600 dark:text-slate-300">
             {outcomes.map((o, i) => (
               <li key={o.ref || i} className="break-words">
@@ -112,13 +104,14 @@ function BundlePreview({ SERVER_URL, entryId }) {
 }
 
 function VersionRow({ SERVER_URL, entry, latest, creating, onCreate }) {
+  const { t } = useLanguage();
   const [showPreview, setShowPreview] = useState(false);
   const details = [
-    entry.grade ? `Grade ${entry.grade}` : null,
-    plural(entry.weeks || 0, "week", "weeks"),
-    plural(entry.outcomes || 0, "outcome", "outcomes"),
+    entry.grade ? fill(t("shell.courseLibrary.grade"), { grade: entry.grade }) : null,
+    plural(t, entry.weeks || 0, "shell.courseLibrary.oneWeek", "shell.courseLibrary.nWeeks"),
+    plural(t, entry.outcomes || 0, "shell.courseLibrary.oneOutcome", "shell.courseLibrary.nOutcomes"),
   ].filter(Boolean).join(" · ");
-  const origin = [SOURCE_LABELS[entry.source] || entry.source, entry.createdAt ? `added ${formatInstantDate(entry.createdAt, { day: "numeric", month: "short", year: "numeric" })}` : null, entry.addedBy ? `by ${entry.addedBy}` : null]
+  const origin = [SOURCE_KEYS.includes(entry.source) ? t(`shell.courseLibrary.sources.${entry.source}`) : entry.source, entry.createdAt ? fill(t("shell.courseLibrary.addedOn"), { date: formatInstantDate(entry.createdAt, { day: "numeric", month: "short", year: "numeric" }) }) : null, entry.addedBy ? fill(t("shell.courseLibrary.addedBy"), { name: entry.addedBy }) : null]
     .filter(Boolean).join(" · ");
   const previewId = `bundle-preview-${entry.id}`;
 
@@ -127,8 +120,8 @@ function VersionRow({ SERVER_URL, entry, latest, creating, onCreate }) {
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <p className={`${latest ? "text-sm" : "text-xs"} font-semibold text-slate-900 dark:text-white break-words`}>
-            {latest ? entry.title : `Version ${entry.version}`}
-            {latest ? <span className="ml-2 text-[11px] font-semibold text-[#0D9488]">Version {entry.version}</span> : null}
+            {latest ? entry.title : fill(t("shell.courseLibrary.version"), { n: entry.version })}
+            {latest ? <span className="ml-2 text-[11px] font-semibold text-[#0D9488]">{fill(t("shell.courseLibrary.version"), { n: entry.version })}</span> : null}
           </p>
           <p className="text-xs text-slate-600 dark:text-slate-300">{details}</p>
           <p className="text-[11px] text-slate-500 break-words">{origin}</p>
@@ -142,7 +135,7 @@ function VersionRow({ SERVER_URL, entry, latest, creating, onCreate }) {
             aria-controls={previewId}
             className="text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 rounded-lg px-3 py-1.5"
           >
-            {showPreview ? "Hide preview" : "Preview"}
+            {showPreview ? t("shell.courseLibrary.hidePreview") : t("shell.courseLibrary.preview")}
           </button>
           <button
             type="button"
@@ -151,7 +144,7 @@ function VersionRow({ SERVER_URL, entry, latest, creating, onCreate }) {
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#203A3A] hover:bg-[#162727] disabled:opacity-50 rounded-lg px-3 py-1.5"
           >
             {creating ? <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" /> : null}
-            {creating ? "Creating..." : "Create a course from this"}
+            {creating ? t("shell.courseLibrary.creating") : t("shell.courseLibrary.createFrom")}
           </button>
         </div>
       </div>
@@ -165,6 +158,7 @@ function VersionRow({ SERVER_URL, entry, latest, creating, onCreate }) {
 }
 
 function BundleGroup({ SERVER_URL, versions, creatingId, onCreate }) {
+  const { t } = useLanguage();
   const [showOlder, setShowOlder] = useState(false);
   const [latest, ...older] = versions;
   const copies = useMemo(() => {
@@ -179,7 +173,7 @@ function BundleGroup({ SERVER_URL, versions, creatingId, onCreate }) {
 
       {copies.length ? (
         <div className="text-xs">
-          <span className="font-semibold text-slate-600 dark:text-slate-300">Your copies: </span>
+          <span className="font-semibold text-slate-600 dark:text-slate-300">{t("shell.courseLibrary.yourCopies")} </span>
           {copies.map((c, i) => (
             <span key={c.courseId}>
               {i > 0 ? ", " : ""}
@@ -199,7 +193,7 @@ function BundleGroup({ SERVER_URL, versions, creatingId, onCreate }) {
             className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
           >
             {showOlder ? <ChevronDown className="w-3.5 h-3.5" aria-hidden="true" /> : <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" />}
-            Older versions ({older.length})
+            {fill(t("shell.courseLibrary.olderVersions"), { n: older.length })}
           </button>
           {showOlder ? (
             <ul className="mt-2 space-y-3 border-l-2 border-slate-100 dark:border-slate-800 pl-3">
@@ -217,6 +211,7 @@ function BundleGroup({ SERVER_URL, versions, creatingId, onCreate }) {
 }
 
 function UploadArea({ SERVER_URL, onUploaded, onCreated }) {
+  const { t } = useLanguage();
   const inputRef = useRef(null);
   const [file, setFile] = useState(null);
   const [dragging, setDragging] = useState(false);
@@ -229,7 +224,7 @@ function UploadArea({ SERVER_URL, onUploaded, onCreated }) {
     setResult(null);
     if (!f) return;
     if (!/\.json$/i.test(f.name) && f.type !== "application/json") {
-      setError("That isn't a bundle file. Bundle files end in .somabox.json.");
+      setError(t("shell.courseLibrary.notBundle"));
       return;
     }
     setFile(f);
@@ -245,7 +240,7 @@ function UploadArea({ SERVER_URL, onUploaded, onCreated }) {
       form.append("bundle", file);
       const res = await fetch(`${SERVER_URL}/bundles${mode === "import" ? "/import" : ""}`, { method: "POST", body: form });
       const payload = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(payload.message || "Couldn't upload this bundle.");
+      if (!res.ok) throw new Error(payload.message || t("shell.courseLibrary.uploadFailed"));
       setFile(null);
       if (inputRef.current) inputRef.current.value = "";
       if (mode === "import") {
@@ -255,7 +250,7 @@ function UploadArea({ SERVER_URL, onUploaded, onCreated }) {
         onUploaded();
       }
     } catch (err) {
-      setError(networkMessage(err, "Couldn't upload this bundle."));
+      setError(networkMessage(t, err, t("shell.courseLibrary.uploadFailed")));
     } finally {
       setBusy("");
     }
@@ -271,8 +266,8 @@ function UploadArea({ SERVER_URL, onUploaded, onCreated }) {
         className={`flex flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed px-4 py-6 text-center cursor-pointer transition-colors ${dragging ? "border-[#0D9488] bg-teal-50 dark:bg-teal-950/20" : "border-slate-200 dark:border-slate-700 hover:border-slate-300"}`}
       >
         <FileUp className="w-6 h-6 text-slate-400" aria-hidden="true" />
-        <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{file ? file.name : "Choose a bundle file"}</span>
-        <span className="text-xs text-slate-500">{file ? "Choose a different file" : "or drop it here (.somabox.json)"}</span>
+        <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{file ? file.name : t("shell.courseLibrary.chooseFile")}</span>
+        <span className="text-xs text-slate-500">{file ? t("shell.courseLibrary.chooseOther") : t("shell.courseLibrary.orDrop")}</span>
         <input
           ref={inputRef}
           id="bundle-file"
@@ -292,7 +287,7 @@ function UploadArea({ SERVER_URL, onUploaded, onCreated }) {
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#203A3A] hover:bg-[#162727] disabled:opacity-50 rounded-lg px-4 py-2"
           >
             {busy === "add" ? <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" /> : null}
-            {busy === "add" ? "Uploading..." : "Add to the library"}
+            {busy === "add" ? t("shell.courseLibrary.uploading") : t("shell.courseLibrary.addToLibrary")}
           </button>
           <button
             type="button"
@@ -301,7 +296,7 @@ function UploadArea({ SERVER_URL, onUploaded, onCreated }) {
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0D9488] bg-teal-50 border border-teal-200 hover:bg-teal-100 disabled:opacity-50 rounded-lg px-4 py-2"
           >
             {busy === "import" ? <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" /> : null}
-            {busy === "import" ? "Creating..." : "Add and create a course"}
+            {busy === "import" ? t("shell.courseLibrary.creating") : t("shell.courseLibrary.addAndCreate")}
           </button>
         </div>
       ) : null}
@@ -310,7 +305,7 @@ function UploadArea({ SERVER_URL, onUploaded, onCreated }) {
         {error ? <p role="alert" className="text-xs font-semibold text-rose-600 break-words">{error}</p> : null}
         {result ? (
           <p className={`text-xs font-semibold ${result.added ? "text-emerald-700 dark:text-emerald-300" : "text-slate-600 dark:text-slate-300"}`}>
-            {result.added ? `Added: ${result.title} (version ${result.version}).` : `Already in your library: ${result.title} (version ${result.version}).`}
+            {fill(t(result.added ? "shell.courseLibrary.addedResult" : "shell.courseLibrary.alreadyResult"), { title: result.title, n: result.version })}
           </p>
         ) : null}
       </div>
@@ -321,6 +316,7 @@ function UploadArea({ SERVER_URL, onUploaded, onCreated }) {
 export default function CourseLibraryPage() {
   const { SERVER_URL, authenticated, role } = useContext(DataContext);
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const router = useRouter();
   const allowed = role === "teacher" || role === "admin";
 
@@ -334,14 +330,14 @@ export default function CourseLibraryPage() {
     try {
       const res = await fetch(`${SERVER_URL}/bundles`);
       const payload = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(payload.message || "Couldn't load the course library.");
+      if (!res.ok) throw new Error(payload.message || t("shell.courseLibrary.loadFailed"));
       setEntries(Array.isArray(payload) ? payload : []);
       setError("");
     } catch (err) {
-      setError(networkMessage(err, "Couldn't load the course library."));
+      setError(networkMessage(t, err, t("shell.courseLibrary.loadFailed")));
       setEntries((e) => e || []);
     }
-  }, [SERVER_URL, allowed]);
+  }, [SERVER_URL, allowed, t]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -360,7 +356,7 @@ export default function CourseLibraryPage() {
   const handleCreated = (payload, title) => {
     const warnings = Array.isArray(payload.warnings) ? payload.warnings : [];
     const existingCopies = Array.isArray(payload.existingCopies) ? payload.existingCopies : [];
-    showToast("New draft course created", "success");
+    showToast(t("shell.courseLibrary.createdToast"), "success");
     if (!warnings.length && !existingCopies.length) {
       router.push(`/course/${payload.courseId}/home`);
       return;
@@ -376,10 +372,10 @@ export default function CourseLibraryPage() {
     try {
       const res = await fetch(`${SERVER_URL}/bundles/${entry.id}/courses`, { method: "POST" });
       const payload = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(payload.message || "Couldn't create a course from this bundle.");
+      if (!res.ok) throw new Error(payload.message || t("shell.courseLibrary.createFailed"));
       handleCreated(payload, entry.title);
     } catch (err) {
-      showToast(networkMessage(err, "Couldn't create a course from this bundle."), "error");
+      showToast(networkMessage(t, err, t("shell.courseLibrary.createFailed")), "error");
     } finally {
       setCreatingId(null);
     }
@@ -393,26 +389,26 @@ export default function CourseLibraryPage() {
     <div className="min-h-screen pb-24 md:pb-8">
       <div className="px-4 pt-4 flex flex-col gap-8 max-w-5xl">
         <Link href={backHref} className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-slate-700">
-          <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" /> {role === "admin" ? "Administration" : "My courses"}
+          <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" /> {role === "admin" ? t("shell.courseLibrary.backAdmin") : t("shell.courseLibrary.backCourses")}
         </Link>
         <PageHeader
-          title="Course library"
-          description="Shared courses you can start from. A bundle holds a course's outcomes, weeks, pages, quizzes, assignments and discussions, but no learners, no work and no dates."
+          title={t("shell.courseLibrary.title")}
+          description={t("shell.courseLibrary.description")}
         />
 
         <p className="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-300 max-w-2xl">
           <Info className="w-4 h-4 shrink-0 text-[#0D9488]" aria-hidden="true" />
           <span>
-            <strong>Creating a course from a bundle always makes a new draft course.</strong> You become its teacher. It has no learners and no start date yet, and the setup checklist will guide you. It never changes an existing course, even one made from the same bundle.
+            <strong>{t("shell.courseLibrary.noteStrong")}</strong> {t("shell.courseLibrary.noteRest")}
           </span>
         </p>
 
         {created ? (
           <section id="created-course" aria-labelledby="created-course-title" className="space-y-2 scroll-mt-4" role="status">
-            <h2 id="created-course-title" className="text-sm font-bold text-slate-900 dark:text-white">New draft course created{created.title ? `: ${created.title}` : ""}</h2>
+            <h2 id="created-course-title" className="text-sm font-bold text-slate-900 dark:text-white">{created.title ? fill(t("shell.courseLibrary.createdNamed"), { title: created.title }) : t("shell.courseLibrary.createdToast")}</h2>
             {created.existingCopies.length ? (
               <p className="text-xs text-slate-600 dark:text-slate-300">
-                You already have {plural(created.existingCopies.length, "copy", "copies")} of this course — this made a new one.
+                {plural(t, created.existingCopies.length, "shell.courseLibrary.alreadyOneCopy", "shell.courseLibrary.alreadyNCopies")}
               </p>
             ) : null}
             <Warnings items={created.warnings} />
@@ -420,29 +416,29 @@ export default function CourseLibraryPage() {
               href={`/course/${created.courseId}/home`}
               className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#0D9488] hover:bg-teal-700 rounded-lg px-4 py-2"
             >
-              Open the new course
+              {t("shell.courseLibrary.openNew")}
             </Link>
           </section>
         ) : null}
 
-        <Section title="Add a bundle" description="Upload a bundle file someone shared with you. To share one of your own courses, open it and go to Settings, then Share.">
+        <Section title={t("shell.courseLibrary.addTitle")} description={t("shell.courseLibrary.addDescription")}>
           <UploadArea SERVER_URL={SERVER_URL} onUploaded={load} onCreated={(payload) => handleCreated(payload)} />
         </Section>
 
-        <Section divided title="Bundles on this box">
+        <Section divided title={t("shell.courseLibrary.bundlesTitle")}>
           {error ? <p role="alert" className="text-sm text-rose-600 mb-2">{error}</p> : null}
           {entries === null ? (
-            <div className="space-y-2" aria-label="Loading the course library">
+            <div className="space-y-2" aria-label={t("shell.courseLibrary.loading")}>
               {[1, 2, 3].map((i) => <div key={i} className="h-16 rounded-lg bg-slate-100 dark:bg-slate-800 animate-pulse" />)}
             </div>
           ) : groups.length === 0 ? (
             <EmptyState
               icon={<Library className="w-8 h-8" aria-hidden="true" />}
-              title="The course library is empty"
-              description="Bundles get here when a teacher exports a course on this box (Settings, then Share), or when someone uploads a bundle file above."
+              title={t("shell.courseLibrary.emptyTitle")}
+              description={t("shell.courseLibrary.emptyDescription")}
             />
           ) : (
-            <List label="Course bundles">
+            <List label={t("shell.courseLibrary.listLabel")}>
               {groups.map((versions) => (
                 <BundleGroup
                   key={versions[0].bundleId}

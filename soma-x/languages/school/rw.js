@@ -1,80 +1,80 @@
 // school settings, learner codes, device identity screen text (rw). Keys must match en.js.
-// Kinyarwanda: English for now, until a confident translation is available.
+// Kinyarwanda: please have a native-speaking teacher review.
 export default {
-    "learnerCode": "Learner code",
-    "schoolWord": "School",
-    "done": "Done",
-    "loading": "Loading…",
-    "saving": "Saving…",
+    "learnerCode": "Kode y'umunyeshuri",
+    "schoolWord": "Ishuri",
+    "done": "Byarangiye",
+    "loading": "Tegereza…",
+    "saving": "Birabikwa…",
     "onboarding": {
-        "schoolLabel": "School:"
+        "schoolLabel": "Ishuri:"
     },
     "login": {
-        "label": "Email or learner code",
-        "placeholder": "you@example.com or GSK-0012"
+        "label": "Imeli cyangwa kode y'umunyeshuri",
+        "placeholder": "wowe@urugero.com cyangwa GSK-0012"
     },
     "signup": {
-        "createdTitle": "Your account is ready",
-        "codeMessage": "Your learner code is {code}. You can log in with it instead of your email.",
-        "writeItDown": "Write it down somewhere safe. You will also find it on your Account page.",
-        "continue": "Continue"
+        "createdTitle": "Konti yawe yiteguye",
+        "codeMessage": "Kode yawe y'umunyeshuri ni {code}. Ushobora kuyikoresha winjira aho gukoresha imeli yawe.",
+        "writeItDown": "Yandike ahantu hizewe. Uzayisanga kandi kuri paji ya Konti yawe.",
+        "continue": "Komeza"
     },
     "account": {
-        "codeHint": "You can log in with this code instead of your email."
+        "codeHint": "Ushobora kwinjira ukoresheje iyi kode aho gukoresha imeli yawe."
     },
     "users": {
-        "createdCode": "Give this code to the learner. They can log in with {code} instead of their email."
+        "createdCode": "Ha umunyeshuri iyi kode. Ashobora kwinjira akoresheje {code} aho gukoresha imeli ye."
     },
     "settings": {
-        "navTitle": "School",
-        "navSubtitle": "School name, learner codes and location",
-        "loadFailed": "Couldn't load the school settings.",
-        "saveFailed": "Couldn't save the school settings.",
-        "codeInvalid": "The code must be 2 to 8 letters or numbers.",
-        "saved": "School settings saved.",
-        "back": "Admin",
-        "eyebrow": "School",
-        "title": "School settings",
-        "description": "The school this box serves, and how learner codes are made.",
-        "oneBoxOneSchool": "One box serves one school, so learners aren't asked for their school, its place or whether it is rural. They are filled in from here, and changing the name or rural/urban updates every learner on this box.",
-        "codeOnlyNew": "Changing the code only affects new learners. Learners who already have a code keep it.",
-        "name": "School name",
-        "namePlaceholder": "e.g. GS Kigali",
-        "code": "School code",
-        "codeHelp": "2 to 8 letters or numbers. It starts every learner code.",
-        "codePreview": "New learners get codes like {example}",
-        "codeChanging": "Learners who already have a {old} code keep it.",
-        "province": "Province",
-        "district": "District",
-        "notSet": "Not set",
-        "provinceFirst": "Choose a province first",
-        "ruralLegend": "Is the school in a rural or urban area?",
-        "rural": "Rural",
-        "urban": "Urban (town or city)",
-        "ruralUnset": "Not set",
-        "ruralHelp": "When this is set, learners aren't asked where they live.",
-        "save": "Save school settings",
-        "brandingNote": "Logo and colours are set on the Branding page.",
-        "brandingLink": "Open Branding"
+        "navTitle": "Ishuri",
+        "navSubtitle": "Izina ry'ishuri, kode z'abanyeshuri n'aho riherereye",
+        "loadFailed": "Ntibyashobotse gufungura igenamiterere ry'ishuri.",
+        "saveFailed": "Ntibyashobotse kubika igenamiterere ry'ishuri.",
+        "codeInvalid": "Kode igomba kugira inyuguti cyangwa imibare kuva kuri 2 kugeza kuri 8.",
+        "saved": "Igenamiterere ry'ishuri ryabitswe.",
+        "back": "Ubuyobozi",
+        "eyebrow": "Ishuri",
+        "title": "Igenamiterere ry'ishuri",
+        "description": "Ishuri iyi SomaBox ikorera, n'uko kode z'abanyeshuri zikorwa.",
+        "oneBoxOneSchool": "SomaBox imwe ikorera ishuri rimwe, bityo abanyeshuri ntibabazwa ishuri ryabo, aho riri cyangwa niba riri mu cyaro. Byuzuzwa uhereye hano, kandi guhindura izina cyangwa icyaro/umujyi bihindura buri munyeshuri uri kuri iyi SomaBox.",
+        "codeOnlyNew": "Guhindura kode bireba abanyeshuri bashya gusa. Abanyeshuri basanzwe bafite kode bakomeza kuyigumana.",
+        "name": "Izina ry'ishuri",
+        "namePlaceholder": "urugero: GS Kigali",
+        "code": "Kode y'ishuri",
+        "codeHelp": "Inyuguti cyangwa imibare kuva kuri 2 kugeza kuri 8. Itangira buri kode y'umunyeshuri.",
+        "codePreview": "Abanyeshuri bashya bahabwa kode nka {example}",
+        "codeChanging": "Abanyeshuri basanzwe bafite kode ya {old} bakomeza kuyigumana.",
+        "province": "Intara",
+        "district": "Akarere",
+        "notSet": "Ntibyashyizweho",
+        "provinceFirst": "Banza uhitemo intara",
+        "ruralLegend": "Ishuri riri mu cyaro cyangwa mu mujyi?",
+        "rural": "Icyaro",
+        "urban": "Umujyi (santere cyangwa umujyi)",
+        "ruralUnset": "Ntibyashyizweho",
+        "ruralHelp": "Iyo ibi byashyizweho, abanyeshuri ntibabazwa aho batuye.",
+        "save": "Bika igenamiterere ry'ishuri",
+        "brandingNote": "Ikirango n'amabara bishyirwaho kuri paji y'Ikirango.",
+        "brandingLink": "Fungura Ikirango"
     },
     "device": {
-        "unknown": "Not known",
-        "title": "This box",
-        "description": "This box's identity and its sync history are sent to the cloud with every sync, so the box can be recognised and supported.",
-        "noSerial": "The serial number can't be read yet. Ask the person who installed the box to run the device script once as administrator (root):",
-        "enableService": "and enable somabox-device-info.service so it runs at every start:",
-        "serial": "Serial number",
-        "model": "Model",
-        "mac": "MAC addresses",
-        "virtual": "virtual",
-        "machineId": "Machine ID",
-        "hostname": "Host name",
-        "os": "System",
-        "hardware": "Hardware",
-        "memory": "Memory",
-        "disk": "Disk",
-        "source": "Read by",
-        "sourceScript": "Device script (as administrator)",
-        "sourceServer": "The server only (no serial number)"
+        "unknown": "Ntibizwi",
+        "title": "Iyi SomaBox",
+        "description": "Umwirondoro w'iyi SomaBox n'amateka yo guhuza kwayo byoherezwa kuri cloud igihe cyose ihuje, kugira ngo imenyekane kandi ifashwe.",
+        "noSerial": "Nimero y'uruganda ntirasomwa. Saba uwashyizeho SomaBox gukoresha rimwe porogaramu y'igikoresho nk'umuyobozi (root):",
+        "enableService": "no gutangiza somabox-device-info.service kugira ngo ikore igihe cyose itangiye:",
+        "serial": "Nimero y'uruganda",
+        "model": "Ubwoko",
+        "mac": "Aderesi za MAC",
+        "virtual": "ntibifatika",
+        "machineId": "ID y'imashini",
+        "hostname": "Izina ry'imashini",
+        "os": "Sisitemu",
+        "hardware": "Ibikoresho",
+        "memory": "Ububiko bwihuse",
+        "disk": "Disiki",
+        "source": "Byasomwe na",
+        "sourceScript": "Porogaramu y'igikoresho (nk'umuyobozi)",
+        "sourceServer": "Seriveri gusa (nta nimero y'uruganda)"
     }
 };

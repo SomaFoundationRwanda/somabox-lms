@@ -8,9 +8,11 @@ import DataContext from "@/context/DataContext";
 import { EmptyState } from "@/components/ui/empty-state";
 import HeaderSection from "@/components/ui/HeaderSection";
 import { Button } from "@/components/ui/button";
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function ScholarCoursesPage() {
   const { SERVER_URL, user } = useContext(DataContext);
+  const { t } = useLanguage();
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
@@ -41,12 +43,12 @@ export default function ScholarCoursesPage() {
         body: JSON.stringify({}),
       });
       const data = await res.json();
-      if (!res.ok) { setJoinError(data.message || "Failed to join course"); return; }
+      if (!res.ok) { setJoinError(data.message || t("learner.discover.joinFailed")); return; }
       setCourseCode("");
       setJoining(false);
       load();
     } catch {
-      setJoinError("Something went wrong");
+      setJoinError(t("shell.common.somethingWrong"));
     } finally {
       setJoinLoading(false);
     }
@@ -54,33 +56,33 @@ export default function ScholarCoursesPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 md:bg-transparent pb-12">
-      <HeaderSection title="My Courses" subtitle="Courses you're enrolled in." />
+      <HeaderSection title={t("learner.dashboard.myCourses")} subtitle={t("learner.courses.subtitle")} />
       <div className="px-4 md:px-0 mt-6 space-y-4">
         <div className="flex justify-end">
           <Button onClick={() => setJoining((v) => !v)} className="h-9 gap-1.5">
-            <Plus className="w-4 h-4" /> Join a Course
+            <Plus className="w-4 h-4" /> {t("learner.courses.joinCourse")}
           </Button>
         </div>
 
         {joining ? (
           <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-3">
-            <input aria-label="6-digit course code"
+            <input aria-label={t("learner.courses.codeLabel")}
               value={courseCode}
               onChange={(e) => setCourseCode(e.target.value)}
-              placeholder="6-digit course code"
+              placeholder={t("learner.courses.codeLabel")}
               className="flex-1 text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-accent-dark"
             />
             <button onClick={handleJoin} disabled={joinLoading} className="text-xs font-semibold text-white bg-accent-dark rounded-lg px-3 py-2 disabled:opacity-50">
-              {joinLoading ? "Joining..." : "Join"}
+              {joinLoading ? t("learner.discover.joining") : t("learner.courses.join")}
             </button>
           </div>
         ) : null}
         {joinError ? <p className="text-xs text-rose-600">{joinError}</p> : null}
 
         {loading ? (
-          <p className="text-sm text-slate-500">Loading...</p>
+          <p className="text-sm text-slate-500">{t("shell.common.loading")}</p>
         ) : courses.length === 0 ? (
-          <EmptyState message="You're not enrolled in any courses yet. Ask your teacher for a course code." />
+          <EmptyState message={t("learner.courses.empty")} />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {courses.map((course) => (

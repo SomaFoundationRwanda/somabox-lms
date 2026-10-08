@@ -1,10 +1,14 @@
+"use client";
+
 import Image from "next/image";
+import { useLanguage } from "@/context/LanguageContext";
 import Typography from "@/components/ui/Typography";
 
 // Honest empty state: what's missing, why, and (optionally) the next step.
 // `message` alone keeps the older illustrated look; pass `title`/`description`/`action`
 // (and optionally `icon`) for the compact version used inside sections.
 export function EmptyState({ message, title, description, action, icon, compact = false }) {
+  const t = useLanguage()?.t;
   if (title || compact) {
     return (
       <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 px-4 py-8 text-center">
@@ -21,7 +25,7 @@ export function EmptyState({ message, title, description, action, icon, compact 
         <Image src="/images/no-contents.jpg" alt="" fill className="object-contain" />
       </div>
       <Typography variant="muted" className="text-sm">
-        {message || "No content available yet"}
+        {message || (t?.("shell.common.noContentYet") ?? "No content available yet")}
       </Typography>
       {action ? <div>{action}</div> : null}
     </div>

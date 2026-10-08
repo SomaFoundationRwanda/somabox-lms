@@ -2,6 +2,7 @@
 
 import { useState, useId } from "react";
 import { Info } from "lucide-react";
+import { useLanguage } from "@/context/LanguageContext";
 
 // Small inline "?" style help affordance. Keyboard-focusable (not just
 // hover-only) and exposes the tip text via aria-describedby so screen
@@ -9,6 +10,7 @@ import { Info } from "lucide-react";
 export default function InfoTooltip({ text, className = "" }) {
   const [open, setOpen] = useState(false);
   const id = useId();
+  const t = useLanguage()?.t;
 
   return (
     <span className={`relative inline-flex ${className}`}>
@@ -22,7 +24,7 @@ export default function InfoTooltip({ text, className = "" }) {
         className="inline-flex items-center justify-center w-4 h-4 rounded-full text-slate-400 hover:text-slate-600 focus:text-slate-600 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]"
       >
         <Info className="w-3.5 h-3.5" />
-        <span className="sr-only">More info</span>
+        <span className="sr-only">{t?.("shell.common.moreInfo") ?? "More info"}</span>
       </button>
       <span
         id={id}

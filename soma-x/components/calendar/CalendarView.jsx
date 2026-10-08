@@ -6,9 +6,9 @@ import {
   CalendarDays, CalendarClock, ChevronLeft, ChevronRight, Clock, Layers, List, Lock, Unlock, X,
 } from "lucide-react";
 import { addDays, compareDates, diffDays, todayIn, weekday } from "@somabox/timeline";
-import { formatDate } from "@/lib/dates";
+import { useCourseText } from "@/components/course/useCourseText";
 
-// Visual language per event type.
+// Visual language per event type. Labels shown on screen come from course.calendar.types.<type>.
 export const EVENT_TYPES = {
   module: { label: "Module starts", Icon: Layers, chip: "bg-[#203A3A]/10 text-[#203A3A] border-[#203A3A]/20", dot: "bg-[#203A3A]" },
   release: { label: "Opens", Icon: Unlock, chip: "bg-sky-50 text-sky-800 border-sky-200", dot: "bg-sky-500" },
@@ -51,21 +51,23 @@ function monthGrid(firstOfMonth) {
   return { start, end: days[days.length - 1], days };
 }
 
-// Short weekday names, Monday first (2024-01-01 was a Monday).
-const WEEKDAY_NAMES = Array.from({ length: 7 }, (_, i) => formatDate(addDays("2024-01-01", i), { weekday: "short" }));
+const typeKey = (type) => (EVENT_TYPES[type] ? type : "module");
 
 function EventChip({ event, showCourse, compact, canMove, onMoveClick, onDragStart, onDragEnd }) {
+  const { t, tf } = useCourseText();
   const meta = EVENT_TYPES[event.type] || EVENT_TYPES.module;
+  const typeLabel = t(`calendar.types.${typeKey(event.type)}`);
   const Icon = meta.Icon;
   const draggable = Boolean(canMove && onDragStart);
-  const label = `${meta.label}: ${event.title || "Untitled"}${showCourse && event.courseTitle ? ` (${event.courseTitle})` : ""}`;
+  const title = event.title || t("calendar.untitled");
+  const label = `${typeLabel}: ${title}${showCourse && event.courseTitle ? ` (${event.courseTitle})` : ""}`;
   const body = (
     <>
       <Icon className={`${compact ? "w-3 h-3" : "w-3.5 h-3.5"} shrink-0`} aria-hidden="true" />
       <span className="truncate">
-        {!compact && <span className="font-bold">{meta.label}: </span>}
-        {event.title || "Untitled"}
-        {event.published === false && <span className="italic opacity-70"> (draft)</span>}
+        {!compact && <span className="font-bold">{typeLabel}: </span>}
+        {title}
+        {event.published === false && <span className="italic opacity-70"> ({t("calendar.draft")})</span>}
       </span>
       {showCourse && event.courseTitle && (
         <span className={`truncate opacity-70 ${compact ? "hidden sm:inline" : ""}`}>· {event.courseTitle}</span>
@@ -104,8 +106,8 @@ function EventChip({ event, showCourse, compact, canMove, onMoveClick, onDragSta
           type="button"
           onClick={() => onMoveClick(event)}
           className="shrink-0 p-0.5 rounded text-slate-400 hover:text-[#203A3A] hover:bg-slate-100"
-          aria-label={`Move ${meta.label.toLowerCase()} date of ${event.title || "item"}`}
-          title="Move to another date"
+          aria-label={tf("calendar.moveAria", { type: typeLabel, title })}
+          title={t("calendar.moveTitle")}
         >
           <CalendarClock className={compact ? "w-3 h-3" : "w-3.5 h-3.5"} />
         </button>
@@ -117,7 +119,8 @@ function EventChip({ event, showCourse, compact, canMove, onMoveClick, onDragSta
 function MoveDialog({ event, onCancel, onConfirm }) {
   const [date, setDate] = useState(event.date);
   const [saving, setSaving] = useState(false);
-  const meta = EVENT_TYPES[event.type] || EVENT_TYPES.module;
+  const { t, tf, fmtDay } = useCourseText();
+  const typeLabel = t(`calendar.types.${typeKey(event.type)}`);
 
   useEffect(() => {
     const onKey = (e) => { if (e.key === "Escape") onCancel(); };
@@ -144,15 +147,15 @@ function MoveDialog({ event, onCancel, onConfirm }) {
       >
         <div className="flex items-start justify-between gap-2">
           <h3 id="move-event-title" className="text-sm font-bold text-slate-900">
-            Move &ldquo;{event.title}&rdquo; ({meta.label.toLowerCase()})
+            {tf("calendar.moveDialogTitle", { title: event.title, type: typeLabel })}
           </h3>
-          <button type="button" onClick={onCancel} className="p-1 rounded-lg hover:bg-slate-100 text-slate-400" aria-label="Close">
+          <button type="button" onClick={onCancel} className="p-1 rounded-lg hover:bg-slate-100 text-slate-400" aria-label={t("common.close")}>
             <X className="w-4 h-4" />
           </button>
         </div>
-        <p className="text-xs text-slate-500">Currently {formatDate(event.date)}.</p>
+        <p className="text-xs text-slate-500">{tf("calendar.currently", { date: fmtDay(event.date) })}</p>
         <div>
-          <label htmlFor="move-event-date" className="block text-xs font-semibold text-slate-600 mb-1.5">New date</label>
+          <label htmlFor="move-event-date" className="block text-xs font-semibold text-slate-600 mb-1.5">{t("calendar.newDate")}</label>
           <input
             id="move-event-date"
             type="date"
@@ -169,10 +172,10 @@ function MoveDialog({ event, onCancel, onConfirm }) {
             disabled={saving || !date}
             className="flex-1 text-xs font-semibold text-white bg-[#203A3A] hover:bg-[#162727] disabled:opacity-50 rounded-lg py-2.5 transition-colors"
           >
-            {saving ? "Moving..." : "Move"}
+            {saving ? t("calendar.moving") : t("calendar.move")}
           </button>
           <button type="button" onClick={onCancel} className="text-xs font-medium text-slate-500 hover:text-slate-700 px-3 py-2.5">
-            Cancel
+            {t("common.cancel")}
           </button>
         </div>
       </form>
@@ -182,6 +185,10 @@ function MoveDialog({ event, onCancel, onConfirm }) {
 
 export default function CalendarView({ events, today, loading, onEventMove, onRangeChange, title, extraActions }) {
   const effectiveToday = today || todayIn();
+  const { t, tf, fmtDay } = useCourseText();
+  const formatDate = fmtDay;
+  // Short weekday names, Monday first (2024-01-01 was a Monday).
+  const WEEKDAY_NAMES = Array.from({ length: 7 }, (_, i) => fmtDay(addDays("2024-01-01", i), { weekday: "short" }));
   const [view, setView] = useState(null); // decided on mount (avoids a hydration mismatch)
   const [month, setMonth] = useState(() => monthStart(effectiveToday));
   const [agendaFrom, setAgendaFrom] = useState(() => addDays(effectiveToday, -AGENDA_BACK));
@@ -261,9 +268,9 @@ export default function CalendarView({ events, today, loading, onEventMove, onRa
 
   const relativeLabel = (date) => {
     const d = diffDays(effectiveToday, date);
-    if (d === 0) return "Today";
-    if (d === 1) return "Tomorrow";
-    if (d === -1) return "Yesterday";
+    if (d === 0) return t("calendar.today");
+    if (d === 1) return t("calendar.tomorrow");
+    if (d === -1) return t("calendar.yesterday");
     return null;
   };
 
@@ -276,15 +283,15 @@ export default function CalendarView({ events, today, loading, onEventMove, onRa
         <div className="flex items-center gap-2 min-w-0">
           {title && <h1 className="text-lg font-bold text-slate-900 dark:text-white truncate">{title}</h1>}
           {loading && (
-            <span className="w-4 h-4 rounded-full border-2 border-slate-200 border-t-[#203A3A] animate-spin" role="status" aria-label="Loading" />
+            <span className="w-4 h-4 rounded-full border-2 border-slate-200 border-t-[#203A3A] animate-spin" role="status" aria-label={t("common.loading")} />
           )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {extraActions}
-          <div className="inline-flex rounded-lg border border-slate-200 p-0.5 bg-slate-50" role="group" aria-label="Calendar view">
+          <div className="inline-flex rounded-lg border border-slate-200 p-0.5 bg-slate-50" role="group" aria-label={t("calendar.view")}>
             {[
-              { id: "agenda", label: "Agenda", Icon: List },
-              { id: "month", label: "Month", Icon: CalendarDays },
+              { id: "agenda", label: t("calendar.agenda"), Icon: List },
+              { id: "month", label: t("calendar.month"), Icon: CalendarDays },
             ].map(({ id, label, Icon }) => (
               <button
                 key={id}
@@ -303,15 +310,15 @@ export default function CalendarView({ events, today, loading, onEventMove, onRa
       </div>
 
       {/* Legend */}
-      <ul className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500" aria-label="Legend">
+      <ul className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500" aria-label={t("calendar.legend")}>
         {Object.entries(EVENT_TYPES).map(([type, meta]) => (
           <li key={type} className="flex items-center gap-1">
             <span className={`w-2 h-2 rounded-full ${meta.dot}`} aria-hidden="true" />
-            <meta.Icon className="w-3 h-3" aria-hidden="true" /> {meta.label}
+            <meta.Icon className="w-3 h-3" aria-hidden="true" /> {t(`calendar.types.${type}`)}
           </li>
         ))}
         {onEventMove && (
-          <li className="text-slate-400">Drag a date in Month view, or use <CalendarClock className="inline w-3 h-3" aria-label="the move button" />, to reschedule.</li>
+          <li className="text-slate-400">{t("calendar.dragHelpBefore")} <CalendarClock className="inline w-3 h-3" aria-label={t("calendar.moveButton")} /> {t("calendar.dragHelpAfter")}</li>
         )}
       </ul>
 
@@ -321,14 +328,14 @@ export default function CalendarView({ events, today, loading, onEventMove, onRa
       {view === "month" && (
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <button type="button" onClick={() => { setMonth((m) => shiftMonth(m, -1)); setExpandedDay(null); }} className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600" aria-label="Previous month">
+            <button type="button" onClick={() => { setMonth((m) => shiftMonth(m, -1)); setExpandedDay(null); }} className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600" aria-label={t("calendar.prevMonth")}>
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <button type="button" onClick={() => { setMonth((m) => shiftMonth(m, 1)); setExpandedDay(null); }} className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600" aria-label="Next month">
+            <button type="button" onClick={() => { setMonth((m) => shiftMonth(m, 1)); setExpandedDay(null); }} className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600" aria-label={t("calendar.nextMonth")}>
               <ChevronRight className="w-4 h-4" />
             </button>
             <button type="button" onClick={goToday} className="text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700">
-              Today
+              {t("calendar.today")}
             </button>
             <h2 className="text-sm font-bold text-slate-800 ml-1" aria-live="polite">{monthLabel}</h2>
           </div>
@@ -381,12 +388,12 @@ export default function CalendarView({ events, today, loading, onEventMove, onRa
                       ))}
                       {hidden > 0 && (
                         <button type="button" onClick={() => setExpandedDay(date)} className="text-[10px] font-semibold text-[#0D9488] hover:underline px-1">
-                          +{hidden} more
+                          {tf("calendar.more", { n: hidden })}
                         </button>
                       )}
                       {expanded && dayEvents.length > MAX_CHIPS && (
                         <button type="button" onClick={() => setExpandedDay(null)} className="text-[10px] font-semibold text-slate-500 hover:underline px-1">
-                          Show less
+                          {t("calendar.showLess")}
                         </button>
                       )}
                     </div>
@@ -396,7 +403,7 @@ export default function CalendarView({ events, today, loading, onEventMove, onRa
             </div>
           </div>
           {!loading && list.length === 0 && (
-            <p className="text-xs text-slate-500">Nothing scheduled this month.</p>
+            <p className="text-xs text-slate-500">{t("calendar.nothingMonth")}</p>
           )}
         </div>
       )}
@@ -406,22 +413,22 @@ export default function CalendarView({ events, today, loading, onEventMove, onRa
         <div className="space-y-3">
           {!showEarlier && earlierCount > 0 && (
             <button type="button" onClick={() => setShowEarlier(true)} className="text-xs font-semibold text-[#0D9488] hover:underline">
-              Show earlier ({earlierCount})
+              {tf("calendar.showEarlier", { n: earlierCount })}
             </button>
           )}
           {showEarlier && (
             <div className="flex flex-wrap gap-3">
               <button type="button" onClick={() => setAgendaFrom((d) => addDays(d, -90))} className="text-xs font-semibold text-[#0D9488] hover:underline">
-                Load earlier dates
+                {t("calendar.loadEarlier")}
               </button>
               <button type="button" onClick={() => setShowEarlier(false)} className="text-xs font-semibold text-slate-500 hover:underline">
-                Hide past dates
+                {t("calendar.hidePast")}
               </button>
             </div>
           )}
 
           {agendaGroups.length === 0 && !loading && (
-            <p className="text-sm text-slate-500 py-6 text-center">Nothing scheduled{showEarlier ? " in this period" : " from today on"}.</p>
+            <p className="text-sm text-slate-500 py-6 text-center">{showEarlier ? t("calendar.nothingPeriod") : t("calendar.nothingAhead")}</p>
           )}
 
           {/* One list: a row per day (date heading + that day's events). Not a box per day. */}
@@ -435,7 +442,7 @@ export default function CalendarView({ events, today, loading, onEventMove, onRa
                   <h3 className="flex items-center gap-2 sm:w-52 sm:shrink-0 sm:pt-1 text-xs font-bold text-slate-700 dark:text-slate-200">
                     {formatDate(date, { weekday: "long", day: "numeric", month: "long" })}
                     {rel && (
-                      <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${rel === "Today" ? "bg-[#0D9488] text-white" : "bg-slate-200 text-slate-600"}`}>{rel}</span>
+                      <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${date === effectiveToday ? "bg-[#0D9488] text-white" : "bg-slate-200 text-slate-600"}`}>{rel}</span>
                     )}
                   </h3>
                   <ul className="mt-1.5 sm:mt-0 flex-1 min-w-0 space-y-1.5">
@@ -457,7 +464,7 @@ export default function CalendarView({ events, today, loading, onEventMove, onRa
           )}
 
           <button type="button" onClick={() => setAgendaTo((d) => addDays(d, AGENDA_AHEAD))} className="text-xs font-semibold text-[#0D9488] hover:underline">
-            Show later dates
+            {t("calendar.showLater")}
           </button>
         </div>
       )}

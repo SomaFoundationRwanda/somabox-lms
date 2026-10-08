@@ -9,17 +9,10 @@ import { useLanguage } from "@/context/LanguageContext";
 import Unauthorized from "@/components/sections/Unauthorized";
 import { PageHeader, Section, List, ListRow, DataTable, EmptyState } from "@/components/layout";
 import { aiFetch, DRAFT_TYPE_LABELS } from "@/lib/ai";
+import { fill } from "@/lib/fill";
 
-const FEATURE_LABELS = {
-  fill_week: "Fill the week",
-  story: "Story",
-  quiz: "Quiz",
-  outline: "Course outline",
-  outcome_rewrite: "Outcome rewrite",
-  rubric: "Rubric",
-  grading: "Grading suggestion",
-  ask: "Assistant chat",
-};
+// Feature and draft-type names are translated under admin.ai.features / admin.ai.draftTypes.
+const FEATURE_KEYS = ["fill_week", "story", "quiz", "outline", "outcome_rewrite", "rubric", "grading", "ask"];
 
 const fmtInt = (n) => Number(n || 0).toLocaleString();
 
@@ -56,13 +49,13 @@ export default function AdminAiSettingsPage() {
 
   const toggleSchool = async () => {
     const next = !settings?.enabled;
-    if (!next && !window.confirm("Switch the AI assistant off for everyone at this school? Drafts already made stay, but nobody can start new AI work.")) return;
+    if (!next && !window.confirm(t("admin.ai.confirmOff"))) return;
     setBusy("school");
     const r = await aiFetch(`${SERVER_URL}/ai/admin/settings`, { method: "PUT", body: { enabled: next } });
     setBusy("");
     if (!r.ok) { showToast(r.message, "error"); return; }
     setSettings((st) => ({ ...st, enabled: r.data?.enabled ?? next }));
-    showToast(next ? "AI assistant switched on" : "AI assistant switched off", "success");
+    showToast(next ? t("admin.ai.switchedOn") : t("admin.ai.switchedOff"), "success");
   };
 
   // AI summaries of books and videos for learners (GET/PUT /ai/admin/settings learnerSummaries).
@@ -81,7 +74,7 @@ export default function AdminAiSettingsPage() {
     const r = await aiFetch(`${SERVER_URL}/ai/admin/users/${user.id}`, { method: "PATCH", body: { aiEnabled } });
     setBusy("");
     if (!r.ok) { showToast(r.message, "error"); return false; }
-    showToast(aiEnabled ? `AI switched back on for ${user.full_name || user.email}` : `AI switched off for ${user.full_name || user.email}`, "success");
+    showToast(fill(t(aiEnabled ? "admin.ai.userOn" : "admin.ai.userOff"), { name: user.full_name || user.email }), "success");
     const s = await aiFetch(`${SERVER_URL}/ai/admin/settings`);
     if (s.ok) setSettings(s.data);
     return true;
@@ -94,7 +87,7 @@ export default function AdminAiSettingsPage() {
     e.preventDefault();
     const email = pickEmail.trim().toLowerCase();
     const user = candidates.find((u) => String(u.email).toLowerCase() === email);
-    if (!user) { showToast("Pick a teacher or admin from the list.", "error"); return; }
+    if (!user) { showToast(t("admin.ai.pickFromList"), "error"); return; }
     if (await setUserAi(user, false)) setPickEmail("");
   };
 
@@ -114,15 +107,15 @@ export default function AdminAiSettingsPage() {
     const byUser = {};
     for (const c of usage?.calls || []) {
       const key = c.user_id ?? c.email ?? "unknown";
-      const row = byUser[key] || (byUser[key] = { key, name: c.full_name || c.email || "Unknown", email: c.email, features: [], calls: 0, failed: 0, tokens: 0, latencySum: 0 });
+      const row = byUser[key] || (byUser[key] = { key, name: c.full_name || c.email || t("admin.ai.unknown"), email: c.email, features: [], calls: 0, failed: 0, tokens: 0, latencySum: 0 });
       row.calls += Number(c.calls || 0);
       row.failed += Number(c.failed || 0);
       row.tokens += Number(c.prompt_tokens || 0) + Number(c.completion_tokens || 0);
       row.latencySum += Number(c.avg_latency_ms || 0) * Number(c.calls || 0);
-      row.features.push(FEATURE_LABELS[c.feature] || c.feature);
+      row.features.push(FEATURE_KEYS.includes(c.feature) ? t(`admin.ai.features.${c.feature}`) : c.feature);
     }
     return Object.values(byUser).map((r) => ({ ...r, avgSeconds: r.calls ? r.latencySum / r.calls / 1000 : 0 })).sort((a, b) => b.calls - a.calls);
-  }, [usage]);
+  }, [usage, t]);
 
   if (!authenticated || !isAdmin) return <Unauthorized />;
 
@@ -130,22 +123,22 @@ export default function AdminAiSettingsPage() {
     <div className="min-h-screen pb-24 md:pb-8">
       <div className="px-4 pt-4 flex flex-col gap-8 max-w-5xl">
         <Link href="/manage/admin" className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-slate-700">
-          <ArrowLeft className="w-3.5 h-3.5" /> Administration
+          <ArrowLeft className="w-3.5 h-3.5" /> {t("admin.home.title")}
         </Link>
         <PageHeader
-          eyebrow="Admin"
-          title="AI assistant"
-          description="Teachers and admins can use AI to draft course content, rubrics and grading suggestions. Everything it writes is a draft that a teacher must approve and then publish."
+          eyebrow={t("admin.home.eyebrow")}
+          title={t("admin.home.aiTitle")}
+          description={t("admin.ai.description")}
         />
 
         {error ? <p role="alert" className="text-sm text-rose-600">{error}</p> : null}
 
-        <Section title="School-wide switch">
+        <Section title={t("admin.ai.schoolSwitch")}>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <Sparkles className={`w-4 h-4 ${settings?.enabled ? "text-[#0D9488]" : "text-slate-400"}`} aria-hidden="true" />
               <p className="text-sm text-slate-800 dark:text-slate-100" id="ai-school-label">
-                {settings == null ? "Loading…" : settings.enabled ? "The AI assistant is on for this school." : "The AI assistant is off for everyone at this school."}
+                {settings == null ? t("admin.common.loading") : settings.enabled ? t("admin.ai.isOn") : t("admin.ai.isOff")}
               </p>
             </div>
             {settings ? (
@@ -159,7 +152,7 @@ export default function AdminAiSettingsPage() {
                 className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${settings.enabled ? "bg-[#0D9488]" : "bg-slate-300 dark:bg-slate-700"}`}
               >
                 <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${settings.enabled ? "translate-x-6" : "translate-x-1"}`} />
-                <span className="sr-only">{settings.enabled ? "Switch off" : "Switch on"}</span>
+                <span className="sr-only">{settings.enabled ? t("admin.ai.switchOff") : t("admin.ai.switchOn")}</span>
               </button>
             ) : null}
           </div>
@@ -203,20 +196,20 @@ export default function AdminAiSettingsPage() {
           </div>
         </Section>
 
-        <Section divided title="People with AI switched off" description="These teachers and admins can't start AI work even when the school switch is on.">
+        <Section divided title={t("admin.ai.peopleOff")} description={t("admin.ai.peopleOffHelp")}>
           <div className="space-y-4">
             {(settings?.disabledUsers || []).length === 0 ? (
-              <EmptyState compact title={loading ? "Loading…" : "Nobody has AI switched off"} />
+              <EmptyState compact title={loading ? t("admin.common.loading") : t("admin.ai.nobodyOff")} />
             ) : (
-              <List label="People with AI switched off">
+              <List label={t("admin.ai.peopleOff")}>
                 {settings.disabledUsers.map((u) => (
                   <ListRow
                     key={u.id}
                     title={u.full_name || u.email}
-                    subtitle={`${u.email} · ${u.role}`}
+                    subtitle={`${u.email} · ${t(`role.${u.role}`) || u.role}`}
                     actions={
                       <button type="button" onClick={() => setUserAi(u, true)} disabled={busy === `user-${u.id}`} className="text-xs font-semibold text-[#0D9488] border border-teal-200 hover:bg-teal-50 disabled:opacity-50 px-3 py-1.5 rounded-lg">
-                        Turn back on
+                        {t("admin.ai.turnBackOn")}
                       </button>
                     }
                   />
@@ -226,39 +219,39 @@ export default function AdminAiSettingsPage() {
 
             <form onSubmit={turnOffPicked} className="flex flex-wrap items-end gap-2">
               <div className="flex-1 min-w-[14rem] max-w-md">
-                <label htmlFor="ai-off-email" className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Turn off AI for…</label>
+                <label htmlFor="ai-off-email" className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t("admin.ai.turnOffFor")}</label>
                 <input
                   id="ai-off-email"
                   list="ai-staff-emails"
                   value={pickEmail}
                   onChange={(e) => setPickEmail(e.target.value)}
-                  placeholder="Type a teacher's or admin's email"
+                  placeholder={t("admin.ai.typeEmail")}
                   autoComplete="off"
                   className="w-full text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-lg px-3 py-2 outline-none focus:border-[#0D9488]"
                 />
                 <datalist id="ai-staff-emails">
                   {candidates.map((u) => (
-                    <option key={u.id} value={u.email}>{u.full_name ? `${u.full_name} (${u.role})` : u.role}</option>
+                    <option key={u.id} value={u.email}>{u.full_name ? `${u.full_name} (${t(`role.${u.role}`) || u.role})` : (t(`role.${u.role}`) || u.role)}</option>
                   ))}
                 </datalist>
               </div>
               <button type="submit" disabled={!pickEmail.trim() || busy.startsWith("user-")} className="text-xs font-bold text-white bg-[#203A3A] hover:bg-[#162727] disabled:opacity-50 px-4 py-2.5 rounded-lg">
-                Turn off
+                {t("admin.ai.turnOff")}
               </button>
             </form>
           </div>
         </Section>
 
-        <Section divided title={`Use in the last ${usage?.days || 30} days`} description="Model calls per person. Average time is how long one call took on this box.">
+        <Section divided title={fill(t("admin.ai.useInDays"), { days: usage?.days || 30 })} description={t("admin.ai.useHelp")}>
           <DataTable
-            caption="AI calls per person"
+            caption={t("admin.ai.callsCaption")}
             rows={callRows}
             rowKey={(r) => r.key}
-            empty={loading ? "Loading…" : "No AI use in this period."}
+            empty={loading ? t("admin.common.loading") : t("admin.ai.noUse")}
             columns={[
               {
                 key: "name",
-                header: "Person",
+                header: t("admin.ai.colPerson"),
                 render: (r) => (
                   <div className="min-w-[9rem]">
                     <p className="font-semibold text-slate-800 dark:text-slate-100">{r.name}</p>
@@ -266,26 +259,26 @@ export default function AdminAiSettingsPage() {
                   </div>
                 ),
               },
-              { key: "calls", header: "Calls", align: "right", render: (r) => fmtInt(r.calls) },
-              { key: "failed", header: "Failed", align: "right", render: (r) => (r.failed ? <span className="text-rose-600 font-semibold">{fmtInt(r.failed)}</span> : "0") },
-              { key: "tokens", header: "Tokens", align: "right", hideOnMobile: true, render: (r) => fmtInt(r.tokens) },
-              { key: "avg", header: "Avg. seconds", align: "right", render: (r) => r.avgSeconds.toFixed(1) },
+              { key: "calls", header: t("admin.ai.colCalls"), align: "right", render: (r) => fmtInt(r.calls) },
+              { key: "failed", header: t("admin.ai.colFailed"), align: "right", render: (r) => (r.failed ? <span className="text-rose-600 font-semibold">{fmtInt(r.failed)}</span> : "0") },
+              { key: "tokens", header: t("admin.ai.colTokens"), align: "right", hideOnMobile: true, render: (r) => fmtInt(r.tokens) },
+              { key: "avg", header: t("admin.ai.colAvg"), align: "right", render: (r) => r.avgSeconds.toFixed(1) },
             ]}
           />
         </Section>
 
-        <Section divided title="What happened to the drafts" description="Per draft type: added to a course as written, added after a teacher edited it, rejected, or still waiting.">
+        <Section divided title={t("admin.ai.draftsTitle")} description={t("admin.ai.draftsHelp")}>
           <DataTable
-            caption="AI drafts by outcome"
+            caption={t("admin.ai.draftsCaption")}
             rows={draftRows}
             rowKey={(r) => r.type}
-            empty={loading ? "Loading…" : "No drafts in this period."}
+            empty={loading ? t("admin.common.loading") : t("admin.ai.noDrafts")}
             columns={[
-              { key: "type", header: "Type", render: (r) => <span className="font-semibold">{DRAFT_TYPE_LABELS[r.type] || r.type}</span> },
-              { key: "approved_as_is", header: "Added as is", align: "right", render: (r) => fmtInt(r.approved_as_is) },
-              { key: "approved_edited", header: "Added edited", align: "right", render: (r) => fmtInt(r.approved_edited) },
-              { key: "rejected", header: "Rejected", align: "right", render: (r) => fmtInt(r.rejected) },
-              { key: "pending", header: "Waiting", align: "right", render: (r) => fmtInt(r.pending) },
+              { key: "type", header: t("admin.ai.colType"), render: (r) => <span className="font-semibold">{DRAFT_TYPE_LABELS[r.type] ? t(`admin.ai.draftTypes.${r.type}`) : r.type}</span> },
+              { key: "approved_as_is", header: t("admin.ai.colAsIs"), align: "right", render: (r) => fmtInt(r.approved_as_is) },
+              { key: "approved_edited", header: t("admin.ai.colEdited"), align: "right", render: (r) => fmtInt(r.approved_edited) },
+              { key: "rejected", header: t("admin.ai.colRejected"), align: "right", render: (r) => fmtInt(r.rejected) },
+              { key: "pending", header: t("admin.ai.colWaiting"), align: "right", render: (r) => fmtInt(r.pending) },
             ]}
           />
         </Section>

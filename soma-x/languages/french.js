@@ -1,3 +1,9 @@
+import frShell from "./shell/fr";
+import frLearner from "./learner/fr";
+import frCourse from "./course/fr";
+import frProgress from "./progress/fr";
+import frAdmin from "./admin/fr";
+import frTeacher from "./teacher/fr";
 import frSchool from "./school/fr";
 import frExplore from "./explore/fr";
 import frAttendance from "./attendance/fr";
@@ -9,6 +15,12 @@ export default {
     "guest": frGuest,
     "explore": frExplore,
     "school": frSchool,
+    "shell": frShell,
+    "learner": frLearner,
+    "course": frCourse,
+    "progress": frProgress,
+    "admin": frAdmin,
+    "teacher": frTeacher,
     "explainers": frExplainers,
     "nav": {
         "dashboard": "Tableau de bord",

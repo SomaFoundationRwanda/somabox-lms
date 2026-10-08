@@ -4,10 +4,12 @@ import React, { useState, useEffect, useContext } from 'react';
 import { AlertTriangle, ArrowRight, UserCheck, X } from 'lucide-react';
 import Link from 'next/link';
 import DataContext from '@/context/DataContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { fetchNotifications } from '@/lib/notification-service';
 
 export default function ProfileCompletionBanner() {
     const { authenticated, user } = useContext(DataContext);
+    const { t } = useLanguage();
     const [isIncomplete, setIsIncomplete] = useState(false);
     const [dismissed, setDismissed] = useState(false);
 
@@ -33,10 +35,10 @@ export default function ProfileCompletionBanner() {
                     </div>
                     <div>
                         <h4 className="text-xs sm:text-sm font-extrabold text-amber-900 dark:text-amber-200">
-                            Complete Your Profile Information
+                            {t("shell.profileBanner.title")}
                         </h4>
                         <p className="text-[11px] sm:text-xs font-medium text-amber-800/80 dark:text-amber-300/80 mt-0.5">
-                            Please update your gender, province, and district details to personalize your SomaBox learning experience.
+                            {t("shell.profileBanner.body")}
                         </p>
                     </div>
                 </div>
@@ -46,13 +48,14 @@ export default function ProfileCompletionBanner() {
                         href="/account"
                         className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-md transition-all"
                     >
-                        Complete Profile
+                        {t("shell.notifications.completeProfile")}
                         <ArrowRight className="w-3.5 h-3.5" />
                     </Link>
                     <button
                         onClick={() => setDismissed(true)}
                         className="p-1.5 text-amber-800/60 hover:text-amber-900 dark:text-amber-400 rounded-lg transition-colors"
-                        title="Dismiss banner"
+                        title={t("shell.profileBanner.dismiss")}
+                        aria-label={t("shell.profileBanner.dismiss")}
                     >
                         <X className="w-4 h-4" />
                     </button>

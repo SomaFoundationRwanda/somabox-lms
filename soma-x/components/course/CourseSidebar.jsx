@@ -28,6 +28,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
+import { useCourseText } from "@/components/course/useCourseText";
 
 const NAV_ICONS = {
   home: Home,
@@ -59,6 +60,7 @@ function useVisibleNav() {
 function NavLinks({ onNavigate }) {
   const { courseId, isTeacher, visibleNav } = useVisibleNav();
   const pathname = usePathname();
+  const { t, navLabel } = useCourseText();
 
   return (
     <div className="flex flex-col gap-0.5 px-2">
@@ -83,8 +85,8 @@ function NavLinks({ onNavigate }) {
             }`}
           >
             <Icon className="w-4 h-4 shrink-0" />
-            <span className="flex-1 truncate">{item.label}</span>
-            {isHiddenFromStudents ? <EyeOff className="w-3.5 h-3.5 shrink-0" aria-label="Hidden from students" /> : null}
+            <span className="flex-1 truncate">{navLabel(item.navKey, item.label)}</span>
+            {isHiddenFromStudents ? <EyeOff className="w-3.5 h-3.5 shrink-0" aria-label={t("nav.hiddenFromStudents")} /> : null}
           </Link>
         );
       })}
@@ -102,7 +104,7 @@ function NavLinks({ onNavigate }) {
             }`}
           >
             <Sparkles className="w-4 h-4 shrink-0" />
-            <span className="flex-1 truncate">AI drafts</span>
+            <span className="flex-1 truncate">{t("nav.ai")}</span>
           </Link>
         );
       })() : null}
@@ -112,8 +114,9 @@ function NavLinks({ onNavigate }) {
 
 // md+ only: the fixed course navigation column. On phones, CourseMenuButton replaces it.
 export default function CourseSidebar() {
+  const { t } = useCourseText();
   return (
-    <nav aria-label="Course navigation" className="hidden md:block w-56 shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-transparent py-4">
+    <nav aria-label={t("nav.courseNavigation")} className="hidden md:block w-56 shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-transparent py-4">
       <NavLinks />
     </nav>
   );
@@ -126,6 +129,7 @@ export function CourseMenuButton() {
   const { visibleNav, courseId } = useVisibleNav();
   const pathname = usePathname();
   const panelId = useId();
+  const { t, navLabel } = useCourseText();
   const buttonRef = useRef(null);
   const wrapperRef = useRef(null);
 
@@ -166,14 +170,14 @@ export function CourseMenuButton() {
         className="flex w-full items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-800 px-3 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900/40"
       >
         <Menu className="w-4 h-4 shrink-0" aria-hidden="true" />
-        <span className="flex-1 text-left">Course menu</span>
-        {current ? <span className="text-xs font-medium text-slate-500 truncate">{current.label}</span> : null}
+        <span className="flex-1 text-left">{t("nav.courseMenu")}</span>
+        {current ? <span className="text-xs font-medium text-slate-500 truncate">{navLabel(current.navKey, current.label)}</span> : null}
         <ChevronDown className={`w-4 h-4 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} aria-hidden="true" />
       </button>
       {open ? (
         <nav
           id={panelId}
-          aria-label="Course navigation"
+          aria-label={t("nav.courseNavigation")}
           className="absolute left-4 right-4 top-full z-30 mt-1 max-h-[70vh] overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 py-2 shadow-lg"
         >
           <NavLinks onNavigate={() => setOpen(false)} />

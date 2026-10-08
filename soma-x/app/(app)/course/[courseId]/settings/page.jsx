@@ -7,8 +7,8 @@ import { useCourse } from "@/context/CourseContext";
 import { useToast } from "@/context/ToastContext";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
 import { PageHeader, Section } from "@/components/layout";
-import { formatDate, toDateInput } from "@/lib/dates";
-import { moduleWeekLabel } from "@/lib/moduleLabels";
+import { toDateInput } from "@/lib/dates";
+import { useCourseText } from "@/components/course/useCourseText";
 import SetupChecklist from "@/components/teacher/SetupChecklist";
 import BaselinePanel from "@/components/teacher/BaselinePanel";
 import CourseSetupWizard from "@/components/teacher/CourseSetupWizard";
@@ -17,6 +17,7 @@ import ShareCourseSection from "@/components/course/ShareCourseSection";
 
 // Settings > Course setup (teachers): the setup checklist, the Week 0 baseline and the guided wizard.
 function CourseSetupSection({ SERVER_URL, courseId, course, userEmail, onCourseChanged }) {
+  const { t } = useCourseText();
   const [status, setStatus] = useState(null);
   const [statusError, setStatusError] = useState("");
   const [showWizard, setShowWizard] = useState(false);
@@ -27,13 +28,13 @@ function CourseSetupSection({ SERVER_URL, courseId, course, userEmail, onCourseC
     try {
       const res = await fetch(`${SERVER_URL}/courses/${courseId}/setup-status`);
       const payload = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(payload?.message || "Could not load the setup status");
+      if (!res.ok) throw new Error(payload?.message || t("settings.setupStatusFailed"));
       setStatus(payload);
       setStatusError("");
     } catch (err) {
-      setStatusError(err.message || "Could not load the setup status");
+      setStatusError(err.message || t("settings.setupStatusFailed"));
     }
-  }, [SERVER_URL, courseId]);
+  }, [SERVER_URL, courseId, t]);
 
   useEffect(() => { loadStatus(); }, [loadStatus]);
 
@@ -41,7 +42,7 @@ function CourseSetupSection({ SERVER_URL, courseId, course, userEmail, onCourseC
 
   return (
     <section id="course-setup" aria-labelledby="course-setup-title" className="space-y-6 scroll-mt-4">
-      <h2 id="course-setup-title" className="sr-only">Course setup</h2>
+      <h2 id="course-setup-title" className="sr-only">{t("settings.tabs.setup")}</h2>
       {statusError && <p className="text-xs text-rose-600" role="alert">{statusError}</p>}
       {status && (
         <SetupChecklist
@@ -53,7 +54,7 @@ function CourseSetupSection({ SERVER_URL, courseId, course, userEmail, onCourseC
         />
       )}
 
-      <Section divided title="Baseline (Week 0)" actions={<Explainer k="pages.baseline" />}>
+      <Section divided title={t("settings.baseline")} actions={<Explainer k="pages.baseline" />}>
         <BaselinePanel
           key={baselineKey}
           SERVER_URL={SERVER_URL}
@@ -65,8 +66,8 @@ function CourseSetupSection({ SERVER_URL, courseId, course, userEmail, onCourseC
 
       <Section
         divided
-        title="Guided setup"
-        description="Prefer step by step? Walk through dates, outcomes, baseline and weeks in order."
+        title={t("settings.guided")}
+        description={t("settings.guidedHelp")}
         actions={
           <button
             type="button"
@@ -77,7 +78,7 @@ function CourseSetupSection({ SERVER_URL, courseId, course, userEmail, onCourseC
             aria-expanded={showWizard}
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0D9488] bg-teal-50 border border-teal-200 px-3 py-2 rounded-lg hover:bg-teal-100 transition-colors"
           >
-            {showWizard ? <><X className="w-3.5 h-3.5" aria-hidden="true" /> Close guided setup</> : <><ListChecks className="w-3.5 h-3.5" aria-hidden="true" /> Guided setup</>}
+            {showWizard ? <><X className="w-3.5 h-3.5" aria-hidden="true" /> {t("settings.closeGuided")}</> : <><ListChecks className="w-3.5 h-3.5" aria-hidden="true" /> {t("settings.guided")}</>}
           </button>
         }
       />
@@ -105,6 +106,8 @@ function CourseSetupSection({ SERVER_URL, courseId, course, userEmail, onCourseC
 function ShiftTimelinePanel({ SERVER_URL, courseId, startDate, onApplied }) {
   const hasStartDate = Boolean(startDate);
   const { showToast } = useToast();
+  const { t, tf, weekLabel, fmtDay } = useCourseText();
+  const formatDate = (d) => fmtDay(d);
   const [modules, setModules] = useState([]);
   const [days, setDays] = useState("7");
   const [fromModuleId, setFromModuleId] = useState("");
@@ -133,7 +136,7 @@ function ShiftTimelinePanel({ SERVER_URL, courseId, startDate, onApplied }) {
   const previewIsCurrent = preview && preview.key === key;
 
   const send = async (isPreview) => {
-    if (!validDays) { setError("Enter a whole number of days other than 0 (negative pulls dates earlier)."); return; }
+    if (!validDays) { setError(t("settings.shift.daysError")); return; }
     setBusy(true);
     setError("");
     try {
@@ -147,17 +150,17 @@ function ShiftTimelinePanel({ SERVER_URL, courseId, startDate, onApplied }) {
         }),
       });
       const payload = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(payload?.message || "Could not shift the timeline");
+      if (!res.ok) throw new Error(payload?.message || t("settings.shift.failed"));
       if (isPreview) {
         setPreview({ key, result: payload });
       } else {
-        showToast(payload?.message || "Timeline shifted", "success");
+        showToast(payload?.message || t("settings.shift.done"), "success");
         setPreview(null);
         loadModules();
         onApplied();
       }
     } catch (err) {
-      setError(err.message || "Could not shift the timeline");
+      setError(err.message || t("settings.shift.failed"));
       if (isPreview) setPreview(null);
     } finally {
       setBusy(false);
@@ -170,14 +173,14 @@ function ShiftTimelinePanel({ SERVER_URL, courseId, startDate, onApplied }) {
 
   return (
     <fieldset className="space-y-3">
-      <legend className="text-sm font-bold text-slate-900 dark:text-white mb-1 inline-flex items-center gap-2">Shift timeline (&ldquo;We lost days&rdquo;) <Explainer k="pages.shiftTimeline" variant="icon" /></legend>
+      <legend className="text-sm font-bold text-slate-900 dark:text-white mb-1 inline-flex items-center gap-2">{t("settings.shift.title")} <Explainer k="pages.shiftTimeline" variant="icon" /></legend>
       {!hasStartDate ? (
-        <p className="text-[11px] text-slate-500">Set and save a start date first.</p>
+        <p className="text-[11px] text-slate-500">{t("settings.shift.needStart")}</p>
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-[8rem_1fr] gap-3">
             <div>
-              <label htmlFor="shift-days" className="text-[11px] font-semibold text-slate-600 mb-1 block">Days to move</label>
+              <label htmlFor="shift-days" className="text-[11px] font-semibold text-slate-600 mb-1 block">{t("settings.shift.days")}</label>
               <input
                 id="shift-days"
                 type="number"
@@ -186,24 +189,24 @@ function ShiftTimelinePanel({ SERVER_URL, courseId, startDate, onApplied }) {
                 onChange={(e) => setDays(e.target.value)}
                 className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]"
               />
-              <p className="text-[10px] text-slate-500 mt-0.5">Negative = earlier</p>
+              <p className="text-[10px] text-slate-500 mt-0.5">{t("settings.shift.negative")}</p>
             </div>
             <div>
-              <label htmlFor="shift-from" className="text-[11px] font-semibold text-slate-600 mb-1 block">Starting from</label>
+              <label htmlFor="shift-from" className="text-[11px] font-semibold text-slate-600 mb-1 block">{t("settings.shift.from")}</label>
               <select
                 id="shift-from"
                 value={fromModuleId}
                 onChange={(e) => setFromModuleId(e.target.value)}
                 className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488] bg-white"
               >
-                <option value="">Whole course (moves the start date)</option>
+                <option value="">{t("settings.shift.whole")}</option>
                 {modules.map((m) => (
                   <option key={m.id} value={m.id}>
-                    {moduleWeekLabel(m)}: {m.title}{m.startDate ? ` (${formatDate(m.startDate)})` : ""}
+                    {weekLabel(m)}: {m.title}{m.startDate ? ` (${formatDate(m.startDate)})` : ""}
                   </option>
                 ))}
               </select>
-              <p className="text-[10px] text-slate-500 mt-0.5">A module moves together with every module after it.</p>
+              <p className="text-[10px] text-slate-500 mt-0.5">{t("settings.shift.fromHelp")}</p>
             </div>
           </div>
 
@@ -214,18 +217,18 @@ function ShiftTimelinePanel({ SERVER_URL, courseId, startDate, onApplied }) {
               disabled={busy || !validDays}
               className="text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 px-3 py-1.5 rounded-lg transition-colors"
             >
-              {busy && !previewIsCurrent ? "Working..." : "Preview"}
+              {busy && !previewIsCurrent ? t("settings.shift.working") : t("blocks.preview")}
             </button>
             <button
               type="button"
               onClick={() => send(false)}
               disabled={busy || !previewIsCurrent}
               className="text-xs font-semibold text-white bg-[#203A3A] hover:bg-[#162727] disabled:opacity-50 px-3 py-1.5 rounded-lg transition-colors"
-              title={previewIsCurrent ? undefined : "Preview these settings first"}
+              title={previewIsCurrent ? undefined : t("settings.shift.previewFirst")}
             >
-              {busy && previewIsCurrent ? "Applying..." : "Apply"}
+              {busy && previewIsCurrent ? t("settings.shift.applying") : t("settings.shift.apply")}
             </button>
-            {preview && !previewIsCurrent && <span className="text-[11px] text-amber-700">Settings changed — preview again.</span>}
+            {preview && !previewIsCurrent && <span className="text-[11px] text-amber-700">{t("settings.shift.changed")}</span>}
           </div>
 
           {error && <p className="text-xs text-rose-600" role="alert">{error}</p>}
@@ -233,16 +236,16 @@ function ShiftTimelinePanel({ SERVER_URL, courseId, startDate, onApplied }) {
           {result && (
             <div className="space-y-2 text-xs" aria-live="polite">
               {result.message && <p className="text-slate-700 font-medium">{result.message}</p>}
-              {movedModules.length === 0 && movedItems.length === 0 && <p className="text-slate-500">Nothing would move.</p>}
+              {movedModules.length === 0 && movedItems.length === 0 && <p className="text-slate-500">{t("settings.shift.nothing")}</p>}
               {movedModules.length > 0 && (
                 <div>
-                  <h3 className="text-[11px] font-bold uppercase text-slate-500 mb-1">Modules ({movedModules.length})</h3>
+                  <h3 className="text-[11px] font-bold uppercase text-slate-500 mb-1">{tf("settings.shift.modulesCount", { n: movedModules.length })}</h3>
                   <ul className="border border-slate-200 rounded-lg divide-y divide-slate-100 max-h-56 overflow-y-auto">
                     {movedModules.map((m) => (
                       <li key={m.moduleId} className="flex flex-wrap items-center gap-x-2 gap-y-0.5 px-2.5 py-1.5">
                         <span className="font-medium text-slate-700 flex-1 min-w-[8rem] truncate">{m.title}</span>
                         <span className="text-slate-500">{formatDate(m.fromStart) || "—"}</span>
-                        <ArrowRight className="w-3 h-3 text-slate-400" aria-label="to" />
+                        <ArrowRight className="w-3 h-3 text-slate-400" aria-label={t("settings.shift.to")} />
                         <span className="font-semibold text-[#0D9488]">{formatDate(m.toStart) || "—"}</span>
                       </li>
                     ))}
@@ -251,13 +254,13 @@ function ShiftTimelinePanel({ SERVER_URL, courseId, startDate, onApplied }) {
               )}
               {movedItems.length > 0 && (
                 <div>
-                  <h3 className="text-[11px] font-bold uppercase text-slate-500 mb-1">Due dates ({movedItems.length})</h3>
+                  <h3 className="text-[11px] font-bold uppercase text-slate-500 mb-1">{tf("settings.shift.dueCount", { n: movedItems.length })}</h3>
                   <ul className="border border-slate-200 rounded-lg divide-y divide-slate-100 max-h-56 overflow-y-auto">
                     {movedItems.map((i) => (
                       <li key={i.moduleItemId} className="flex flex-wrap items-center gap-x-2 gap-y-0.5 px-2.5 py-1.5">
                         <span className="font-medium text-slate-700 flex-1 min-w-[8rem] truncate">{i.title}</span>
                         <span className="text-slate-500">{formatDate(i.fromDue) || "—"}</span>
-                        <ArrowRight className="w-3 h-3 text-slate-400" aria-label="to" />
+                        <ArrowRight className="w-3 h-3 text-slate-400" aria-label={t("settings.shift.to")} />
                         <span className="font-semibold text-[#0D9488]">{formatDate(i.toDue) || "—"}</span>
                       </li>
                     ))}
@@ -275,6 +278,7 @@ function ShiftTimelinePanel({ SERVER_URL, courseId, startDate, onApplied }) {
 export default function CourseSettingsPage() {
   const { SERVER_URL, courseId, course, nav, refresh, isTeacher, userEmail } = useCourse();
   const { showToast } = useToast();
+  const { t, tf, navLabel } = useCourseText();
   const [detailsError, setDetailsError] = useState("");
   const [tab, setTab] = useState("details");
   const [form, setForm] = useState({ title: "", description: "", grade: "", visibility: "private" });
@@ -318,7 +322,7 @@ export default function CourseSettingsPage() {
   const saveDetails = async () => {
     setDetailsError("");
     if (form.startDate && form.endDate && compareDates(form.endDate, form.startDate) < 0) {
-      setDetailsError("The end date can't be before the start date.");
+      setDetailsError(t("settings.endBeforeStart"));
       return;
     }
     setSaving(true);
@@ -334,7 +338,7 @@ export default function CourseSettingsPage() {
       });
       if (!res.ok) {
         const payload = await res.json().catch(() => ({}));
-        throw new Error(payload?.message || "Failed to save course details");
+        throw new Error(payload?.message || t("settings.saveFailed"));
       }
       if (coverFile) {
         const formData = new FormData();
@@ -342,13 +346,13 @@ export default function CourseSettingsPage() {
         const coverRes = await fetch(`${SERVER_URL}/courses/${courseId}/cover-image`, { method: "POST", body: formData });
         if (!coverRes.ok) {
           const payload = await coverRes.json().catch(() => ({}));
-          throw new Error(payload?.message || "Details saved, but the banner image failed to upload");
+          throw new Error(payload?.message || t("settings.bannerFailed"));
         }
       }
-      showToast("Course details saved", "success");
+      showToast(t("settings.saved"), "success");
       refresh();
     } catch (err) {
-      setDetailsError(err.message || "Failed to save course details");
+      setDetailsError(err.message || t("settings.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -408,16 +412,16 @@ export default function CourseSettingsPage() {
     <div>
       <Breadcrumbs sectionKey="settings" />
       <div className="p-4 md:p-6 space-y-6 max-w-2xl">
-        <PageHeader help="pages.settings" title="Settings" />
+        <PageHeader help="pages.settings" title={t("nav.settings")} />
 
         <div className="flex items-center gap-1.5 border-b border-slate-200 overflow-x-auto">
-          <button onClick={() => setTab("details")} className={`text-sm font-semibold px-3 py-2 border-b-2 ${tab === "details" ? "border-[#203A3A] text-[#203A3A]" : "border-transparent text-slate-500"}`}>Course Details</button>
-          <button onClick={() => setTab("navigation")} className={`text-sm font-semibold px-3 py-2 border-b-2 ${tab === "navigation" ? "border-[#203A3A] text-[#203A3A]" : "border-transparent text-slate-500"}`}>Navigation</button>
+          <button onClick={() => setTab("details")} className={`text-sm font-semibold px-3 py-2 border-b-2 ${tab === "details" ? "border-[#203A3A] text-[#203A3A]" : "border-transparent text-slate-500"}`}>{t("settings.tabs.details")}</button>
+          <button onClick={() => setTab("navigation")} className={`text-sm font-semibold px-3 py-2 border-b-2 ${tab === "navigation" ? "border-[#203A3A] text-[#203A3A]" : "border-transparent text-slate-500"}`}>{t("settings.tabs.navigation")}</button>
           {isTeacher && (
-            <button onClick={() => setTab("setup")} className={`text-sm font-semibold px-3 py-2 border-b-2 ${tab === "setup" ? "border-[#203A3A] text-[#203A3A]" : "border-transparent text-slate-500"}`}>Course setup</button>
+            <button onClick={() => setTab("setup")} className={`text-sm font-semibold px-3 py-2 border-b-2 ${tab === "setup" ? "border-[#203A3A] text-[#203A3A]" : "border-transparent text-slate-500"}`}>{t("settings.tabs.setup")}</button>
           )}
           {isTeacher && (
-            <button onClick={() => setTab("share")} className={`text-sm font-semibold px-3 py-2 border-b-2 whitespace-nowrap ${tab === "share" ? "border-[#203A3A] text-[#203A3A]" : "border-transparent text-slate-500"}`}>Share</button>
+            <button onClick={() => setTab("share")} className={`text-sm font-semibold px-3 py-2 border-b-2 whitespace-nowrap ${tab === "share" ? "border-[#203A3A] text-[#203A3A]" : "border-transparent text-slate-500"}`}>{t("settings.tabs.share")}</button>
           )}
         </div>
 
@@ -433,20 +437,20 @@ export default function CourseSettingsPage() {
           />
         ) : tab === "details" ? (
           <div className="space-y-8">
-            <Section title="Dates" description="Every module and due date is worked out from the start date, so changing it moves all of them.">
+            <Section title={t("settings.dates")} description={t("settings.datesHelp")}>
             <div className="space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label htmlFor="course-start-date" className="text-xs font-semibold text-slate-600 mb-1 block">Start date (first day of Week 1)</label>
+                <label htmlFor="course-start-date" className="text-xs font-semibold text-slate-600 mb-1 block">{t("settings.startDate")}</label>
                 <input id="course-start-date" type="date" value={form.startDate || ""} onChange={(e) => setForm((p) => ({ ...p, startDate: e.target.value }))} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]" />
               </div>
               <div>
-                <label htmlFor="course-end-date" className="text-xs font-semibold text-slate-600 mb-1 block">End date (optional)</label>
+                <label htmlFor="course-end-date" className="text-xs font-semibold text-slate-600 mb-1 block">{t("settings.endDate")}</label>
                 <input id="course-end-date" type="date" value={form.endDate || ""} min={form.startDate || undefined} onChange={(e) => setForm((p) => ({ ...p, endDate: e.target.value }))} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]" />
               </div>
             </div>
             <div>
-              <label htmlFor="course-length" className="text-xs font-semibold text-slate-600 mb-1 block">Duration (Weeks)</label>
+              <label htmlFor="course-length" className="text-xs font-semibold text-slate-600 mb-1 block">{t("settings.duration")}</label>
               <input id="course-length" type="number" min={1} max={52} value={form.lengthWeeks} onChange={(e) => setForm((p) => ({ ...p, lengthWeeks: Number(e.target.value) }))} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]" />
             </div>
             </div>
@@ -461,70 +465,70 @@ export default function CourseSettingsPage() {
             />
             </Section>
 
-            <Section divided title="About this course">
+            <Section divided title={t("settings.about")}>
             <div className="space-y-3">
             <div>
-              <label htmlFor="course-grade" className="text-xs font-semibold text-slate-600 mb-1 block">Grade/Level</label>
+              <label htmlFor="course-grade" className="text-xs font-semibold text-slate-600 mb-1 block">{t("settings.grade")}</label>
               <input id="course-grade" value={form.grade} onChange={(e) => setForm((p) => ({ ...p, grade: e.target.value }))} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]" />
             </div>
             <div>
-              <label htmlFor="course-description" className="text-xs font-semibold text-slate-600 mb-1 block">Description</label>
+              <label htmlFor="course-description" className="text-xs font-semibold text-slate-600 mb-1 block">{t("common.description")}</label>
               <textarea id="course-description" value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} rows={4} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]" />
             </div>
             <div>
-              <label htmlFor="course-banner" className="text-xs font-semibold text-slate-600 mb-1 block">Banner Image</label>
+              <label htmlFor="course-banner" className="text-xs font-semibold text-slate-600 mb-1 block">{t("settings.banner")}</label>
               <input id="course-banner" type="file" accept="image/*" onChange={(e) => setCoverFile(e.target.files?.[0] || null)} className="text-sm" />
             </div>
             <div>
-              <label htmlFor="course-visibility" className="text-xs font-semibold text-slate-600 mb-1 block">Visibility</label>
+              <label htmlFor="course-visibility" className="text-xs font-semibold text-slate-600 mb-1 block">{t("settings.visibility")}</label>
               <select
                 id="course-visibility"
                 value={form.visibility}
                 onChange={(e) => setForm((p) => ({ ...p, visibility: e.target.value }))}
                 className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488] bg-white"
               >
-                <option value="private">Private — invite only</option>
-                <option value="public">Public — listed in Discover Courses</option>
+                <option value="private">{t("settings.private")}</option>
+                <option value="public">{t("settings.public")}</option>
               </select>
               <p className="text-xs text-slate-500 mt-1">
-                Public courses appear in the platform's course catalog and can be joined by any user without an invite.
+                {t("settings.publicHelp")}
               </p>
             </div>
             </div>
             </Section>
             {detailsError && <p className="text-xs text-rose-600" role="alert">{detailsError}</p>}
             <button onClick={saveDetails} disabled={saving} className="text-xs font-semibold text-white bg-[#203A3A] rounded-lg px-4 py-2 disabled:opacity-50">
-              {saving ? "Saving..." : "Save Changes"}
+              {saving ? t("common.saving") : t("editors.saveChanges")}
             </button>
           </div>
         ) : (
           <div className="space-y-6">
-            <p className="text-xs text-slate-500">Enabled items appear in the sidebar for everyone. Hidden items stay visible to you (grayed out) but not to students.</p>
+            <p className="text-xs text-slate-500">{t("settings.navHelp")}</p>
 
-            <Section title="Enabled">
-              <ul aria-label="Enabled navigation items" className="border border-slate-200 dark:border-slate-800 rounded-xl divide-y divide-slate-100 dark:divide-slate-800">
+            <Section title={t("settings.enabled")}>
+              <ul aria-label={t("settings.enabledItems")} className="border border-slate-200 dark:border-slate-800 rounded-xl divide-y divide-slate-100 dark:divide-slate-800">
                 {enabled.map((item, idx) => (
                   <li key={item.navKey} className="flex items-center justify-between gap-2 px-3 py-2">
-                    <span className="text-sm text-slate-700">{item.label}</span>
+                    <span className="text-sm text-slate-700">{navLabel(item.navKey, item.label)}</span>
                     <div className="flex items-center gap-1">
-                      <button onClick={() => moveEnabled(item.navKey, -1)} disabled={idx === 0} aria-label={`Move ${item.label} up`} className="p-1 rounded hover:bg-slate-100 disabled:opacity-30"><ChevronUp className="w-3.5 h-3.5" /></button>
-                      <button onClick={() => moveEnabled(item.navKey, 1)} disabled={idx === enabled.length - 1} aria-label={`Move ${item.label} down`} className="p-1 rounded hover:bg-slate-100 disabled:opacity-30"><ChevronDown className="w-3.5 h-3.5" /></button>
-                      <button onClick={() => toggleVisibility(item.navKey)} className="p-1 rounded hover:bg-slate-100 text-slate-500" title="Hide from students" aria-label={`Hide ${item.label} from students`}><Eye className="w-3.5 h-3.5 text-emerald-600" /></button>
+                      <button onClick={() => moveEnabled(item.navKey, -1)} disabled={idx === 0} aria-label={tf("settings.moveUp", { name: navLabel(item.navKey, item.label) })} className="p-1 rounded hover:bg-slate-100 disabled:opacity-30"><ChevronUp className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => moveEnabled(item.navKey, 1)} disabled={idx === enabled.length - 1} aria-label={tf("settings.moveDown", { name: navLabel(item.navKey, item.label) })} className="p-1 rounded hover:bg-slate-100 disabled:opacity-30"><ChevronDown className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => toggleVisibility(item.navKey)} className="p-1 rounded hover:bg-slate-100 text-slate-500" title={t("settings.hide")} aria-label={tf("settings.hideNamed", { name: navLabel(item.navKey, item.label) })}><Eye className="w-3.5 h-3.5 text-emerald-600" /></button>
                     </div>
                   </li>
                 ))}
               </ul>
             </Section>
 
-            <Section title="Hidden from students">
-              <ul aria-label="Hidden navigation items" className="border border-slate-200 dark:border-slate-800 rounded-xl divide-y divide-slate-100 dark:divide-slate-800">
+            <Section title={t("nav.hiddenFromStudents")}>
+              <ul aria-label={t("settings.hiddenItems")} className="border border-slate-200 dark:border-slate-800 rounded-xl divide-y divide-slate-100 dark:divide-slate-800">
                 {hidden.map((item, idx) => (
                   <li key={item.navKey} className="flex items-center justify-between gap-2 px-3 py-2 bg-slate-50 dark:bg-slate-900/40">
-                    <span className="text-sm text-slate-400">{item.label}</span>
+                    <span className="text-sm text-slate-400">{navLabel(item.navKey, item.label)}</span>
                     <div className="flex items-center gap-1">
-                      <button onClick={() => moveHidden(item.navKey, -1)} disabled={idx === 0} aria-label={`Move ${item.label} up`} className="p-1 rounded hover:bg-white disabled:opacity-30"><ChevronUp className="w-3.5 h-3.5" /></button>
-                      <button onClick={() => moveHidden(item.navKey, 1)} disabled={idx === hidden.length - 1} aria-label={`Move ${item.label} down`} className="p-1 rounded hover:bg-white disabled:opacity-30"><ChevronDown className="w-3.5 h-3.5" /></button>
-                      <button onClick={() => toggleVisibility(item.navKey)} className="p-1 rounded hover:bg-white text-slate-400" title="Show to students" aria-label={`Show ${item.label} to students`}><EyeOff className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => moveHidden(item.navKey, -1)} disabled={idx === 0} aria-label={tf("settings.moveUp", { name: navLabel(item.navKey, item.label) })} className="p-1 rounded hover:bg-white disabled:opacity-30"><ChevronUp className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => moveHidden(item.navKey, 1)} disabled={idx === hidden.length - 1} aria-label={tf("settings.moveDown", { name: navLabel(item.navKey, item.label) })} className="p-1 rounded hover:bg-white disabled:opacity-30"><ChevronDown className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => toggleVisibility(item.navKey)} className="p-1 rounded hover:bg-white text-slate-400" title={t("settings.show")} aria-label={tf("settings.showNamed", { name: navLabel(item.navKey, item.label) })}><EyeOff className="w-3.5 h-3.5" /></button>
                     </div>
                   </li>
                 ))}
@@ -532,7 +536,7 @@ export default function CourseSettingsPage() {
             </Section>
 
             <button onClick={saveNav} disabled={saving} className="text-xs font-semibold text-white bg-[#203A3A] rounded-lg px-4 py-2 disabled:opacity-50">
-              {saving ? "Saving..." : "Save Navigation"}
+              {saving ? t("common.saving") : t("settings.saveNav")}
             </button>
           </div>
         )}

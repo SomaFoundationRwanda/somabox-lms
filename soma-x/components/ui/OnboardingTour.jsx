@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback, useContext } from "react";
 import { X, ChevronLeft, ChevronRight, Sparkles, Rocket, BarChart3, BookOpen, Zap, Compass } from "lucide-react";
 import DataContext from "@/context/DataContext";
+import { useLanguage } from "@/context/LanguageContext";
 
 const TOUR_KEY = "somabox_tour_seen_v1";
 
@@ -9,54 +10,36 @@ const STEPS = [
     {
         id: "welcome",
         icon: Rocket,
-        tag: "WELCOME",
-        title: "Hey there, Scholar!",
-        body: "Welcome to SOMABOX — your personal learning space! Let me give you a super quick tour of what's here. It'll only take about 30 seconds!",
         pointer: null,
         cardPos: "center",
     },
     {
         id: "stats",
         icon: BarChart3,
-        tag: "STATS",
-        title: "Your Learning Stats",
-        body: "These cards show your classes, lessons in progress, and how much you've completed. The more you learn, the bigger these numbers grow!",
         pointer: { top: "30%", left: "50%" },
         cardPos: "bottom",
     },
     {
         id: "lessons",
         icon: BookOpen,
-        tag: "LESSONS",
-        title: "Recent Lessons",
-        body: "Here you can see your latest lessons and their status. Click any lesson to jump right in and continue where you left off!",
         pointer: { top: "65%", left: "35%" },
         cardPos: "top",
     },
     {
         id: "quick-access",
         icon: Zap,
-        tag: "QUICK ACCESS",
-        title: "Quick Access Panel",
-        body: "Jump straight to your classes, lessons, library, or completed work — all in one tap! Think of it as your shortcut board.",
         pointer: { top: "65%", left: "75%" },
         cardPos: "top",
     },
     {
         id: "nav",
         icon: Compass,
-        tag: "NAVIGATION",
-        title: "Your Navigation Sidebar",
-        body: "Use this sidebar on the left to move between Dashboard, Lessons, Library, and your Account anytime. You're always one click away!",
         pointer: { top: "50%", left: "8%" },
         cardPos: "right",
     },
     {
         id: "finish",
         icon: Sparkles,
-        tag: "ALL DONE",
-        title: "You're All Set!",
-        body: "Amazing — you know everything! Now go ahead and start learning. Every lesson brings you closer to your goals. You've totally got this!",
         pointer: null,
         cardPos: "center",
     },
@@ -105,6 +88,7 @@ function Pointer({ top, left }) {
 }
 
 function TourCard({ step, stepIndex, total, onNext, onPrev, onSkip }) {
+    const { t } = useLanguage();
     const isFirst = stepIndex === 0;
     const isLast = stepIndex === total - 1;
 
@@ -153,7 +137,7 @@ function TourCard({ step, stepIndex, total, onNext, onPrev, onSkip }) {
                             className="text-[11px] font-black tracking-[0.15em] px-2.5 py-1 rounded-full"
                             style={{ backgroundColor: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.5)" }}
                         >
-                            {step.tag}
+                            {t(`learner.tour.${step.id}.tag`)}
                         </span>
                         <button
                             onClick={onSkip}
@@ -162,7 +146,7 @@ function TourCard({ step, stepIndex, total, onNext, onPrev, onSkip }) {
                             onMouseEnter={e => e.currentTarget.style.color = "rgba(255,255,255,0.7)"}
                             onMouseLeave={e => e.currentTarget.style.color = "rgba(255,255,255,0.35)"}
                         >
-                            <X size={12} /> Skip tour
+                            <X size={12} /> {t("learner.tour.skip")}
                         </button>
                     </div>
 
@@ -175,12 +159,12 @@ function TourCard({ step, stepIndex, total, onNext, onPrev, onSkip }) {
 
                     {/* Title */}
                     <h3 className="text-[20px] font-black text-white leading-tight mb-2 tracking-tight">
-                        {step.title}
+                        {t(`learner.tour.${step.id}.title`)}
                     </h3>
 
                     {/* Body */}
                     <p className="text-[13px] leading-relaxed mb-6" style={{ color: "rgba(255,255,255,0.6)" }}>
-                        {step.body}
+                        {t(`learner.tour.${step.id}.body`)}
                     </p>
 
                     {/* Progress dots */}
@@ -216,7 +200,7 @@ function TourCard({ step, stepIndex, total, onNext, onPrev, onSkip }) {
                                 onMouseEnter={e => e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.14)"}
                                 onMouseLeave={e => e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.08)"}
                             >
-                                <ChevronLeft size={14} /> Back
+                                <ChevronLeft size={14} /> {t("learner.tour.back")}
                             </button>
                         )}
                         <button
@@ -227,9 +211,9 @@ function TourCard({ step, stepIndex, total, onNext, onPrev, onSkip }) {
                             onMouseLeave={e => e.currentTarget.style.backgroundColor = ACCENT}
                         >
                             {isLast ? (
-                                <><Sparkles size={13} /> Start Learning!</>
+                                <><Sparkles size={13} /> {t("learner.tour.start")}</>
                             ) : (
-                                <>Next <ChevronRight size={14} /></>
+                                <>{t("learner.tour.next")} <ChevronRight size={14} /></>
                             )}
                         </button>
                     </div>
@@ -311,6 +295,7 @@ export default function OnboardingTour({ onDone }) {
 
 export function TourLaunchButton({ className = "" }) {
     const { isDark } = useContext(DataContext);
+    const { t } = useLanguage();
     const [seen, setSeen] = useState(true);
 
     useEffect(() => {
@@ -336,7 +321,7 @@ export function TourLaunchButton({ className = "" }) {
             onMouseEnter={e => e.currentTarget.style.backgroundColor = bgHover}
             onMouseLeave={e => e.currentTarget.style.backgroundColor = bg}
         >
-            <Sparkles size={12} /> Take the Tour
+            <Sparkles size={12} /> {t("learner.tour.take")}
         </button>
     );
 }

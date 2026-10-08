@@ -51,24 +51,24 @@ export default function SomaboxNav() {
     { id: "dashboard", label: t("nav.dashboard") || "Dashboard", Icon: LayoutDashboard, to: dashboardLocation },
     ...(currentRole === "scholar"
       ? [
-        { id: "courses", label: t("nav.courses") || "Courses", Icon: BookOpen, to: "/manage/scholar-dashboard/courses" },
-        { id: "explore", label: "Explore", Icon: Compass, to: "/home" }
+        { id: "courses", label: t("shell.nav.courses"), Icon: BookOpen, to: "/manage/scholar-dashboard/courses" },
+        { id: "explore", label: t("shell.nav.explore"), Icon: Compass, to: "/home" }
       ]
       : []),
-    { id: "calendar", label: "Calendar", Icon: CalendarDays, to: "/calendar" },
+    { id: "calendar", label: t("shell.nav.calendar"), Icon: CalendarDays, to: "/calendar" },
   ];
 
   const managementNavItems = (currentRole === 'admin' || currentRole === 'teacher')
     ? [
-      { id: "manage-content", label: "Content", Icon: LayoutDashboard, to: "/manage/admin/manage-content", roles: ['admin', 'teacher'] },
-      { id: "sync", label: "Sync", Icon: RefreshCcw, to: "/manage/admin/sync", roles: ['admin'] },
-      { id: "course-library", label: "Course library", Icon: BookCopy, to: "/library/courses", roles: ['admin', 'teacher'] },
-      { id: "manage-library", label: "Library", Icon: Library, to: "/manage/admin/library", roles: ['admin'] },
+      { id: "manage-content", label: t("shell.nav.content"), Icon: LayoutDashboard, to: "/manage/admin/manage-content", roles: ['admin', 'teacher'] },
+      { id: "sync", label: t("shell.nav.sync"), Icon: RefreshCcw, to: "/manage/admin/sync", roles: ['admin'] },
+      { id: "course-library", label: t("shell.nav.courseLibrary"), Icon: BookCopy, to: "/library/courses", roles: ['admin', 'teacher'] },
+      { id: "manage-library", label: t("nav.library") || "Library", Icon: Library, to: "/manage/admin/library", roles: ['admin'] },
     ].filter(item => item.roles.includes(currentRole))
     : [];
 
   const otherNavItems = [
-    { id: "discover-courses", label: "Discover Courses", Icon: Globe, to: "/discover-courses" },
+    { id: "discover-courses", label: t("shell.nav.discoverCourses"), Icon: Globe, to: "/discover-courses" },
     { id: "library", label: t("nav.library") || "Library", Icon: BookMarked, to: "/library" },
     { id: "account", label: t("nav.account") || "Account", Icon: UserRound, to: "/account" },
   ];
@@ -155,8 +155,8 @@ export default function SomaboxNav() {
         {showCollapseToggle && (
           <button
             onClick={toggleCollapsed}
-            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            title={collapsed ? t("shell.nav.expandSidebar") : t("shell.nav.collapseSidebar")}
+            aria-label={collapsed ? t("shell.nav.expandSidebar") : t("shell.nav.collapseSidebar")}
             className="w-6 h-6 shrink-0 flex items-center justify-center rounded-full transition-colors"
             style={{ color: labelColor }}
             onMouseEnter={e => { e.currentTarget.style.backgroundColor = dm ? "rgba(255,255,255,0.06)" : "#f1f5f9"; }}
@@ -178,22 +178,22 @@ export default function SomaboxNav() {
       <div className={`shrink-0 pt-6 pb-5 space-y-5 ${iconOnly ? "px-2" : "px-4"}`} style={{ borderTop: `1px solid ${borderColor}` }}>
         {!iconOnly && (
           <div className="space-y-3">
-            <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: labelColor }}>Brightness</p>
+            <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: labelColor }}>{t("shell.nav.brightness")}</p>
             <BrightnessSlider labelColor={labelColor} trackAccent={dm ? ACCENT_DARK : ACCENT_LIGHT} />
           </div>
         )}
 
         <button
           onClick={logout}
-          title={iconOnly ? "Logout" : undefined}
-          aria-label={iconOnly ? "Logout" : undefined}
+          title={iconOnly ? t("shell.nav.logout") : undefined}
+          aria-label={iconOnly ? t("shell.nav.logout") : undefined}
           className={`flex items-center w-full py-2.5 rounded-full transition-colors ${iconOnly ? "justify-center px-2.5" : "gap-3 px-3"}`}
           style={{ color: logoutColor }}
           onMouseEnter={e => { e.currentTarget.style.backgroundColor = logoutHover; }}
           onMouseLeave={e => { e.currentTarget.style.backgroundColor = "transparent"; }}
         >
           <LogOut size={15} strokeWidth={1.75} className="shrink-0" />
-          {!iconOnly && <span className="text-[13px] font-semibold">Logout</span>}
+          {!iconOnly && <span className="text-[13px] font-semibold">{t("shell.nav.logout")}</span>}
         </button>
       </div>
     </>
@@ -206,7 +206,7 @@ export default function SomaboxNav() {
         onClick={() => setMobileOpen(true)}
         className="fixed top-[13px] left-3 md:hidden z-[999] w-8 h-8 flex items-center justify-center rounded-[5px]"
         style={{ backgroundColor: sidebarBg, border: `1px solid ${borderColor}` }}
-        aria-label="Open menu"
+        aria-label={t("shell.nav.openMenu")}
       >
         <Menu size={16} strokeWidth={2} style={{ color: dm ? "#7A8595" : "#393F30" }} />
       </button>
@@ -230,7 +230,7 @@ export default function SomaboxNav() {
           onClick={() => setMobileOpen(false)}
           className="absolute top-4 right-4 w-7 h-7 flex items-center justify-center rounded-full transition-colors"
           style={{ backgroundColor: dm ? "rgba(255,255,255,0.07)" : "#f1f5f9", color: dm ? "#7A8595" : "#64748b" }}
-          aria-label="Close menu"
+          aria-label={t("shell.nav.closeMenu")}
         >
           <X size={14} strokeWidth={2} />
         </button>
@@ -256,7 +256,7 @@ export default function SomaboxNav() {
             <div className="p-1.5 rounded-full hover:bg-slate-100">
               <LogOut size={19} strokeWidth={1.75} />
             </div>
-            <span className="text-[11px] font-semibold leading-tight">Logout</span>
+            <span className="text-[11px] font-semibold leading-tight">{t("shell.nav.logout")}</span>
           </button>
         </div>
       </nav>

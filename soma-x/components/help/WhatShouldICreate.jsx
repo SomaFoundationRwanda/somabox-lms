@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { BookOpen, ClipboardCheck, FileDown, Heading, ListChecks, MessagesSquare, PencilLine, X } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { trackEvent } from "@/lib/usage";
-import { moduleWeekLabel } from "@/lib/moduleLabels";
+import { useCourseText } from "@/components/course/useCourseText";
 
 // Learner goal -> what to create. `kind` refines quizzes.
 export const CREATE_GOALS = [
@@ -25,6 +25,7 @@ export const CREATE_GOALS = [
  */
 export default function WhatShouldICreate({ open, onClose, modules, defaultModuleId, onChoose }) {
   const { explain } = useLanguage();
+  const { weekLabel } = useCourseText();
   const params = useParams();
   const helper = explain("helper").entry || {};
   const titleId = useId();
@@ -101,7 +102,7 @@ export default function WhatShouldICreate({ open, onClose, modules, defaultModul
             className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"
           >
             {choices.map((m) => (
-              <option key={m.id} value={m.id}>{moduleWeekLabel(m)}: {m.title}</option>
+              <option key={m.id} value={m.id}>{weekLabel(m)}: {m.title}</option>
             ))}
           </select>
         </label>

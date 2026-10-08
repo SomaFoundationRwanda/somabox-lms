@@ -4,6 +4,7 @@ import { Node, mergeAttributes } from "@tiptap/core";
 import { ReactNodeViewRenderer, NodeViewWrapper } from "@tiptap/react";
 import { useState } from "react";
 import { AlertCircle, AlignLeft, AlignCenter, AlignRight, Maximize2 } from "lucide-react";
+import { useCourseText } from "@/components/course/useCourseText";
 
 const SIZE_PRESETS = {
   small: "max-w-[25%]",
@@ -21,6 +22,7 @@ const ALIGN_CLASSES = {
 
 function CustomImageComponent({ node, updateAttributes, editor }) {
   const isEditable = editor.isEditable;
+  const { t } = useCourseText();
   const { file_id, url, alt_text = "", caption = "", alignment = "center", size = "medium" } = node.attrs;
   const [altTextDraft, setAltTextDraft] = useState(alt_text);
   const [captionDraft, setCaptionDraft] = useState(caption);
@@ -52,7 +54,7 @@ function CustomImageComponent({ node, updateAttributes, editor }) {
           {/* Rendered Image */}
           <img
             src={imageUrl || "/placeholder-image.png"}
-            alt={alt_text || "Embedded image"}
+            alt={alt_text || t("editor.image.embedded")}
             className="w-full h-auto object-cover rounded-xl"
           />
 
@@ -64,7 +66,7 @@ function CustomImageComponent({ node, updateAttributes, editor }) {
                 type="button"
                 onClick={() => updateAttributes({ size: "small" })}
                 className={`px-1.5 py-0.5 text-[10px] font-bold rounded ${size === "small" ? "bg-teal-500 text-white" : "hover:bg-slate-700"}`}
-                title="Small (25%)"
+                title={t("editor.image.small")}
               >
                 S
               </button>
@@ -72,7 +74,7 @@ function CustomImageComponent({ node, updateAttributes, editor }) {
                 type="button"
                 onClick={() => updateAttributes({ size: "medium" })}
                 className={`px-1.5 py-0.5 text-[10px] font-bold rounded ${size === "medium" ? "bg-teal-500 text-white" : "hover:bg-slate-700"}`}
-                title="Medium (50%)"
+                title={t("editor.image.medium")}
               >
                 M
               </button>
@@ -80,7 +82,7 @@ function CustomImageComponent({ node, updateAttributes, editor }) {
                 type="button"
                 onClick={() => updateAttributes({ size: "large" })}
                 className={`px-1.5 py-0.5 text-[10px] font-bold rounded ${size === "large" ? "bg-teal-500 text-white" : "hover:bg-slate-700"}`}
-                title="Large (75%)"
+                title={t("editor.image.large")}
               >
                 L
               </button>
@@ -88,7 +90,7 @@ function CustomImageComponent({ node, updateAttributes, editor }) {
                 type="button"
                 onClick={() => updateAttributes({ size: "original" })}
                 className={`px-1.5 py-0.5 text-[10px] font-bold rounded ${size === "original" ? "bg-teal-500 text-white" : "hover:bg-slate-700"}`}
-                title="Full Width (100%)"
+                title={t("editor.image.full")}
               >
                 100%
               </button>
@@ -100,7 +102,7 @@ function CustomImageComponent({ node, updateAttributes, editor }) {
                 type="button"
                 onClick={() => updateAttributes({ alignment: "left" })}
                 className={`p-1 rounded ${alignment === "left" ? "bg-teal-500 text-white" : "hover:bg-slate-700"}`}
-                title="Align Left"
+                title={t("editor.image.alignLeft")}
               >
                 <AlignLeft className="w-3 h-3" />
               </button>
@@ -108,7 +110,7 @@ function CustomImageComponent({ node, updateAttributes, editor }) {
                 type="button"
                 onClick={() => updateAttributes({ alignment: "center" })}
                 className={`p-1 rounded ${alignment === "center" ? "bg-teal-500 text-white" : "hover:bg-slate-700"}`}
-                title="Align Center"
+                title={t("editor.image.alignCenter")}
               >
                 <AlignCenter className="w-3 h-3" />
               </button>
@@ -116,7 +118,7 @@ function CustomImageComponent({ node, updateAttributes, editor }) {
                 type="button"
                 onClick={() => updateAttributes({ alignment: "right" })}
                 className={`p-1 rounded ${alignment === "right" ? "bg-teal-500 text-white" : "hover:bg-slate-700"}`}
-                title="Align Right"
+                title={t("editor.image.alignRight")}
               >
                 <AlignRight className="w-3 h-3" />
               </button>
@@ -129,12 +131,12 @@ function CustomImageComponent({ node, updateAttributes, editor }) {
           <div className="mt-2 space-y-1.5">
             {/* Required Alt Text Field */}
             <div className="flex items-center gap-1.5">
-              <input aria-label="Alt text for accessibility (required)"
+              <input aria-label={t("editor.image.alt")}
                 type="text"
                 value={altTextDraft}
                 onChange={(e) => setAltTextDraft(e.target.value)}
                 onBlur={handleAltBlur}
-                placeholder="Alt text for accessibility (required)"
+                placeholder={t("editor.image.alt")}
                 className={`flex-1 text-xs px-2.5 py-1.5 border rounded-lg outline-none transition-colors ${
                   missingAlt
                     ? "border-amber-400 bg-amber-50/50 text-amber-900 placeholder:text-amber-500 focus:border-amber-600"
@@ -145,17 +147,17 @@ function CustomImageComponent({ node, updateAttributes, editor }) {
             {missingAlt && (
               <div className="flex items-center gap-1 text-[11px] font-semibold text-amber-600 bg-amber-50 px-2 py-1 rounded-md">
                 <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                <span>Add alt text for accessibility (required to save page)</span>
+                <span>{t("editor.image.altRequired")}</span>
               </div>
             )}
 
             {/* Optional Caption Field */}
-            <input aria-label="Add optional image caption"
+            <input aria-label={t("editor.image.caption")}
               type="text"
               value={captionDraft}
               onChange={(e) => setCaptionDraft(e.target.value)}
               onBlur={handleCaptionBlur}
-              placeholder="Add optional image caption..."
+              placeholder={t("editor.image.captionPlaceholder")}
               className="w-full text-xs px-2.5 py-1 border border-slate-200 rounded-lg outline-none focus:border-[#203A3A] bg-slate-50/50 text-slate-600 italic"
             />
           </div>

@@ -3,38 +3,20 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
-
-const SECTION_LABELS = {
-  home: "Home",
-  announcements: "Announcements",
-  syllabus: "Syllabus",
-  modules: "Modules",
-  calendar: "Calendar",
-  grades: "Grades",
-  people: "People",
-  assignments: "Assignments",
-  rubrics: "Rubrics",
-  files: "Files",
-  collaborations: "Collaborations",
-  outcomes: "Outcomes",
-  quizzes: "Quizzes",
-  pages: "Pages",
-  discussions: "Discussions",
-  settings: "Settings",
-  ai: "AI drafts",
-  insights: "Insights",
-  attendance: "Attendance",
-  progress: "My progress",
-};
+import { DEFAULT_NAV_LABELS, useCourseText } from "@/components/course/useCourseText";
 
 export default function Breadcrumbs({ sectionKey, itemName }) {
-  const { courseId, course } = useCourse();
-  const sectionLabel = SECTION_LABELS[sectionKey];
+  const { courseId, course, nav } = useCourse();
+  const { t, navLabel } = useCourseText();
+  // The course's own label for this section (a teacher may have renamed it), translated
+  // while it is still the default.
+  const serverLabel = (nav || []).find((item) => item.navKey === sectionKey)?.label;
+  const sectionLabel = DEFAULT_NAV_LABELS[sectionKey] ? navLabel(sectionKey, serverLabel) : null;
 
   return (
     <div className="flex items-center gap-1.5 text-xs text-slate-500 px-4 md:px-6 py-3 border-b border-slate-100 bg-white flex-wrap">
       <Link href={`/course/${courseId}/home`} className="font-semibold text-slate-700 hover:text-[#203A3A]">
-        {course?.title || "Course"}
+        {course?.title || t("nav.course")}
       </Link>
       {sectionLabel ? (
         <>

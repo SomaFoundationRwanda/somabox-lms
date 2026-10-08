@@ -4,12 +4,16 @@ import { useContext, useEffect, useState } from "react";
 import DataContext from "@/context/DataContext";
 import NotificationBellDrawer from "@/components/notifications/NotificationBellDrawer";
 import ProfileCard from "@/components/ui/ProfileCard";
+import LanguageSwitcher from "@/components/global/LanguageSwitcher";
+import { useLanguage } from "@/context/LanguageContext";
+import { fill } from "@/lib/fill";
 
 // Persistent app-shell header — mounted once in (app)/layout.jsx so it
 // renders on every page, not just the dashboard. Shares the sidebar's
 // background with no divider (see Nav.jsx) so the two read as one surface.
 export default function Header() {
   const { role, isDark, user } = useContext(DataContext);
+  const { t } = useLanguage();
   const currentRole = role || "scholar";
   const [firstName, setFirstName] = useState("");
 
@@ -25,12 +29,12 @@ export default function Header() {
 
   const { title, subtitle } =
     currentRole === "admin"
-      ? { title: "Admin Portal", subtitle: "Manage system tools, users, and content." }
+      ? { title: t("shell.header.adminTitle"), subtitle: t("shell.header.adminSubtitle") }
       : currentRole === "teacher"
-      ? { title: "Teacher Portal", subtitle: "" }
+      ? { title: t("shell.header.teacherTitle"), subtitle: "" }
       : {
-          title: `Welcome On SOMABOX${firstName ? `, ${firstName}` : ""} !`,
-          subtitle: "Let's learn something new today!",
+          title: firstName ? fill(t("shell.header.welcomeName"), { name: firstName }) : t("shell.header.welcome"),
+          subtitle: t("shell.header.learnerSubtitle"),
         };
 
   return (
@@ -51,7 +55,8 @@ export default function Header() {
           </p>
         ) : null}
       </div>
-      <div className="flex items-center gap-2 shrink-0">
+      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        <LanguageSwitcher compact />
         <NotificationBellDrawer />
         <ProfileCard />
       </div>

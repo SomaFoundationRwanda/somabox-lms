@@ -13,24 +13,30 @@ import { downloadFile } from "@/lib/download";
 import PracticeLabel from "@/components/sol/PracticeLabel";
 import Link from "next/link";
 import { PageHeader, Section, List, ListRow, DataTable, EmptyState } from "@/components/layout";
+import { fill } from "@/lib/fill";
+import { LANGUAGE_NAMES } from "@/components/global/LanguageSwitcher";
 
 function getInitials(name, email) {
     if (name?.trim()) return name.trim().split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
     return (email?.[0] || "?").toUpperCase();
 }
 
-function formatDate(raw) {
-    if (!raw) return "Not specified";
+// A date in the UI language ("rw" falls back to English where Intl lacks Kinyarwanda); null if unusable.
+function formatDate(raw, lang) {
+    if (!raw) return null;
     const d = new Date(raw);
-    if (isNaN(d.getTime())) return "Not specified";
-    return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+    if (isNaN(d.getTime())) return null;
+    const opts = { month: "long", day: "numeric", year: "numeric" };
+    try { return d.toLocaleDateString(lang === "rw" ? ["rw", "en-RW", "en"] : lang, opts); } catch { return d.toLocaleDateString("en", opts); }
 }
+
+const GENDERS = ["male", "female", "other", "non_binary"];
 
 export default function UserProfilePage() {
     const params = useParams();
     const router = useRouter();
     const { SERVER_URL, isDark } = useContext(DataContext);
-    const { t } = useLanguage();
+    const { t, lang } = useLanguage();
     const { showToast } = useToast();
     const [downloading, setDownloading] = useState(false);
     
@@ -51,7 +57,7 @@ export default function UserProfilePage() {
                 setLoading(true);
                 // 1. Fetch User Data
                 const userRes = await fetch(`${SERVER_URL}/users/${userId}`);
-                if (!userRes.ok) throw new Error("Failed to fetch user details");
+                if (!userRes.ok) throw new Error(t("admin.user.fetchFailed"));
                 const userData = await userRes.json();
                 setUser(userData);
 
@@ -92,7 +98,7 @@ export default function UserProfilePage() {
         }
         
         if (userId) fetchUserData();
-    }, [userId, SERVER_URL]);
+    }, [userId, SERVER_URL]); // eslint-disable-line react-hooks/exhaustive-deps
 
     if (loading) {
         return (
@@ -105,9 +111,9 @@ export default function UserProfilePage() {
     if (error || !user) {
         return (
             <div className="text-center py-12">
-                <p className="text-rose-500 font-bold mb-4">{error || "User not found"}</p>
+                <p className="text-rose-500 font-bold mb-4">{error || t("admin.user.notFound")}</p>
                 <button onClick={() => router.push("/manage/admin")} className="px-4 py-2 bg-slate-200 rounded-lg text-sm font-semibold">
-                    Go Back
+                    {t("admin.user.goBack")}
                 </button>
             </div>
         );
@@ -118,9 +124,9 @@ export default function UserProfilePage() {
         try {
             const safe = String(user.email || `user-${userId}`).replace(/[^a-z0-9]+/gi, "-");
             await downloadFile(`${SERVER_URL}/analytics/users/${encodeURIComponent(userId)}/data`, `somabox-data-${safe}.json`);
-            showToast("Data downloaded", "success");
+            showToast(t("admin.user.dataDownloaded"), "success");
         } catch (err) {
-            showToast(err.message || "Download failed", "error");
+            showToast(err.message || t("admin.user.downloadFailed"), "error");
         } finally {
             setDownloading(false);
         }
@@ -128,7 +134,8 @@ export default function UserProfilePage() {
 
     const isInactive = user.is_active === 0;
     const initials = getInitials(user.full_name, user.email);
-    const joined = formatDate(user.created_at);
+    const notSpecified = t("admin.user.notSpecified");
+    const joined = formatDate(user.created_at, lang) || notSpecified;
 
     const roleColors = {
         admin: { bg: "bg-purple-100 dark:bg-purple-950/60", text: "text-purple-700 dark:text-purple-300", border: "border-purple-300 dark:border-purple-800" },
@@ -150,36 +157,36 @@ export default function UserProfilePage() {
     const courseColumns = [
         {
             key: "title",
-            header: "Course",
+            header: t("admin.courses.colCourse"),
             render: (course) => (
                 <div className="min-w-0">
                     <Link href={`/course/${course.id}/home`} className="font-semibold text-slate-900 dark:text-white hover:text-[#0D9488] hover:underline">
                         {course.title}
                     </Link>
-                    <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">{course.description || "No description"}</p>
+                    <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">{course.description || t("admin.user.noDescription")}</p>
                 </div>
             ),
         },
         {
             key: "teacher",
-            header: "Teacher",
+            header: t("admin.courses.colTeacher"),
             hideOnMobile: true,
             render: (course) => <span className="text-xs text-slate-600 dark:text-slate-300">{course.created_by_teacher_email || "—"}</span>,
         },
         {
             key: "grade",
-            header: "Grade",
+            header: t("admin.user.colGrade"),
             render: (course) => course.grade
                 ? <span className="text-[11px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-full whitespace-nowrap">{course.grade}</span>
                 : <span className="text-xs text-slate-400">—</span>,
         },
         {
             key: "open",
-            header: <span className="sr-only">Open</span>,
+            header: <span className="sr-only">{t("admin.library.open")}</span>,
             align: "right",
             render: (course) => (
                 <Link href={`/course/${course.id}/home`} className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline whitespace-nowrap">
-                    Open
+                    {t("admin.library.open")}
                 </Link>
             ),
         },
@@ -191,7 +198,7 @@ export default function UserProfilePage() {
                 onClick={() => router.push("/manage/admin?tab=users")}
                 className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
             >
-                <ArrowLeft className="w-3.5 h-3.5" /> Back to Users
+                <ArrowLeft className="w-3.5 h-3.5" /> {t("admin.user.backToUsers")}
             </button>
 
             {/* Header */}
@@ -201,7 +208,7 @@ export default function UserProfilePage() {
                 </div>
                 <div className="min-w-0 flex-1">
                     <PageHeader
-                        title={user.full_name || "Unnamed User"}
+                        title={user.full_name || t("admin.user.unnamed")}
                         description={
                             <span className="inline-flex items-center gap-1.5 break-all">
                                 <Mail className="w-3.5 h-3.5 text-teal-500 shrink-0" />
@@ -220,7 +227,7 @@ export default function UserProfilePage() {
                                 )}
                                 {isInactive && (
                                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 uppercase">
-                                        Inactive
+                                        {t("admin.user.inactive")}
                                     </span>
                                 )}
                             </>
@@ -233,7 +240,7 @@ export default function UserProfilePage() {
                                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50"
                             >
                                 <Download className="w-3.5 h-3.5" aria-hidden="true" />
-                                {downloading ? "Preparing…" : "Download this person's data"}
+                                {downloading ? t("admin.user.preparing") : t("admin.user.downloadData")}
                             </button>
                         }
                     />
@@ -244,28 +251,28 @@ export default function UserProfilePage() {
 
                 {/* Left Column: Demographics & Contact */}
                 <div className="lg:col-span-1 space-y-8 min-w-0">
-                    <Section title={<span className="flex items-center gap-2"><User className="w-4 h-4 text-teal-600" /> Personal & Contact Info</span>}>
+                    <Section title={<span className="flex items-center gap-2"><User className="w-4 h-4 text-teal-600" /> {t("admin.user.personal")}</span>}>
                         <dl className="divide-y divide-slate-100 dark:divide-slate-800">
-                            <Field label="Phone Number" icon={Phone}>{user.phone || "Not specified"}</Field>
-                            <Field label="Gender Identity" className="capitalize">
-                                {user.gender && user.gender !== "prefer_not_to_say" ? user.gender.replace("_", " ") : "Not specified"}
+                            <Field label={t("admin.user.phone")} icon={Phone}>{user.phone || notSpecified}</Field>
+                            <Field label={t("admin.user.gender")} className="capitalize">
+                                {user.gender && user.gender !== "prefer_not_to_say" ? (GENDERS.includes(user.gender) ? t(`admin.user.genders.${user.gender}`) : user.gender.replace("_", " ")) : notSpecified}
                             </Field>
-                            <Field label="Preferred Language" icon={Globe2}>
-                                {user.preferred_language ? user.preferred_language.toUpperCase() : "English"}
+                            <Field label={t("admin.user.preferredLanguage")} icon={Globe2}>
+                                {user.preferred_language ? (LANGUAGE_NAMES[user.preferred_language] || user.preferred_language.toUpperCase()) : LANGUAGE_NAMES.en}
                             </Field>
                         </dl>
                     </Section>
 
-                    <Section divided title={<span className="flex items-center gap-2"><GraduationCap className="w-4 h-4 text-teal-600" /> Academic & Location</span>}>
+                    <Section divided title={<span className="flex items-center gap-2"><GraduationCap className="w-4 h-4 text-teal-600" /> {t("admin.user.academic")}</span>}>
                         <dl className="divide-y divide-slate-100 dark:divide-slate-800">
-                            <Field label="School / Institution" icon={Building2}>{user.school_name || "Not assigned"}</Field>
-                            <Field label="Grade / Class Level">{user.grade_level || "Not specified"}</Field>
-                            <Field label="Province & District" icon={MapPin}>
-                                {user.region_province || "N/A"}, {user.region_district || "N/A"}
+                            <Field label={t("admin.user.school")} icon={Building2}>{user.school_name || t("admin.user.notAssigned")}</Field>
+                            <Field label={t("admin.user.gradeLevel")}>{user.grade_level || notSpecified}</Field>
+                            <Field label={t("admin.user.provinceDistrict")} icon={MapPin}>
+                                {user.region_province || t("admin.user.na")}, {user.region_district || t("admin.user.na")}
                             </Field>
-                            <Field label="Location Type">{user.is_rural === 1 ? "Rural Learner" : "Urban / Semi-urban"}</Field>
-                            <Field label="Disability Status" className="capitalize">{user.disability_status || "None"}</Field>
-                            <Field label="Date Joined" icon={Calendar}>{joined}</Field>
+                            <Field label={t("admin.user.locationType")}>{user.is_rural === 1 ? t("admin.user.rural") : t("admin.user.urban")}</Field>
+                            <Field label={t("admin.user.disability")} className="capitalize">{user.disability_status || t("admin.user.none")}</Field>
+                            <Field label={t("admin.user.joined")} icon={Calendar}>{joined}</Field>
                         </dl>
                     </Section>
                 </div>
@@ -278,26 +285,26 @@ export default function UserProfilePage() {
                             <div className="bg-gradient-to-br from-teal-900 to-slate-900 rounded-2xl border border-teal-800/40 p-5 text-white relative overflow-hidden">
                                 <BrainCircuit className="absolute -right-4 -bottom-4 w-24 h-24 text-teal-800/30 opacity-50" />
                                 <h3 className="text-xs font-black uppercase tracking-wider text-teal-400 flex items-center gap-2 relative z-10">
-                                    <Activity className="w-4 h-4" /> Practice activity
+                                    <Activity className="w-4 h-4" /> {t("admin.user.practiceActivity")}
                                 </h3>
                                 <div className="relative z-10 mt-3">
                                     <p className="text-3xl font-black">{analytics?.activeTrackedOutcomes ?? "—"}</p>
-                                    <p className="text-xs font-medium text-teal-200/70 mt-1">Learning-science practice types used</p>
+                                    <p className="text-xs font-medium text-teal-200/70 mt-1">{t("admin.user.practiceTypes")}</p>
                                     <PracticeLabel className="mt-2 text-teal-100 border-teal-700 bg-teal-950/40" />
                                 </div>
                             </div>
 
-                            <Section title="Spaced Practice Status" description={<PracticeLabel />}>
+                            <Section title={t("admin.user.spacedStatus")} description={<PracticeLabel />}>
                                 {spacedPractice?.length > 0 ? (
-                                    <List label="Pending spaced practice reviews">
+                                    <List label={t("admin.user.pendingReviews")}>
                                         {spacedPractice.map((sp, idx) => (
                                             <ListRow
                                                 key={idx}
                                                 title={sp.topic_title}
-                                                subtitle={`Interval: ${sp.interval_days} days`}
+                                                subtitle={fill(t("admin.user.interval"), { days: sp.interval_days })}
                                                 actions={
                                                     <span className="px-2 py-1 bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 rounded-lg text-[10px] font-black uppercase">
-                                                        Pending
+                                                        {t("admin.user.pending")}
                                                     </span>
                                                 }
                                             />
@@ -306,21 +313,21 @@ export default function UserProfilePage() {
                                 ) : (
                                     <EmptyState
                                         icon={<CheckCircle2 className="w-8 h-8" />}
-                                        title="All Caught Up!"
-                                        description="No pending spaced practice reviews."
+                                        title={t("admin.user.caughtUp")}
+                                        description={t("admin.user.noPending")}
                                     />
                                 )}
                             </Section>
 
                             {/* Enrolled Classes */}
-                            <Section title="Enrolled Courses" divided>
+                            <Section title={t("admin.user.enrolled")} divided>
                                 {classes.length > 0 ? (
-                                    <DataTable caption="Enrolled courses" columns={courseColumns} rows={classes} />
+                                    <DataTable caption={t("admin.user.enrolled")} columns={courseColumns} rows={classes} />
                                 ) : (
                                     <EmptyState
                                         icon={<Building2 className="w-10 h-10" />}
-                                        title="Not enrolled in any courses"
-                                        description="This student has not joined any active courses yet."
+                                        title={t("admin.user.notEnrolled")}
+                                        description={t("admin.user.notEnrolledHelp")}
                                     />
                                 )}
                             </Section>

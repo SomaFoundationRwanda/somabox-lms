@@ -3,11 +3,13 @@
 import { useState } from "react";
 import { X, Sparkles, Target } from "lucide-react";
 import ScheduleFields, { initialScheduleValues, scheduleError, schedulePayload } from "./ScheduleFields";
+import { useCourseText } from "@/components/course/useCourseText";
 
 // initialDays: the module item's { release_day, due_day, close_day } when editing.
 // moduleStartDate: the module's first day ('YYYY-MM-DD'), for previewing dates.
 export default function AssignmentEditorModal({ open, onClose, onSave, initialData, initialDays, moduleStartDate }) {
   const isEdit = Boolean(initialData?.id);
+  const { t } = useCourseText();
   const [title, setTitle] = useState(initialData?.title || "");
   const [description, setDescription] = useState(initialData?.description || "");
   const [schedule, setSchedule] = useState(() => initialScheduleValues(initialDays));
@@ -16,13 +18,7 @@ export default function AssignmentEditorModal({ open, onClose, onSave, initialDa
   const [saving, setSaving] = useState(false);
 
   const generateRubricDraft = () => {
-    setRubricDraft(
-      `Rubric (Derived from Learning Outcome Mastery Levels):\n` +
-      `- Exceeds Mastery (4 pts): Complete accuracy, clear multi-step reasoning, flawless solution.\n` +
-      `- Meets Mastery (3 pts): Correct application with minor procedural errors.\n` +
-      `- Approaching Mastery (2 pts): Partial understanding; demonstrates correct formulas but misses steps.\n` +
-      `- Below Mastery (1 pt): Struggling with basic concepts; needs targeted reteaching.`
-    );
+    setRubricDraft(t("editors.rubricTemplate"));
   };
 
   const handleSave = async () => {
@@ -51,31 +47,31 @@ export default function AssignmentEditorModal({ open, onClose, onSave, initialDa
       <div className="bg-white rounded-2xl w-full max-w-xl shadow-2xl mx-4 animate-in fade-in slide-in-from-bottom-2 duration-200">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
           <h2 className="text-base font-bold text-slate-900">
-            {isEdit ? "Edit Assignment" : "New Assignment"}
+            {isEdit ? t("editors.editAssignment") : t("editors.newAssignment")}
           </h2>
-          <button aria-label="Close" onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400">
+          <button aria-label={t("common.close")} onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400">
             <X className="w-4 h-4" />
           </button>
         </div>
 
         <div className="px-6 py-4 space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5">Assignment Title *</label>
-            <input aria-label="Assignment Title"
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5">{t("editors.assignmentTitle")} *</label>
+            <input aria-label={t("editors.assignmentTitle")}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Linear Equations Problem Set"
+              placeholder={t("editors.assignmentTitlePlaceholder")}
               className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[#0D9488]"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5">Instructions & Description</label>
-            <textarea aria-label="Instructions & Description"
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5">{t("editors.instructions")}</label>
+            <textarea aria-label={t("editors.instructions")}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              placeholder="Assignment instructions..."
+              placeholder={t("editors.instructionsPlaceholder")}
               className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[#0D9488] resize-none"
             />
           </div>
@@ -84,7 +80,7 @@ export default function AssignmentEditorModal({ open, onClose, onSave, initialDa
           <ScheduleFields values={schedule} onChange={setSchedule} moduleStartDate={moduleStartDate} />
 
           <div className="max-w-[10rem]">
-            <label htmlFor="assignment-points" className="block text-[11px] font-bold text-slate-700 mb-1">Points Possible</label>
+            <label htmlFor="assignment-points" className="block text-[11px] font-bold text-slate-700 mb-1">{t("editors.pointsPossible")}</label>
             <input
               id="assignment-points"
               type="number"
@@ -98,20 +94,20 @@ export default function AssignmentEditorModal({ open, onClose, onSave, initialDa
           {/* Rubric Generator from Tagged Outcomes */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="block text-xs font-semibold text-slate-700">Assignment Rubric</label>
+              <label className="block text-xs font-semibold text-slate-700">{t("editors.assignmentRubric")}</label>
               <button
                 type="button"
                 onClick={generateRubricDraft}
                 className="flex items-center gap-1 text-[11px] font-bold text-[#0D9488] hover:underline"
               >
-                <Sparkles className="w-3.5 h-3.5 text-[#0D9488]" /> AI Generate Rubric from Outcomes
+                <Sparkles className="w-3.5 h-3.5 text-[#0D9488]" /> {t("editors.generateRubric")}
               </button>
             </div>
-            <textarea aria-label="Assignment Rubric"
+            <textarea aria-label={t("editors.assignmentRubric")}
               value={rubricDraft}
               onChange={(e) => setRubricDraft(e.target.value)}
               rows={3}
-              placeholder="Rubric criteria derived from outcome mastery levels..."
+              placeholder={t("editors.rubricPlaceholder")}
               className="w-full text-xs border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[#0D9488]"
             />
           </div>
@@ -119,14 +115,14 @@ export default function AssignmentEditorModal({ open, onClose, onSave, initialDa
 
         <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-100">
           <button onClick={onClose} className="text-xs font-semibold text-slate-600 hover:text-slate-800 px-4 py-2 rounded-lg hover:bg-slate-50">
-            Cancel
+            {t("common.cancel")}
           </button>
           <button
             onClick={handleSave}
             disabled={saving || !title.trim() || Boolean(scheduleError(schedule))}
             className="text-xs font-semibold text-white bg-[#0D9488] hover:bg-teal-700 disabled:opacity-50 rounded-lg px-4 py-2 transition-colors"
           >
-            {saving ? "Saving..." : isEdit ? "Save Changes" : "Create Assignment"}
+            {saving ? t("common.saving") : isEdit ? t("editors.saveChanges") : t("editors.createAssignment")}
           </button>
         </div>
       </div>

@@ -1,3 +1,9 @@
+import swShell from "./shell/sw";
+import swLearner from "./learner/sw";
+import swCourse from "./course/sw";
+import swProgress from "./progress/sw";
+import swAdmin from "./admin/sw";
+import swTeacher from "./teacher/sw";
 import swSchool from "./school/sw";
 import swExplore from "./explore/sw";
 import swAttendance from "./attendance/sw";
@@ -9,6 +15,12 @@ export default {
     "guest": swGuest,
     "explore": swExplore,
     "school": swSchool,
+    "shell": swShell,
+    "learner": swLearner,
+    "course": swCourse,
+    "progress": swProgress,
+    "admin": swAdmin,
+    "teacher": swTeacher,
     "explainers": swExplainers,
     "nav": {
         "dashboard": "Nyumbani",

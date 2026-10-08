@@ -1,9 +1,15 @@
+"use client";
+
+import { useLanguage } from "@/context/LanguageContext";
+
 export default function Loader({
   size = 72,
   color = "#ffffff",
   fullScreen = false,
   background = "#203A3A", // SomaBox dark green/teal accent
 }) {
+  // Safe outside the LanguageProvider too (falls back to English).
+  const t = useLanguage()?.t;
   const icon = (
     <svg
       className="sb-loader"
@@ -16,7 +22,7 @@ export default function Loader({
       strokeLinecap="round"
       strokeLinejoin="round"
       role="status"
-      aria-label="Loading"
+      aria-label={t?.("shell.common.loading") ?? "Loading"}
     >
       {/* outer hexagon draws itself */}
       <polygon

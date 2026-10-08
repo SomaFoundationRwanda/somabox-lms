@@ -9,6 +9,7 @@ import { usePathname } from "next/navigation";
 import { BookMarked, Compass, Globe, Info, LogIn, UserPlus } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { authLinks } from "@/components/guest/GuestGate";
+import LanguageSwitcher from "@/components/global/LanguageSwitcher";
 import { rememberNext } from "@/lib/session";
 
 const EXPLORE_LINKS = [
@@ -16,7 +17,6 @@ const EXPLORE_LINKS = [
     { to: "/library", key: "guest.navLibrary", Icon: BookMarked },
     { to: "/discover-courses", key: "guest.navCourses", Icon: Globe },
 ];
-const LANGUAGES = ["en", "fr", "rw", "sw", "es"];
 
 function useAuthLinks() {
     const pathname = usePathname();
@@ -96,7 +96,7 @@ export function GuestNav() {
 }
 
 export function GuestHeader() {
-    const { t, lang, setLang } = useLanguage();
+    const { t } = useLanguage();
     const pathname = usePathname();
     const links = useAuthLinks();
 
@@ -112,15 +112,7 @@ export function GuestHeader() {
                 </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-                <label className="sr-only" htmlFor="guest-language">{t("guest.language")}</label>
-                <select
-                    id="guest-language"
-                    value={lang}
-                    onChange={(e) => setLang(e.target.value)}
-                    className="h-9 rounded-lg border border-slate-200 dark:border-white/15 bg-white dark:bg-transparent text-[12px] font-semibold text-slate-700 dark:text-slate-200 px-2"
-                >
-                    {LANGUAGES.map((l) => <option key={l} value={l}>{l.toUpperCase()}</option>)}
-                </select>
+                <LanguageSwitcher compact />
                 <a href={links.login} onClick={() => rememberNext(pathname)} className="hidden sm:flex items-center h-9 px-4 rounded-full border border-slate-300 dark:border-white/20 text-[13px] font-bold text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
                     {t("guest.logIn")}
                 </a>

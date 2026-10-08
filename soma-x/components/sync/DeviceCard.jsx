@@ -20,8 +20,12 @@ function Row({ label, children }) {
 const mono = "font-mono text-[13px] select-all break-all";
 
 export default function DeviceCard({ device }) {
-    const { t } = useLanguage();
+    const { t, lang } = useLanguage();
     if (!device) return null;
+    const collected = (v) => {
+        const d = new Date(v);
+        try { return d.toLocaleString(lang === "rw" ? ["rw", "en-RW", "en"] : lang); } catch { return d.toLocaleString(); }
+    };
     const fromScript = device.source === "script";
     const macs = Array.isArray(device.macAddresses) ? device.macAddresses : [];
     const none = <span className="text-slate-500">{t("school.device.unknown")}</span>;
@@ -77,7 +81,7 @@ export default function DeviceCard({ device }) {
                             {fromScript ? t("school.device.sourceScript") : t("school.device.sourceServer")}
                             {fromScript && device.collectedAt ? (
                                 <span className="text-xs text-slate-500">
-                                    {" "}({new Date(device.collectedAt).toLocaleString()})
+                                    {" "}({collected(device.collectedAt)})
                                 </span>
                             ) : null}
                         </span>

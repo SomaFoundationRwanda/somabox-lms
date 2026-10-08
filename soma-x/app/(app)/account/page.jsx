@@ -9,18 +9,20 @@ import DataContext from "@/context/DataContext";
 import { useToast } from "@/context/ToastContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { downloadFile } from "@/lib/download";
+import { fill } from "@/lib/fill";
 
 // "Download my data": everything the box holds about the signed-in person, as a JSON file.
 function DownloadMyData({ SERVER_URL }) {
     const { showToast } = useToast();
+    const { t } = useLanguage();
     const [busy, setBusy] = useState(false);
     const download = async () => {
         setBusy(true);
         try {
             await downloadFile(`${SERVER_URL}/analytics/my-data`, `somabox-my-data-${new Date().toISOString().slice(0, 10)}.json`);
-            showToast("Your data was downloaded", "success");
+            showToast(t("learner.account.dataDownloaded"), "success");
         } catch (err) {
-            showToast(err.message || "Download failed", "error");
+            showToast(err.message || t("learner.account.downloadFailed"), "error");
         } finally {
             setBusy(false);
         }
@@ -28,8 +30,8 @@ function DownloadMyData({ SERVER_URL }) {
     return (
         <section aria-labelledby="my-data-title" className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-5">
             <div className="min-w-0">
-                <h2 id="my-data-title" className="text-[13px] font-bold text-slate-800">Your data</h2>
-                <p className="text-[11px] text-slate-600 max-w-xl">Download a file with everything this box holds about you: your profile, courses, work, results, and usage logs.</p>
+                <h2 id="my-data-title" className="text-[13px] font-bold text-slate-800">{t("learner.account.yourData")}</h2>
+                <p className="text-[11px] text-slate-600 max-w-xl">{t("learner.account.yourDataHelp")}</p>
             </div>
             <button
                 type="button"
@@ -37,7 +39,7 @@ function DownloadMyData({ SERVER_URL }) {
                 disabled={busy || !SERVER_URL}
                 className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl border border-slate-200 bg-white text-[12px] font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
             >
-                <Download size={13} aria-hidden="true" /> {busy ? "Preparing…" : "Download my data"}
+                <Download size={13} aria-hidden="true" /> {busy ? t("learner.account.preparing") : t("learner.account.downloadData")}
             </button>
         </section>
     );
@@ -63,6 +65,7 @@ function getInitials(name) {
 }
 
 function PasswordField({ id, label, placeholder, value, onChange }) {
+    const { t } = useLanguage();
     const [show, setShow] = useState(false);
     return (
         <div className="space-y-1.5">
@@ -84,7 +87,7 @@ function PasswordField({ id, label, placeholder, value, onChange }) {
                     onClick={() => setShow(v => !v)}
                     className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-slate-600 hover:text-slate-600"
                 >
-                    {show ? "Hide" : "Show"}
+                    {show ? t("learner.account.hide") : t("learner.account.show")}
                 </button>
             </div>
         </div>
@@ -135,7 +138,7 @@ export default function AccountPage() {
                 setLoadingProfile(true);
                 const res  = await fetch(`${SERVER_URL}/users/profile/view`);
                 const data = await res.json();
-                if (!res.ok) throw new Error(data.message || "Failed to load profile");
+                if (!res.ok) throw new Error(data.message || t("learner.account.loadFailed"));
                 setProfileView({
                     email: data.email || "",
                     fullName: data.full_name || "",
@@ -180,7 +183,7 @@ export default function AccountPage() {
                 })
             });
             const data = await res.json();
-            if (!res.ok) throw new Error(data.message || "Failed to update profile");
+            if (!res.ok) throw new Error(data.message || t("learner.account.saveFailed"));
             
             const updatedProvince = demoForm.regionProvince || "Not Specified";
             const updatedDistrict = demoForm.regionDistrict || "Not Specified";
@@ -198,11 +201,11 @@ export default function AccountPage() {
                 localStorage.setItem(`somabox_profile_completed_${currentEmail}`, 'true');
             }
 
-            showToast("Profile & Demographic information updated successfully!", "success");
-            setStatus({ type: "success", message: "Profile & demographic details updated successfully." });
+            showToast(t("learner.account.savedToast"), "success");
+            setStatus({ type: "success", message: t("learner.account.saved") });
             setEditDemographics(false);
         } catch (err) {
-            showToast(err.message || "Failed to update profile", "error");
+            showToast(err.message || t("learner.account.saveFailed"), "error");
             setStatus({ type: "error", message: err.message });
         } finally {
             setSavingDemographics(false);
@@ -213,13 +216,13 @@ export default function AccountPage() {
         e.preventDefault();
         const { currentPassword, newPassword, confirmPassword } = passwordForm;
         if (!currentPassword || !newPassword || !confirmPassword) {
-            setStatus({ type: "error", message: "All password fields are required." }); return;
+            setStatus({ type: "error", message: t("learner.account.pwAllRequired") }); return;
         }
         if (newPassword.length < 6) {
-            setStatus({ type: "error", message: "New password must be at least 6 characters." }); return;
+            setStatus({ type: "error", message: t("learner.account.pwTooShort") }); return;
         }
         if (newPassword !== confirmPassword) {
-            setStatus({ type: "error", message: "Passwords do not match." }); return;
+            setStatus({ type: "error", message: t("learner.account.pwMismatch") }); return;
         }
         try {
             setSavingPassword(true);
@@ -230,9 +233,9 @@ export default function AccountPage() {
                 body: JSON.stringify({ currentPassword, newPassword }),
             });
             const data = await res.json();
-            if (!res.ok) throw new Error(data.message || "Failed to update password");
+            if (!res.ok) throw new Error(data.message || t("learner.account.pwFailed"));
             setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
-            setStatus({ type: "success", message: "Password updated successfully." });
+            setStatus({ type: "success", message: t("learner.account.pwUpdated") });
             if (mustChangePassword) await refreshUser();
         } catch (err) {
             setStatus({ type: "error", message: err.message });
@@ -243,7 +246,11 @@ export default function AccountPage() {
 
     const [c1, c2]   = getAvatarColors(profileView.fullName);
     const initials   = getInitials(profileView.fullName);
-    const roleLabel  = currentRole ? currentRole.charAt(0).toUpperCase() + currentRole.slice(1) : "";
+    const roleLabel  = currentRole ? (t(`role.${currentRole}`) || currentRole.charAt(0).toUpperCase() + currentRole.slice(1)) : "";
+    // Stored placeholders and codes, shown in the UI language.
+    const placeName  = (v) => (!v || v === "Not Specified" ? t("learner.account.notSpecified") : v);
+    const genderName = (g) => t(`learner.account.genders.${g || "prefer_not_to_say"}`) || String(g).replace("_", " ");
+    const accessName = (d) => t(`learner.account.access.${d || "none"}`) || String(d);
 
     return (
         <div className="min-h-screen pb-24 md:pb-8" style={{ backgroundColor: pageBg }}>
@@ -314,11 +321,11 @@ export default function AccountPage() {
                                         </span>
                                         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold text-emerald-300 border border-emerald-500/30 bg-emerald-500/10 backdrop-blur-sm">
                                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                                            Active
+                                            {t("learner.account.active")}
                                         </span>
                                         {profileView.isRural && (
                                             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold text-teal-300 border border-teal-500/30 bg-teal-500/10 backdrop-blur-sm">
-                                                Rural Learner Profile
+                                                {t("learner.account.ruralBadge")}
                                             </span>
                                         )}
                                     </div>
@@ -329,8 +336,8 @@ export default function AccountPage() {
                         {/* Stat chips — desktop only */}
                         <div className="hidden lg:flex flex-col items-end gap-3 shrink-0">
                             {[
-                                { icon: <BookOpen size={13} />, label: "Lessons", color: "text-violet-300", border: "border-violet-500/30", bg: "bg-violet-500/10" },
-                                { icon: <CheckCircle2 size={13} />, label: "Classes", color: "text-teal-300", border: "border-teal-500/30", bg: "bg-teal-500/10" },
+                                { icon: <BookOpen size={13} />, label: t("learner.account.lessons"), color: "text-violet-300", border: "border-violet-500/30", bg: "bg-violet-500/10" },
+                                { icon: <CheckCircle2 size={13} />, label: t("learner.account.classes"), color: "text-teal-300", border: "border-teal-500/30", bg: "bg-teal-500/10" },
                             ].map(({ icon, label, color, border, bg }) => (
                                 <div key={label} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border ${border} ${bg} backdrop-blur-sm`}>
                                     <span className={color}>{icon}</span>
@@ -352,7 +359,7 @@ export default function AccountPage() {
                 {mustChangePassword && (
                     <div className="mb-4 flex items-center gap-3 px-4 py-3 rounded-xl border text-[12px] font-medium bg-amber-50 border-amber-200 text-amber-800">
                         <ShieldAlert size={14} className="shrink-0" />
-                        This account is still using a default password. Set a new password to continue.
+                        {t("learner.account.defaultPassword")}
                     </div>
                 )}
 
@@ -374,8 +381,8 @@ export default function AccountPage() {
                 {/* Tab bar */}
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-1 flex gap-1 mb-4">
                     {[
-                        { id: "profile",  label: "Profile",  icon: <User size={13} /> },
-                        { id: "security", label: "Security", icon: <KeyRound size={13} /> },
+                        { id: "profile",  label: t("learner.account.tabProfile"),  icon: <User size={13} /> },
+                        { id: "security", label: t("learner.account.tabSecurity"), icon: <KeyRound size={13} /> },
                     ].map(tab => (
                         <button
                             key={tab.id}
@@ -406,8 +413,8 @@ export default function AccountPage() {
                                         <User size={13} style={{ color: c1 }} />
                                     </div>
                                     <div>
-                                        <p className="text-[13px] font-bold text-slate-800">Personal Info & Demographics</p>
-                                        <p className="text-[10px] text-slate-600">V2.1 Inclusivity & Regional profile</p>
+                                        <p className="text-[13px] font-bold text-slate-800">{t("learner.account.personalTitle")}</p>
+                                        <p className="text-[10px] text-slate-600">{t("learner.account.personalSubtitle")}</p>
                                     </div>
                                 </div>
                                 {!loadingProfile && (
@@ -417,7 +424,7 @@ export default function AccountPage() {
                                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-[11px] font-bold text-slate-700 transition-colors"
                                     >
                                         {editDemographics ? <X size={12} /> : <Pencil size={12} />}
-                                        {editDemographics ? "Cancel" : "Edit Profile"}
+                                        {editDemographics ? t("shell.common.cancel") : t("learner.account.edit")}
                                     </button>
                                 )}
                             </div>
@@ -435,25 +442,25 @@ export default function AccountPage() {
                                 <form onSubmit={handleDemographicsSave} className="p-5 space-y-4">
                                     {/* Gender */}
                                     <div className="space-y-1">
-                                        <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">Gender</label>
-                                        <select aria-label="Gender"
+                                        <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">{t("learner.account.gender")}</label>
+                                        <select aria-label={t("learner.account.gender")}
                                             value={demoForm.gender}
                                             onChange={e => setDemoForm({ ...demoForm, gender: e.target.value })}
                                             className="w-full h-10 px-3 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 bg-white outline-none focus:border-accent-dark"
                                         >
-                                            <option value="male">Male</option>
-                                            <option value="female">Female</option>
-                                            <option value="non_binary">Non-Binary</option>
-                                            <option value="prefer_not_to_say">Prefer Not To Say</option>
+                                            <option value="male">{t("learner.account.genders.male")}</option>
+                                            <option value="female">{t("learner.account.genders.female")}</option>
+                                            <option value="non_binary">{t("learner.account.genders.non_binary")}</option>
+                                            <option value="prefer_not_to_say">{t("learner.account.genders.prefer_not_to_say")}</option>
                                         </select>
                                     </div>
 
                                     {/* Province */}
                                     <div className="space-y-1">
-                                        <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">Province / State</label>
-                                        <input aria-label="Province / State"
+                                        <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">{t("learner.account.province")}</label>
+                                        <input aria-label={t("learner.account.province")}
                                             type="text"
-                                            placeholder="e.g. Kigali, Northern Province, Eastern Province"
+                                            placeholder={t("learner.account.provincePlaceholder")}
                                             value={demoForm.regionProvince}
                                             onChange={e => setDemoForm({ ...demoForm, regionProvince: e.target.value })}
                                             className="w-full h-10 px-3 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 bg-white outline-none focus:border-accent-dark"
@@ -462,10 +469,10 @@ export default function AccountPage() {
 
                                     {/* District */}
                                     <div className="space-y-1">
-                                        <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">District / Region</label>
-                                        <input aria-label="District / Region"
+                                        <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">{t("learner.account.district")}</label>
+                                        <input aria-label={t("learner.account.district")}
                                             type="text"
-                                            placeholder="e.g. Gasabo, Nyarugenge, Musanze, Huye"
+                                            placeholder={t("learner.account.districtPlaceholder")}
                                             value={demoForm.regionDistrict}
                                             onChange={e => setDemoForm({ ...demoForm, regionDistrict: e.target.value })}
                                             className="w-full h-10 px-3 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 bg-white outline-none focus:border-accent-dark"
@@ -482,24 +489,24 @@ export default function AccountPage() {
                                             className="w-4 h-4 rounded text-accent-dark focus:ring-accent-dark border-slate-300 cursor-pointer"
                                         />
                                         <label htmlFor="account-is-rural" className="text-xs font-semibold text-slate-700 cursor-pointer select-none">
-                                            Located in a rural / remote learning area
+                                            {t("learner.account.ruralCheckbox")}
                                         </label>
                                     </div>
 
                                     {/* Disability status */}
                                     <div className="space-y-1 pt-1">
-                                        <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">Accessibility Options</label>
-                                        <select aria-label="Accessibility Options"
+                                        <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">{t("learner.account.accessibility")}</label>
+                                        <select aria-label={t("learner.account.accessibility")}
                                             value={demoForm.disabilityStatus}
                                             onChange={e => setDemoForm({ ...demoForm, disabilityStatus: e.target.value })}
                                             className="w-full h-10 px-3 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 bg-white outline-none focus:border-accent-dark"
                                         >
-                                            <option value="none">None / Standard</option>
-                                            <option value="visual">Visual Impairment</option>
-                                            <option value="hearing">Hearing Impairment</option>
-                                            <option value="mobility">Mobility Impairment</option>
-                                            <option value="cognitive">Cognitive Adaptation</option>
-                                            <option value="other">Other Need</option>
+                                            <option value="none">{t("learner.account.access.none")}</option>
+                                            <option value="visual">{t("learner.account.access.visual")}</option>
+                                            <option value="hearing">{t("learner.account.access.hearing")}</option>
+                                            <option value="mobility">{t("learner.account.access.mobility")}</option>
+                                            <option value="cognitive">{t("learner.account.access.cognitive")}</option>
+                                            <option value="other">{t("learner.account.access.other")}</option>
                                         </select>
                                     </div>
 
@@ -509,20 +516,20 @@ export default function AccountPage() {
                                         className="w-full h-10 rounded-xl bg-accent-dark text-white text-xs font-extrabold flex items-center justify-center gap-2 shadow-md hover:bg-black transition-colors disabled:opacity-50 mt-2"
                                     >
                                         <Save size={13} />
-                                        {savingDemographics ? "Saving Profile…" : "Save Demographic Info"}
+                                        {savingDemographics ? t("learner.account.saving") : t("learner.account.save")}
                                     </button>
                                 </form>
                             ) : (
                                 <div className="divide-y divide-slate-50">
                                     {[
-                                        { icon: <User size={13} className="text-slate-600" />,         label: "Full name",          value: profileView.fullName },
-                                        { icon: <Mail size={13} className="text-slate-600" />,         label: "Email",              value: profileView.email },
+                                        { icon: <User size={13} className="text-slate-600" />,         label: t("learner.account.fullName"),          value: profileView.fullName },
+                                        { icon: <Mail size={13} className="text-slate-600" />,         label: t("learner.account.email"),              value: profileView.email },
                                         ...(profileView.learnerCode ? [{ icon: <Hash size={13} className="text-slate-600" />, label: t("school.learnerCode"), value: profileView.learnerCode }] : []),
                                         ...(profileView.schoolName ? [{ icon: <School size={13} className="text-slate-600" />, label: t("school.schoolWord"), value: profileView.schoolName }] : []),
-                                        { icon: <GraduationCap size={13} className="text-slate-600" />, label: "Role",              value: roleLabel },
-                                        { icon: <User size={13} className="text-slate-600" />,         label: "Gender",             value: profileView.gender ? profileView.gender.replace('_', ' ').toUpperCase() : "Prefer Not To Say" },
-                                        { icon: <MapPin size={13} className="text-slate-600" />,      label: "Region / Location",  value: `${profileView.province} (${profileView.district})${profileView.isRural ? " - Rural" : " - Urban"}` },
-                                        { icon: <User size={13} className="text-slate-600" />,         label: "Accessibility Status", value: profileView.disability ? profileView.disability.toUpperCase() : "NONE" },
+                                        { icon: <GraduationCap size={13} className="text-slate-600" />, label: t("learner.account.role"),              value: roleLabel },
+                                        { icon: <User size={13} className="text-slate-600" />,         label: t("learner.account.gender"),             value: genderName(profileView.gender) },
+                                        { icon: <MapPin size={13} className="text-slate-600" />,      label: t("learner.account.location"),  value: fill(t(profileView.isRural ? "learner.account.locationRural" : "learner.account.locationUrban"), { province: placeName(profileView.province), district: placeName(profileView.district) }) },
+                                        { icon: <User size={13} className="text-slate-600" />,         label: t("learner.account.accessStatus"), value: accessName(profileView.disability) },
                                     ].map(({ icon, label, value }) => (
                                         <div key={label} className="flex items-center justify-between px-5 py-3.5">
                                             <div className="flex items-center gap-2 text-slate-500">
@@ -542,13 +549,13 @@ export default function AccountPage() {
                                 <div className="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center">
                                     <BookOpen size={13} className="text-amber-500" />
                                 </div>
-                                <p className="text-[13px] font-bold text-slate-800">Platform Access</p>
+                                <p className="text-[13px] font-bold text-slate-800">{t("learner.account.platformAccess")}</p>
                             </div>
                             <div className="divide-y divide-slate-50">
                                 {[
-                                    { label: "Account type", value: "Scholar (Student)" },
-                                    { label: "Platform",     value: "SOMABOX" },
-                                    { label: "Access level", value: "Classes, Lessons & Library" },
+                                    { label: t("learner.account.accountType"), value: roleLabel || t("role.scholar") },
+                                    { label: t("learner.account.platform"),     value: "SOMABOX" },
+                                    { label: t("learner.account.accessLevel"), value: t("learner.account.accessLevelValue") },
                                 ].map(({ label, value }) => (
                                     <div key={label} className="flex items-center justify-between px-5 py-3.5">
                                         <span className="text-[12px] font-medium text-slate-500">{label}</span>
@@ -560,7 +567,7 @@ export default function AccountPage() {
                                 <div className="flex items-start gap-2.5 bg-blue-50 border border-blue-100 rounded-xl px-3 py-2.5">
                                     <BookOpen size={12} className="text-blue-400 shrink-0 mt-0.5" />
                                     <p className="text-[11px] text-blue-600 leading-relaxed">
-                                        To update your name or email, contact your teacher or school administrator.
+                                        {t("learner.account.contactToChange")}
                                     </p>
                                 </div>
                             </div>
@@ -577,29 +584,29 @@ export default function AccountPage() {
                                     <KeyRound size={13} className="text-teal-500" />
                                 </div>
                                 <div>
-                                    <p className="text-[13px] font-bold text-slate-800">Change Password</p>
-                                    <p className="text-[10px] text-slate-600">Minimum 6 characters</p>
+                                    <p className="text-[13px] font-bold text-slate-800">{t("learner.account.changePassword")}</p>
+                                    <p className="text-[10px] text-slate-600">{t("learner.account.minChars")}</p>
                                 </div>
                             </div>
                             <div className="p-5 space-y-4">
                                 <PasswordField
                                     id="current-password"
-                                    label="Current password"
-                                    placeholder="Enter current password"
+                                    label={t("learner.account.currentPassword")}
+                                    placeholder={t("learner.account.currentPasswordPh")}
                                     value={passwordForm.currentPassword}
                                     onChange={v => setPasswordForm(p => ({ ...p, currentPassword: v }))}
                                 />
                                 <PasswordField
                                     id="new-password"
-                                    label="New password"
-                                    placeholder="Enter new password"
+                                    label={t("learner.account.newPassword")}
+                                    placeholder={t("learner.account.newPasswordPh")}
                                     value={passwordForm.newPassword}
                                     onChange={v => setPasswordForm(p => ({ ...p, newPassword: v }))}
                                 />
                                 <PasswordField
                                     id="confirm-password"
-                                    label="Confirm new password"
-                                    placeholder="Re-enter new password"
+                                    label={t("learner.account.confirmPassword")}
+                                    placeholder={t("learner.account.confirmPasswordPh")}
                                     value={passwordForm.confirmPassword}
                                     onChange={v => setPasswordForm(p => ({ ...p, confirmPassword: v }))}
                                 />
@@ -609,19 +616,19 @@ export default function AccountPage() {
                                     className="w-full h-10 rounded-xl text-[13px] font-bold text-white transition-opacity disabled:opacity-50 mt-1"
                                     style={{ backgroundColor: ACCENT }}
                                 >
-                                    {savingPassword ? "Updating…" : "Change Password"}
+                                    {savingPassword ? t("learner.account.updating") : t("learner.account.changePassword")}
                                 </button>
                             </div>
                         </form>
 
                         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-600 mb-3">Tips</p>
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-600 mb-3">{t("learner.account.tips")}</p>
                             <div className="space-y-2.5">
                                 {[
-                                    "Use at least 6 characters",
-                                    "Mix letters, numbers and symbols",
-                                    "Avoid using your name or email",
-                                    "Never share your password",
+                                    t("learner.account.tip1"),
+                                    t("learner.account.tip2"),
+                                    t("learner.account.tip3"),
+                                    t("learner.account.tip4"),
                                 ].map((tip, i) => (
                                     <div key={i} className="flex items-center gap-2.5">
                                         <CheckCircle2 size={13} className="text-emerald-400 shrink-0" />

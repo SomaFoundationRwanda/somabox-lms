@@ -9,6 +9,7 @@ import {
   Download, Eye, EyeOff, FileIcon, ZoomIn, ZoomOut, Loader2, AlertCircle,
 } from "lucide-react";
 import { MediaAccessNotice, useMediaAccess } from "@/components/guest/MediaAccess";
+import { useCourseText } from "@/components/course/useCourseText";
 
 // Relative upload paths point at the backend.
 export function resolveMediaUrl(url) {
@@ -24,24 +25,24 @@ function getFileTypeDetails(mimeType = "", filename = "") {
   const ext = filename.split(".").pop()?.toLowerCase() || "";
 
   if (mime.includes("pdf") || ext === "pdf") {
-    return { icon: FileText, label: "PDF Document", isPdf: true, isImage: false, color: "text-red-500 bg-red-50" };
+    return { icon: FileText, label: "pdf", isPdf: true, isImage: false, color: "text-red-500 bg-red-50" };
   }
   if (mime.includes("word") || ["doc", "docx"].includes(ext)) {
-    return { icon: FileText, label: "Word Document", isPdf: false, isImage: false, color: "text-blue-500 bg-blue-50" };
+    return { icon: FileText, label: "word", isPdf: false, isImage: false, color: "text-blue-500 bg-blue-50" };
   }
   if (mime.includes("sheet") || mime.includes("excel") || ["xls", "xlsx", "csv"].includes(ext)) {
-    return { icon: FileSpreadsheet, label: "Spreadsheet", isPdf: false, isImage: false, color: "text-emerald-500 bg-emerald-50" };
+    return { icon: FileSpreadsheet, label: "spreadsheet", isPdf: false, isImage: false, color: "text-emerald-500 bg-emerald-50" };
   }
   if (mime.includes("presentation") || mime.includes("powerpoint") || ["ppt", "pptx"].includes(ext)) {
-    return { icon: FileCode2, label: "Presentation", isPdf: false, isImage: false, color: "text-amber-500 bg-amber-50" };
+    return { icon: FileCode2, label: "presentation", isPdf: false, isImage: false, color: "text-amber-500 bg-amber-50" };
   }
   if (mime.includes("zip") || mime.includes("archive") || ["zip", "rar", "7z", "tar", "gz"].includes(ext)) {
-    return { icon: FileArchive, label: "Archive", isPdf: false, isImage: false, color: "text-purple-500 bg-purple-50" };
+    return { icon: FileArchive, label: "archive", isPdf: false, isImage: false, color: "text-purple-500 bg-purple-50" };
   }
   if (mime.includes("image") || ["jpg", "jpeg", "png", "gif", "svg", "webp"].includes(ext)) {
-    return { icon: ImageIcon, label: "Image File", isPdf: false, isImage: true, color: "text-teal-500 bg-teal-50" };
+    return { icon: ImageIcon, label: "image", isPdf: false, isImage: true, color: "text-teal-500 bg-teal-50" };
   }
-  return { icon: FileIcon, label: "File Attachment", isPdf: false, isImage: false, color: "text-slate-500 bg-slate-50" };
+  return { icon: FileIcon, label: "other", isPdf: false, isImage: false, color: "text-slate-500 bg-slate-50" };
 }
 
 function formatBytes(bytes) {
@@ -53,7 +54,9 @@ function formatBytes(bytes) {
 }
 
 export function FileAttachmentView({ attrs, Wrapper = "div" }) {
-  const { url, filename = "Attachment", file_size = 0, mime_type = "", uploading = false, error = null } = attrs;
+  const { t, tf } = useCourseText();
+  const { url, filename: rawFilename, file_size = 0, mime_type = "", uploading = false, error = null } = attrs;
+  const filename = rawFilename || t("blocks.attachment");
   const [previewOpen, setPreviewOpen] = useState(false);
   const [zoom, setZoom] = useState(100);
 
@@ -77,9 +80,9 @@ export function FileAttachmentView({ attrs, Wrapper = "div" }) {
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-bold text-amber-900 truncate">
-                Uploading {filename}...
+                {tf("blocks.uploading", { name: filename })}
               </p>
-              <p className="text-xs text-amber-700 mt-0.5">Please wait while the file is being stored</p>
+              <p className="text-xs text-amber-700 mt-0.5">{t("blocks.pleaseWait")}</p>
             </div>
           </div>
         </div>
@@ -98,7 +101,7 @@ export function FileAttachmentView({ attrs, Wrapper = "div" }) {
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-bold text-rose-900 truncate">
-                Upload failed for {filename}
+                {tf("blocks.uploadFailedFor", { name: filename })}
               </p>
               <p className="text-xs text-rose-700 mt-0.5">{error}</p>
             </div>
@@ -123,7 +126,7 @@ export function FileAttachmentView({ attrs, Wrapper = "div" }) {
                 {filename}
               </p>
               <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
-                <span>{fileType.label}</span>
+                <span>{t(`blocks.types.${fileType.label}`)}</span>
                 {file_size ? <span>· {formatBytes(file_size)}</span> : null}
               </div>
             </div>
@@ -145,12 +148,12 @@ export function FileAttachmentView({ attrs, Wrapper = "div" }) {
                 {previewOpen ? (
                   <>
                     <EyeOff className="w-3.5 h-3.5" />
-                    <span>Hide Preview</span>
+                    <span>{t("blocks.hidePreview")}</span>
                   </>
                 ) : (
                   <>
                     <Eye className="w-3.5 h-3.5" />
-                    <span>Preview Inline</span>
+                    <span>{t("blocks.preview")}</span>
                   </>
                 )}
               </button>
@@ -166,7 +169,7 @@ export function FileAttachmentView({ attrs, Wrapper = "div" }) {
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-teal-50 text-teal-700 hover:bg-teal-100 border border-teal-200 transition-colors"
               >
                 <Download className="w-3.5 h-3.5" />
-                <span>Download</span>
+                <span>{t("common.download")}</span>
               </a>
             )}
           </div>
@@ -187,8 +190,8 @@ export function FileAttachmentView({ attrs, Wrapper = "div" }) {
                       type="button"
                       onClick={() => setZoom((z) => Math.max(50, z - 25))}
                       className="p-1 hover:bg-slate-700 rounded"
-                      title="Zoom Out"
-                      aria-label="Zoom out"
+                      title={t("blocks.zoomOut")}
+                      aria-label={t("blocks.zoomOut")}
                     >
                       <ZoomOut className="w-3.5 h-3.5" />
                     </button>
@@ -197,8 +200,8 @@ export function FileAttachmentView({ attrs, Wrapper = "div" }) {
                       type="button"
                       onClick={() => setZoom((z) => Math.min(200, z + 25))}
                       className="p-1 hover:bg-slate-700 rounded"
-                      title="Zoom In"
-                      aria-label="Zoom in"
+                      title={t("blocks.zoomIn")}
+                      aria-label={t("blocks.zoomIn")}
                     >
                       <ZoomIn className="w-3.5 h-3.5" />
                     </button>
@@ -262,6 +265,7 @@ export function parseVideoSource(src = "") {
 }
 
 export function VideoEmbedView({ attrs, Wrapper = "div" }) {
+  const { t } = useCourseText();
   const { src } = attrs;
   const videoInfo = parseVideoSource(src);
   // Uploaded videos are relative backend paths, loaded with the media cookie.
@@ -275,7 +279,7 @@ export function VideoEmbedView({ attrs, Wrapper = "div" }) {
           {videoInfo.type === "youtube" || videoInfo.type === "vimeo" ? (
             <iframe
               src={videoInfo.embedUrl}
-              title="Embedded Video Player"
+              title={t("blocks.videoPlayer")}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
               className="absolute inset-0 w-full h-full border-none"
@@ -292,7 +296,7 @@ export function VideoEmbedView({ attrs, Wrapper = "div" }) {
               controls
               className="absolute inset-0 w-full h-full object-contain"
             >
-              Your browser does not support HTML5 video player.
+              {t("blocks.noVideoSupport")}
             </video>
           )}
         </div>
@@ -318,6 +322,7 @@ export const IMAGE_ALIGN_CLASSES = {
 
 // Read-only image block (same markup as the editor's node view when not editable).
 export function ImageView({ attrs }) {
+  const { t } = useCourseText();
   const { url, alt_text = "", caption = "", alignment = "center", size = "medium" } = attrs;
   const imageUrl = resolveMediaUrl(url);
   const access = useMediaAccess(imageUrl, { precheck: false });
@@ -331,7 +336,7 @@ export function ImageView({ attrs }) {
             onError={access.onMediaError}
             hidden={access.state !== "ok"}
             src={imageUrl || "/placeholder-image.png"}
-            alt={alt_text || "Embedded image"}
+            alt={alt_text || t("editor.image.embedded")}
             className="w-full h-auto object-cover rounded-xl"
           />
         </div>

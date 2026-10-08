@@ -8,7 +8,7 @@ import Breadcrumbs from "@/components/course/Breadcrumbs";
 import { PageHeader, Section, DataTable, EmptyState } from "@/components/layout";
 import { useToast } from "@/context/ToastContext";
 import PrevNextNav from "@/components/course/navigation/PrevNextNav";
-import { moduleWeekLabel } from "@/lib/moduleLabels";
+import { useCourseText } from "@/components/course/useCourseText";
 import { useItemOpened } from "@/lib/usage";
 
 function getOptionText(opt) {
@@ -27,6 +27,7 @@ export default function QuizDetailPage() {
   const { courseId, quizId } = useParams();
   useItemOpened("quiz", quizId, courseId);
   const { SERVER_URL, userEmail, isTeacher } = useCourse();
+  const { t, tf, weekLabel, fmtDate, fmtDateTime } = useCourseText();
   const [quiz, setQuiz] = useState(null);
   const [modules, setModules] = useState([]);
   const [itemOutcomes, setItemOutcomes] = useState([]);
@@ -81,11 +82,11 @@ export default function QuizDetailPage() {
       } else {
         // 409 codes: NO_ATTEMPTS_LEFT, CLOSED, NOT_OPEN_YET each come with a readable message.
         const fallback = {
-          NO_ATTEMPTS_LEFT: "You have used all your attempts for this quiz.",
-          CLOSED: "This quiz is closed.",
-          NOT_OPEN_YET: "This quiz is not open yet.",
+          NO_ATTEMPTS_LEFT: t("quiz.noAttemptsLeft"),
+          CLOSED: t("quiz.closed"),
+          NOT_OPEN_YET: t("quiz.notOpenYet"),
         }[payload.code];
-        setSubmitError(payload.message || fallback || "Failed to submit quiz.");
+        setSubmitError(payload.message || fallback || t("quiz.submitFailed"));
       }
       load();
     } finally {
@@ -94,7 +95,7 @@ export default function QuizDetailPage() {
   };
 
   const grantAttempt = async (sub) => {
-    const reason = window.prompt(`Allow ${sub.fullName || sub.scholar_email} another attempt? Optional reason:`, "");
+    const reason = window.prompt(tf("quiz.grantPrompt", { name: sub.fullName || sub.scholar_email }), "");
     if (reason === null) return;
     setGranting(sub.scholar_email);
     try {
@@ -105,20 +106,20 @@ export default function QuizDetailPage() {
       });
       const payload = await res.json().catch(() => ({}));
       if (!res.ok) {
-        showToast(payload.message || "Could not grant another attempt.", "error");
+        showToast(payload.message || t("quiz.grantFailed"), "error");
         return;
       }
-      showToast(payload.message || "Extra attempt granted.", "success");
+      showToast(payload.message || t("quiz.granted"), "success");
       load();
     } catch (err) {
-      showToast(err.message || "Could not grant another attempt.", "error");
+      showToast(err.message || t("quiz.grantFailed"), "error");
     } finally {
       setGranting(null);
     }
   };
 
-  if (loading) return <div className="p-6"><p className="text-sm text-slate-500">Loading quiz...</p></div>;
-  if (!quiz) return <div className="p-6"><p className="text-sm text-rose-600">Quiz not found.</p></div>;
+  if (loading) return <div className="p-6"><p className="text-sm text-slate-500">{t("quiz.loading")}</p></div>;
+  if (!quiz) return <div className="p-6"><p className="text-sm text-rose-600">{t("quiz.notFound")}</p></div>;
 
   const currentModule = quiz.module || modules.find(m => m.id === quiz.module_id) || null;
   const attemptsAllowed = quiz.attempts_allowed ?? null;
@@ -138,10 +139,10 @@ export default function QuizDetailPage() {
           meta={
             <>
             <span className="text-xs font-bold text-[#0D9488] bg-teal-50 border border-teal-200 px-2.5 py-1 rounded-full">
-              Module: {currentModule ? `${moduleWeekLabel(currentModule)} - ${currentModule.title}` : "Not in a module"}
+              {tf("assignment.module", { module: currentModule ? `${weekLabel(currentModule)} - ${currentModule.title}` : t("assignment.notInModule") })}
             </span>
             <span className="text-xs font-semibold text-slate-500 flex items-center gap-1">
-              <Clock className="w-3.5 h-3.5 text-slate-400" /> {quiz.due_at ? `Due ${new Date(quiz.due_at).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}` : "No due date"}
+              <Clock className="w-3.5 h-3.5 text-slate-400" /> {quiz.due_at ? tf("common.dueOn", { date: fmtDate(quiz.due_at, { weekday: "short", day: "numeric", month: "short" }) }) : t("common.noDueDate")}
             </span>
             </>
           }
@@ -149,13 +150,13 @@ export default function QuizDetailPage() {
           {/* Outcome Tags */}
           <div className="flex items-center gap-2 flex-wrap pt-2">
             <span className="text-xs font-bold text-slate-500 flex items-center gap-1">
-              <Target className="w-3.5 h-3.5 text-[#0D9488]" /> Target Outcomes Assessed:
+              <Target className="w-3.5 h-3.5 text-[#0D9488]" /> {t("quiz.targetOutcomes")}
             </span>
             {itemOutcomes.length === 0 && quiz.kind === "practice" ? (
-              <span className="text-xs text-slate-400">Practice quiz (not graded)</span>
+              <span className="text-xs text-slate-400">{t("quiz.practiceNotGraded")}</span>
             ) : itemOutcomes.length === 0 ? (
               <span className="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full">
-                ⚠️ Missing Outcome Tag
+                ⚠️ {t("modules.missingOutcome")}
               </span>
             ) : (
               itemOutcomes.map((t) => (
@@ -171,54 +172,54 @@ export default function QuizDetailPage() {
           <div role="status" className="rounded-xl border border-teal-200 bg-teal-50 p-4 text-sm text-teal-900 space-y-1">
             <p className="font-bold flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5 text-[#0D9488]" />
-              Quiz submitted. Score: {submitted.score} points{submitted.scorePct != null ? ` (${submitted.scorePct}%)` : ""}
+              {tf("quiz.submittedScore", { n: submitted.score })}{submitted.scorePct != null ? ` (${submitted.scorePct}%)` : ""}
             </p>
             <p className="text-xs">
-              Attempt {submitted.attemptNumber}
-              {submitted.attemptsRemaining != null ? ` · ${submitted.attemptsRemaining} attempt(s) left` : ""}
+              {tf("quiz.attemptN", { n: submitted.attemptNumber })}
+              {submitted.attemptsRemaining != null ? ` · ${tf(submitted.attemptsRemaining === 1 ? "quiz.oneLeft" : "quiz.manyLeft", { n: submitted.attemptsRemaining })}` : ""}
             </p>
             {submitted.late ? (
-              <p className="text-xs font-semibold text-amber-700 flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> Submitted late</p>
+              <p className="text-xs font-semibold text-amber-700 flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {t("assignment.submittedLate")}</p>
             ) : null}
           </div>
         ) : null}
 
         {isTeacher ? (
           <Section
-            title="Results"
+            title={t("quiz.results")}
             description={attemptsAllowed == null
-              ? "Each learner's latest attempt. Unlimited attempts."
-              : `Each learner's latest attempt. ${attemptsAllowed} attempt(s) allowed.`}
+              ? t("quiz.resultsUnlimited")
+              : tf(attemptsAllowed === 1 ? "quiz.resultsOneAllowed" : "quiz.resultsManyAllowed", { n: attemptsAllowed })}
           >
             {results.length === 0 ? (
-              <EmptyState compact title="No attempts yet." />
+              <EmptyState compact title={t("quiz.noAttempts")} />
             ) : (
               <DataTable
-                caption="Latest quiz attempts"
+                caption={t("quiz.latestAttempts")}
                 rows={results}
                 rowKey={(r) => r.scholar_email}
                 columns={[
-                  { key: "fullName", header: "Learner", className: "font-medium text-slate-800 dark:text-slate-100", render: (r) => r.fullName || r.scholar_email },
+                  { key: "fullName", header: t("quiz.learner"), className: "font-medium text-slate-800 dark:text-slate-100", render: (r) => r.fullName || r.scholar_email },
                   {
                     key: "score",
-                    header: "Score",
+                    header: t("quiz.score"),
                     align: "right",
                     className: "whitespace-nowrap",
                     render: (r) => (
-                      <span className="font-semibold">{r.score_pct != null ? `${r.score_pct}%` : r.score != null ? `${r.score} pts` : "—"}</span>
+                      <span className="font-semibold">{r.score_pct != null ? `${r.score_pct}%` : r.score != null ? tf("common.points", { n: r.score }) : "—"}</span>
                     ),
                   },
-                  { key: "attempt", header: "Attempt", align: "center", render: (r) => r.attempt_number ?? "—" },
+                  { key: "attempt", header: t("quiz.attempt"), align: "center", render: (r) => r.attempt_number ?? "—" },
                   {
                     key: "date",
-                    header: "Submitted",
+                    header: t("quiz.submittedCol"),
                     hideOnMobile: true,
                     className: "whitespace-nowrap text-slate-500",
-                    render: (r) => (r.submitted_at ? new Date(r.submitted_at).toLocaleString() : "—"),
+                    render: (r) => (r.submitted_at ? fmtDateTime(r.submitted_at) : "—"),
                   },
                   ...(canGrant ? [{
                     key: "actions",
-                    header: <span className="sr-only">Actions</span>,
+                    header: <span className="sr-only">{t("quiz.actions")}</span>,
                     align: "right",
                     render: (r) => (
                       <button
@@ -228,7 +229,7 @@ export default function QuizDetailPage() {
                         className="inline-flex items-center gap-1 text-xs font-semibold text-[#0D9488] hover:underline disabled:opacity-50 whitespace-nowrap"
                       >
                         <RotateCcw className="w-3.5 h-3.5" aria-hidden="true" />
-                        {granting === r.scholar_email ? "Granting..." : "Allow another attempt"}
+                        {granting === r.scholar_email ? t("quiz.granting") : t("quiz.allowAnother")}
                       </button>
                     ),
                   }] : []),
@@ -239,21 +240,21 @@ export default function QuizDetailPage() {
         ) : null}
 
         {/* QUESTIONS LIST (FOR STUDENT TAKING OR TEACHER PREVIEW) */}
-        <Section title={`Questions (${(quiz.questions || []).length})`}>
+        <Section title={tf("editors.quiz.questionsCount", { n: (quiz.questions || []).length })}>
           <ol className="divide-y divide-slate-100 dark:divide-slate-800 rounded-xl border border-slate-200 dark:border-slate-800">
           {(quiz.questions || []).map((q, idx) => (
             <li key={q.id || idx} className="p-4 space-y-3">
               <div className="flex items-start justify-between gap-3">
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                  Question {idx + 1}: {q.prompt}
+                  {tf("editors.quiz.questionN", { n: idx + 1 })}: {q.prompt}
                 </h3>
                 <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full shrink-0">
-                  {q.points} pts
+                  {tf("common.points", { n: q.points })}
                 </span>
               </div>
 
               {q.question_type === "multiple_choice" ? (
-                <div className="space-y-1" role="radiogroup" aria-label={`Question ${idx + 1} options`}>
+                <div className="space-y-1" role="radiogroup" aria-label={tf("quiz.optionsFor", { n: idx + 1 })}>
                   {(Array.isArray(q.options) ? q.options : []).map((opt, i) => {
                     const text = getOptionText(opt);
                     const id = getOptionId(opt, i);
@@ -276,8 +277,8 @@ export default function QuizDetailPage() {
                   value={answers[q.id] || ""}
                   onChange={(e) => setAnswers((p) => ({ ...p, [q.id]: e.target.value }))}
                   rows={3}
-                  placeholder="Write your open answer..."
-                  aria-label={`Answer to question ${idx + 1}`}
+                  placeholder={t("quiz.openAnswerPlaceholder")}
+                  aria-label={tf("quiz.answerTo", { n: idx + 1 })}
                   className="w-full text-sm border border-slate-200 rounded-lg p-3 outline-none focus:border-[#0D9488]"
                 />
               )}
@@ -289,14 +290,14 @@ export default function QuizDetailPage() {
             <div className="pt-4 flex flex-col items-end gap-2">
               <span className="text-xs font-semibold text-slate-500">
                 {attemptsAllowed == null
-                  ? "Unlimited attempts"
+                  ? t("quiz.unlimitedAttempts")
                   : noAttemptsLeft
-                  ? `All ${attemptsAllowed} attempt(s) used`
-                  : `Attempt ${attemptsUsed + 1} of ${attemptsAllowed}`}
+                  ? tf("quiz.allUsed", { n: attemptsAllowed })
+                  : tf("quiz.attemptOf", { n: attemptsUsed + 1, total: attemptsAllowed })}
               </span>
               {noAttemptsLeft && (
                 <p className="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-xl">
-                  You&apos;ve used all your attempts for this quiz.
+                  {t("quiz.noAttemptsLeft")}
                 </p>
               )}
               {submitError && <p role="alert" className="text-xs font-semibold text-rose-600">{submitError}</p>}
@@ -305,7 +306,7 @@ export default function QuizDetailPage() {
                 disabled={noAttemptsLeft || submitting}
                 className="px-6 py-2.5 bg-[#0D9488] hover:bg-teal-700 disabled:opacity-50 disabled:hover:bg-[#0D9488] text-white font-bold text-xs rounded-lg transition-colors"
               >
-                {submitting ? "Submitting..." : "Submit Quiz Answers"}
+                {submitting ? t("assignment.submitting") : t("quiz.submit")}
               </button>
             </div>
           )}

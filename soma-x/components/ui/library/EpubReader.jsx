@@ -4,10 +4,12 @@ import { ReactReader } from 'react-reader';
 import { AlertTriangle, X } from 'lucide-react';
 import { MediaAccessNotice } from '@/components/guest/MediaAccess';
 import { getSessionToken } from '@/lib/session';
+import { useLanguage } from '@/context/LanguageContext';
 import SummaryPanel, { SummaryToggleButton, useContentSummary } from '@/components/explore/SummaryPanel';
 
 // `summaryPath`: the book's path_key, to offer its AI summary beside the reader.
 const EpubReader = ({ url, title, onClose, summaryPath = null }) => {
+    const { t } = useLanguage()
     const [summaryOpen, setSummaryOpen] = useState(false)
     const summary = useContentSummary(summaryPath, { active: Boolean(summaryPath) })
     const [location, setLocation] = useState(null)
@@ -98,8 +100,8 @@ const EpubReader = ({ url, title, onClose, summaryPath = null }) => {
                     <button
                         onClick={onClose}
                         className="p-2 hover:bg-gray-100 rounded-full transition-colors group"
-                        title="Close Reader"
-                        aria-label="Close Reader"
+                        title={t("learner.reader.close")}
+                        aria-label={t("learner.reader.close")}
                     >
                         <X className="w-6 h-6 text-gray-600 group-hover:text-gray-600" />
                     </button>
@@ -115,18 +117,18 @@ const EpubReader = ({ url, title, onClose, summaryPath = null }) => {
                     ) : loading ? (
                         <div className="flex flex-col items-center gap-4">
                             <div className="w-12 h-12 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin"></div>
-                            <p className="text-gray-500 font-medium">Opening your book...</p>
+                            <p className="text-gray-500 font-medium">{t("learner.reader.opening")}</p>
                         </div>
                     ) : error ? (
                         <div className="text-center p-8">
                             <AlertTriangle className="w-10 h-10 text-amber-500 mx-auto mb-4" />
-                            <h3 className="text-lg font-bold text-gray-800 mb-2">Failed to load book</h3>
+                            <h3 className="text-lg font-bold text-gray-800 mb-2">{t("learner.reader.failed")}</h3>
                             <p className="text-gray-500 max-w-md mx-auto">{error}</p>
                             <button
                                 onClick={onClose}
                                 className="mt-6 px-6 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
                             >
-                                Go Back
+                                {t("learner.reader.goBack")}
                             </button>
                         </div>
                     ) : (
