@@ -1,3 +1,4 @@
+import swExplore from "./explore/sw";
 import swAttendance from "./attendance/sw";
 import swGuest from "./guest/sw";
 import swExplainers from "./explainers/sw";
@@ -5,6 +6,7 @@ import swExplainers from "./explainers/sw";
 export default {
     "attendance": swAttendance,
     "guest": swGuest,
+    "explore": swExplore,
     "explainers": swExplainers,
     "nav": {
         "dashboard": "Nyumbani",

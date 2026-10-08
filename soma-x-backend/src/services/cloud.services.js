@@ -3,10 +3,7 @@ import fs from 'fs';
 import path from 'path';
 
 import { fileURLToPath } from 'url';
-import { loadContentIntoDB, deleteContentByPath } from '../helpers/db.js';
-import { hydrateCaches } from '../data/cache/index.js';
-import sharp from 'sharp';
-import { pdfToPng } from 'pdf-to-png-converter';
+import { syncExploreIndex } from './explore/indexer.js';
 
 import { config } from '../config/index.js';
 import { requireRole } from '../helpers/auth.js';
@@ -142,37 +139,6 @@ function limitConcurrency(tasks, limit) {
     });
 }
 
-async function generatePDFCover(filePath) {
-    const fullPath = path.join(LOCAL_STORAGE_ROOT, filePath);
-    const coverFileName = filePath.replace(/\.pdf$/i, '.avif');
-    const coverPath = path.join(LOCAL_STORAGE_ROOT_PDF_COVERS, coverFileName);
-
-    try {
-        // Ensure output directory exists
-        fs.mkdirSync(path.dirname(coverPath), { recursive: true });
-
-        // 1. Use pdf-to-png-converter to extract first page
-        const pngPages = await pdfToPng(fullPath, {
-            pagesToProcess: [1],
-            viewportScale: 2.0
-        });
-
-        if (pngPages.length === 0) {
-            throw new Error('Failed to extract page from PDF');
-        }
-
-        // 2. Use sharp to convert buffer to AVIF and optimize
-        await sharp(pngPages[0].content)
-            .resize({ height: 800, withoutEnlargement: true })
-            .avif({ quality: 45 })
-            .toFile(coverPath);
-
-        console.log('Generated cover for:', filePath);
-    } catch (err) {
-        console.error('Failed to generate cover for', filePath, ':', err.message);
-    }
-}
-
 async function downloadFile(filePath) {
     const encodedPath = filePath.split('/').map(encodeURIComponent).join('/');
     const cloudFileUrl = `${CLOUD_CONTENT_ROOT}/${encodedPath}`;
@@ -191,14 +157,6 @@ async function downloadFile(filePath) {
     const cloudSize = parseInt(headRes.headers.get('content-length'), 10);
 
     if (localStat && localStat.size === cloudSize) {
-        // Even if skipped, ensure cover exists if it's a PDF
-        if (filePath.toLowerCase().endsWith('.pdf')) {
-            const coverFileName = filePath.replace(/\.pdf$/i, '.avif');
-            const coverPath = path.join(LOCAL_STORAGE_ROOT_PDF_COVERS, coverFileName);
-            if (!fs.existsSync(coverPath)) {
-                await generatePDFCover(filePath);
-            }
-        }
         return { file: filePath, status: 'skipped' };
     }
 
@@ -213,11 +171,6 @@ async function downloadFile(filePath) {
         }
         writeStream.end();
         await new Promise(resolve => writeStream.on('finish', resolve));
-
-        // Generate cover if it's a PDF
-        if (filePath.toLowerCase().endsWith('.pdf')) {
-            await generatePDFCover(filePath);
-        }
     } catch (err) {
         writeStream.destroy();
         throw err;
@@ -234,8 +187,8 @@ async function startDownload(files) {
         const fileTasks = files.map(f => () => downloadFile(f));
         const results = await limitConcurrency(fileTasks, MAX_CONCURRENT);
 
-        await loadContentIntoDB();
-        await hydrateCaches();
+        // Explore follows the disk: index what arrived (covers are made in the background).
+        await syncExploreIndex({ root: 'rwandan-education' });
 
         downloadStatus = "finished";
         return results;
@@ -303,15 +256,10 @@ router.post('/delete', async (req, res) => {
                 }
             }
 
-            // 2. Delete from database
-            // Note: relPath in cloud metadata doesn't have 'rwandan-education/' prefix
-            // but in DB path_key it does.
-            const dbPathKey = path.join('rwandan-education', relPath);
-            deleteContentByPath(dbPathKey);
         }
 
-        // 3. Hydrate caches
-        await hydrateCaches();
+        // 2. Explore follows the disk: drop what was deleted from the index.
+        await syncExploreIndex({ root: 'rwandan-education' });
 
         res.json({ message: 'Content deleted successfully' });
     } catch (err) {

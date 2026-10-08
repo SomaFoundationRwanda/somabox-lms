@@ -4,8 +4,8 @@ import { useRouter, useParams, usePathname } from 'next/navigation';
 import { useContext, useEffect, useState, useMemo } from 'react';
 import HeaderSection from '@/components/ui/HeaderSection';
 import Link from 'next/link';
-import { Book, BookOpen, FileAudio, Frown, Home, Video } from 'lucide-react';
-import ContentCard from '@/components/ui/ContentCard';
+import { Book, BookOpen, FileAudio, FolderX, Frown, Home, Video } from 'lucide-react';
+import FolderCard, { folderTitle, serverAsset } from '@/components/explore/FolderCard';
 import DataContext from '@/context/DataContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { Button } from '@/components/ui/button';
@@ -33,65 +33,53 @@ const getTypeBadgeColor = (type) => {
   }
 };
 
-const getTranslatedTitle = (slug, t, summaryData = null) => {
-  if (!slug) return '';
-  const lastSegment = slug.includes('/') ? slug.split('/').pop() : slug;
-  const translationKey = `educationLevels.${lastSegment}`;
-  // t() returns null (not the key) when no language has it; fall back to the data title.
-  const translation = t(translationKey);
-
-  if (translation && translation !== translationKey) return translation;
-
-  if (summaryData && summaryData[slug]?.title) return summaryData[slug].title;
-
-  return lastSegment.replace(/-/g, ' ').toUpperCase();
-};
-
 // --- Sub-components ---
 
-function ContentDisplayPage({ levelInfo, breadcrumbs, onBreadcrumbClick }) {
+function BookCover({ item }) {
+  const [failed, setFailed] = useState(false);
+  const src = !failed ? serverAsset(item.cover || item.thumbnail) : null;
+  return (
+    <img
+      src={src || '/images/book-cover.svg'}
+      alt=""
+      loading="lazy"
+      className="w-full h-48 object-cover p-4"
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
+function FolderPage({ levelInfo, breadcrumbs, onBreadcrumbClick }) {
   const [activeFilter, setActiveFilter] = useState('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState(null);
   const { t } = useLanguage();
-  const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL;
   const pathname = usePathname();
   const { isGuest, requireAccount } = useGuestGate();
 
+  const content = useMemo(() => levelInfo?.content || [], [levelInfo]);
+  const folders = levelInfo?.items || [];
+
   // Back from signing up (or logging in) to open something: ?open=<item id> opens it.
   useEffect(() => {
-    if (isGuest || !levelInfo?.content?.length) return;
+    if (isGuest || !content.length) return;
     let openId = null;
     try { openId = new URLSearchParams(window.location.search).get('open'); } catch { /* ignore */ }
     if (!openId) return;
-    const item = levelInfo.content.find((entry) => String(entry.id) === openId);
+    const item = content.find((entry) => String(entry.id) === openId);
     if (item) {
       setSelectedMedia(item);
       setIsModalOpen(true);
     }
     window.history.replaceState(null, '', window.location.pathname);
-  }, [isGuest, levelInfo]);
+  }, [isGuest, content]);
 
-  const filteredContent = useMemo(() => {
-    if (!levelInfo?.content) return [];
-    return activeFilter === 'all'
-      ? levelInfo.content
-      : levelInfo.content.filter(item => item.type === activeFilter);
-  }, [activeFilter, levelInfo?.content]);
+  const filteredContent = useMemo(() => (
+    activeFilter === 'all' ? content : content.filter((item) => item.type === activeFilter)
+  ), [activeFilter, content]);
 
-  if (!levelInfo) {
-    return (
-      <div className="min-h-screen flex-1 bg-slate-200 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold text-gray-600">{t("notFound")}</h2>
-          <p className="text-gray-500 mt-2">{t("notContent")}</p>
-        </div>
-      </div>
-    );
-  }
-
-  const hasContent = levelInfo.content && levelInfo.content.length > 0;
-  const hasItems = levelInfo.items && levelInfo.items.length > 0;
+  const hasContent = content.length > 0;
+  const hasFolders = folders.length > 0;
 
   const filterOptions = [
     { key: 'all', label: t("all"), icon: <BookOpen /> },
@@ -99,6 +87,8 @@ function ContentDisplayPage({ levelInfo, breadcrumbs, onBreadcrumbClick }) {
     { key: 'book', label: t("books"), icon: <Book /> },
     { key: 'audio', label: t("audio"), icon: <FileAudio /> }
   ];
+
+  const actionLabel = (type) => t(type === 'video' ? 'explore.watch' : type === 'book' ? 'explore.read' : 'explore.listen');
 
   const handleItemClick = (item) => {
     // Guests can browse; opening a video, book or audio needs an account.
@@ -110,8 +100,8 @@ function ContentDisplayPage({ levelInfo, breadcrumbs, onBreadcrumbClick }) {
   return (
     <div className="min-h-screen flex-1 bg-slate-200">
       <HeaderSection
-        title={getTranslatedTitle(levelInfo.slug, t)}
-        subtitle={hasContent ? t("learningResources") : t("contentArea")}
+        title={folderTitle(levelInfo.slug, levelInfo.title, t)}
+        subtitle={levelInfo.subtitle || (hasContent ? t("learningResources") : t("exploreTopics"))}
         breadcrumbs={breadcrumbs}
         onBreadcrumbClick={onBreadcrumbClick}
       />
@@ -125,9 +115,29 @@ function ContentDisplayPage({ levelInfo, breadcrumbs, onBreadcrumbClick }) {
           }}
           mediaItem={selectedMedia}
         />
-        <div className="flex-1 p-4">
-          {hasContent ? (
-            <div className="space-y-6">
+        <div className="flex-1 p-4 space-y-8">
+          {hasFolders && (
+            <section aria-labelledby="explore-folders-heading" className="space-y-4">
+              {hasContent && (
+                <h2 id="explore-folders-heading" className="text-lg font-bold text-slate-900 xl:px-10 2xl:px-20">
+                  {t("explore.foldersHeading")}
+                </h2>
+              )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6 xl:px-10 2xl:px-20">
+                {folders.map((folder) => (
+                  <FolderCard key={folder.slug} folder={folder} />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {hasContent && (
+            <section className="space-y-6" aria-labelledby={hasFolders ? "explore-files-heading" : undefined}>
+              {hasFolders && (
+                <h2 id="explore-files-heading" className="text-lg font-bold text-slate-900 xl:px-10 2xl:px-20">
+                  {t("explore.filesHeading")}
+                </h2>
+              )}
               <div className="sticky top-0 z-30 -mx-3 px-3 bg-slate-200/80 backdrop-blur-md py-4 border-b border-black/5 md:border-none md:bg-transparent md:static md:p-0">
                 <div className="flex overflow-x-auto scrollbar-hide gap-2 bg-accent-light p-2 md:p-3 rounded-2xl md:rounded-full">
                   {filterOptions.map((option) => (
@@ -147,7 +157,7 @@ function ContentDisplayPage({ levelInfo, breadcrumbs, onBreadcrumbClick }) {
                       </Typography>
                       {option.key !== 'all' && (
                         <span className={`text-[10px] md:text-xs px-2 py-0.5 rounded-full font-black ${activeFilter === option.key ? 'bg-accent-light text-white' : 'bg-white/20 text-white'}`}>
-                          {levelInfo.content.filter(item => item.type === option.key).length}
+                          {content.filter(item => item.type === option.key).length}
                         </span>
                       )}
                     </Button>
@@ -164,17 +174,7 @@ function ContentDisplayPage({ levelInfo, breadcrumbs, onBreadcrumbClick }) {
                           <Video className="text-white opacity-50" size={48} />
                         </div>
                       )}
-                      {item.type === 'book' && (
-                        <img
-                          src={`${SERVER_URL}/pdf-book-covers${item.url.replace(/\.pdf$/i, '.avif')}`}
-                          alt={item.title}
-                          className="w-full h-48 object-cover p-4"
-                          onError={(e) => {
-                            e.target.src = '/images/book-cover.svg';
-                            e.target.onerror = null;
-                          }}
-                        />
-                      )}
+                      {item.type === 'book' && <BookCover item={item} />}
                       {item.type === 'audio' && (
                         <div className="w-full h-48 bg-slate-100 flex items-center justify-center">
                           <FileAudio className="text-slate-600" size={48} aria-hidden="true" />
@@ -183,13 +183,13 @@ function ContentDisplayPage({ levelInfo, breadcrumbs, onBreadcrumbClick }) {
 
                       <div className="absolute top-2 left-2">
                         <span className={`px-2 py-1 flex items-center gap-1 rounded-full text-xs font-medium ${getTypeBadgeColor(item.type)}`}>
-                          {getTypeIcon(item.type)} {item.type.charAt(0).toUpperCase() + item.type.slice(1)}
+                          {getTypeIcon(item.type)} {t(`explore.types.${item.type}`) || item.type}
                         </span>
                       </div>
 
                       {(item.duration || item.pages) && (
                         <div className="absolute bottom-2 right-2 bg-black/75 text-white px-2 py-1 rounded text-xs">
-                          {item.duration || `${item.pages} pages`}
+                          {item.duration || `${item.pages} ${t("explore.pages")}`}
                         </div>
                       )}
                     </div>
@@ -204,10 +204,10 @@ function ContentDisplayPage({ levelInfo, breadcrumbs, onBreadcrumbClick }) {
                         variant="outline"
                         width="full"
                         onClick={() => handleItemClick(item)}
-                        aria-label={`${item.type === 'video' ? 'Watch' : item.type === 'book' ? 'Read' : 'Listen'}: ${item.title}`}
+                        aria-label={`${actionLabel(item.type)}: ${item.title}`}
                         className="bg-primary-500/10 text-primary-700 border-none hover:bg-primary-500/20 mt-2 after:absolute after:inset-0 after:content-[''] focus-visible:outline-none"
                       >
-                        {item.type === 'video' ? 'Watch' : item.type === 'book' ? 'Read' : 'Listen'}
+                        {actionLabel(item.type)}
                       </Button>
                     </div>
                   </div>
@@ -217,32 +217,42 @@ function ContentDisplayPage({ levelInfo, breadcrumbs, onBreadcrumbClick }) {
               {filteredContent.length === 0 && (
                 <div className="bg-white rounded-lg p-12 text-center">
                   <Frown className="text-gray-500 w-14 h-14 mb-4 mx-auto" aria-hidden="true" />
-                  <Typography variant="h3" color="muted" className="mb-2">No content found</Typography>
-                  <Typography variant="body" color="muted">No {activeFilter === 'all' ? '' : activeFilter} content available for this topic.</Typography>
+                  <Typography variant="h3" color="muted" className="mb-2">{t("explore.noFilesOfType")}</Typography>
                 </div>
               )}
+            </section>
+          )}
+
+          {!hasContent && !hasFolders && (
+            <div className="bg-white rounded-lg p-8 shadow-md">
+              <Typography variant="body" color="muted">{t("explore.emptyFolder")}</Typography>
             </div>
-          ) : (
-            hasItems ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6 lg:px-10 2xl:px-20">
-                {levelInfo.items.map((item, index) => (
-                  <ContentCard
-                    key={index}
-                    title={item.title}
-                    image='/imageFallback.png'
-                    colorClass={item.colorClass}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="bg-white rounded-lg p-8 shadow-md">
-                <Typography variant="h1" className="mb-4">{levelInfo.title}</Typography>
-                <Typography variant="body" color="muted">Content for {levelInfo.title} is being prepared.</Typography>
-              </div>
-            )
           )}
         </div>
       </main>
+    </div>
+  );
+}
+
+function FolderGone() {
+  const { t } = useLanguage();
+  return (
+    <div className="min-h-screen flex-1 bg-slate-200 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-8 text-center space-y-6">
+        <div className="w-20 h-20 bg-accent-light/10 text-accent-dark rounded-full flex items-center justify-center mx-auto mb-2">
+          <FolderX className="w-9 h-9" aria-hidden="true" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-2xl font-bold text-slate-800">{t("explore.goneTitle")}</h2>
+          <p className="text-slate-500 leading-relaxed text-sm">{t("explore.goneText")}</p>
+        </div>
+        <Link
+          href="/home"
+          className="flex items-center justify-center w-full h-12 text-base font-bold bg-accent-dark hover:bg-black text-white transition-colors rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-dark focus-visible:ring-offset-2"
+        >
+          {t("explore.backToExplore")}
+        </Link>
+      </div>
     </div>
   );
 }
@@ -252,113 +262,40 @@ function ContentDisplayPage({ levelInfo, breadcrumbs, onBreadcrumbClick }) {
 export default function DynamicContentPage() {
   const router = useRouter();
   const params = useParams();
-  const slug = params.slug || [];
-  const [currentLevel, setCurrentLevel] = useState(null);
-  const [breadcrumbs, setBreadcrumbs] = useState([]);
+  const slug = useMemo(() => (params.slug || []).map((part) => {
+    try { return decodeURIComponent(part); } catch { return part; }
+  }), [params.slug]);
   const { t } = useLanguage();
-  const { summaryData, customContentSummary } = useContext(DataContext);
-
-  const dataSource = useMemo(() => {
-    return slug[0] === 'custom-content' ? customContentSummary : summaryData;
-  }, [slug, summaryData, customContentSummary]);
+  const { summaryData } = useContext(DataContext);
+  const fullKey = slug.join('/');
 
   useEffect(() => {
-    if (!slug || slug.length === 0) {
-      router.push('/');
-      return;
-    }
+    if (slug.length === 0) router.push('/');
+  }, [slug.length, router]);
 
-    if (!dataSource) return;
+  const levelData = summaryData ? summaryData[fullKey] : undefined;
 
-    const fullLevelKey = slug.join('/');
-    const levelData = dataSource[fullLevelKey];
-
-    if (!levelData) {
-      setCurrentLevel(null);
-      return;
-    }
-
-    const crumbs = [{ name: <><Home className="w-5 h-5" aria-hidden="true" /><span className="sr-only">Home</span></>, path: '/' }];
-    let currentPath = '';
-
-    slug.forEach((segment, index) => {
-      const currentFullSlug = slug.slice(0, index + 1).join('/');
-      currentPath += `/${segment}`;
-
-      const displayName = getTranslatedTitle(currentFullSlug, t, dataSource);
-
-      crumbs.push({ name: displayName, path: currentPath });
+  const breadcrumbs = useMemo(() => {
+    const crumbs = [{ name: <><Home className="w-5 h-5" aria-hidden="true" /><span className="sr-only">{t("explore.home")}</span></>, path: '/home' }];
+    slug.forEach((_, index) => {
+      const key = slug.slice(0, index + 1).join('/');
+      crumbs.push({
+        name: folderTitle(key, summaryData?.[key]?.title, t),
+        path: `/${slug.slice(0, index + 1).map(encodeURIComponent).join('/')}`,
+      });
     });
+    return crumbs;
+  }, [slug, summaryData, t]);
 
-    setBreadcrumbs(crumbs);
-    setCurrentLevel(levelData);
-  }, [slug, dataSource, router, t]);
-
-  if (!currentLevel && dataSource) {
-    return (
-      <div className="min-h-screen flex-1 bg-slate-200 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-8 text-center space-y-6">
-          <div className="w-20 h-20 bg-accent-light/10 text-accent-dark rounded-full flex items-center justify-center mx-auto mb-2">
-            <Frown className="w-9 h-9" aria-hidden="true" />
-          </div>
-          <div className="space-y-2">
-            <h2 className="text-2xl font-bold text-slate-800">Oops, you lost your way!</h2>
-            <p className="text-slate-500 leading-relaxed text-sm">
-              You are currently logged out or trying to access a page that does not exist. Click below to login again and continue learning. Enjoy learning!
-            </p>
-          </div>
-          <Button
-            variant="default"
-            onClick={() => router.push('/')}
-            className="w-full h-12 text-base font-bold bg-accent-dark hover:bg-black text-white transition-colors rounded-xl"
-          >
-            Login to Continue
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!currentLevel) return null; // Still loading dataSource
-
-  const isDeepestLevel = !currentLevel.items?.length || currentLevel.isContentLevel;
-
-  if (isDeepestLevel) {
-    return (
-      <ContentDisplayPage
-        levelInfo={currentLevel}
-        breadcrumbs={breadcrumbs}
-        onBreadcrumbClick={(path) => router.push(path)}
-      />
-    );
-  }
+  if (!summaryData) return null; // still loading the catalogue
+  if (!levelData) return <FolderGone />;
 
   return (
-    <div className="min-h-screen flex-1 bg-slate-200">
-      <HeaderSection
-        title={getTranslatedTitle(currentLevel.slug, t, summaryData)}
-        subtitle={currentLevel.subtitle || t("exploreTopics")}
-        breadcrumbs={breadcrumbs}
-        onBreadcrumbClick={(path) => router.push(path)}
-      />
-
-      <main className="flex-1 py-4 mt-[8rem] md:mt-0 md:mb-0 mb-[5rem] md:py-6 mx-3 flex rounded-xl bg-accent-background">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 lg:px-10 2xl:px-20 gap-6 p-4 w-full">
-          {currentLevel.items.map((item, index) => (
-            <Link
-              key={index}
-              href={`/${item.slug}`}
-              className="block cursor-pointer rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-dark focus-visible:ring-offset-2"
-            >
-              <ContentCard
-                title={item.title}
-                image='/imageFallback.png'
-                colorClass={item.colorClass}
-              />
-            </Link>
-          ))}
-        </div>
-      </main>
-    </div>
+    <FolderPage
+      key={fullKey}
+      levelInfo={levelData}
+      breadcrumbs={breadcrumbs}
+      onBreadcrumbClick={(path) => router.push(path)}
+    />
   );
 }

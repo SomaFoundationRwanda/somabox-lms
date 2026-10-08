@@ -115,7 +115,7 @@ const TreeNode = ({ node, onCheck, checked }) => {
 };
 
 const ManageSync = () => {
-    const { authenticated, role } = useContext(DataContext);
+    const { authenticated, role, refreshExplore } = useContext(DataContext);
     const [contentTree, setContentTree]         = useState([]);
     const [checked, setChecked]                 = useState({});
     const [cloudUnavailable, setCloudUnavailable] = useState(false);
@@ -221,6 +221,7 @@ const ManageSync = () => {
                 setBanner({ type: 'success', message: 'Content deleted successfully.' });
                 setChecked({});
                 setRefetch(r => !r);
+                refreshExplore?.();
             } else {
                 const data = await res.json();
                 setBanner({ type: 'error', message: `Delete failed: ${data.error || 'Unknown error'}` });
@@ -262,6 +263,11 @@ const ManageSync = () => {
         const id = setInterval(checkStatus, 2000);
         return () => clearInterval(id);
     }, [downloadStatus, SERVER_URL]);
+
+    // A finished download changes what Explore shows.
+    useEffect(() => {
+        if (downloadStatus === "finished") refreshExplore?.();
+    }, [downloadStatus, refreshExplore]);
 
     if (!authenticated) return <Unauthorized />;
 

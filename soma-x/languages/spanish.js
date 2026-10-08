@@ -1,3 +1,4 @@
+import esExplore from "./explore/es";
 import esAttendance from "./attendance/es";
 import esGuest from "./guest/es";
 import esExplainers from "./explainers/es";
@@ -5,6 +6,7 @@ import esExplainers from "./explainers/es";
 export default {
     "attendance": esAttendance,
     "guest": esGuest,
+    "explore": esExplore,
     "explainers": esExplainers,
     "nav": {
         "dashboard": "Tablero",

@@ -64,7 +64,12 @@ const POLICY = {
   "GET /content/main-categories": "public", // catalogue guests may browse
   "GET /content/levels/summary": "public", // catalogue guests may browse
   "GET /content/custom-content/summary": "public", // catalogue guests may browse
-  "GET /content/content/:slug": "any",
+  "GET /content/explore": "public", // catalogue guests may browse
+  "GET /content/files/*filePath": "any", // signed media cookie or token
+  "GET /content/manager/roots": "staff",
+  "PATCH /content/manager/details": "staff",
+  "DELETE /content/manager/item": "staff",
+  "POST /content/manager/rescan": "admin",
   "GET /content/manager/list": "staff",
   "POST /content/manager/create-folder": "staff",
   "POST /content/manager/upload": "staff",

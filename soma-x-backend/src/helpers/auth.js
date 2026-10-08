@@ -88,6 +88,7 @@ const PUBLIC_ROUTES = [
     { method: 'GET', path: '/analytics/branding' },
     { method: 'POST', path: '/auth/media-session' },
     // The catalogue guests may browse before signing up (titles, categories, covers).
+    { method: 'GET', path: '/content/explore' },
     { method: 'GET', path: '/content/main-categories' },
     { method: 'GET', path: '/content/levels/summary' },
     { method: 'GET', path: '/content/custom-content/summary' },
@@ -98,7 +99,6 @@ const PUBLIC_ROUTES = [
     // routes check the signed media cookie themselves (helpers/media.js).
     { method: 'GET', prefix: '/library/file/' },
     { method: 'GET', prefix: '/content/files/' },
-    { method: 'GET', prefix: '/content/content/' },
 ];
 
 // Reachable while a password change is pending, so the user can do it and log out.

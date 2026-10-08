@@ -1,5 +1,5 @@
 "use client"
-import { createContext, useEffect, useState, useCallback } from "react";
+import { createContext, useEffect, useState, useCallback, useRef } from "react";
 import { X, AlertCircle, CheckCircle2, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { clearSession, getSessionToken, installAuthFetch, startMediaSessionKeepAlive } from "@/lib/session";
 import { clearUserQueue, pendingCount } from "@/lib/submissionQueue";
@@ -69,25 +69,66 @@ export function DataProvider({ children }) {
 
     const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL;
 
-    // Fetch shared content data on mount
-    useEffect(() => {
-        const loadAllData = async () => {
+    // The Explore catalogue: one public fetch (GET /content/explore) built from the folders on
+    // the box. mainCategories, summaryData and customContentSummary are all views of it.
+    const [exploreVersion, setExploreVersion] = useState(null);
+    const exploreLoadedAt = useRef(0);
+    const exploreInFlight = useRef(null);
+
+    const refreshExplore = useCallback(async () => {
+        if (exploreInFlight.current) return exploreInFlight.current;
+        const run = (async () => {
             try {
-                const summaryRes = await fetch(`${SERVER_URL}/content/levels/summary`);
-                if (summaryRes.ok) setSummaryData(await summaryRes.json());
-
-                const categoriesRes = await fetch(`${SERVER_URL}/content/main-categories`);
-                if (categoriesRes.ok) setMainCategories(await categoriesRes.json());
-
-                const customSummaryRes = await fetch(`${SERVER_URL}/content/custom-content/summary`);
-                if (customSummaryRes.ok) setCustomContentSummary(await customSummaryRes.json());
+                const res = await fetch(`${SERVER_URL}/content/explore`);
+                if (!res.ok) {
+                    // Keep showing what we had; on first load fall back to an empty catalogue
+                    // so pages show their empty state instead of loading forever.
+                    if (!exploreLoadedAt.current) {
+                        setMainCategories((prev) => prev ?? []);
+                        setSummaryData((prev) => prev ?? {});
+                        setCustomContentSummary((prev) => prev ?? {});
+                    }
+                    return;
+                }
+                const data = await res.json();
+                const summary = data?.summary || {};
+                setMainCategories(Array.isArray(data?.mainCategories) ? data.mainCategories : []);
+                setSummaryData(summary);
+                setCustomContentSummary(summary);
+                setExploreVersion(data?.version ?? null);
+                exploreLoadedAt.current = Date.now();
             } catch (error) {
-                console.error("Data fetching error:", error);
+                console.error("Explore fetch error:", error);
+                if (!exploreLoadedAt.current) {
+                    setMainCategories((prev) => prev ?? []);
+                    setSummaryData((prev) => prev ?? {});
+                    setCustomContentSummary((prev) => prev ?? {});
+                }
+            } finally {
+                exploreInFlight.current = null;
             }
-        };
-
-        loadAllData();
+        })();
+        exploreInFlight.current = run;
+        return run;
     }, [SERVER_URL]);
+
+    useEffect(() => {
+        refreshExplore();
+        const STALE_MS = 2 * 60 * 1000;
+        const onFocus = () => {
+            if (document.visibilityState === "visible" && Date.now() - exploreLoadedAt.current > STALE_MS) refreshExplore();
+        };
+        const timer = setInterval(() => {
+            if (document.visibilityState === "visible") refreshExplore();
+        }, 5 * 60 * 1000);
+        window.addEventListener("focus", onFocus);
+        document.addEventListener("visibilitychange", onFocus);
+        return () => {
+            clearInterval(timer);
+            window.removeEventListener("focus", onFocus);
+            document.removeEventListener("visibilitychange", onFocus);
+        };
+    }, [refreshExplore]);
 
     const applyBrightness = useCallback((value, { persist = true } = {}) => {
         const clamped = Math.min(100, Math.max(0, value));
@@ -278,6 +319,8 @@ export function DataProvider({ children }) {
         setMainCategories,
         customContentSummary,
         setCustomContentSummary,
+        exploreVersion,
+        refreshExplore,
         authenticated,
         setAuthenticated,
         authLoading,

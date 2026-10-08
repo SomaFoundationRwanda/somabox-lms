@@ -1,3 +1,4 @@
+import enExplore from "./explore/en";
 import enAttendance from "./attendance/en";
 import enGuest from "./guest/en";
 import enExplainers from "./explainers/en";
@@ -5,6 +6,7 @@ import enExplainers from "./explainers/en";
 export default {
     "attendance": enAttendance,
     "guest": enGuest,
+    "explore": enExplore,
     "explainers": enExplainers,
     "nav": {
         "dashboard": "Dashboard",

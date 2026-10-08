@@ -116,6 +116,7 @@ export function requireMediaAccess({ courseFiles = false } = {}) {
                     return res.status(403).json({ message: "This file belongs to a course you're not in" });
                 }
             }
+            req.mediaUser = user;
             next();
         } catch (error) {
             next(error);

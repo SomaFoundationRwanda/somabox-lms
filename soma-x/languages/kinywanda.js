@@ -1,3 +1,4 @@
+import rwExplore from "./explore/rw";
 import rwAttendance from "./attendance/rw";
 import rwGuest from "./guest/rw";
 // Kinyarwanda explainers are not written yet: they fall back to English (marked as such)
@@ -5,6 +6,7 @@ import rwGuest from "./guest/rw";
 export default {
     "attendance": rwAttendance,
     "guest": rwGuest,
+    "explore": rwExplore,
     "explainers": {},
     "nav": {
         "dashboard": "Ahabanza",
