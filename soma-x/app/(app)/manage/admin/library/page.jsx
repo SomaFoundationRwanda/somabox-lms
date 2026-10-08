@@ -11,6 +11,12 @@ import { useCallback } from "react";
 import UniversalPlayerModal from "@/components/ui/UniversalPlayerModal";
 import dynamic from "next/dynamic";
 import { clickableProps } from "@/lib/a11y";
+import Link from "next/link";
+import { useLanguage } from "@/context/LanguageContext";
+import { libraryCoverUrl, libraryFileUrl, libraryShelf, libraryViewer } from "@/components/ui/library/libraryEntry";
+
+// What the library can hold: books, videos and audio.
+const LIBRARY_ACCEPT = ".pdf,.epub,.mp4,.webm,.mkv,.m4v,.mov,.mp3,.wav,.ogg,.m4a";
 
 // react-reader (epub.js) loads only when a book is opened.
 const EpubReader = dynamic(() => import("@/components/ui/library/EpubReader"), { ssr: false });
@@ -38,6 +44,7 @@ function Modal({ onClose, children }) {
 }
 
 function LibraryUploadModal({ onClose, onSubmit }) {
+    const { t } = useLanguage();
     const [file, setFile] = useState(null);
     const [bookName, setBookName] = useState('');
     const [dragging, setDragging] = useState(false);
@@ -49,7 +56,7 @@ function LibraryUploadModal({ onClose, onSubmit }) {
         if (f) {
             setFile(f); 
             if (!bookName) {
-                setBookName(f.name.replace(/\.(epub|pdf)$/i, '').replace(/[-_]/g, ' '));
+                setBookName(f.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' '));
             }
         }
     };
@@ -120,7 +127,7 @@ function LibraryUploadModal({ onClose, onSubmit }) {
                             <input
                                 ref={fileInputRef}
                                 type="file"
-                                accept=".epub,.pdf"
+                                accept={LIBRARY_ACCEPT}
                                 className="hidden"
                                 onChange={(e) => handleFile(e.target.files?.[0])}
                             />
@@ -147,7 +154,7 @@ function LibraryUploadModal({ onClose, onSubmit }) {
                                         <p className="text-[12px] font-semibold text-slate-600">
                                             Drop a file here or <span className="text-[#0D9488] underline underline-offset-2">browse</span>
                                         </p>
-                                        <p className="text-[10px] text-slate-600 mt-0.5">EPUB or PDF files only</p>
+                                        <p className="text-[10px] text-slate-600 mt-0.5">{t("explore.manager.allowedTypes")}</p>
                                     </div>
                                 </>
                             )}
@@ -169,24 +176,6 @@ function LibraryUploadModal({ onClose, onSubmit }) {
                             />
                         </div>
                     )}
-
-                    <div>
-                        <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest block mb-2">
-                            Content type
-                        </label>
-                        <div className="grid grid-cols-1 gap-2">
-                            <button
-                                type="button"
-                                className="flex flex-col items-center gap-1.5 py-3 rounded-[5px] border text-[11px] font-bold transition-all border-accent-dark bg-accent-dark text-white shadow-sm"
-                                style={{ backgroundColor: "#0D9488", borderColor: "#0D9488" }}
-                            >
-                                <div className="w-7 h-7 rounded-[5px] flex items-center justify-center bg-white/20">
-                                    <BookOpen className="w-3.5 h-3.5" />
-                                </div>
-                                Book
-                            </button>
-                        </div>
-                    </div>
 
                     {status === 'uploading' && (
                         <div className="flex items-center gap-3 px-3 py-2.5 rounded-[5px] bg-blue-50 border border-blue-100">
@@ -272,6 +261,7 @@ const ConfirmBanner = ({ message, onConfirm, onCancel }) => (
 
 const ManageLibrary = () => {
     const { authenticated } = useContext(DataContext);
+    const { t } = useLanguage();
     const [localBooks, setLocalBooks]     = useState([]);
     const [books, setBooks]               = useState([]);
     const [selectedBooks, setSelectedBooks] = useState({});
@@ -383,6 +373,10 @@ const ManageLibrary = () => {
         }
     };
 
+    // Downloaded cloud books are titled with their cloud name (local ids are the box's own).
+    const localTitles = new Set(localBooks.map((lb) => String(lb.title || lb.name || '').trim().toLowerCase()));
+    const isDownloaded = (book) => localTitles.has(String(book.book_name || '').trim().toLowerCase());
+
     if (!authenticated) return <Unauthorized />;
 
     const cloudColumns = [
@@ -391,7 +385,7 @@ const ManageLibrary = () => {
             header: "Select",
             className: "w-10 whitespace-nowrap",
             render: (book) => {
-                const isLocal = localBooks.some(lb => lb.id === parseInt(book.id));
+                const isLocal = isDownloaded(book);
                 return (
                     <Checkbox
                         disabled={isLocal}
@@ -405,7 +399,7 @@ const ManageLibrary = () => {
             key: "name",
             header: "Name",
             render: (book) => {
-                const isLocal = localBooks.some(lb => lb.id === parseInt(book.id));
+                const isLocal = isDownloaded(book);
                 return (
                     <>
                         <div className="flex items-center gap-2 flex-wrap">
@@ -427,12 +421,22 @@ const ManageLibrary = () => {
         {
             key: "name",
             header: "Name",
-            render: (book) => (
-                <>
-                    <p className="text-[12px] font-medium text-slate-800 dark:text-slate-100">{book.name}</p>
-                    <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">{book.category_ids}</p>
-                </>
-            ),
+            render: (book) => {
+                const coverUrl = libraryCoverUrl(SERVER_URL, book);
+                return (
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-11 rounded-[3px] overflow-hidden bg-slate-100 dark:bg-slate-800 shrink-0 flex items-center justify-center">
+                            {coverUrl
+                                ? <img src={coverUrl} alt="" loading="lazy" className="w-full h-full object-cover" />
+                                : <BookOpen className="w-3.5 h-3.5 text-slate-500" />}
+                        </div>
+                        <div className="min-w-0">
+                            <p className="text-[12px] font-medium text-slate-800 dark:text-slate-100">{book.name}</p>
+                            <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">{libraryShelf(book) || t("explore.library.other")}</p>
+                        </div>
+                    </div>
+                );
+            },
         },
         {
             key: "action",
@@ -479,6 +483,13 @@ const ManageLibrary = () => {
 
             <div className="px-4 md:px-4 space-y-6">
 
+                <p className="text-[12px] text-slate-600 dark:text-slate-400">
+                    {t("explore.library.adminNote")}{" "}
+                    <Link href="/manage/admin/manage-content" className="font-semibold text-[#0D9488] underline underline-offset-2">
+                        {t("explore.library.openContentManager")}
+                    </Link>
+                </p>
+
                 {/* Feedback banners */}
                 {(banner || confirm) && (
                     <div className="space-y-3">
@@ -507,7 +518,7 @@ const ManageLibrary = () => {
                             caption="Books available on the cloud"
                             columns={cloudColumns}
                             rows={fetching ? [] : books}
-                            rowClassName={(book) => (localBooks.some(lb => lb.id === parseInt(book.id)) ? "bg-green-50/60 dark:bg-green-950/20" : "")}
+                            rowClassName={(book) => (isDownloaded(book) ? "bg-green-50/60 dark:bg-green-950/20" : "")}
                             empty={fetching ? (
                                 <span className="inline-flex items-center gap-2 text-[12px] font-semibold"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading books…</span>
                             ) : "No books available"}
@@ -561,22 +572,22 @@ const ManageLibrary = () => {
             )}
 
             {/* EPUB Reader */}
-            {viewBook && viewBook.ext === 'epub' && (
+            {viewBook && libraryViewer(viewBook) === 'epub' && (
                 <EpubReader
-                    url={`${SERVER_URL}/library/file/${viewBook.id}`}
+                    url={libraryFileUrl(SERVER_URL, viewBook)}
                     title={viewBook.name}
                     onClose={() => setViewBook(null)}
                 />
             )}
 
-            {/* PDF / fallback via UniversalPlayerModal */}
+            {/* PDF, video and audio via UniversalPlayerModal */}
             <UniversalPlayerModal
-                isOpen={Boolean(viewBook) && viewBook?.ext !== 'epub'}
+                isOpen={Boolean(viewBook) && libraryViewer(viewBook) !== 'epub'}
                 onClose={() => setViewBook(null)}
-                mediaItem={viewBook ? {
+                mediaItem={viewBook && libraryViewer(viewBook) !== 'epub' ? {
                     title: viewBook.name,
-                    type: 'book',
-                    url: `${SERVER_URL}/library/file/${viewBook.id}`,
+                    type: libraryViewer(viewBook),
+                    url: libraryFileUrl(SERVER_URL, viewBook),
                 } : null}
             />
         </div>

@@ -55,7 +55,7 @@ function exploreEntries(mainCategories, t) {
 
 function BookCover({ book, SERVER_URL }) {
   const [failed, setFailed] = useState(false)
-  if (failed) {
+  if (failed || !book.cover) {
     return (
       <div className="w-full h-full flex items-center justify-center bg-slate-200 dark:bg-slate-700 px-2">
         <span className="text-xs text-slate-600 dark:text-slate-300 text-center leading-snug">{book.name}</span>
@@ -64,7 +64,7 @@ function BookCover({ book, SERVER_URL }) {
   }
   return (
     <img
-      src={`${SERVER_URL}/library-book-covers/${book.id}.avif`}
+      src={`${SERVER_URL}${book.cover}`}
       alt=""
       loading="lazy"
       className="w-full h-full object-cover"
@@ -205,7 +205,7 @@ export default function TeacherExplorePage() {
                   <p className="text-xs font-semibold text-slate-700 dark:text-slate-200 line-clamp-2 mb-2">{book.name}</p>
                   {book.ext && <p className="text-[10px] font-bold uppercase text-slate-600 mb-2">{String(book.ext).replace(/^\./, "")}</p>}
                   <Link
-                    href="/library"
+                    href={`/library?book=${encodeURIComponent(book.id)}`}
                     className="inline-flex items-center gap-1 text-xs text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600 rounded-full px-2 py-1 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                   >
                     {t("explore.teacher.openLibrary")}

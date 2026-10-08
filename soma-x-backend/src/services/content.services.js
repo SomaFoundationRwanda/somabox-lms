@@ -18,11 +18,11 @@ const router = express.Router();
 const requireContentManager = requireRole("teacher", "admin");
 const isStaff = (user) => ["teacher", "ta", "admin"].includes(user?.role);
 
-/** Admins manage every root; teachers manage school content only. */
+/** Admins manage every root; teachers manage the roots open to staff (school content). */
 function canManage(user, pathKey) {
   const root = rootOf(pathKey);
   if (!root) return false;
-  return user.role === "admin" || root.managedBy === "staff";
+  return user.role === "admin" || root.managers === "staff";
 }
 
 // A single file or folder name: no separators, not "." or "..", not hidden.
@@ -80,7 +80,7 @@ function breadcrumbs(pathKey) {
 
 // The roots the caller may manage (the file manager's starting points).
 router.get("/manager/roots", requireContentManager, async (req, res) => {
-  const roots = FILE_ROOTS.filter((r) => req.user.role === "admin" || r.managedBy === "staff");
+  const roots = FILE_ROOTS.filter((r) => req.user.role === "admin" || r.managers === "staff");
   return res.json({ roots: roots.map((r) => ({ path: r.key, title: r.title })), lastIndexRun: lastIndexRun(), coversWaiting: coverQueueLength() });
 });
 
@@ -105,7 +105,7 @@ router.get("/manager/list", requireContentManager, async (req, res) => {
     }
     return res.json({
       path: folder.path_key, title: folder.title, is_disabled: folder.is_disabled, breadcrumbs: crumbs,
-      canChangeFiles: rootOf(pathKey).managedBy === "staff",
+      canChangeFiles: rootOf(pathKey).appFiles,
       categories,
       items: items.map((i) => ({ ...i, hasCover: i.type === "book" && fs.existsSync(coverPath(i.path_key)) })),
     });
@@ -115,14 +115,14 @@ router.get("/manager/list", requireContentManager, async (req, res) => {
   }
 });
 
-// Folders and files can only be created or deleted from the app in school content; cloud content
-// changes through the Sync page.
+// Folders and files can be created or deleted from the app in school content and the library;
+// cloud content changes through the Sync page.
 function requireFileChanges(req, res, pathKey) {
   if (!pathKey || !canManage(req.user, pathKey)) {
     res.status(400).json({ error: "Out of allowed folders" });
     return false;
   }
-  if (rootOf(pathKey).managedBy !== "staff") {
+  if (!rootOf(pathKey).appFiles) {
     res.status(400).json({ error: "Cloud content is changed from the Sync page" });
     return false;
   }
@@ -233,7 +233,7 @@ router.patch("/manager/details", requireContentManager, async (req, res) => {
   }
 });
 
-// Delete a file or folder in school content (folders with files in them need { recursive: true }).
+// Delete a file or folder in school content or the library (non-empty folders need { recursive: true }).
 router.delete("/manager/item", requireContentManager, async (req, res) => {
   try {
     const key = safePathKey(req.body?.path_key || req.query.path_key);

@@ -7,7 +7,7 @@
 import fs from "fs";
 import path from "path";
 import { localDb } from "../../helpers/db-manager.js";
-import { FILE_ROOTS, WEB_ROOT, CONTENT_DIR, fileType, humanize, absolutePath } from "./roots.js";
+import { FILE_ROOTS, WEB_ROOT, CONTENT_DIR, fileType, humanize, absolutePath, coverPath } from "./roots.js";
 import { queueCovers } from "./covers.js";
 import { invalidateCatalog } from "./catalog.js";
 
@@ -15,7 +15,7 @@ let running = null;
 let lastRun = null;
 
 /** Every folder and openable file under a root, as path_keys (dotfiles and symlinks skipped). */
-function walk(rootKey) {
+function walk(rootKey, skip = []) {
   const dirs = [rootKey];
   const files = [];
   const stack = [rootKey];
@@ -29,6 +29,7 @@ function walk(rootKey) {
     }
     for (const e of entries) {
       if (e.name.startsWith(".")) continue;
+      if (rel === rootKey && skip.includes(e.name)) continue;
       const childRel = `${rel}/${e.name}`;
       if (e.isDirectory()) {
         dirs.push(childRel);
@@ -75,7 +76,7 @@ async function ensureTopLevel() {
 }
 
 async function syncRoot(rootKey, stats) {
-  const { dirs, files } = walk(rootKey);
+  const { dirs, files } = walk(rootKey, FILE_ROOTS.find((r) => r.key === rootKey).skip);
   const onDisk = new Set(dirs);
   const like = `${rootKey}/%`;
 
@@ -104,10 +105,11 @@ async function syncRoot(rootKey, stats) {
     const url = `/${f.pathKey}`;
     const row = existing.get(f.pathKey);
     if (!row) {
+      const legacy = await legacyBook(f.pathKey);
       await localDb.prepare(`
-        INSERT INTO content_items (category_id, title, subtitle, type, url, path_key, size, is_disabled, indexed_at)
-        VALUES (?, ?, '', ?, ?, ?, ?, 0, CURRENT_TIMESTAMP)
-      `).run(categoryId, humanize(f.pathKey.split("/").pop()), f.type, url, f.pathKey, f.size);
+        INSERT INTO content_items (category_id, title, subtitle, type, url, path_key, size, is_disabled, indexed_at, title_locked)
+        VALUES (?, ?, '', ?, ?, ?, ?, 0, CURRENT_TIMESTAMP, ?)
+      `).run(categoryId, legacy?.title || humanize(f.pathKey.split("/").pop()), f.type, url, f.pathKey, f.size, !!legacy?.title);
       stats.filesAdded += 1;
     } else if (Number(row.category_id) !== categoryId || row.type !== f.type || Number(row.size) !== f.size || row.url !== url) {
       await localDb.prepare("UPDATE content_items SET category_id = ?, type = ?, size = ?, url = ?, indexed_at = CURRENT_TIMESTAMP WHERE id = ?")
@@ -131,6 +133,24 @@ async function syncRoot(rootKey, stats) {
     }
   }
   return files;
+}
+
+/**
+ * Library books from before the library was a folder: "library/<id>.epub|pdf" with their title in
+ * the old `books` table and a cover in library/covers/<id>.avif. The title is reused, and the
+ * cover copied to where Explore keeps covers, so nothing has to be regenerated.
+ */
+async function legacyBook(pathKey) {
+  const match = /^library\/(\d+)\.(pdf|epub)$/i.exec(pathKey);
+  if (!match) return null;
+  const book = await localDb.prepare("SELECT name FROM books WHERE id = ?").get(Number(match[1])).catch(() => null);
+  const oldCover = path.join(CONTENT_DIR, "library", "covers", `${match[1]}.avif`);
+  const newCover = coverPath(pathKey);
+  if (fs.existsSync(oldCover) && !fs.existsSync(newCover)) {
+    fs.mkdirSync(path.dirname(newCover), { recursive: true });
+    fs.copyFileSync(oldCover, newCover);
+  }
+  return book?.name ? { title: book.name } : null;
 }
 
 /**

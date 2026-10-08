@@ -1,16 +1,42 @@
 "use client"
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Filter, Search, X } from "lucide-react";
 import BooksPage from "@/components/ui/library/books";
 import LibrarySidebar from "@/components/ui/library/LibrarySidebar";
+import { libraryShelves } from "@/components/ui/library/libraryEntry";
 
 const Library = () => {
-    const [selectedFilters, setSelectedFilters] = useState({});
+    // Shelf: null = All, "" = Other (files at the top of the library), else a top folder title.
+    const [shelf, setShelf] = useState(null);
     const [searchQuery, setSearchQuery] = useState("");
     const [filterPanelOpen, setFilterPanelOpen] = useState(false);
+    const [books, setBooks] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL;
 
-    const activeFilterCount = Object.values(selectedFilters).reduce((sum, arr) => sum + (arr?.length || 0), 0);
+    useEffect(() => {
+        async function loadBooks() {
+            try {
+                setLoading(true);
+                const res = await fetch(`${SERVER_URL}/library/books`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setBooks(Array.isArray(data) ? data : []);
+                }
+            } catch (err) {
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
+        }
+        loadBooks();
+    }, [SERVER_URL]);
+
+    const shelves = useMemo(() => libraryShelves(books), [books]);
+    // A shelf that's no longer there (e.g. after a reload) falls back to All.
+    const activeShelf = shelf !== null && shelves.includes(shelf) ? shelf : null;
+    const activeFilterCount = activeShelf !== null ? 1 : 0;
 
     return (
         <div className="min-h-screen bg-[#F8F9FA] pb-24 md:pb-8">
@@ -61,8 +87,9 @@ const Library = () => {
 
             {/* Mobile filter panel */}
             <LibrarySidebar
-                selectedFilters={selectedFilters}
-                setSelectedFilters={setSelectedFilters}
+                shelves={shelves}
+                shelf={activeShelf}
+                setShelf={setShelf}
                 mobile
                 open={filterPanelOpen}
             />
@@ -74,14 +101,15 @@ const Library = () => {
                     {/* Desktop sidebar */}
                     <div className="hidden xl:block">
                         <LibrarySidebar
-                            selectedFilters={selectedFilters}
-                            setSelectedFilters={setSelectedFilters}
+                            shelves={shelves}
+                            shelf={activeShelf}
+                            setShelf={setShelf}
                         />
                     </div>
 
                     {/* Books grid */}
                     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-                        <BooksPage selectedFilters={selectedFilters} searchQuery={searchQuery} />
+                        <BooksPage books={books} loading={loading} shelf={activeShelf} searchQuery={searchQuery} />
                     </div>
                 </div>
             </div>

@@ -110,5 +110,13 @@ export default {
         "noBooks": "Aucun livre trouvé.",
         "booksFailed": "Impossible de charger les livres de la bibliothèque.",
         "openLibrary": "Ouvrir dans la bibliothèque"
+    },
+    "library": {
+        "all": "Tout",
+        "other": "Autres",
+        "shelves": "Rayons",
+        "noShelves": "La bibliothèque est encore vide",
+        "adminNote": "Les livres peuvent aussi être rangés dans des dossiers depuis le gestionnaire de contenu, ou copiés sur la box dans le dossier library. Ils apparaissent automatiquement.",
+        "openContentManager": "Ouvrir le gestionnaire de contenu"
     }
 };

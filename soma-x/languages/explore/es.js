@@ -110,5 +110,13 @@ export default {
         "noBooks": "No se encontraron libros.",
         "booksFailed": "No se pudieron cargar los libros de la biblioteca.",
         "openLibrary": "Abrir en la biblioteca"
+    },
+    "library": {
+        "all": "Todo",
+        "other": "Otros",
+        "shelves": "Estantes",
+        "noShelves": "La biblioteca todavía está vacía",
+        "adminNote": "Los libros también se pueden organizar en carpetas en el gestor de contenido, o copiarse en la caja dentro de la carpeta library. Aparecen automáticamente.",
+        "openContentManager": "Abrir el gestor de contenido"
     }
 };

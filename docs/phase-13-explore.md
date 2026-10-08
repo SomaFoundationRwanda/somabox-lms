@@ -1,4 +1,4 @@
-# Phase 13: Explore follows the files on the box
+# Phase 13: Explore and the Library follow the files on the box
 
 Branch: `somabox-guide-implementation`.
 
@@ -61,7 +61,7 @@ this.
   - The teacher explore page shows library books correctly (the field names were wrong before).
 
 ## Tests (144 backend, 7 timeline, 4 gateway, plus the translation checks)
-`test/explore.test.js` (4):
+`test/explore.test.js` (5):
 - **Copied files appear in one catalogue:** files copied onto the box appear after a rescan.
   Unopenable files and dotfiles are skipped, subfolders of folders with files are kept, and old rows
   are cleaned up.
@@ -73,15 +73,34 @@ this.
   confirming.
 - **Who manages what:** teachers can't touch cloud content; admins can hide it but not upload to it
   here.
-- **The files route serves Explore folders only:** no course files, no path escapes, no library.
+- **The files route serves Explore folders only:** no course files, no path escapes.
+- **The library is a folder:** old books keep their titles and covers; uploads and hand-copied files appear; old links still open; teachers can't manage it.
 
 This phase also fixed a folder-name check that accepted names like `../escape`.
 
+## The Library is a folder too
+The owner decided on 2026-10-08 that the library is a folder, alongside the others, that can hold
+other files as well.
+
+- **`local-content/library` is a third root.**
+  - Whatever is in it (cloud book downloads, admin uploads, files copied onto the box, in any
+    subfolders) is the Library.
+  - It can hold books, videos and audio.
+  - It also appears as a "Library" tab in Explore.
+  - Admins manage it, in the content manager or on the Library admin page.
+- **Books from before this change** were stored as `library/<id>.epub` with their names in the old
+  `books` table. They keep their titles, and their existing covers are reused, not regenerated.
+  Their old links (`/library/file/<id>`) still open.
+- **Cloud book downloads** go into a folder named after the book's first category, with the book's
+  title as the file name.
+- `GET /library/books` and `/library/categories` read the shared catalogue; shelves are the
+  library's top-level folders.
+
+## Backups
+**Decided 2026-10-08: backups stay as they are.** They include School content and the Library, but
+not `rwandan-education`, which is large and can be downloaded again from the cloud. Put school-made
+files in School content or the Library, not in `rwandan-education`.
+
 ## Known gaps
-- **The Library is still a separate store** (`books`, files by id). Unifying it with Explore is a
-  later decision.
-- **Backups:** they include School content (`custom-content`), but not `rwandan-education`, which is
-  large and can be re-downloaded from the cloud. Files someone copied into `rwandan-education` by
-  hand are not backed up. Put school-made files in School content.
 - **Wikipedia and Kolibri** still run on their own servers (see Phase 12).
 - **Not checked in a browser.**

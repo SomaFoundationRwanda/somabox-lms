@@ -110,5 +110,13 @@ export default {
         "noBooks": "Hakuna vitabu vilivyopatikana.",
         "booksFailed": "Imeshindwa kupakia vitabu vya maktaba.",
         "openLibrary": "Fungua kwenye maktaba"
+    },
+    "library": {
+        "all": "Zote",
+        "other": "Mengine",
+        "shelves": "Rafu",
+        "noShelves": "Bado hakuna kitu kwenye maktaba",
+        "adminNote": "Vitabu vinaweza pia kupangwa katika folda kwenye kidhibiti cha maudhui, au kunakiliwa kwenye kisanduku ndani ya folda ya library. Vinaonekana vyenyewe.",
+        "openContentManager": "Fungua kidhibiti cha maudhui"
     }
 };

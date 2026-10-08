@@ -110,5 +110,13 @@ export default {
         "noBooks": "No books found.",
         "booksFailed": "Couldn't load the library books.",
         "openLibrary": "Open in library"
+    },
+    "library": {
+        "all": "All",
+        "other": "Other",
+        "shelves": "Shelves",
+        "noShelves": "Nothing in the library yet",
+        "adminNote": "Books can also be organised into folders in the content manager, or copied onto the box into the library folder. They appear automatically.",
+        "openContentManager": "Open the content manager"
     }
 };

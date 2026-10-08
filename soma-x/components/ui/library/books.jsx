@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import UniversalPlayerModal from "@/components/ui/UniversalPlayerModal";
-import { BookOpen } from "lucide-react";
+import { BookOpen, Film, Music } from "lucide-react";
 import { useGuestGate } from "@/components/guest/GuestGate";
+import { useLanguage } from "@/context/LanguageContext";
+import { libraryCoverUrl, libraryFileUrl, libraryShelf, libraryViewer } from "./libraryEntry";
 
 // react-reader (epub.js) loads only when a book is opened.
 const EpubReader = dynamic(() => import("./EpubReader"), { ssr: false });
@@ -21,9 +23,12 @@ function getCoverGradient(index) {
     return COVER_GRADIENTS[index % COVER_GRADIENTS.length];
 }
 
-const BooksPage = ({ selectedFilters, searchQuery }) => {
-    const [books, setBooks] = useState([]);
-    const [loading, setLoading] = useState(true);
+const TYPE_ICONS = { video: Film, audio: Music };
+
+// `books` come from GET /library/books (loaded by the Library page). `shelf` is null for All,
+// "" for Other (files at the top of the library), or a top folder title.
+const BooksPage = ({ books = [], loading = false, shelf = null, searchQuery }) => {
+    const { t } = useLanguage();
     const [selectedBook, setSelectedBook] = useState(null);
     const [imageErrors, setImageErrors] = useState({});
     const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL;
@@ -46,29 +51,17 @@ const BooksPage = ({ selectedFilters, searchQuery }) => {
         window.history.replaceState(null, "", window.location.pathname);
     }, [isGuest, books]);
 
-    useEffect(() => {
-        async function loadBooks() {
-            try {
-                setLoading(true);
-                const res = await fetch(`${SERVER_URL}/library/books`);
-                if (res.ok) setBooks(await res.json());
-            } catch (err) {
-                console.error(err);
-            } finally {
-                setLoading(false);
-            }
-        }
-        loadBooks();
-    }, [SERVER_URL]);
-
     const filteredBooks = books.filter(book => {
-        if (searchQuery && !book.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-        if (selectedFilters.subjects?.length > 0) {
-            const bookCats = book.category_ids.split(",").map(c => c.trim().toLowerCase());
-            if (!bookCats.some(cat => selectedFilters.subjects.map(s => s.toLowerCase()).includes(cat))) return false;
-        }
+        if (searchQuery && !String(book.name || "").toLowerCase().includes(searchQuery.toLowerCase())) return false;
+        if (shelf !== null && libraryShelf(book) !== shelf) return false;
         return true;
     });
+
+    const viewer = selectedBook ? libraryViewer(selectedBook) : null;
+    const actionLabel = (book) => {
+        const v = libraryViewer(book);
+        return v === "video" ? t("explore.watch") : v === "audio" ? t("explore.listen") : t("explore.read");
+    };
 
     const handleImageError = (itemId) => {
         setImageErrors(prev => ({ ...prev, [itemId]: true }));
@@ -120,7 +113,10 @@ const BooksPage = ({ selectedFilters, searchQuery }) => {
 
                 {/* Grid */}
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
-                    {filteredBooks.map((item, index) => (
+                    {filteredBooks.map((item, index) => {
+                        const coverUrl = libraryCoverUrl(SERVER_URL, item);
+                        const TypeIcon = TYPE_ICONS[item.type] || BookOpen;
+                        return (
                         <button
                             key={item.id ?? index}
                             type="button"
@@ -129,9 +125,9 @@ const BooksPage = ({ selectedFilters, searchQuery }) => {
                         >
                             {/* Cover */}
                             <div className="relative aspect-[2/3] overflow-hidden rounded-xl shadow-sm group-hover:shadow-lg transition-all duration-300 group-hover:-translate-y-0.5 mb-2.5">
-                                {!imageErrors[item.id] ? (
+                                {coverUrl && !imageErrors[item.id] ? (
                                     <img
-                                        src={`${SERVER_URL}/library-book-covers/${item.id}.avif`}
+                                        src={coverUrl}
                                         alt={item.name}
                                         className="w-full h-full object-cover"
                                         loading="lazy"
@@ -139,7 +135,7 @@ const BooksPage = ({ selectedFilters, searchQuery }) => {
                                     />
                                 ) : (
                                     <div className={`w-full h-full bg-gradient-to-br ${getCoverGradient(index)} flex flex-col items-center justify-center p-3 text-center`}>
-                                        <BookOpen size={28} className="text-white/70 mb-2" />
+                                        <TypeIcon size={28} className="text-white/70 mb-2" />
                                         <p className="text-white font-bold text-[11px] line-clamp-3 leading-snug">
                                             {item.name}
                                         </p>
@@ -149,7 +145,7 @@ const BooksPage = ({ selectedFilters, searchQuery }) => {
                                 {/* Read overlay on hover */}
                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-200 flex items-center justify-center">
                                     <span className="bg-white text-slate-900 text-[11px] font-bold px-3 py-1.5 rounded-full shadow">
-                                        Read →
+                                        {actionLabel(item)} →
                                     </span>
                                 </div>
                             </div>
@@ -158,33 +154,32 @@ const BooksPage = ({ selectedFilters, searchQuery }) => {
                             <p className="text-[12px] font-semibold text-slate-800 line-clamp-2 leading-snug mb-0.5">
                                 {item.name}
                             </p>
-                            {item.category_ids && (
-                                <p className="text-[10px] text-slate-600 truncate capitalize">
-                                    {item.category_ids.split(",")[0].trim()}
-                                </p>
-                            )}
+                            <p className="text-[10px] text-slate-600 truncate capitalize">
+                                {libraryShelf(item) || t("explore.library.other")}
+                            </p>
                         </button>
-                    ))}
+                        );
+                    })}
                 </div>
             </div>
 
             {/* EPUB books → dedicated reader */}
-            {selectedBook && selectedBook.ext !== 'pdf' && (
+            {selectedBook && viewer === 'epub' && (
                 <EpubReader
-                    url={`${SERVER_URL}/library/file/${selectedBook.id}`}
+                    url={libraryFileUrl(SERVER_URL, selectedBook)}
                     title={selectedBook.name}
                     onClose={() => setSelectedBook(null)}
                 />
             )}
 
-            {/* PDF books → UniversalPlayerModal */}
+            {/* PDF books, videos and audio → UniversalPlayerModal */}
             <UniversalPlayerModal
-                isOpen={Boolean(selectedBook) && selectedBook?.ext === 'pdf'}
+                isOpen={Boolean(selectedBook) && viewer !== 'epub'}
                 onClose={() => setSelectedBook(null)}
-                mediaItem={selectedBook && selectedBook.ext === 'pdf' ? {
+                mediaItem={selectedBook && viewer !== 'epub' ? {
                     title: selectedBook.name,
-                    type: 'book',
-                    url: `${SERVER_URL}/library/file/${selectedBook.id}`,
+                    type: viewer,
+                    url: libraryFileUrl(SERVER_URL, selectedBook),
                 } : null}
             />
         </>

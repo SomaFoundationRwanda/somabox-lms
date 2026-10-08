@@ -11,6 +11,7 @@ let ctx;
 let db;
 let content;
 const tag = `t${process.pid}`;
+const legacyId = 900000000 + (process.pid % 1000000);
 const call = (who) => (method, url, body) => ctx.api(method, url, { token: ctx.tokens[who], body });
 const asAdmin = call("admin");
 const asTeacher = call("teacher");
@@ -22,7 +23,11 @@ before(async () => {
 });
 
 after(async () => {
-  for (const root of ["rwandan-education", "custom-content"]) fs.rmSync(path.join(content, root, tag), { recursive: true, force: true });
+  for (const root of ["rwandan-education", "custom-content", "library"]) fs.rmSync(path.join(content, root, tag), { recursive: true, force: true });
+  for (const f of [`library/${legacyId}.epub`, `library/covers/${legacyId}.avif`, `pdf-book-covers/library/${legacyId}.avif`]) fs.rmSync(path.join(content, f), { force: true });
+  for (const f of fs.existsSync(path.join(content, "library")) ? fs.readdirSync(path.join(content, "library")) : []) {
+    if (f.startsWith(`${tag}-`)) fs.rmSync(path.join(content, "library", f), { force: true });
+  }
   await ctx.stop();
 });
 
@@ -56,9 +61,9 @@ test("files copied onto the box appear in Explore after a rescan, under one cata
   const cat = await explore();
   assert.ok(cat.version >= 1);
   const mains = cat.mainCategories.map((m) => [m.slug, m.kind]);
-  assert.deepEqual(mains, [["rwandan-education", "files"], ["custom-content", "files"], ["international-education", "web"]]);
+  assert.deepEqual(mains, [["rwandan-education", "files"], ["custom-content", "files"], ["library", "files"], ["international-education", "web"]]);
   assert.equal(cat.mainCategories[1].title, "School content");
-  assert.ok(cat.mainCategories[2].items.some((i) => i.slug === "wikipedia"));
+  assert.ok(cat.mainCategories.find((m) => m.kind === "web").items.some((i) => i.slug === "wikipedia"));
   assert.equal(await db.prepare("SELECT 1 FROM categories WHERE path_key IN ('school-content', 'nursery-school-content')").get(), undefined, "old rows are cleaned up");
 
   const folder = cat.summary[`rwandan-education/${tag}/primary/p5-maths`];
@@ -150,4 +155,44 @@ test("the files route only serves Explore folders", async () => {
     fs.rmSync(path.join(content, "course-files", courseId), { recursive: true, force: true });
   }
   assert.equal(USERS.student.role, "scholar");
+});
+
+test("the library is a folder too: old books keep their titles and covers; uploads and copies appear", async () => {
+  // A book from before the library was a folder: library/<id>.epub, its title in `books`.
+  await db.prepare("INSERT INTO books (id, name, category_ids) VALUES (?, 'Ubuntu stories', 'Stories')").run(legacyId);
+  put(`library/${legacyId}.epub`, "old book");
+  put(`library/covers/${legacyId}.avif`, "cover");
+  put(`library/${tag}/science/the-water-cycle.pdf`); // copied onto the box by hand
+  await rescan();
+
+  const books = (await ctx.api("GET", "/library/books")).body;
+  const old = books.find((b) => b.path_key === `library/${legacyId}.epub`);
+  assert.equal(old.title, "Ubuntu stories");
+  assert.equal(old.cover, `/pdf-book-covers/library/${legacyId}.avif`, "the old cover is reused");
+  assert.equal(old.url, `/content/files/library/${legacyId}.epub`);
+  const copied = books.find((b) => b.path_key === `library/${tag}/science/the-water-cycle.pdf`);
+  assert.deepEqual([copied.title, copied.folders], ["The water cycle", [tag.replace(/^./, (c) => c.toUpperCase()), "Science"]]);
+  assert.ok(!books.some((b) => b.path_key.startsWith("library/covers/")), "the old covers folder isn't content");
+  assert.ok((await ctx.api("GET", "/library/categories")).body.length >= 1);
+
+  // Old links by book number still open; the file itself needs an account.
+  assert.equal((await fetch(`${ctx.baseUrl}/library/file/${legacyId}`, { headers: { Authorization: `Bearer ${ctx.tokens.student}` } })).status, 200);
+  assert.equal((await fetch(`${ctx.baseUrl}/library/file/${legacyId}`)).status, 401);
+
+  // Admin upload lands in the folder under its title; teachers don't manage the library.
+  const form = new FormData();
+  form.append("file", new Blob(["pdf"]), "maths.pdf");
+  form.append("bookName", `${tag} Maths for P5`);
+  const up = await fetch(`${ctx.baseUrl}/library/upload`, { method: "POST", headers: { Authorization: `Bearer ${ctx.tokens.admin}` }, body: form });
+  assert.equal(up.status, 201);
+  const uploaded = await up.json();
+  assert.equal(uploaded.path_key, `library/${tag}-Maths-for-P5.pdf`);
+  assert.ok((await ctx.api("GET", "/library/books")).body.some((b) => b.title === `${tag} Maths for P5`));
+  assert.equal((await asTeacher("GET", "/content/manager/list?path=library")).status, 400);
+  assert.equal((await asAdmin("GET", "/content/manager/list?path=library")).status, 200);
+
+  // Deleting removes the file; the library and Explore follow.
+  assert.equal((await asAdmin("DELETE", `/library/book/${uploaded.id}`)).status, 200);
+  assert.ok(!fs.existsSync(path.join(content, uploaded.path_key)));
+  assert.ok(!(await ctx.api("GET", "/library/books")).body.some((b) => b.id === uploaded.id));
 });

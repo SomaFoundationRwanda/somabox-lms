@@ -6,11 +6,15 @@ import { config } from "../../config/index.js";
 
 export const CONTENT_DIR = config.paths.content;
 
-// File roots, in display order. `managedBy` says who may change files there from the app:
-// cloud content is changed through the Sync page (admins); school content by teachers and admins.
+// File roots, in display order.
+// - managers: who may manage the root in the app ("staff" = teachers and admins; "admin").
+// - appFiles: whether files can be added/deleted from the app (cloud content changes only
+//   through the Sync page).
+// - skip: folders at the root's top level that aren't content (old library covers).
 export const FILE_ROOTS = [
-  { key: "rwandan-education", title: "Rwandan education", managedBy: "admin" },
-  { key: "custom-content", title: "School content", managedBy: "staff" },
+  { key: "rwandan-education", title: "Rwandan education", managers: "admin", appFiles: false, skip: [] },
+  { key: "custom-content", title: "School content", managers: "staff", appFiles: true, skip: [] },
+  { key: "library", title: "Library", managers: "admin", appFiles: true, skip: ["covers"] },
 ];
 
 // Offline web libraries served by their own apps (opened in a frame, not indexed as files).
