@@ -18,4 +18,4 @@ export function clickableProps(onActivate, label) {
 }
 
 // The visible keyboard focus ring used across the app.
-export const FOCUS_RING = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488] focus-visible:ring-offset-1";
+export const FOCUS_RING = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)] focus-visible:ring-offset-1";

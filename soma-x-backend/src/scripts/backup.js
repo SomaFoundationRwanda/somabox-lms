@@ -20,7 +20,7 @@ import { fileURLToPath } from "node:url";
 
 const run = promisify(execFile);
 const CONTENT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../local-content");
-export const UPLOAD_DIRS = ["course-files", "course-covers", "custom-content", "library"];
+export const UPLOAD_DIRS = ["course-files", "course-covers", "custom-content", "library", "branding"];
 const COUNTED_TABLES = ["users", "courses", "enrollments", "modules", "module_items", "assignment_submissions", "quiz_attempts", "outcome_results", "sync_outbox"];
 
 function databaseUrl(explicit) {

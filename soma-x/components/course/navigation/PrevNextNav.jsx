@@ -74,7 +74,7 @@ export default function PrevNextNav({ courseId, itemType, contentId, moduleItemI
             <ChevronLeft className="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors shrink-0" />
             <div className="text-left min-w-0">
               <span className="block text-[10px] uppercase font-bold tracking-wider text-slate-400">{t("pageView.previous")}</span>
-              <span className="truncate block font-bold text-slate-800 group-hover:text-[#203A3A] transition-colors">
+              <span className="truncate block font-bold text-slate-800 group-hover:text-[var(--brand-primary)] transition-colors">
                 {prev.title}
               </span>
             </div>
@@ -93,7 +93,7 @@ export default function PrevNextNav({ courseId, itemType, contentId, moduleItemI
           <button
             type="button"
             onClick={() => handleNavigate(next)}
-            className="flex items-center justify-end gap-2 px-4 py-2.5 rounded-xl border border-slate-200 hover:border-[#203A3A] bg-white hover:bg-[#203A3A] text-slate-700 hover:text-white transition-all text-xs font-semibold shadow-sm group min-w-[140px]"
+            className="flex items-center justify-end gap-2 px-4 py-2.5 rounded-xl border border-slate-200 hover:border-[var(--brand-primary)] bg-white hover:bg-[var(--brand-primary)] text-slate-700 hover:text-white transition-all text-xs font-semibold shadow-sm group min-w-[140px]"
           >
             <div className="text-right min-w-0">
               <span className="block text-[10px] uppercase font-bold tracking-wider text-slate-400 group-hover:text-teal-200 transition-colors">{t("pageView.next")}</span>

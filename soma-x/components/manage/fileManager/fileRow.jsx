@@ -61,7 +61,7 @@ const ActionButton = ({ label, onClick, children, danger }) => (
         onClick={(e) => { e.stopPropagation(); onClick(); }}
         aria-label={label}
         title={label}
-        className={`w-7 h-7 flex items-center justify-center rounded-[5px] text-slate-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488] ${
+        className={`w-7 h-7 flex items-center justify-center rounded-[5px] text-slate-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)] ${
             danger ? 'hover:bg-red-50 hover:text-red-600' : 'hover:bg-slate-100 hover:text-slate-900'
         }`}
     >
@@ -85,7 +85,7 @@ const FileRow = ({ file, canDelete, onOpenFolder, onToggleVisibility, onView, on
     return (
         <tr
             className={`group border-b border-slate-50 transition-colors ${
-                file.type === 'folder' || canPreview ? 'cursor-pointer hover:bg-slate-50 focus-visible:outline-none focus-visible:bg-slate-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0D9488]' : 'hover:bg-slate-50'
+                file.type === 'folder' || canPreview ? 'cursor-pointer hover:bg-slate-50 focus-visible:outline-none focus-visible:bg-slate-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--brand-secondary)]' : 'hover:bg-slate-50'
             } ${hidden ? 'bg-slate-50/60' : ''}`}
             onClick={handleRowClick}
             tabIndex={file.type === 'folder' || canPreview ? 0 : undefined}

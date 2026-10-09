@@ -141,7 +141,7 @@ export function FileAttachmentView({ attrs, Wrapper = "div" }) {
                 aria-expanded={previewOpen}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
                   previewOpen
-                    ? "bg-[#203A3A] text-white border-[#203A3A]"
+                    ? "bg-[var(--brand-primary)] text-white border-[var(--brand-primary)]"
                     : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
                 }`}
               >

@@ -3,6 +3,7 @@ import "./globals.css";
 import { DataProvider } from "@/context/DataContext";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { ToastProvider } from "@/context/ToastContext";
+import { SchoolBrandingProvider } from "@/context/SchoolContext";
 import RouteLoader from "@/components/global/RouteLoader";
 
 // Self-hosted from public/fonts/poppins/ instead of next/font/google.
@@ -44,11 +45,14 @@ export default function RootLayout({ children }) {
       <body className={`${poppins.className} antialiased flex min-h-screen`} suppressHydrationWarning>
         <DataProvider>
           <LanguageProvider>
-            {/* The SOMABOX logo loader in the centre of the screen while pages change. */}
-            <RouteLoader />
-            <ToastProvider>
-              {children}
-            </ToastProvider>
+            {/* The school's name, logo and colours (for guests too). */}
+            <SchoolBrandingProvider>
+              {/* The SOMABOX logo loader in the centre of the screen while pages change. */}
+              <RouteLoader />
+              <ToastProvider>
+                {children}
+              </ToastProvider>
+            </SchoolBrandingProvider>
           </LanguageProvider>
         </DataProvider>
       </body>

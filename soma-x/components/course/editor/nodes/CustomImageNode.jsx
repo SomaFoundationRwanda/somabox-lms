@@ -140,7 +140,7 @@ function CustomImageComponent({ node, updateAttributes, editor }) {
                 className={`flex-1 text-xs px-2.5 py-1.5 border rounded-lg outline-none transition-colors ${
                   missingAlt
                     ? "border-amber-400 bg-amber-50/50 text-amber-900 placeholder:text-amber-500 focus:border-amber-600"
-                    : "border-slate-200 focus:border-[#203A3A] bg-white text-slate-700"
+                    : "border-slate-200 focus:border-[var(--brand-primary)] bg-white text-slate-700"
                 }`}
               />
             </div>
@@ -158,7 +158,7 @@ function CustomImageComponent({ node, updateAttributes, editor }) {
               onChange={(e) => setCaptionDraft(e.target.value)}
               onBlur={handleCaptionBlur}
               placeholder={t("editor.image.captionPlaceholder")}
-              className="w-full text-xs px-2.5 py-1 border border-slate-200 rounded-lg outline-none focus:border-[#203A3A] bg-slate-50/50 text-slate-600 italic"
+              className="w-full text-xs px-2.5 py-1 border border-slate-200 rounded-lg outline-none focus:border-[var(--brand-primary)] bg-slate-50/50 text-slate-600 italic"
             />
           </div>
         ) : (

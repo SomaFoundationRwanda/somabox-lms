@@ -235,7 +235,7 @@ export default function SummaryPanel({ pathKey, state: given, adminControls = fa
             <>
                 <p className="text-sm text-slate-700">{t("explore.summary.intro")}</p>
                 <button type="button" onClick={() => requireAccount()}
-                    className={`inline-flex items-center gap-2 min-h-[44px] px-4 rounded-lg bg-[#203A3A] hover:bg-black text-white text-sm font-bold ${FOCUS_RING}`}>
+                    className={`inline-flex items-center gap-2 min-h-[44px] px-4 rounded-lg bg-[var(--brand-primary)] hover:bg-black text-white text-sm font-bold ${FOCUS_RING}`}>
                     <Sparkles className="w-4 h-4" aria-hidden="true" /> {t("explore.summary.get")}
                 </button>
             </>
@@ -308,7 +308,7 @@ export default function SummaryPanel({ pathKey, state: given, adminControls = fa
                 <p className="text-sm text-slate-700">{t("explore.summary.intro")}</p>
                 {d.available ? (
                     <button type="button" disabled={s.busy} onClick={s.request}
-                        className={`inline-flex items-center gap-2 min-h-[44px] px-4 rounded-lg bg-[#203A3A] hover:bg-black text-white text-sm font-bold disabled:opacity-60 ${FOCUS_RING}`}>
+                        className={`inline-flex items-center gap-2 min-h-[44px] px-4 rounded-lg bg-[var(--brand-primary)] hover:bg-black text-white text-sm font-bold disabled:opacity-60 ${FOCUS_RING}`}>
                         {s.busy ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <Sparkles className="w-4 h-4" aria-hidden="true" />}
                         {t("explore.summary.get")}
                     </button>
@@ -332,7 +332,7 @@ export default function SummaryPanel({ pathKey, state: given, adminControls = fa
                     {d.error ? <p className="text-xs text-slate-600">{d.error}</p> : null}
                 </div>
                 <button type="button" disabled={s.busy} onClick={s.request}
-                    className={`inline-flex items-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-[#203A3A] hover:bg-black text-white text-sm font-bold disabled:opacity-60 ${FOCUS_RING}`}>
+                    className={`inline-flex items-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-[var(--brand-primary)] hover:bg-black text-white text-sm font-bold disabled:opacity-60 ${FOCUS_RING}`}>
                     {s.busy ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <RotateCcw className="w-4 h-4" aria-hidden="true" />}
                     {t("explore.summary.tryAgain")}
                 </button>

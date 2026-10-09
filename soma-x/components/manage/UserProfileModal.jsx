@@ -215,7 +215,7 @@ export default function UserProfileModal({ user, isOpen, onClose, onEdit, onSend
                         {onSendNotif && (
                             <button
                                 onClick={() => { onClose(); onSendNotif(user.email); }}
-                                className="flex items-center gap-1.5 px-4 h-10 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold shadow-md transition-colors"
+                                className="flex items-center gap-1.5 px-4 h-10 rounded-xl bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-dark)] text-white text-xs font-bold shadow-md transition-colors"
                             >
                                 <Megaphone size={14} /> {t("admin.profile.sendNotification")}
                             </button>

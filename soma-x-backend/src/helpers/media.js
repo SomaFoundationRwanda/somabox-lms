@@ -48,7 +48,24 @@ export async function verifyMediaToken(token, now = Date.now()) {
     return Number(userId);
 }
 
-function cookieValue(req, name) {
+/** A value signed with the box's secret ("value.signature"), e.g. a visitor's id. */
+export async function signValue(value) {
+    return `${value}.${sign(String(value), await mediaSecret())}`;
+}
+
+/** The value inside a signed token, or null if it was tampered with. */
+export async function verifyValue(token) {
+    const s = String(token || '');
+    const dot = s.lastIndexOf('.');
+    if (dot <= 0) return null;
+    const value = s.slice(0, dot);
+    const expected = sign(value, await mediaSecret());
+    const a = Buffer.from(s.slice(dot + 1));
+    const b = Buffer.from(expected);
+    return a.length === b.length && crypto.timingSafeEqual(a, b) ? value : null;
+}
+
+export function cookieValue(req, name) {
     for (const part of String(req.headers.cookie || '').split(';')) {
         const [k, ...v] = part.trim().split('=');
         if (k === name) return decodeURIComponent(v.join('='));
@@ -99,7 +116,7 @@ async function canOpenCourseFiles(user, courseId) {
  * sign-in). With courseFiles, the first path segment is the course id and the person must
  * belong to that course.
  */
-export function requireMediaAccess({ courseFiles = false } = {}) {
+export function requireMediaAccess({ courseFiles = false, allowGuests = false } = {}) {
     return async (req, res, next) => {
         try {
             let user = req.user ? { id: req.user.id, email: req.user.email, role: req.user.role } : null;
@@ -108,6 +125,11 @@ export function requireMediaAccess({ courseFiles = false } = {}) {
                 if (id) user = await activeUser(id);
             }
             if (!user) {
+                // Visitor previews: the route itself decides whether this visitor may see a bit.
+                if (allowGuests) {
+                    req.mediaUser = null;
+                    return next();
+                }
                 return res.status(401).json({ message: 'Sign up or log in to open this', code: 'LOGIN_REQUIRED' });
             }
             if (courseFiles) {

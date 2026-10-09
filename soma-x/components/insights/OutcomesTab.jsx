@@ -22,7 +22,7 @@ export default function OutcomesTab({ data }) {
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div className="min-w-0">
                 <p className="font-semibold text-slate-900 dark:text-white">
-                  {o.code ? <span className="mr-2 text-[11px] font-bold text-[#0D9488]">{o.code}</span> : null}
+                  {o.code ? <span className="mr-2 text-[11px] font-bold text-[var(--brand-secondary)]">{o.code}</span> : null}
                   {o.title}
                 </p>
                 <p className="text-xs text-slate-500">{basedOn(o.learnersWithData, total, tp)} · {tpn("common.results", o.resultsCount ?? 0)}</p>

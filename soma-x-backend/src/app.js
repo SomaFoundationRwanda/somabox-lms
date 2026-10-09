@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { config } from './config/index.js';
 import crypto from 'crypto';
+import path from 'path';
 import fs from 'fs';
 import { authenticate, requireAuthUnlessPublic } from './helpers/auth.js';
 import { requireMediaAccess } from './helpers/media.js';
@@ -121,6 +122,8 @@ export function createApp({ logRequests = true } = {}) {
     app.use('/library-book-covers', express.static(config.paths.libraryCovers));
     app.use('/course-covers', express.static(config.paths.courseCovers));
     app.use('/pdf-book-covers', express.static(config.paths.pdfCovers));
+    // The school's logo (public: shown on the login page).
+    app.use('/branding', express.static(path.join(config.paths.content, 'branding'), { fallthrough: false }));
 
     // Every API route below requires a session unless listed in PUBLIC_ROUTES.
     app.use(requireAuthUnlessPublic);

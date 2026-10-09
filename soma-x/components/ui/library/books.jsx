@@ -3,6 +3,7 @@ import dynamic from "next/dynamic";
 import UniversalPlayerModal from "@/components/ui/UniversalPlayerModal";
 import { BookOpen, Film, Music } from "lucide-react";
 import { useGuestGate } from "@/components/guest/GuestGate";
+import { useGuestPreview } from "@/components/guest/Preview";
 import { useLanguage } from "@/context/LanguageContext";
 import { fill } from "@/lib/fill";
 import { libraryCoverUrl, libraryFileUrl, libraryShelf, libraryViewer } from "./libraryEntry";
@@ -34,13 +35,19 @@ const BooksPage = ({ books = [], loading = false, shelf = null, searchQuery }) =
     const [selectedBook, setSelectedBook] = useState(null);
     const [imageErrors, setImageErrors] = useState({});
     const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL;
-    // Guests see the shelf and covers; reading a book needs an account.
-    const { isGuest, requireAccount } = useGuestGate();
+    // Guests see the shelf and covers; reading a book needs an account, or (when the school
+    // allows it) starts a short preview. ?book= brings them back to it after signing up.
+    const { isGuest } = useGuestGate();
+    const { open: openPreview, starting: previewStarting } = useGuestPreview();
+    const [preview, setPreview] = useState(null);
 
-    const openBook = (book) => {
-        if (!requireAccount(`/library?book=${encodeURIComponent(book.id)}`)) return;
+    const openBook = async (book) => {
+        const { ok, preview: started } = await openPreview(book.path_key, `/library?book=${encodeURIComponent(book.id)}`, libraryViewer(book));
+        if (!ok) return;
+        setPreview(started);
         setSelectedBook(book);
     };
+    const closeBook = () => { setSelectedBook(null); setPreview(null); };
 
     // Back from signing up (or logging in) to read a book: ?book=<id> opens it.
     useEffect(() => {
@@ -111,7 +118,7 @@ const BooksPage = ({ books = [], loading = false, shelf = null, searchQuery }) =
                             key={item.id ?? index}
                             type="button"
                             onClick={() => openBook(item)}
-                            className="group text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488] focus-visible:ring-offset-2 rounded-xl"
+                            className="group text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)] focus-visible:ring-offset-2 rounded-xl"
                         >
                             {/* Cover */}
                             <div className="relative aspect-[2/3] overflow-hidden rounded-xl shadow-sm group-hover:shadow-lg transition-all duration-300 group-hover:-translate-y-0.5 mb-2.5">
@@ -153,20 +160,24 @@ const BooksPage = ({ books = [], loading = false, shelf = null, searchQuery }) =
                 </div>
             </div>
 
+            {previewStarting ? <Loader variant="overlay" label={t("guest.previewStarting")} /> : null}
+
             {/* EPUB books → dedicated reader */}
             {selectedBook && viewer === 'epub' && (
                 <EpubReader
                     url={libraryFileUrl(SERVER_URL, selectedBook)}
                     title={selectedBook.name}
-                    onClose={() => setSelectedBook(null)}
+                    onClose={closeBook}
                     summaryPath={selectedBook.path_key || null}
+                    preview={preview}
                 />
             )}
 
             {/* PDF books, videos and audio → UniversalPlayerModal */}
             <UniversalPlayerModal
                 isOpen={Boolean(selectedBook) && viewer !== 'epub'}
-                onClose={() => setSelectedBook(null)}
+                onClose={closeBook}
+                preview={preview}
                 summaryPath={selectedBook && viewer !== 'epub' ? (selectedBook.path_key || null) : null}
                 mediaItem={selectedBook && viewer !== 'epub' ? {
                     title: selectedBook.name,

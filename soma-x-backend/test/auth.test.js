@@ -75,6 +75,10 @@ const POLICY = {
   "PATCH /content/summary": "admin",
   "DELETE /content/summary": "admin",
   "GET /school": "any",
+  "GET /school/public": "public", // name, logo and colours on the login page
+  "POST /school/logo": "admin",
+  "DELETE /school/logo": "admin",
+  "POST /content/preview": "public", // visitors start a short preview
   "PUT /school": "admin",
   "GET /content/manager/list": "staff",
   "POST /content/manager/create-folder": "staff",

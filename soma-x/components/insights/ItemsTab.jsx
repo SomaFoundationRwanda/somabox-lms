@@ -46,7 +46,7 @@ function QuizAnalysis({ quizId, title, onClose }) {
   return (
     <Section
       divided
-      title={<span ref={headingRef} tabIndex={-1} className="focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]">{tp("insights.items.analysisTitle", { title: data?.quiz?.title || title })}</span>}
+      title={<span ref={headingRef} tabIndex={-1} className="focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]">{tp("insights.items.analysisTitle", { title: data?.quiz?.title || title })}</span>}
       description={data ? tpn("insights.items.latestAttempt", data.learnersAnswered) : undefined}
       actions={
         <button type="button" onClick={onClose} className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-slate-800 px-2 py-1">
@@ -130,7 +130,7 @@ export default function ItemsTab({ data }) {
             render: (i) => {
               const href = itemHref(courseId, i);
               return href ? (
-                <Link href={href} className="font-medium text-slate-800 dark:text-slate-100 hover:text-[#0D9488] hover:underline">{i.title}</Link>
+                <Link href={href} className="font-medium text-slate-800 dark:text-slate-100 hover:text-[var(--brand-secondary)] hover:underline">{i.title}</Link>
               ) : <span className="font-medium">{i.title}</span>;
             },
           },
@@ -160,7 +160,7 @@ export default function ItemsTab({ data }) {
                 type="button"
                 onClick={() => setQuiz({ id: i.contentId, title: i.title })}
                 aria-pressed={quiz?.id === i.contentId}
-                className="text-xs font-semibold text-[#0D9488] hover:underline whitespace-nowrap"
+                className="text-xs font-semibold text-[var(--brand-secondary)] hover:underline whitespace-nowrap"
               >
                 {tp("insights.items.analysis")}
               </button>

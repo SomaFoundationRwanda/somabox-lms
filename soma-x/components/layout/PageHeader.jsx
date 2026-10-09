@@ -7,7 +7,7 @@ export default function PageHeader({ title, description, eyebrow, meta, actions,
   return (
     <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div className="min-w-0">
-        {eyebrow ? <p className="text-[11px] font-bold uppercase tracking-wider text-[#0D9488]">{eyebrow}</p> : null}
+        {eyebrow ? <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--brand-secondary)]">{eyebrow}</p> : null}
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <h1 className="text-xl font-bold text-slate-900 dark:text-white leading-tight">{title}</h1>
           {help ? <Explainer k={help} /> : null}

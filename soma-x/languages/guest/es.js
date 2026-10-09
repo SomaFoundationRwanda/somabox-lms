@@ -23,5 +23,12 @@ export default {
     "mediaExpiredBody": "Vuelve a iniciar sesión para seguir viendo y leyendo. Regresarás a esta página.",
     "signInAgain": "Volver a iniciar sesión",
     "language": "Idioma",
-    "mediaForbidden": "Este archivo pertenece a un curso en el que no estás inscrito."
+    "mediaForbidden": "Este archivo pertenece a un curso en el que no estás inscrito.",
+    "previewChip": "Vista previa · quedan {time}",
+    "previewSignUpWatch": "Regístrate para verlo entero",
+    "previewSignUpRead": "Regístrate para leerlo entero",
+    "previewEndedWatch": "Tu vista previa ha terminado. Crea una cuenta gratuita para seguir viendo",
+    "previewEndedRead": "Tu vista previa ha terminado. Crea una cuenta gratuita para seguir leyendo",
+    "previewStarting": "Iniciando la vista previa…",
+    "previewFailed": "No se pudo iniciar la vista previa. Regístrate gratis para abrir esto."
 };

@@ -89,7 +89,7 @@ export function JobProgress({ job, label, onCancel, cancelling, onDismiss, class
           className="h-1.5 w-full rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden"
         >
           <div
-            className={`h-full rounded-full transition-all ${job.status === "queued" ? "bg-slate-400 w-1/12 animate-pulse" : "bg-[#0D9488]"}`}
+            className={`h-full rounded-full transition-all ${job.status === "queued" ? "bg-slate-400 w-1/12 animate-pulse" : "bg-[var(--brand-secondary)]"}`}
             style={job.status === "queued" ? undefined : { width: `${Math.max(pct, 5)}%` }}
           />
         </div>

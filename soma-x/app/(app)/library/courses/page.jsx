@@ -123,7 +123,7 @@ function VersionRow({ SERVER_URL, entry, latest, creating, onCreate }) {
         <div className="min-w-0">
           <p className={`${latest ? "text-sm" : "text-xs"} font-semibold text-slate-900 dark:text-white break-words`}>
             {latest ? entry.title : fill(t("shell.courseLibrary.version"), { n: entry.version })}
-            {latest ? <span className="ml-2 text-[11px] font-semibold text-[#0D9488]">{fill(t("shell.courseLibrary.version"), { n: entry.version })}</span> : null}
+            {latest ? <span className="ml-2 text-[11px] font-semibold text-[var(--brand-secondary)]">{fill(t("shell.courseLibrary.version"), { n: entry.version })}</span> : null}
           </p>
           <p className="text-xs text-slate-600 dark:text-slate-300">{details}</p>
           <p className="text-[11px] text-slate-500 break-words">{origin}</p>
@@ -143,7 +143,7 @@ function VersionRow({ SERVER_URL, entry, latest, creating, onCreate }) {
             type="button"
             onClick={() => onCreate(entry)}
             disabled={creating}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#203A3A] hover:bg-[#162727] disabled:opacity-50 rounded-lg px-3 py-1.5"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] disabled:opacity-50 rounded-lg px-3 py-1.5"
           >
             {creating ? <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" /> : null}
             {creating ? t("shell.courseLibrary.creating") : t("shell.courseLibrary.createFrom")}
@@ -179,7 +179,7 @@ function BundleGroup({ SERVER_URL, versions, creatingId, onCreate }) {
           {copies.map((c, i) => (
             <span key={c.courseId}>
               {i > 0 ? ", " : ""}
-              <Link href={`/course/${c.courseId}/home`} className="text-[#0D9488] hover:underline">{c.title}</Link>
+              <Link href={`/course/${c.courseId}/home`} className="text-[var(--brand-secondary)] hover:underline">{c.title}</Link>
               {c.version ? <span className="text-slate-400"> (v{c.version})</span> : null}
             </span>
           ))}
@@ -265,7 +265,7 @@ function UploadArea({ SERVER_URL, onUploaded, onCreated }) {
         onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
         onDragLeave={() => setDragging(false)}
         onDrop={(e) => { e.preventDefault(); setDragging(false); pick(e.dataTransfer.files?.[0]); }}
-        className={`flex flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed px-4 py-6 text-center cursor-pointer transition-colors ${dragging ? "border-[#0D9488] bg-teal-50 dark:bg-teal-950/20" : "border-slate-200 dark:border-slate-700 hover:border-slate-300"}`}
+        className={`flex flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed px-4 py-6 text-center cursor-pointer transition-colors ${dragging ? "border-[var(--brand-secondary)] bg-teal-50 dark:bg-teal-950/20" : "border-slate-200 dark:border-slate-700 hover:border-slate-300"}`}
       >
         <FileUp className="w-6 h-6 text-slate-400" aria-hidden="true" />
         <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{file ? file.name : t("shell.courseLibrary.chooseFile")}</span>
@@ -286,7 +286,7 @@ function UploadArea({ SERVER_URL, onUploaded, onCreated }) {
             type="button"
             onClick={() => send("add")}
             disabled={!!busy}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#203A3A] hover:bg-[#162727] disabled:opacity-50 rounded-lg px-4 py-2"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] disabled:opacity-50 rounded-lg px-4 py-2"
           >
             {busy === "add" ? <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" /> : null}
             {busy === "add" ? t("shell.courseLibrary.uploading") : t("shell.courseLibrary.addToLibrary")}
@@ -295,7 +295,7 @@ function UploadArea({ SERVER_URL, onUploaded, onCreated }) {
             type="button"
             onClick={() => send("import")}
             disabled={!!busy}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0D9488] bg-teal-50 border border-teal-200 hover:bg-teal-100 disabled:opacity-50 rounded-lg px-4 py-2"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--brand-secondary)] bg-teal-50 border border-teal-200 hover:bg-teal-100 disabled:opacity-50 rounded-lg px-4 py-2"
           >
             {busy === "import" ? <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" /> : null}
             {busy === "import" ? t("shell.courseLibrary.creating") : t("shell.courseLibrary.addAndCreate")}
@@ -400,7 +400,7 @@ export default function CourseLibraryPage() {
         />
 
         <p className="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-300 max-w-2xl">
-          <Info className="w-4 h-4 shrink-0 text-[#0D9488]" aria-hidden="true" />
+          <Info className="w-4 h-4 shrink-0 text-[var(--brand-secondary)]" aria-hidden="true" />
           <span>
             <strong>{t("shell.courseLibrary.noteStrong")}</strong> {t("shell.courseLibrary.noteRest")}
           </span>
@@ -417,7 +417,7 @@ export default function CourseLibraryPage() {
             <Warnings items={created.warnings} />
             <Link
               href={`/course/${created.courseId}/home`}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#0D9488] hover:bg-teal-700 rounded-lg px-4 py-2"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-dark)] rounded-lg px-4 py-2"
             >
               {t("shell.courseLibrary.openNew")}
             </Link>

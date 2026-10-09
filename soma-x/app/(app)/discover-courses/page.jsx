@@ -100,7 +100,7 @@ export default function DiscoverCoursesPage() {
                 <div
                   key={course.id}
                   id={`course-${course.id}`}
-                  className={`rounded-xl border bg-white overflow-hidden flex flex-col ${String(course.id) === highlightId ? "border-[#203A3A] ring-2 ring-[#203A3A]/40" : "border-slate-200"}`}
+                  className={`rounded-xl border bg-white overflow-hidden flex flex-col ${String(course.id) === highlightId ? "border-[var(--brand-primary)] ring-2 ring-[var(--brand-primary)]/40" : "border-slate-200"}`}
                 >
                   {course.coverImageUrl ? (
                     <img src={`${SERVER_URL}${course.coverImageUrl}`} alt={course.title} className="w-full h-28 object-cover" />
@@ -120,7 +120,7 @@ export default function DiscoverCoursesPage() {
                     <button
                       onClick={() => join(course.id)}
                       disabled={joiningId === course.id}
-                      className="mt-1 text-xs font-semibold text-white bg-[#203A3A] rounded-lg px-3 py-2 disabled:opacity-50"
+                      className="mt-1 text-xs font-semibold text-white bg-[var(--brand-primary)] rounded-lg px-3 py-2 disabled:opacity-50"
                     >
                       {isGuest ? t("guest.signUpToJoin") : joiningId === course.id ? t("learner.discover.joining") : t("learner.discover.join")}
                     </button>

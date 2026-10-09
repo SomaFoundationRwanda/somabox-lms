@@ -139,7 +139,7 @@ export default function QuizDetailPage() {
           description={quiz.description || undefined}
           meta={
             <>
-            <span className="text-xs font-bold text-[#0D9488] bg-teal-50 border border-teal-200 px-2.5 py-1 rounded-full">
+            <span className="text-xs font-bold text-[var(--brand-secondary)] bg-teal-50 border border-teal-200 px-2.5 py-1 rounded-full">
               {tf("assignment.module", { module: currentModule ? `${weekLabel(currentModule)} - ${currentModule.title}` : t("assignment.notInModule") })}
             </span>
             <span className="text-xs font-semibold text-slate-500 flex items-center gap-1">
@@ -151,7 +151,7 @@ export default function QuizDetailPage() {
           {/* Outcome Tags */}
           <div className="flex items-center gap-2 flex-wrap pt-2">
             <span className="text-xs font-bold text-slate-500 flex items-center gap-1">
-              <Target className="w-3.5 h-3.5 text-[#0D9488]" /> {t("quiz.targetOutcomes")}
+              <Target className="w-3.5 h-3.5 text-[var(--brand-secondary)]" /> {t("quiz.targetOutcomes")}
             </span>
             {itemOutcomes.length === 0 && quiz.kind === "practice" ? (
               <span className="text-xs text-slate-400">{t("quiz.practiceNotGraded")}</span>
@@ -161,7 +161,7 @@ export default function QuizDetailPage() {
               </span>
             ) : (
               itemOutcomes.map((t) => (
-                <span key={t.outcome_id} className="text-xs font-bold text-[#0D9488] bg-teal-50 border border-teal-200 px-2.5 py-0.5 rounded-full">
+                <span key={t.outcome_id} className="text-xs font-bold text-[var(--brand-secondary)] bg-teal-50 border border-teal-200 px-2.5 py-0.5 rounded-full">
                   {t.outcome_code}: {t.outcome_title}
                 </span>
               ))
@@ -227,7 +227,7 @@ export default function QuizDetailPage() {
                         type="button"
                         onClick={() => grantAttempt(r)}
                         disabled={granting === r.scholar_email}
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-[#0D9488] hover:underline disabled:opacity-50 whitespace-nowrap"
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--brand-secondary)] hover:underline disabled:opacity-50 whitespace-nowrap"
                       >
                         <RotateCcw className="w-3.5 h-3.5" aria-hidden="true" />
                         {granting === r.scholar_email ? t("quiz.granting") : t("quiz.allowAnother")}
@@ -280,7 +280,7 @@ export default function QuizDetailPage() {
                   rows={3}
                   placeholder={t("quiz.openAnswerPlaceholder")}
                   aria-label={tf("quiz.answerTo", { n: idx + 1 })}
-                  className="w-full text-sm border border-slate-200 rounded-lg p-3 outline-none focus:border-[#0D9488]"
+                  className="w-full text-sm border border-slate-200 rounded-lg p-3 outline-none focus:border-[var(--brand-secondary)]"
                 />
               )}
             </li>
@@ -305,7 +305,7 @@ export default function QuizDetailPage() {
               <button
                 onClick={submitQuiz}
                 disabled={noAttemptsLeft || submitting}
-                className="px-6 py-2.5 bg-[#0D9488] hover:bg-teal-700 disabled:opacity-50 disabled:hover:bg-[#0D9488] text-white font-bold text-xs rounded-lg transition-colors"
+                className="px-6 py-2.5 bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-dark)] disabled:opacity-50 disabled:hover:bg-[var(--brand-secondary)] text-white font-bold text-xs rounded-lg transition-colors"
               >
                 {submitting ? t("assignment.submitting") : t("quiz.submit")}
               </button>

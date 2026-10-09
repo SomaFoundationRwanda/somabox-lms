@@ -89,13 +89,13 @@ export default function DiscussionThreadPage() {
                   onChange={(e) => setPointsInput(e.target.value)}
                   placeholder={t("editors.pointsPossible")}
                   aria-label={t("editors.pointsPossible")}
-                  className="w-28 text-sm border border-slate-200 rounded-lg px-2 py-1.5 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]"
+                  className="w-28 text-sm border border-slate-200 rounded-lg px-2 py-1.5 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]"
                 />
               ) : null}
               <button
                 onClick={toggleGraded}
                 disabled={savingGraded}
-                className="text-xs font-semibold text-white bg-[#203A3A] rounded-lg px-3 py-1.5 disabled:opacity-50"
+                className="text-xs font-semibold text-white bg-[var(--brand-primary)] rounded-lg px-3 py-1.5 disabled:opacity-50"
               >
                 {discussion.graded ? t("discussions.removeGrading") : t("discussions.markGraded")}
               </button>
@@ -126,8 +126,8 @@ export default function DiscussionThreadPage() {
           )}
 
           <div className="mt-3 flex items-center gap-2">
-            <input value={reply} onChange={(e) => setReply(e.target.value)} placeholder={t("discussions.replyPlaceholder")} aria-label={t("discussions.replyPlaceholder")} className="flex-1 min-w-0 text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[#203A3A]" />
-            <button onClick={postReply} className="text-xs font-semibold text-white bg-[#203A3A] rounded-lg px-3 py-2">{t("discussions.reply")}</button>
+            <input value={reply} onChange={(e) => setReply(e.target.value)} placeholder={t("discussions.replyPlaceholder")} aria-label={t("discussions.replyPlaceholder")} className="flex-1 min-w-0 text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[var(--brand-primary)]" />
+            <button onClick={postReply} className="text-xs font-semibold text-white bg-[var(--brand-primary)] rounded-lg px-3 py-2">{t("discussions.reply")}</button>
           </div>
         </Section>
       </div>

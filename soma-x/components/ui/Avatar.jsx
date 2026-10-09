@@ -28,7 +28,7 @@ export default function Avatar({
     <div className="relative flex-shrink-0 group">
       {/* Outer ring container */}
       <div
-        className={`rounded-full overflow-hidden flex items-center justify-center shadow-sm border-2 border-white transition-all duration-300 hover:border-accent-blue cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488] ${sizeClasses[size]}`}
+        className={`rounded-full overflow-hidden flex items-center justify-center shadow-sm border-2 border-white transition-all duration-300 hover:border-accent-blue cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)] ${sizeClasses[size]}`}
         {...(onClick ? clickableProps(onClick, alt || "Profile") : {})}
       >
         {src && !error ? (

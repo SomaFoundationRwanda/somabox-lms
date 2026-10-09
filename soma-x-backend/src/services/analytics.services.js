@@ -5,6 +5,7 @@ import { analyticsScope } from './insights/scope.js';
 import { courseInsights } from './insights/metrics.js';
 import { SCHOOL_TIMEZONE } from './courses/schedule.js';
 import { pushOutbox } from './sync/outbox.js';
+import { purgeOldPreviews } from './explore/preview.js';
 import { runMessage } from './sync.services.js';
 
 const router = express.Router();
@@ -339,6 +340,8 @@ export async function purgeOldUsage() {
     const sessions = await localDb.prepare(`
         DELETE FROM sessions WHERE expires_at < NOW() - INTERVAL '30 days' OR revoked_at < NOW() - INTERVAL '30 days'
     `).run();
+    // Visitor preview records older than a week.
+    await purgeOldPreviews();
     // Notifications that were read more than 90 days ago.
     const notifications = await localDb.prepare(`
         DELETE FROM user_notifications WHERE is_read = 1 AND created_at < NOW() - INTERVAL '90 days'

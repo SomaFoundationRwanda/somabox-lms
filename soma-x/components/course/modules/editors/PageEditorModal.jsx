@@ -70,7 +70,7 @@ export default function PageEditorModal({ open, onClose, onSave, initialData }) 
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder={t("editors.pageTitle")}
-              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[#203A3A] transition-colors"
+              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[var(--brand-primary)] transition-colors"
             />
           </div>
 
@@ -107,7 +107,7 @@ export default function PageEditorModal({ open, onClose, onSave, initialData }) 
           <button
             onClick={handleSave}
             disabled={saving || !title.trim()}
-            className="text-xs font-semibold text-white bg-[#203A3A] hover:bg-[#162727] disabled:opacity-50 rounded-lg px-4 py-2 transition-colors"
+            className="text-xs font-semibold text-white bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] disabled:opacity-50 rounded-lg px-4 py-2 transition-colors"
           >
             {saving ? t("common.saving") : isEdit ? t("editors.saveChanges") : t("editors.createPage")}
           </button>

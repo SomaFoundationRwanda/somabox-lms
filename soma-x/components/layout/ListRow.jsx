@@ -19,7 +19,7 @@ export default function ListRow({ icon, title, href, subtitle, meta, actions, to
     danger: "bg-rose-50/60 dark:bg-rose-950/20",
   };
   const titleNode = href ? (
-    <Link href={href} className="font-semibold text-slate-900 dark:text-white hover:text-[#0D9488] hover:underline truncate">{title}</Link>
+    <Link href={href} className="font-semibold text-slate-900 dark:text-white hover:text-[var(--brand-secondary)] hover:underline truncate">{title}</Link>
   ) : (
     <span className="font-semibold text-slate-900 dark:text-white truncate">{title}</span>
   );

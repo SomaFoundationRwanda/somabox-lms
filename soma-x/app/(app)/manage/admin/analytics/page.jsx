@@ -96,10 +96,10 @@ function RetentionSetting({ SERVER_URL }) {
                         value={value}
                         onChange={(e) => setValue(e.target.value)}
                         aria-describedby="retention-help"
-                        className="w-32 text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-lg px-2.5 py-1.5 outline-none focus:border-[#0D9488]"
+                        className="w-32 text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-lg px-2.5 py-1.5 outline-none focus:border-[var(--brand-secondary)]"
                     />
                 </div>
-                <button type="submit" disabled={saving || !settings} className="text-xs font-bold text-white bg-[#0D9488] hover:bg-teal-700 disabled:opacity-60 px-4 py-2 rounded-lg">
+                <button type="submit" disabled={saving || !settings} className="text-xs font-bold text-white bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-dark)] disabled:opacity-60 px-4 py-2 rounded-lg">
                     {saving ? t("admin.analytics.saving") : t("admin.analytics.save")}
                 </button>
             </form>
@@ -212,7 +212,7 @@ export default function AdminAnalyticsPage() {
                                             className: "min-w-[12rem]",
                                             render: (c) => (
                                                 <div>
-                                                    <Link href={`/course/${c.id}/insights`} className="font-semibold text-slate-900 dark:text-white hover:text-[#0D9488] hover:underline">{c.title}</Link>
+                                                    <Link href={`/course/${c.id}/insights`} className="font-semibold text-slate-900 dark:text-white hover:text-[var(--brand-secondary)] hover:underline">{c.title}</Link>
                                                     <span className="block text-[10px] font-semibold uppercase text-slate-400">{t(`admin.courses.lifecycle.${LIFECYCLES.includes(c.lifecycle) ? c.lifecycle : "draft"}`)}</span>
                                                 </div>
                                             ),
@@ -243,7 +243,7 @@ export default function AdminAnalyticsPage() {
                                             type="button"
                                             onClick={() => setDays(d)}
                                             aria-pressed={days === d}
-                                            className={`px-3 py-1.5 text-xs font-semibold ${days === d ? "bg-[#203A3A] text-white" : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"}`}
+                                            className={`px-3 py-1.5 text-xs font-semibold ${days === d ? "bg-[var(--brand-primary)] text-white" : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"}`}
                                         >
                                             {fill(t("admin.analytics.nDays"), { days: d })}
                                         </button>

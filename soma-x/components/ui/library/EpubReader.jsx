@@ -3,13 +3,16 @@ import React, { useState, useEffect } from 'react';
 import { ReactReader } from 'react-reader';
 import { AlertTriangle, X } from 'lucide-react';
 import { MediaAccessNotice } from '@/components/guest/MediaAccess';
+import { PreviewChip, PreviewEndedPanel, usePreview } from '@/components/guest/Preview';
 import { getSessionToken } from '@/lib/session';
 import { useLanguage } from '@/context/LanguageContext';
 import SummaryPanel, { SummaryToggleButton, useContentSummary } from '@/components/explore/SummaryPanel';
 import Loader from "@/components/ui/Loader";
 
 // `summaryPath`: the book's path_key, to offer its AI summary beside the reader.
-const EpubReader = ({ url, title, onClose, summaryPath = null }) => {
+// `preview`: a visitor's preview (see components/guest/Preview.jsx): the time the book is open
+// counts down, then the sign-up panel covers the reader.
+const EpubReader = ({ url, title, onClose, summaryPath = null, preview = null }) => {
     const { t } = useLanguage()
     const [summaryOpen, setSummaryOpen] = useState(false)
     const summary = useContentSummary(summaryPath, { active: Boolean(summaryPath) })
@@ -20,6 +23,7 @@ const EpubReader = ({ url, title, onClose, summaryPath = null }) => {
     // "guest" | "expired" | "forbidden" when the book couldn't be opened for sign-in reasons.
     const [access, setAccess] = useState(null)
     const renditionRef = React.useRef(null)
+    const { left: previewLeft, ended: previewEnded, end: endPreview } = usePreview(preview, Boolean(preview && data && !access))
 
     useEffect(() => {
         async function loadEpub() {
@@ -33,6 +37,8 @@ const EpubReader = ({ url, title, onClose, summaryPath = null }) => {
                 const signedIn = Boolean(getSessionToken())
                 const response = await fetch(url, { credentials: 'include' })
                 if (response.status === 401) {
+                    // A visitor whose preview window has closed: the sign-up panel.
+                    if (!signedIn && preview) { endPreview(); return }
                     setAccess(signedIn ? 'expired' : 'guest')
                     return
                 }
@@ -53,6 +59,7 @@ const EpubReader = ({ url, title, onClose, summaryPath = null }) => {
             }
         }
         if (url) loadEpub()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [url])
 
     // UX Improvements: Escape key and Scroll Lock
@@ -109,11 +116,14 @@ const EpubReader = ({ url, title, onClose, summaryPath = null }) => {
                     </div>
                 </div>
 
-                <div className="flex-1 min-h-0 flex flex-col md:flex-row">
+                {preview && !previewEnded ? <PreviewChip left={previewLeft} next={preview.next} reading tone="light" /> : null}
+
+                <div className="relative flex-1 min-h-0 flex flex-col md:flex-row">
+                {preview && previewEnded ? <PreviewEndedPanel next={preview.next} reading /> : null}
 
                 {/* Reader Container */}
                 <div className="flex-1 min-h-0 min-w-0 relative bg-white flex items-center justify-center overflow-hidden">
-                    {access ? (
+                    {preview && previewEnded ? null : access ? (
                         <MediaAccessNotice state={access} />
                     ) : loading ? (
                         // The SOMABOX loader while the book opens (brand green; light teal in dark mode).

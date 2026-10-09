@@ -171,7 +171,7 @@ export default function ModuleCard({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0 flex-1 flex-wrap">
           {isTeacher && (
-            <button {...(dnd?.listeners || {})} aria-label={t("modules.dragModule")} className="cursor-grab active:cursor-grabbing p-0.5 text-slate-300 hover:text-slate-500 shrink-0 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]">
+            <button {...(dnd?.listeners || {})} aria-label={t("modules.dragModule")} className="cursor-grab active:cursor-grabbing p-0.5 text-slate-300 hover:text-slate-500 shrink-0 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]">
               <GripVertical className="w-4 h-4" />
             </button>
           )}
@@ -185,7 +185,7 @@ export default function ModuleCard({
             {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
           <span className={`text-xs font-bold px-2.5 py-0.5 rounded-md shrink-0 border ${
-            isUnassigned ? "text-amber-700 bg-amber-50 border-amber-200" : "text-[#0D9488] bg-teal-50 border-teal-200"
+            isUnassigned ? "text-amber-700 bg-amber-50 border-amber-200" : "text-[var(--brand-secondary)] bg-teal-50 border-teal-200"
           }`}>
             {weekLabel(moduleRow)}
           </span>
@@ -198,7 +198,7 @@ export default function ModuleCard({
               onBlur={saveTitle}
               onKeyDown={(e) => { if (e.key === "Enter") saveTitle(); if (e.key === "Escape") setEditingTitle(false); }}
               aria-label={t("modules.moduleTitle")}
-              className="flex-1 min-w-[10rem] text-sm font-bold border border-slate-300 rounded-lg px-2 py-0.5 outline-none focus:border-[#203A3A] bg-white"
+              className="flex-1 min-w-[10rem] text-sm font-bold border border-slate-300 rounded-lg px-2 py-0.5 outline-none focus:border-[var(--brand-primary)] bg-white"
               autoFocus
             />
           ) : (
@@ -215,7 +215,7 @@ export default function ModuleCard({
             </span>
           )}
           {!isUnassigned && moduleRow.status === "current" && (
-            <span className="text-[11px] font-bold uppercase text-white bg-[#0D9488] px-1.5 py-0.5 rounded shrink-0">
+            <span className="text-[11px] font-bold uppercase text-white bg-[var(--brand-secondary)] px-1.5 py-0.5 rounded shrink-0">
               {t("home.current")}
             </span>
           )}
@@ -242,7 +242,7 @@ export default function ModuleCard({
                   className="flex items-center gap-1 text-[11px] font-semibold text-teal-800 bg-teal-50 border border-teal-200 hover:bg-teal-100 disabled:opacity-50 px-2.5 py-1 rounded-lg transition-colors"
                   title={fillRunning ? t("modules.ai.fillRunningHint") : t("modules.ai.fillHint")}
                 >
-                  <Sparkles className="w-3 h-3 text-[#0D9488]" /> {fillRunning ? t("modules.ai.filling") : t("modules.ai.fillWeek")}
+                  <Sparkles className="w-3 h-3 text-[var(--brand-secondary)]" /> {fillRunning ? t("modules.ai.filling") : t("modules.ai.fillWeek")}
                 </button>
                 <button
                   type="button"
@@ -288,11 +288,11 @@ export default function ModuleCard({
               onChange={(e) => setStoryIdea(e.target.value)}
               maxLength={500}
               placeholder={t("modules.ai.storyPlaceholder")}
-              className="w-full text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-lg px-2.5 py-1.5 outline-none focus:border-[#0D9488]"
+              className="w-full text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-lg px-2.5 py-1.5 outline-none focus:border-[var(--brand-secondary)]"
               autoFocus
             />
           </div>
-          <button type="submit" disabled={!storyIdea.trim() || aiBusy === "story"} className="text-xs font-bold text-white bg-[#0D9488] hover:bg-teal-700 disabled:opacity-50 px-3.5 py-2 rounded-lg">
+          <button type="submit" disabled={!storyIdea.trim() || aiBusy === "story"} className="text-xs font-bold text-white bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-dark)] disabled:opacity-50 px-3.5 py-2 rounded-lg">
             {aiBusy === "story" ? t("modules.ai.starting") : t("modules.ai.writeStoryDraft")}
           </button>
           <button type="button" onClick={() => setStoryOpen(false)} className="text-xs font-semibold text-slate-500 px-2 py-2">{t("common.cancel")}</button>
@@ -301,9 +301,9 @@ export default function ModuleCard({
 
       {isTeacher && (aiNote || moduleJobs.length > 0) ? (
         <p role="status" className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-600 dark:text-slate-300">
-          <Sparkles className="w-3.5 h-3.5 text-[#0D9488]" aria-hidden="true" />
+          <Sparkles className="w-3.5 h-3.5 text-[var(--brand-secondary)]" aria-hidden="true" />
           <span>{moduleJobs.length > 0 ? t("modules.ai.beingWritten") : aiNote}</span>
-          <Link href={`/course/${courseId}/ai`} className="font-semibold text-[#0D9488] hover:underline">{t("modules.ai.openDrafts")}</Link>
+          <Link href={`/course/${courseId}/ai`} className="font-semibold text-[var(--brand-secondary)] hover:underline">{t("modules.ai.openDrafts")}</Link>
           {moduleJobs.length === 0 ? (
             <button type="button" onClick={() => setAiNote("")} className="text-slate-400 hover:text-slate-600 underline">{t("modules.hide")}</button>
           ) : null}
@@ -341,7 +341,7 @@ export default function ModuleCard({
             <li>
               <button
                 onClick={() => onAddItem(moduleRow)}
-                className="flex items-center gap-1.5 text-xs font-semibold text-[#203A3A] dark:text-teal-300 px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-900/40 w-full text-left transition-colors"
+                className="flex items-center gap-1.5 text-xs font-semibold text-[var(--brand-primary)] dark:text-teal-300 px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-900/40 w-full text-left transition-colors"
               >
                 <Plus className="w-3.5 h-3.5" /> {t("modules.addItem")}
               </button>

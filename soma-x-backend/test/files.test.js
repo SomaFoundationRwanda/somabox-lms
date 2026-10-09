@@ -95,7 +95,7 @@ test("the profile step only completes with explicit answers; the gap report coun
   const base = { fullName: "Learner", gender: "female", regionProvince: "Kigali", regionDistrict: "Gasabo", gradeLevel: "P5", completeProfile: true };
   const partial = await asStudent("PATCH", "/users/profile/update", base);
   assert.equal(partial.status, 400);
-  assert.deepEqual(partial.body.missing, ["rural or urban", "accessibility needs"]);
+  assert.deepEqual(partial.body.missing, ["accessibility needs"], "location is the school's, never asked");
   assert.equal((await asStudent("GET", "/users/profile/view")).body.isProfileComplete, false);
   const done = await asStudent("PATCH", "/users/profile/update", { ...base, isRural: true, disabilityStatus: "none" });
   assert.equal(done.status, 200, JSON.stringify(done.body));

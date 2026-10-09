@@ -54,10 +54,10 @@ const ProfileCard = () => {
 
     return (
         <DropdownMenu>
-            <DropdownMenuTrigger aria-label={t("shell.profile.menu")} className="outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488] rounded-full">
+            <DropdownMenuTrigger aria-label={t("shell.profile.menu")} className="outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)] rounded-full">
                 <section
                     className={`relative hover:opacity-90 cursor-pointer shadow-sm border border-transparent flex items-center rounded-full w-10 sm:w-[11rem] h-10 px-1 sm:px-2 gap-2.5 transition-opacity`}
-                    style={{ backgroundColor: "#203A3A" }}>
+                    style={{ backgroundColor: "var(--brand-primary)" }}>
                     {/* Profile picture or default icon */}
                     <Avatar
                         src={getAvatarUrl()}

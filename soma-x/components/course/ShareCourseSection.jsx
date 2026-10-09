@@ -85,12 +85,12 @@ export default function ShareCourseSection({ SERVER_URL, courseId }) {
             type="button"
             onClick={exportBundle}
             disabled={busy}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#203A3A] hover:bg-[#162727] disabled:opacity-50 rounded-lg px-4 py-2"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] disabled:opacity-50 rounded-lg px-4 py-2"
           >
             {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" /> : <Download className="w-3.5 h-3.5" aria-hidden="true" />}
             {busy ? t("share.exporting") : t("share.export")}
           </button>
-          <Link href="/library/courses" className="text-xs font-semibold text-[#0D9488] hover:underline">{t("share.openLibrary")}</Link>
+          <Link href="/library/courses" className="text-xs font-semibold text-[var(--brand-secondary)] hover:underline">{t("share.openLibrary")}</Link>
         </div>
 
         {error ? <p role="alert" className="text-xs font-semibold text-rose-600">{error}</p> : null}

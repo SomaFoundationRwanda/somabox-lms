@@ -83,9 +83,9 @@ export default function DraftCard({ draft, SERVER_URL, courseId, modules, outcom
           {draftTypeLabel(tp, draft.type)}
         </Heading>
         <AiDraftLabel />
-        {module ? <span className="text-xs font-semibold text-[#0D9488]">{weekLabel(tp, module)}{module.title ? ` · ${module.title}` : ""}</span> : null}
+        {module ? <span className="text-xs font-semibold text-[var(--brand-secondary)]">{weekLabel(tp, module)}{module.title ? ` · ${module.title}` : ""}</span> : null}
         {draft.type === "rubric" && draft.assignmentId ? (
-          <Link href={`/course/${courseId}/assignments/${draft.assignmentId}`} className="text-xs font-semibold text-[#0D9488] hover:underline">{tp("ai.card.forAssignment")}</Link>
+          <Link href={`/course/${courseId}/assignments/${draft.assignmentId}`} className="text-xs font-semibold text-[var(--brand-secondary)] hover:underline">{tp("ai.card.forAssignment")}</Link>
         ) : null}
         {draft.edited ? <span className="text-[11px] text-slate-500">{tp("ai.card.edited")}</span> : null}
       </header>
@@ -114,7 +114,7 @@ export default function DraftCard({ draft, SERVER_URL, courseId, modules, outcom
                 <button type="button" onClick={reject} disabled={!!busy} className="inline-flex items-center gap-1 text-xs font-semibold text-rose-700 border border-rose-200 hover:bg-rose-50 dark:hover:bg-rose-950/30 disabled:opacity-50 px-3 py-2 rounded-lg">
                   <X className="w-3.5 h-3.5" /> {busy === "reject" ? tp("ai.card.rejecting") : tp("ai.card.reject")}
                 </button>
-                <button type="button" onClick={approve} disabled={!!busy} className="inline-flex items-center gap-1 text-xs font-bold text-white bg-[#0D9488] hover:bg-teal-700 disabled:opacity-50 px-3.5 py-2 rounded-lg">
+                <button type="button" onClick={approve} disabled={!!busy} className="inline-flex items-center gap-1 text-xs font-bold text-white bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-dark)] disabled:opacity-50 px-3.5 py-2 rounded-lg">
                   <Check className="w-3.5 h-3.5" /> {busy === "approve" ? tp("ai.card.adding") : tp("ai.card.addToCourse")}
                 </button>
               </div>
@@ -169,7 +169,7 @@ export function DecidedDraftRow({ draft, modules, outcomes, courseId }) {
             {draft.decidedBy ? tp(draft.status === "approved" ? "ai.card.addedBy" : "ai.card.rejectedBy", { name: draft.decidedBy }) : ""}
             {draft.decidedAt ? ` · ${fmtDateTime(draft.decidedAt, locale)}` : ""}
           </p>
-          {link ? <Link href={link.href} className="text-xs font-semibold text-[#0D9488] hover:underline">{resultLinkLabel(tp, link.label)}</Link> : null}
+          {link ? <Link href={link.href} className="text-xs font-semibold text-[var(--brand-secondary)] hover:underline">{resultLinkLabel(tp, link.label)}</Link> : null}
           <DraftPreview type={draft.type} payload={draft.payload} outcomes={outcomes} />
         </div>
       ) : null}

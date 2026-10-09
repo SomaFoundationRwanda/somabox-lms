@@ -23,5 +23,12 @@ export default {
     "mediaExpiredBody": "Reconnectez-vous pour continuer à regarder et à lire. Vous reviendrez sur cette page.",
     "signInAgain": "Se reconnecter",
     "language": "Langue",
-    "mediaForbidden": "Ce fichier appartient à un cours dont vous ne faites pas partie."
+    "mediaForbidden": "Ce fichier appartient à un cours dont vous ne faites pas partie.",
+    "previewChip": "Aperçu · encore {time}",
+    "previewSignUpWatch": "Inscrivez-vous pour tout regarder",
+    "previewSignUpRead": "Inscrivez-vous pour tout lire",
+    "previewEndedWatch": "Votre aperçu est terminé. Créez un compte gratuit pour continuer à regarder",
+    "previewEndedRead": "Votre aperçu est terminé. Créez un compte gratuit pour continuer à lire",
+    "previewStarting": "Ouverture de l'aperçu…",
+    "previewFailed": "Impossible de lancer l'aperçu. Inscrivez-vous gratuitement pour ouvrir ceci."
 };

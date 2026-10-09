@@ -11,7 +11,7 @@ import Loader from "@/components/ui/Loader";
 
 // Visual language per event type. Labels shown on screen come from course.calendar.types.<type>.
 export const EVENT_TYPES = {
-  module: { label: "Module starts", Icon: Layers, chip: "bg-[#203A3A]/10 text-[#203A3A] border-[#203A3A]/20", dot: "bg-[#203A3A]" },
+  module: { label: "Module starts", Icon: Layers, chip: "bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] border-[var(--brand-primary)]/20", dot: "bg-[var(--brand-primary)]" },
   release: { label: "Opens", Icon: Unlock, chip: "bg-sky-50 text-sky-800 border-sky-200", dot: "bg-sky-500" },
   due: { label: "Due", Icon: Clock, chip: "bg-amber-50 text-amber-800 border-amber-200", dot: "bg-amber-500" },
   close: { label: "Closes", Icon: Lock, chip: "bg-rose-50 text-rose-800 border-rose-200", dot: "bg-rose-500" },
@@ -75,7 +75,7 @@ function EventChip({ event, showCourse, compact, canMove, onMoveClick, onDragSta
       )}
     </>
   );
-  const chipCls = `flex items-center gap-1 min-w-0 flex-1 border rounded-md ${compact ? "px-1 py-0.5 text-[10px]" : "px-2 py-1 text-xs"} ${meta.chip} hover:brightness-95 focus-visible:outline-2 focus-visible:outline-[#0D9488]`;
+  const chipCls = `flex items-center gap-1 min-w-0 flex-1 border rounded-md ${compact ? "px-1 py-0.5 text-[10px]" : "px-2 py-1 text-xs"} ${meta.chip} hover:brightness-95 focus-visible:outline-2 focus-visible:outline-[var(--brand-secondary)]`;
 
   return (
     <div className="flex items-center gap-0.5 min-w-0">
@@ -106,7 +106,7 @@ function EventChip({ event, showCourse, compact, canMove, onMoveClick, onDragSta
         <button
           type="button"
           onClick={() => onMoveClick(event)}
-          className="shrink-0 p-0.5 rounded text-slate-400 hover:text-[#203A3A] hover:bg-slate-100"
+          className="shrink-0 p-0.5 rounded text-slate-400 hover:text-[var(--brand-primary)] hover:bg-slate-100"
           aria-label={tf("calendar.moveAria", { type: typeLabel, title })}
           title={t("calendar.moveTitle")}
         >
@@ -162,7 +162,7 @@ function MoveDialog({ event, onCancel, onConfirm }) {
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[#203A3A]"
+            className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[var(--brand-primary)]"
             autoFocus
             required
           />
@@ -171,7 +171,7 @@ function MoveDialog({ event, onCancel, onConfirm }) {
           <button
             type="submit"
             disabled={saving || !date}
-            className="flex-1 text-xs font-semibold text-white bg-[#203A3A] hover:bg-[#162727] disabled:opacity-50 rounded-lg py-2.5 transition-colors"
+            className="flex-1 text-xs font-semibold text-white bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] disabled:opacity-50 rounded-lg py-2.5 transition-colors"
           >
             {saving ? t("calendar.moving") : t("calendar.move")}
           </button>
@@ -301,7 +301,7 @@ export default function CalendarView({ events, today, loading, onEventMove, onRa
                 onClick={() => setView(id)}
                 aria-pressed={view === id}
                 className={`flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-md transition-colors ${
-                  view === id ? "bg-[#203A3A] text-white" : "text-slate-600 hover:text-slate-900"
+                  view === id ? "bg-[var(--brand-primary)] text-white" : "text-slate-600 hover:text-slate-900"
                 }`}
               >
                 <Icon className="w-3.5 h-3.5" aria-hidden="true" /> {label}
@@ -366,12 +366,12 @@ export default function CalendarView({ events, today, loading, onEventMove, onRa
                       onDrop={dragKey ? (e) => handleDrop(e, date) : undefined}
                       className={`min-h-[6rem] border-b border-r border-slate-100 p-1 space-y-0.5 ${
                         inMonth ? "bg-white" : "bg-slate-50/70"
-                      } ${isDrop ? "ring-2 ring-inset ring-[#0D9488] bg-teal-50" : ""}`}
+                      } ${isDrop ? "ring-2 ring-inset ring-[var(--brand-secondary)] bg-teal-50" : ""}`}
                       aria-label={formatDate(date, { weekday: "long", day: "numeric", month: "long" })}
                     >
                       <div className="flex justify-end">
                         <span className={`text-[11px] font-semibold w-6 h-6 flex items-center justify-center rounded-full ${
-                          isToday ? "bg-[#0D9488] text-white" : inMonth ? "text-slate-700" : "text-slate-400"
+                          isToday ? "bg-[var(--brand-secondary)] text-white" : inMonth ? "text-slate-700" : "text-slate-400"
                         }`}>
                           {Number(date.slice(8))}
                         </span>
@@ -389,7 +389,7 @@ export default function CalendarView({ events, today, loading, onEventMove, onRa
                         />
                       ))}
                       {hidden > 0 && (
-                        <button type="button" onClick={() => setExpandedDay(date)} className="text-[10px] font-semibold text-[#0D9488] hover:underline px-1">
+                        <button type="button" onClick={() => setExpandedDay(date)} className="text-[10px] font-semibold text-[var(--brand-secondary)] hover:underline px-1">
                           {tf("calendar.more", { n: hidden })}
                         </button>
                       )}
@@ -414,13 +414,13 @@ export default function CalendarView({ events, today, loading, onEventMove, onRa
       {view === "agenda" && (
         <div className="space-y-3">
           {!showEarlier && earlierCount > 0 && (
-            <button type="button" onClick={() => setShowEarlier(true)} className="text-xs font-semibold text-[#0D9488] hover:underline">
+            <button type="button" onClick={() => setShowEarlier(true)} className="text-xs font-semibold text-[var(--brand-secondary)] hover:underline">
               {tf("calendar.showEarlier", { n: earlierCount })}
             </button>
           )}
           {showEarlier && (
             <div className="flex flex-wrap gap-3">
-              <button type="button" onClick={() => setAgendaFrom((d) => addDays(d, -90))} className="text-xs font-semibold text-[#0D9488] hover:underline">
+              <button type="button" onClick={() => setAgendaFrom((d) => addDays(d, -90))} className="text-xs font-semibold text-[var(--brand-secondary)] hover:underline">
                 {t("calendar.loadEarlier")}
               </button>
               <button type="button" onClick={() => setShowEarlier(false)} className="text-xs font-semibold text-slate-500 hover:underline">
@@ -446,7 +446,7 @@ export default function CalendarView({ events, today, loading, onEventMove, onRa
                   <h3 className="flex items-center gap-2 sm:w-52 sm:shrink-0 sm:pt-1 text-xs font-bold text-slate-700 dark:text-slate-200">
                     {formatDate(date, { weekday: "long", day: "numeric", month: "long" })}
                     {rel && (
-                      <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${date === effectiveToday ? "bg-[#0D9488] text-white" : "bg-slate-200 text-slate-600"}`}>{rel}</span>
+                      <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${date === effectiveToday ? "bg-[var(--brand-secondary)] text-white" : "bg-slate-200 text-slate-600"}`}>{rel}</span>
                     )}
                   </h3>
                   <ul className="mt-1.5 sm:mt-0 flex-1 min-w-0 space-y-1.5">
@@ -467,7 +467,7 @@ export default function CalendarView({ events, today, loading, onEventMove, onRa
           </ol>
           )}
 
-          <button type="button" onClick={() => setAgendaTo((d) => addDays(d, AGENDA_AHEAD))} className="text-xs font-semibold text-[#0D9488] hover:underline">
+          <button type="button" onClick={() => setAgendaTo((d) => addDays(d, AGENDA_AHEAD))} className="text-xs font-semibold text-[var(--brand-secondary)] hover:underline">
             {t("calendar.showLater")}
           </button>
         </div>

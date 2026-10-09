@@ -70,7 +70,7 @@ export default function CreateCourseModal({ SERVER_URL, onClose, onCreated }) {
               placeholder={t("teacher.createCourse.titlePlaceholder")}
               value={form.title}
               onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
-              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2.5 outline-none focus:border-[#2E8282]"
+              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2.5 outline-none focus:border-[var(--brand-secondary)]"
             />
           </div>
           <div>
@@ -78,7 +78,7 @@ export default function CreateCourseModal({ SERVER_URL, onClose, onCreated }) {
             <select aria-label={t("teacher.createCourse.grade")}
               value={form.grade}
               onChange={(e) => setForm((p) => ({ ...p, grade: e.target.value }))}
-              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2.5 outline-none focus:border-[#2E8282] bg-white"
+              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2.5 outline-none focus:border-[var(--brand-secondary)] bg-white"
             >
               <option value="">{t("teacher.createCourse.selectGrade")}</option>
               {GRADE_OPTIONS.map((g) => (
@@ -91,7 +91,7 @@ export default function CreateCourseModal({ SERVER_URL, onClose, onCreated }) {
                 placeholder={t("teacher.createCourse.describeGrade")}
                 value={form.gradeOther}
                 onChange={(e) => setForm((p) => ({ ...p, gradeOther: e.target.value }))}
-                className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2.5 outline-none focus:border-[#2E8282] mt-2"
+                className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2.5 outline-none focus:border-[var(--brand-secondary)] mt-2"
               />
             )}
           </div>
@@ -102,20 +102,20 @@ export default function CreateCourseModal({ SERVER_URL, onClose, onCreated }) {
               onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
               rows={3}
               placeholder={t("teacher.createCourse.descriptionPlaceholder")}
-              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2.5 outline-none focus:border-[#2E8282] resize-none"
+              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2.5 outline-none focus:border-[var(--brand-secondary)] resize-none"
             />
           </div>
           {error && <p className="text-xs text-red-500">{error}</p>}
           <button
             onClick={handleSubmit}
             disabled={loading || !form.title.trim() || (!form.grade || (form.grade === "other" && !form.gradeOther.trim()))}
-            className="w-full py-2.5 rounded-lg text-sm font-medium bg-[#2E8282] text-white hover:bg-[#1f6767] transition-colors disabled:opacity-50"
+            className="w-full py-2.5 rounded-lg text-sm font-medium bg-[var(--brand-secondary)] text-white hover:bg-[var(--brand-secondary-dark)] transition-colors disabled:opacity-50"
           >
             {loading ? t("teacher.createCourse.creating") : t("teacher.createCourse.create")}
           </button>
           <p className="text-xs text-slate-500 text-center">
             {t("teacher.createCourse.orBefore")}{" "}
-            <Link href="/library/courses" className="font-semibold text-[#2E8282] hover:underline">{t("teacher.createCourse.orLink")}</Link>
+            <Link href="/library/courses" className="font-semibold text-[var(--brand-secondary)] hover:underline">{t("teacher.createCourse.orLink")}</Link>
             {" "}{t("teacher.createCourse.orAfter")}
           </p>
         </div>

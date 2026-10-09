@@ -15,14 +15,14 @@ export default function Breadcrumbs({ sectionKey, itemName }) {
 
   return (
     <div className="flex items-center gap-1.5 text-xs text-slate-500 px-4 md:px-6 py-3 border-b border-slate-100 bg-white flex-wrap">
-      <Link href={`/course/${courseId}/home`} className="font-semibold text-slate-700 hover:text-[#203A3A]">
+      <Link href={`/course/${courseId}/home`} className="font-semibold text-slate-700 hover:text-[var(--brand-primary)]">
         {course?.title || t("nav.course")}
       </Link>
       {sectionLabel ? (
         <>
           <ChevronRight className="w-3 h-3" />
           {itemName ? (
-            <Link href={`/course/${courseId}/${sectionKey}`} className="hover:text-[#203A3A]">
+            <Link href={`/course/${courseId}/${sectionKey}`} className="hover:text-[var(--brand-primary)]">
               {sectionLabel}
             </Link>
           ) : (

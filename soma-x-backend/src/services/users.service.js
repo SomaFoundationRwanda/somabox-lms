@@ -1,6 +1,6 @@
 import express from 'express';
 import { renameEmailEverywhere, releaseEmail } from '../helpers/identity.js';
-import { assignLearnerCode, applySchoolToLearner, getSchool } from './school.js';
+import { assignLearnerCode, applySchoolToUser, getSchool } from './school.js';
 import bcrypt from "bcrypt";
 
 import { serverDb, localDb } from '../helpers/db-manager.js';
@@ -273,12 +273,10 @@ router.get('/profile/view', async (req, res) => {
         }
 
         const hasGender = Boolean(user.gender && user.gender !== 'prefer_not_to_say' && user.gender.trim() !== '');
-        const hasProvince = Boolean(user.region_province && user.region_province !== 'Not Specified' && user.region_province.trim() !== '');
-        const hasDistrict = Boolean(user.region_district && user.region_district !== 'Not Specified' && user.region_district.trim() !== '');
 
         // Complete only once every required answer was given explicitly (see /profile/update).
         // Admins aren't asked.
-        const isProfileComplete = user.role === 'admin' || (Boolean(user.profile_completed_at) && hasGender && hasProvince && hasDistrict);
+        const isProfileComplete = user.role === 'admin' || (Boolean(user.profile_completed_at) && hasGender);
 
         const school = await getSchool();
         return res.json({
@@ -344,11 +342,9 @@ router.post('/', requireAdmin, async (req, res) => {
 
     // Learners get the school's details and a learner code straight away.
     let learnerCode = null;
-    if (role === 'scholar') {
-      const created = await serverDb.prepare('SELECT id FROM users WHERE LOWER(email) = LOWER(?)').get(normalizedEmail);
-      await applySchoolToLearner(created.id);
-      learnerCode = await assignLearnerCode(created.id);
-    }
+    const created = await serverDb.prepare('SELECT id FROM users WHERE LOWER(email) = LOWER(?)').get(normalizedEmail);
+    await applySchoolToUser(created.id);
+    if (role === 'scholar') learnerCode = await assignLearnerCode(created.id);
 
     await logAdminAuditAction({
       adminEmail: req.user.email,
@@ -484,15 +480,15 @@ router.patch('/profile/update', async (req, res) => {
         const email = req.user.email;
         const fullName = req.body.fullName !== undefined ? String(req.body.fullName).trim() : undefined;
         const phone = req.body.phone !== undefined ? String(req.body.phone).trim() : undefined;
-        const schoolName = req.body.schoolName !== undefined ? String(req.body.schoolName).trim() : undefined;
+        // The school and its location are the box's (set by the admin), not something people enter.
+        const schoolControlled = req.user.role !== 'admin';
+        const schoolName = !schoolControlled && req.body.schoolName !== undefined ? String(req.body.schoolName).trim() : undefined;
         const gradeLevel = req.body.gradeLevel !== undefined ? String(req.body.gradeLevel).trim() : undefined;
         const preferredLanguage = req.body.preferredLanguage !== undefined ? String(req.body.preferredLanguage).trim() : undefined;
         const gender = req.body.gender !== undefined ? String(req.body.gender).trim() : undefined;
-        const regionProvince = req.body.regionProvince !== undefined ? String(req.body.regionProvince).trim() : undefined;
-        const regionDistrict = req.body.regionDistrict !== undefined ? String(req.body.regionDistrict).trim() : undefined;
-        // Rural/urban is the school's setting once the admin has set it; learners can't change it.
-        const schoolRural = (await getSchool()).isRural;
-        const isRural = schoolRural != null ? undefined : (req.body.isRural !== undefined ? (req.body.isRural ? 1 : 0) : undefined);
+        const regionProvince = !schoolControlled && req.body.regionProvince !== undefined ? String(req.body.regionProvince).trim() : undefined;
+        const regionDistrict = !schoolControlled && req.body.regionDistrict !== undefined ? String(req.body.regionDistrict).trim() : undefined;
+        const isRural = !schoolControlled && req.body.isRural !== undefined ? (req.body.isRural ? 1 : 0) : undefined;
         const disabilityStatus = req.body.disabilityStatus !== undefined ? String(req.body.disabilityStatus).trim() : undefined;
 
         const user = { id: req.user.id };
@@ -520,17 +516,8 @@ router.patch('/profile/update', async (req, res) => {
         // person (not a default), or the profile stays incomplete and they're asked again.
         if (req.body.completeProfile) {
             const missing = [];
+            // Location (province, district, rural/urban) is the school's, set by the admin; nobody is asked.
             if (!gender || gender === 'prefer_not_to_say') missing.push('gender');
-            if (!regionProvince || regionProvince === 'Not Specified') missing.push('province');
-            if (!regionDistrict || regionDistrict === 'Not Specified') missing.push('district');
-            // Rural/urban comes from the school's settings when the admin has set it.
-            const school = await getSchool();
-            if (school.isRural != null) {
-                updates.push('is_rural = ?');
-                params.push(school.isRural ? 1 : 0);
-            } else if (typeof req.body.isRural !== 'boolean') {
-                missing.push('rural or urban');
-            }
             if (!DISABILITY_ANSWERS.includes(disabilityStatus)) missing.push('accessibility needs');
             if (req.user.role === 'scholar' && !gradeLevel) missing.push('grade');
             if (missing.length) return res.status(400).json({ message: `Please answer: ${missing.join(', ')}`, missing });
@@ -541,6 +528,7 @@ router.patch('/profile/update', async (req, res) => {
         params.push(user.id);
 
         await serverDb.prepare(query).run(...params);
+        await applySchoolToUser(user.id);
 
         // Auto-mark any profile completion notifications as read in localDb
         try {

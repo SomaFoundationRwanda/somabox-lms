@@ -275,7 +275,7 @@ export default function AssignmentDetailPage() {
           title={assignment.title}
           meta={
             <>
-              <span className="text-xs font-bold text-[#0D9488] bg-teal-50 border border-teal-200 px-2.5 py-1 rounded-full">
+              <span className="text-xs font-bold text-[var(--brand-secondary)] bg-teal-50 border border-teal-200 px-2.5 py-1 rounded-full">
                 {tf("assignment.module", { module: currentModule ? `${weekLabel(currentModule)} - ${currentModule.title}` : t("assignment.notInModule") })}
               </span>
               <span className="text-xs font-semibold text-slate-500 flex items-center gap-1">
@@ -295,7 +295,7 @@ export default function AssignmentDetailPage() {
           {/* Outcome Tags */}
           <div className="flex items-center gap-2 flex-wrap pt-2">
             <span className="text-xs font-bold text-slate-500 flex items-center gap-1">
-              <Target className="w-3.5 h-3.5 text-[#0D9488]" /> {t("assignment.targetOutcomes")}
+              <Target className="w-3.5 h-3.5 text-[var(--brand-secondary)]" /> {t("assignment.targetOutcomes")}
             </span>
             {itemOutcomes.length === 0 ? (
               <span className="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full">
@@ -303,7 +303,7 @@ export default function AssignmentDetailPage() {
               </span>
             ) : (
               itemOutcomes.map((t) => (
-                <span key={t.outcome_id} className="text-xs font-bold text-[#0D9488] bg-teal-50 border border-teal-200 px-2.5 py-0.5 rounded-full">
+                <span key={t.outcome_id} className="text-xs font-bold text-[var(--brand-secondary)] bg-teal-50 border border-teal-200 px-2.5 py-0.5 rounded-full">
                   {t.outcome_code}: {t.outcome_title}
                 </span>
               ))
@@ -321,7 +321,7 @@ export default function AssignmentDetailPage() {
                   id="assignment-title"
                   value={editForm.title}
                   onChange={(e) => setEditForm((p) => ({ ...p, title: e.target.value }))}
-                  className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2.5 outline-none focus:border-[#0D9488]"
+                  className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2.5 outline-none focus:border-[var(--brand-secondary)]"
                 />
               </div>
 
@@ -332,7 +332,7 @@ export default function AssignmentDetailPage() {
                   id="assignment-module"
                   value={editForm.moduleId}
                   onChange={(e) => setEditForm((p) => ({ ...p, moduleId: Number(e.target.value) }))}
-                  className="w-full text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]"
+                  className="w-full text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]"
                 >
                   {modules.map((m) => (
                     <option key={m.id} value={m.id}>
@@ -381,7 +381,7 @@ export default function AssignmentDetailPage() {
                   value={editForm.description}
                   onChange={(e) => setEditForm((p) => ({ ...p, description: e.target.value }))}
                   rows={4}
-                  className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[#0D9488]"
+                  className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[var(--brand-secondary)]"
                 />
               </div>
 
@@ -391,7 +391,7 @@ export default function AssignmentDetailPage() {
 
               <div className="flex justify-end gap-2 pt-2">
                 <button onClick={() => setEditing(false)} className="text-xs font-semibold text-slate-500 px-4 py-2">{t("common.cancel")}</button>
-                <button onClick={saveEdit} disabled={saving} className="text-xs font-bold text-white bg-[#0D9488] hover:bg-teal-700 px-5 py-2.5 rounded-lg">
+                <button onClick={saveEdit} disabled={saving} className="text-xs font-bold text-white bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-dark)] px-5 py-2.5 rounded-lg">
                   {saving ? t("common.saving") : t("editors.saveChanges")}
                 </button>
               </div>
@@ -538,7 +538,7 @@ export default function AssignmentDetailPage() {
                           rows={6}
                           placeholder={t("assignment.responsePlaceholder")}
                           aria-label={t("assignment.responseLabel")}
-                          className="w-full text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-lg p-4 outline-none focus:border-[#0D9488]"
+                          className="w-full text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-lg p-4 outline-none focus:border-[var(--brand-secondary)]"
                         />
                       </>
                     )}
@@ -563,7 +563,7 @@ export default function AssignmentDetailPage() {
                     <button
                       onClick={submitAssignment}
                       disabled={submitting || deadlines.notOpenYet || deadlines.isClosed}
-                      className="px-6 py-2.5 bg-[#0D9488] hover:bg-teal-700 disabled:opacity-50 disabled:hover:bg-[#0D9488] text-white font-bold text-xs rounded-lg transition-colors"
+                      className="px-6 py-2.5 bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-dark)] disabled:opacity-50 disabled:hover:bg-[var(--brand-secondary)] text-white font-bold text-xs rounded-lg transition-colors"
                     >
                       {submitting ? t("assignment.submitting") : mine?.submitted_at ? t("assignment.resubmit") : t("assignment.submit")}
                     </button>

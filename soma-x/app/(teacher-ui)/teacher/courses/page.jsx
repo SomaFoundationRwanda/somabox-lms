@@ -38,10 +38,10 @@ export default function TeacherCoursesPage() {
           <p className="text-xs text-slate-600 dark:text-slate-400">{t("teacher.courses.subtitle")}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Link href="/library/courses" className="flex items-center gap-1.5 text-xs font-medium text-[#2E8282] border border-[#2E8282]/40 hover:bg-teal-50 rounded-lg px-3 py-2 transition-colors">
+          <Link href="/library/courses" className="flex items-center gap-1.5 text-xs font-medium text-[var(--brand-secondary)] border border-[var(--brand-secondary)]/40 hover:bg-teal-50 rounded-lg px-3 py-2 transition-colors">
             <Library className="w-3.5 h-3.5" aria-hidden="true" /> {t("teacher.courses.fromShared")}
           </Link>
-          <button onClick={() => setCreateOpen(true)} className="flex items-center gap-1.5 text-xs font-medium text-white bg-[#2E8282] hover:bg-[#1f6767] rounded-lg px-3 py-2 transition-colors">
+          <button onClick={() => setCreateOpen(true)} className="flex items-center gap-1.5 text-xs font-medium text-white bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-dark)] rounded-lg px-3 py-2 transition-colors">
             <Plus className="w-3.5 h-3.5" /> {t("teacher.common.newCourse")}
           </button>
         </div>

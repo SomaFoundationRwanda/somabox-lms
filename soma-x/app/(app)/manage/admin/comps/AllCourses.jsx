@@ -48,7 +48,7 @@ export default function AllCourses({ serverUrl }) {
         onChange={(e) => setFilter(e.target.value)}
         placeholder={t("admin.courses.searchPlaceholder")}
         aria-label={t("admin.courses.searchLabel")}
-        className="w-full sm:w-72 text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[#0D9488]"
+        className="w-full sm:w-72 text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[var(--brand-secondary)]"
       />
       <DataTable
         caption={t("admin.courses.caption")}
@@ -60,7 +60,7 @@ export default function AllCourses({ serverUrl }) {
             header: t("admin.courses.colCourse"),
             render: (c) => (
               <div className="min-w-0">
-                <Link href={`/course/${c.id}/home`} className="font-semibold text-slate-900 hover:text-[#0D9488] hover:underline">{c.title}</Link>
+                <Link href={`/course/${c.id}/home`} className="font-semibold text-slate-900 hover:text-[var(--brand-secondary)] hover:underline">{c.title}</Link>
                 <div className="text-xs text-slate-500">{fill(t("admin.courses.code"), { code: c.id })}{c.grade ? ` · ${c.grade}` : ""}</div>
               </div>
             ),

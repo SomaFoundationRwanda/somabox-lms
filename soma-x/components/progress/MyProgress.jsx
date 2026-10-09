@@ -129,7 +129,7 @@ export default function MyProgress({ sectionKey = "progress" }) {
             {data.attendance?.counted > 0 ? (
               <p className="-mt-4 text-sm text-slate-600 dark:text-slate-300">
                 {txn("youAttended", data.attendance.counted, { a: attended(data.attendance) })}.{" "}
-                <Link href={`/course/${courseId}/attendance`} className="font-semibold text-[#0D9488] hover:underline">{tx("openMyAttendance")}</Link>
+                <Link href={`/course/${courseId}/attendance`} className="font-semibold text-[var(--brand-secondary)] hover:underline">{tx("openMyAttendance")}</Link>
               </p>
             ) : null}
 
@@ -143,7 +143,7 @@ export default function MyProgress({ sectionKey = "progress" }) {
                     return (
                       <li key={o.outcomeId ?? o.id} className="px-3 py-3 text-sm space-y-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          {o.code ? <span className="text-[11px] font-bold text-[#0D9488]">{o.code}</span> : null}
+                          {o.code ? <span className="text-[11px] font-bold text-[var(--brand-secondary)]">{o.code}</span> : null}
                           <span className="font-semibold text-slate-900 dark:text-white">{o.title || tp("common.outcome")}</span>
                           <span className={`inline-flex items-center text-[10px] font-semibold rounded-full border px-1.5 py-0.5 ${band.chip}`}>{tp(`myProgress.status.${band.key}`)}</span>
                         </div>
@@ -199,7 +199,7 @@ export default function MyProgress({ sectionKey = "progress" }) {
             </Section>
 
             <p className="text-xs text-slate-500">
-              {fillNode(tp("myProgress.everyMark", { link: "{link}" }), { link: <Link href={`/course/${courseId}/grades`} className="font-semibold text-[#0D9488] hover:underline">{tp("myProgress.openGrades")}</Link> })}
+              {fillNode(tp("myProgress.everyMark", { link: "{link}" }), { link: <Link href={`/course/${courseId}/grades`} className="font-semibold text-[var(--brand-secondary)] hover:underline">{tp("myProgress.openGrades")}</Link> })}
             </p>
           </>
         )}

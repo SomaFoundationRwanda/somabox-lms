@@ -13,6 +13,7 @@ import { FILE_ROOTS, rootOf, safePathKey, absolutePath, fileType, humanize, cove
 import { syncExploreIndex, lastIndexRun } from "./explore/indexer.js";
 import { getCatalog, invalidateCatalog } from "./explore/catalog.js";
 import { coverQueueLength } from "./explore/covers.js";
+import { startPreview, guestMayOpen, limitGuestRange } from "./explore/preview.js";
 import { SUMMARY_LANGUAGES, summariesEnabled, summarisable, userLanguage, getSummary, summaryView, requestSummary } from "./explore/summaries.js";
 
 const router = express.Router();
@@ -52,19 +53,40 @@ router.get("/custom-content/summary", async (req, res) => res.json((await getCat
 // --- Files (signed-in people) ---------------------------------------------------------------------
 // Only Explore folders are served here (course files have their own, membership-checked route).
 // Hidden files and folders are only opened by staff, who need to preview them.
-router.get("/files/*filePath", requireMediaAccess(), async (req, res, next) => {
+router.get("/files/*filePath", requireMediaAccess({ allowGuests: true }), async (req, res, next) => {
   try {
     const segments = [].concat(req.params.filePath || []);
     const pathKey = safePathKey(segments.join("/"));
+    const signUp = () => res.status(401).json({ message: "Sign up for free to keep watching or reading", code: "LOGIN_REQUIRED" });
+    // Visitors without a preview of this item are asked to sign up (nothing about the file is said).
+    if (!req.mediaUser && (!pathKey || !await guestMayOpen(req, pathKey))) return signUp();
     if (!pathKey || !fileType(pathKey)) return res.status(404).json({ message: "File not found" });
     if (!isStaff(req.mediaUser) && await (await getCatalog()).isHidden(pathKey)) {
       return res.status(404).json({ message: "File not found" });
     }
     const file = absolutePath(pathKey);
     if (!fs.existsSync(file)) return res.status(404).json({ message: "File not found" });
+    // Visitors get only the start of videos and audio.
+    if (!req.mediaUser && !limitGuestRange(req, pathKey)) return signUp();
     return res.sendFile(file, { dotfiles: "deny" });
   } catch (error) {
     next(error);
+  }
+});
+
+// Visitors (not signed in) start a short preview of an Explore or Library item.
+router.post("/preview", async (req, res) => {
+  try {
+    if (req.user) return res.json({ signedIn: true });
+    const pathKey = safePathKey(req.body?.path);
+    if (!pathKey || !fileType(pathKey) || !fs.existsSync(absolutePath(pathKey)) || await (await getCatalog()).isHidden(pathKey)) {
+      return res.status(404).json({ message: "File not found" });
+    }
+    return res.json(await startPreview(req, res, pathKey));
+  } catch (error) {
+    if (error.status) return res.status(error.status).json({ message: error.message, code: error.code });
+    console.error("Error starting a preview:", error);
+    return res.status(500).json({ message: error.message });
   }
 });
 

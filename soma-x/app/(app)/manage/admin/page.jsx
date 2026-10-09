@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import Users from "./comps/Users";
 import AllCourses from "./comps/AllCourses";
 import { BarChart3, ChevronRight, LayoutDashboard, Library, Megaphone, Palette, Plus, RefreshCcw, School, Sparkles } from "lucide-react";
+import { useSchool } from "@/context/SchoolContext";
+import { FOCUS_RING } from "@/lib/a11y";
 import { PageHeader, Section, List, ListRow } from "@/components/layout";
 import SendNotificationModal from "@/components/notifications/SendNotificationModal";
 import InclusivityGapReport from "@/components/analytics/InclusivityGapReport";
@@ -18,6 +20,7 @@ const AdminPortal = () => {
     const { t } = useLanguage();
     const { authenticated, role, SERVER_URL } = useContext(DataContext);
     const userRole = role;
+    const { school, loaded: schoolLoaded } = useSchool();
 
     const [sendNotifModal, setSendNotifModal] = useState(false);
 
@@ -59,16 +62,10 @@ const AdminPortal = () => {
         },
         {
             title: t("school.settings.navTitle"),
+            // One School page: name, code, location, logo, colours and visitor previews.
             subtitle: t("school.settings.navSubtitle"),
             href: "/manage/admin/school",
             icon: School,
-            allowedRoles: ['admin'],
-        },
-        {
-            title: t("admin.home.brandingTitle"),
-            subtitle: t("admin.home.brandingSubtitle"),
-            href: "/manage/admin/branding",
-            icon: Palette,
             allowedRoles: ['admin'],
         },
     ].filter(o => o.allowedRoles.includes(userRole)), [t, userRole]);
@@ -87,13 +84,30 @@ const AdminPortal = () => {
                     actions={
                         <button
                             onClick={() => setSendNotifModal(true)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold transition-colors"
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-dark)] text-white text-xs font-bold transition-colors"
                         >
                             <Megaphone size={13} />
                             <span className="hidden sm:inline">{t("admin.home.broadcast")}</span>
                         </button>
                     }
                 />
+
+                {/* Until the admin names the school, ask them to set it up (name, logo, colours, location). */}
+                {userRole === 'admin' && schoolLoaded && !school.configured && (
+                    <Link
+                        href="/manage/admin/school"
+                        className={`flex items-center gap-3 rounded-2xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 px-4 py-3 text-amber-900 dark:text-amber-100 hover:bg-amber-100 dark:hover:bg-amber-500/20 transition-colors ${FOCUS_RING}`}
+                    >
+                        <span className="w-9 h-9 shrink-0 rounded-xl bg-white/70 dark:bg-white/10 flex items-center justify-center" aria-hidden="true">
+                            <Palette className="w-4 h-4" />
+                        </span>
+                        <span className="flex-1 min-w-0">
+                            <span className="block text-sm font-bold">{t("school.banner.title")}</span>
+                            <span className="block text-xs mt-0.5">{t("school.banner.body")}</span>
+                        </span>
+                        <ChevronRight className="w-4 h-4 shrink-0" aria-hidden="true" />
+                    </Link>
+                )}
 
                 {/* Quick Actions */}
                 <Section title={t("admin.home.quickActions")}>

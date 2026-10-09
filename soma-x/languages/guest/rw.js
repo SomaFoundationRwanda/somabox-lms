@@ -24,5 +24,12 @@ export default {
     "mediaExpiredBody": "Ongera winjire kugira ngo ukomeze kureba no gusoma. Uzagaruka kuri iyi paji.",
     "signInAgain": "Ongera winjire",
     "language": "Ururimi",
-    "mediaForbidden": "Iyi dosiye ni iy'isomo utarimo."
+    "mediaForbidden": "Iyi dosiye ni iy'isomo utarimo.",
+    "previewChip": "Kureba bike · hasigaye {time}",
+    "previewSignUpWatch": "Iyandikishe urebe byose",
+    "previewSignUpRead": "Iyandikishe usome byose",
+    "previewEndedWatch": "Igihe cyo kureba bike kirangiye. Fungura konti y'ubuntu ukomeze kureba",
+    "previewEndedRead": "Igihe cyo kureba bike kirangiye. Fungura konti y'ubuntu ukomeze gusoma",
+    "previewStarting": "Biratangira…",
+    "previewFailed": "Ntibyashobotse gutangira. Iyandikishe ku buntu kugira ngo ubifungure."
 };

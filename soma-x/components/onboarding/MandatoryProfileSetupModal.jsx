@@ -4,7 +4,6 @@ import React, { useState, useEffect, useContext, useRef } from 'react';
 import {
     User,
     Phone,
-    MapPin,
     GraduationCap,
     Globe,
     CheckCircle2,
@@ -22,8 +21,8 @@ import { useToast } from '@/context/ToastContext';
 import LanguageSwitcher from '@/components/global/LanguageSwitcher';
 import { fill } from '@/lib/fill';
 
-// Rwanda provinces and districts (shared with the School settings page).
-import { RWANDA_LOCATIONS } from '@/lib/rwandaLocations';
+// Nobody is asked where they live: one box serves one school, and the box places everyone at the
+// school's location (province, district, rural/urban), set by the admin on the School page.
 
 const GRADE_LEVELS = [
     { value: "Primary 1", key: "p1" },
@@ -58,15 +57,11 @@ export default function MandatoryProfileSetupModal() {
     const [fullName, setFullName] = useState('');
     const [phone, setPhone] = useState('');
     const [gender, setGender] = useState('');
-    const [province, setProvince] = useState('');
-    const [district, setDistrict] = useState('');
-    const [customDistrict, setCustomDistrict] = useState('');
-    // These two must be answered explicitly: a pre-ticked default would record "urban" or
-    // "no disability" for people who never chose (the school reports on these).
-    const [isRural, setIsRural] = useState(null);
+    // Must be answered explicitly: a pre-ticked default would record "no disability" for people
+    // who never chose (the school reports on this).
     const [disabilityStatus, setDisabilityStatus] = useState('');
     // One box serves one school: the school (name, place, rural/urban) comes from the box's
-    // settings, so learners aren't asked for it. { name, code, province, district, isRural }.
+    // settings and is shown read-only. { name, code, province, district, isRural }.
     const [school, setSchool] = useState(null);
     const [gradeLevel, setGradeLevel] = useState('');
     const [preferredLanguage, setPreferredLanguage] = useState(lang || 'en');
@@ -113,20 +108,8 @@ export default function MandatoryProfileSetupModal() {
                 if (data.full_name) setFullName(data.full_name);
                 if (data.phone) setPhone(data.phone);
                 if (data.gender && data.gender !== 'prefer_not_to_say') setGender(data.gender);
-                const hasProvince = data.region_province && data.region_province !== 'Not Specified';
-                const hasDistrict = data.region_district && data.region_district !== 'Not Specified';
-                if (hasProvince) setProvince(data.region_province);
-                if (hasDistrict) setDistrict(data.region_district);
-                if (data.school) {
-                    setSchool(data.school);
-                    // Start from the school's place when the learner has none yet (they can change it).
-                    if (!hasProvince && data.school.province) {
-                        setProvince(data.school.province);
-                        if (!hasDistrict && data.school.district) setDistrict(data.school.district);
-                    }
-                }
-                // Only reuse these once they were actually answered (older accounts hold defaults).
-                if (data.isProfileComplete && data.is_rural != null) setIsRural(Number(data.is_rural) === 1);
+                if (data.school) setSchool(data.school);
+                // Only reuse this once it was actually answered (older accounts hold defaults).
                 if (data.isProfileComplete && data.disability_status) setDisabilityStatus(data.disability_status);
                 if (data.grade_level) setGradeLevel(data.grade_level);
                 if (data.preferred_language) setPreferredLanguage(data.preferred_language);
@@ -147,37 +130,26 @@ export default function MandatoryProfileSetupModal() {
     // Live per-step validity — drives the disabled/aria-disabled state on
     // Continue directly, independent of whether the user has attempted to
     // submit yet, so the requirement is always accurately represented.
-    const isStep1Valid = fullName.trim() !== '' && !!gender;
-    // When the school says whether it is rural or urban, the server uses that for every learner.
-    const ruralFromSchool = school?.isRural != null;
-    const isStep2Valid = !!province && (
-        province === "International / Other" ? customDistrict.trim() !== '' : !!district
-    ) && (ruralFromSchool || isRural !== null) && !!disabilityStatus;
-    const isStep3Valid = currentRole !== 'scholar' || !!gradeLevel;
+    const isStep1Valid = fullName.trim() !== '' && !!gender && !!disabilityStatus;
+    const isStep2Valid = currentRole !== 'scholar' || !!gradeLevel;
 
-    const STEP_LABELS = { 1: t("learner.profileSetup.stepPersonal"), 2: t("learner.profileSetup.stepLocation"), 3: t("learner.profileSetup.stepAcademic") };
+    const STEP_LABELS = { 1: t("learner.profileSetup.stepPersonal"), 2: t("learner.profileSetup.stepAcademic") };
+    const LAST_STEP = 2;
+    // "GS Kigali · Gasabo, Kigali City" (the place only when the school has set it).
+    const schoolPlace = [school?.district, school?.province].filter(Boolean).join(", ");
 
     // Handle step 1 validation
     const validateStep1 = () => {
         const errs = {};
         if (!fullName.trim()) errs.fullName = t("learner.profileSetup.errName");
         if (!gender) errs.gender = t("learner.profileSetup.errGender");
+        if (!disabilityStatus) errs.disability = t("school.onboarding.errDisability");
         setErrors(errs);
         return Object.keys(errs).length === 0;
     };
 
     // Handle step 2 validation
     const validateStep2 = () => {
-        const errs = {};
-        if (!province) errs.province = t("learner.profileSetup.errProvince");
-        const finalDistrict = province === "International / Other" ? customDistrict : district;
-        if (!finalDistrict || !finalDistrict.trim()) errs.district = t("learner.profileSetup.errDistrict");
-        setErrors(errs);
-        return Object.keys(errs).length === 0;
-    };
-
-    // Handle step 3 validation
-    const validateStep3 = () => {
         const errs = {};
         if (currentRole === 'scholar' && !gradeLevel) {
             errs.gradeLevel = t("learner.profileSetup.errGrade");
@@ -187,7 +159,7 @@ export default function MandatoryProfileSetupModal() {
     };
 
     const handleNext = () => {
-        const valid = step === 1 ? validateStep1() : step === 2 ? validateStep2() : true;
+        const valid = step === 1 ? validateStep1() : true;
         if (!valid) {
             // Continue is only reachable here via keyboard activation racing the
             // disabled state, or a stale click — announce why it didn't move so
@@ -221,12 +193,10 @@ export default function MandatoryProfileSetupModal() {
 
     const handleFinalSubmit = async (e) => {
         e.preventDefault();
-        if (!validateStep3()) return;
+        if (!validateStep2()) return;
 
         setLoading(true);
         setErrors({});
-
-        const finalDistrict = province === "International / Other" ? (customDistrict || "International") : district;
 
         try {
             const res = await fetch(`${SERVER_URL}/users/profile/update`, {
@@ -236,9 +206,6 @@ export default function MandatoryProfileSetupModal() {
                     fullName: fullName.trim(),
                     phone: phone.trim(),
                     gender,
-                    regionProvince: province,
-                    regionDistrict: finalDistrict,
-                    ...(ruralFromSchool ? {} : { isRural }),
                     disabilityStatus,
                     gradeLevel,
                     preferredLanguage,
@@ -314,8 +281,7 @@ export default function MandatoryProfileSetupModal() {
                     <div className="mt-6 pt-4 border-t border-white/15 flex items-center justify-between gap-2">
                         {[
                             { num: 1, label: STEP_LABELS[1], icon: User },
-                            { num: 2, label: STEP_LABELS[2], icon: MapPin },
-                            { num: 3, label: STEP_LABELS[3], icon: GraduationCap }
+                            { num: 2, label: STEP_LABELS[2], icon: GraduationCap }
                         ].map((item, idx) => {
                             const IconComponent = item.icon;
                             const isActive = step === item.num;
@@ -340,7 +306,7 @@ export default function MandatoryProfileSetupModal() {
                                         </p>
                                         <p className="text-[10px] text-white/70 truncate">{item.label}</p>
                                     </div>
-                                    {idx < 2 && (
+                                    {idx < LAST_STEP - 1 && (
                                         <div className={`flex-1 h-0.5 mx-1 hidden sm:block ${step > item.num ? "bg-teal-400" : "bg-white/20"}`} />
                                     )}
                                 </div>
@@ -375,7 +341,7 @@ export default function MandatoryProfileSetupModal() {
                             {step === 1 && (
                                 <div className="space-y-5 animate-in fade-in-50 duration-200">
                                     <div className="border-b border-slate-200 dark:border-slate-800 pb-3">
-                                        <h3 ref={stepHeadingRef} tabIndex={-1} className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]">
+                                        <h3 ref={stepHeadingRef} tabIndex={-1} className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]">
                                             <User className="w-4 h-4 text-teal-600 dark:text-teal-400" />
                                             {t("learner.profileSetup.personalTitle")}
                                         </h3>
@@ -456,116 +422,14 @@ export default function MandatoryProfileSetupModal() {
                                             <p className="text-[11px] font-bold text-rose-500 mt-1.5">{errors.gender}</p>
                                         )}
                                     </div>
-                                </div>
-                            )}
-
-                            {/* STEP 2: Location & Demographics */}
-                            {step === 2 && (
-                                <div className="space-y-5 animate-in fade-in-50 duration-200">
-                                    <div className="border-b border-slate-200 dark:border-slate-800 pb-3">
-                                        <h3 ref={stepHeadingRef} tabIndex={-1} className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]">
-                                            <MapPin className="w-4 h-4 text-teal-600 dark:text-teal-400" />
-                                            {t("learner.profileSetup.locationTitle")}
-                                        </h3>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                                            {t("learner.profileSetup.locationHelp")}
-                                        </p>
-                                    </div>
-
-                                    {/* Province Selection */}
-                                    <div>
-                                        <label htmlFor="onboarding-province" className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1.5">
-                                            {t("learner.profileSetup.province")} <span className="text-rose-500">*</span>
-                                        </label>
-                                        <select
-                                            id="onboarding-province"
-                                            value={province}
-                                            onChange={(e) => {
-                                                setProvince(e.target.value);
-                                                setDistrict('');
-                                            }}
-                                            className={`w-full h-11 px-3 rounded-xl border ${
-                                                errors.province
-                                                    ? "border-rose-500 bg-rose-50/30 dark:bg-rose-950/20"
-                                                    : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/60"
-                                            } text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all`}
-                                        >
-                                            <option value="">{t("learner.profileSetup.selectProvince")}</option>
-                                            {Object.keys(RWANDA_LOCATIONS).map((prov) => (
-                                                <option key={prov} value={prov}>{prov}</option>
-                                            ))}
-                                        </select>
-                                        {errors.province && (
-                                            <p className="text-[11px] font-bold text-rose-500 mt-1">{errors.province}</p>
-                                        )}
-                                    </div>
-
-                                    {/* District Selection */}
-                                    <div>
-                                        <label htmlFor="onboarding-district" className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1.5">
-                                            {t("learner.profileSetup.district")} <span className="text-rose-500">*</span>
-                                        </label>
-                                        {!province && (
-                                            <p id="district-hint" className="text-[11px] font-semibold text-amber-700 dark:text-amber-400 mb-1.5">
-                                                {t("learner.profileSetup.provinceFirstHint")}
-                                            </p>
-                                        )}
-                                        {province === "International / Other" ? (
-                                            <input
-                                                id="onboarding-district"
-                                                type="text"
-                                                value={customDistrict}
-                                                onChange={(e) => setCustomDistrict(e.target.value)}
-                                                placeholder={t("learner.profileSetup.districtPlaceholder")}
-                                                className="w-full h-11 px-3.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/60 text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all"
-                                            />
-                                        ) : (
-                                            <select
-                                                id="onboarding-district"
-                                                value={district}
-                                                onChange={(e) => setDistrict(e.target.value)}
-                                                disabled={!province}
-                                                aria-describedby={!province ? "district-hint" : undefined}
-                                                className={`w-full h-11 px-3 rounded-xl border ${
-                                                    errors.district
-                                                        ? "border-rose-500 bg-rose-50/30 dark:bg-rose-950/20"
-                                                        : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/60"
-                                                } text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed`}
-                                            >
-                                                <option value="">{province ? t("learner.profileSetup.selectDistrict") : t("learner.profileSetup.provinceFirst")}</option>
-                                                {province && RWANDA_LOCATIONS[province]?.map((dist) => (
-                                                    <option key={dist} value={dist}>{dist}</option>
-                                                ))}
-                                            </select>
-                                        )}
-                                        {errors.district && (
-                                            <p className="text-[11px] font-bold text-rose-500 mt-1">{errors.district}</p>
-                                        )}
-                                    </div>
-
-                                    {/* Rural / Urban: an explicit choice, unless the school already says */}
-                                    {!ruralFromSchool && (
-                                    <fieldset className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80">
-                                        <legend className="text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200 px-1">
-                                            {t("learner.profileSetup.whereLive")} <span className="text-rose-500">*</span>
-                                        </legend>
-                                        <div className="mt-2 grid grid-cols-2 gap-2">
-                                            {[{ value: true, label: t("learner.profileSetup.rural") }, { value: false, label: t("learner.profileSetup.urban") }].map((opt) => (
-                                                <label key={opt.label} className={`flex items-center gap-2 min-h-[44px] px-3 rounded-lg border text-sm font-semibold cursor-pointer ${isRural === opt.value ? "border-teal-600 bg-teal-50 dark:bg-teal-950/40 text-teal-800 dark:text-teal-200" : "border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200"}`}>
-                                                    <input type="radio" name="ruralOnboarding" checked={isRural === opt.value} onChange={() => setIsRural(opt.value)} className="w-4 h-4 text-teal-600 focus:ring-teal-500" />
-                                                    {opt.label}
-                                                </label>
-                                            ))}
-                                        </div>
-                                    </fieldset>
-                                    )}
 
                                     {/* Inclusion & Disability Support */}
                                     <div>
-                                        <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1.5">
+                                        <label htmlFor="onboarding-disability" className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1.5">
                                             {t("learner.profileSetup.accessibility")} <span className="text-rose-500">*</span>
                                         </label>
-                                        <select aria-label={t("learner.profileSetup.accessibility")}
+                                        <select id="onboarding-disability"
+                                            aria-invalid={!!errors.disability}
                                             value={disabilityStatus}
                                             onChange={(e) => setDisabilityStatus(e.target.value)}
                                             className="w-full h-11 px-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/60 text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all"
@@ -578,15 +442,18 @@ export default function MandatoryProfileSetupModal() {
                                             <option value="cognitive">{t("learner.profileSetup.disCognitive")}</option>
                                             <option value="other">{t("learner.profileSetup.disOther")}</option>
                                         </select>
+                                        {errors.disability && (
+                                            <p className="text-[11px] font-bold text-rose-500 mt-1">{errors.disability}</p>
+                                        )}
                                     </div>
                                 </div>
                             )}
 
-                            {/* STEP 3: Academic & Learning Profile */}
-                            {step === 3 && (
+                            {/* STEP 2: Academic & Learning Profile */}
+                            {step === 2 && (
                                 <div className="space-y-5 animate-in fade-in-50 duration-200">
                                     <div className="border-b border-slate-200 dark:border-slate-800 pb-3">
-                                        <h3 ref={stepHeadingRef} tabIndex={-1} className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]">
+                                        <h3 ref={stepHeadingRef} tabIndex={-1} className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]">
                                             <GraduationCap className="w-4 h-4 text-teal-600 dark:text-teal-400" />
                                             {t("learner.profileSetup.academicTitle")}
                                         </h3>
@@ -595,14 +462,18 @@ export default function MandatoryProfileSetupModal() {
                                         </p>
                                     </div>
 
-                                    {/* School: set by the box, shown read-only */}
+                                    {/* School and its place: set by the school, shown read-only (nobody is asked). */}
                                     {school?.name && (
-                                        <div className="flex items-center gap-2 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80 text-sm">
-                                            <Building2 className="w-4 h-4 text-teal-600 dark:text-teal-400 shrink-0" aria-hidden="true" />
-                                            <span className="font-semibold text-slate-700 dark:text-slate-200">
-                                                {t("school.onboarding.schoolLabel")}{" "}
-                                                <span className="font-extrabold text-slate-900 dark:text-white">{school.name}</span>
-                                            </span>
+                                        <div className="flex items-start gap-2 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80 text-sm">
+                                            <Building2 className="w-4 h-4 mt-0.5 text-teal-600 dark:text-teal-400 shrink-0" aria-hidden="true" />
+                                            <div className="min-w-0">
+                                                <p className="font-semibold text-slate-700 dark:text-slate-200">
+                                                    {t("school.onboarding.schoolLabel")}{" "}
+                                                    <span className="font-extrabold text-slate-900 dark:text-white">{school.name}</span>
+                                                    {schoolPlace ? <span className="text-slate-700 dark:text-slate-200"> · {schoolPlace}</span> : null}
+                                                </p>
+                                                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{t("school.onboarding.setBySchool")}</p>
+                                            </div>
                                         </div>
                                     )}
 
@@ -687,12 +558,12 @@ export default function MandatoryProfileSetupModal() {
                         </div>
 
                         <div>
-                            {step < 3 ? (
+                            {step < LAST_STEP ? (
                                 <button
                                     type="button"
                                     onClick={handleNext}
-                                    disabled={step === 1 ? !isStep1Valid : !isStep2Valid}
-                                    aria-disabled={step === 1 ? !isStep1Valid : !isStep2Valid}
+                                    disabled={!isStep1Valid}
+                                    aria-disabled={!isStep1Valid}
                                     className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-accent-dark hover:bg-teal-800 text-white text-xs font-black shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-accent-dark"
                                 >
                                     {t("learner.profileSetup.continue")}
@@ -702,8 +573,8 @@ export default function MandatoryProfileSetupModal() {
                                 <button
                                     type="button"
                                     onClick={handleFinalSubmit}
-                                    disabled={loading || !isStep3Valid}
-                                    aria-disabled={loading || !isStep3Valid}
+                                    disabled={loading || !isStep2Valid}
+                                    aria-disabled={loading || !isStep2Valid}
                                     className="inline-flex items-center gap-2 px-7 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white text-xs font-black shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {loading ? (

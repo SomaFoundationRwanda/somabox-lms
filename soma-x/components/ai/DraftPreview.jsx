@@ -16,7 +16,7 @@ function OutcomeTag({ outcomes, id }) {
   if (!code) return null;
   const o = (outcomes || []).find((x) => Number(x.id) === Number(id));
   return (
-    <span title={o?.title || ""} className="text-[10px] font-bold text-[#0D9488] bg-teal-50 border border-teal-200 dark:bg-teal-950/30 dark:border-teal-800 px-1.5 py-0.5 rounded-md whitespace-nowrap">
+    <span title={o?.title || ""} className="text-[10px] font-bold text-[var(--brand-secondary)] bg-teal-50 border border-teal-200 dark:bg-teal-950/30 dark:border-teal-800 px-1.5 py-0.5 rounded-md whitespace-nowrap">
       {code}
     </span>
   );
@@ -145,7 +145,7 @@ export default function DraftPreview({ type, payload, outcomes }) {
         <ul className="space-y-1.5">
           {(p.outcomes || []).map((o, i) => (
             <li key={i} className="text-sm">
-              {o.code ? <span className="text-[10px] font-bold text-[#0D9488] mr-1.5">{o.code}</span> : null}
+              {o.code ? <span className="text-[10px] font-bold text-[var(--brand-secondary)] mr-1.5">{o.code}</span> : null}
               <span className="font-semibold text-slate-800 dark:text-slate-100">{o.title}</span>
               {o.description ? <p className="text-xs text-slate-500">{o.description}</p> : null}
             </li>
@@ -155,7 +155,7 @@ export default function DraftPreview({ type, payload, outcomes }) {
         <ul className="space-y-1.5">
           {(p.modules || []).map((m, i) => (
             <li key={i} className="text-sm">
-              <span className="text-[10px] font-bold text-[#0D9488] mr-1.5">{tp("common.weekN", { n: m.week ?? i + 1 })}</span>
+              <span className="text-[10px] font-bold text-[var(--brand-secondary)] mr-1.5">{tp("common.weekN", { n: m.week ?? i + 1 })}</span>
               <span className="font-semibold text-slate-800 dark:text-slate-100">{m.title}</span>
               {m.description ? <p className="text-xs text-slate-500">{m.description}</p> : null}
             </li>

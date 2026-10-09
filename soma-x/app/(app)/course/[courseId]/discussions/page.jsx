@@ -82,7 +82,7 @@ export default function DiscussionsListPage() {
               value={form.moduleId}
               onChange={(e) => setForm((p) => ({ ...p, moduleId: e.target.value }))}
               aria-label={t("discussions.module")}
-              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488] bg-white"
+              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)] bg-white"
             >
               <option value="" disabled>{modules.length === 0 ? t("discussions.noModules") : `${t("discussions.chooseModule")} *`}</option>
               {modules.map((m) => (
@@ -91,12 +91,12 @@ export default function DiscussionsListPage() {
                 </option>
               ))}
             </select>
-            <input value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} placeholder={t("common.title")} aria-label={t("discussions.titleLabel")} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]" />
-            <textarea value={form.body} onChange={(e) => setForm((p) => ({ ...p, body: e.target.value }))} rows={3} placeholder={t("discussions.promptPlaceholder")} aria-label={t("discussions.promptLabel")} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]" />
+            <input value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} placeholder={t("common.title")} aria-label={t("discussions.titleLabel")} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]" />
+            <textarea value={form.body} onChange={(e) => setForm((p) => ({ ...p, body: e.target.value }))} rows={3} placeholder={t("discussions.promptPlaceholder")} aria-label={t("discussions.promptLabel")} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]" />
             {createError ? <p className="text-xs font-semibold text-rose-600">{createError}</p> : null}
             <div className="flex justify-end gap-2">
               <button onClick={() => setCreating(false)} className="text-xs font-medium text-slate-500 px-3 py-2">{t("common.cancel")}</button>
-              <button onClick={create} disabled={!form.title.trim() || !form.moduleId} className="text-xs font-semibold text-white bg-[#203A3A] rounded-lg px-3 py-2 disabled:opacity-50">{t("discussions.post")}</button>
+              <button onClick={create} disabled={!form.title.trim() || !form.moduleId} className="text-xs font-semibold text-white bg-[var(--brand-primary)] rounded-lg px-3 py-2 disabled:opacity-50">{t("discussions.post")}</button>
             </div>
           </div>
         ) : null}

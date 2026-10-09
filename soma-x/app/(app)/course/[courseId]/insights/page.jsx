@@ -115,7 +115,7 @@ function TeacherInsights() {
                 tabIndex={selected ? 0 : -1}
                 onClick={() => selectTab(t.key)}
                 className={`shrink-0 px-3 py-2 text-sm font-semibold border-b-2 -mb-px transition-colors ${
-                  selected ? "border-[#0D9488] text-[#0D9488]" : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                  selected ? "border-[var(--brand-secondary)] text-[var(--brand-secondary)]" : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
                 }`}
               >
                 {tp(`insights.tabs.${t.key}`)}
@@ -124,7 +124,7 @@ function TeacherInsights() {
           })}
         </div>
 
-        <div role="tabpanel" id={`insights-panel-${tab}`} aria-labelledby={`insights-tab-${tab}`} tabIndex={0} className="focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]">
+        <div role="tabpanel" id={`insights-panel-${tab}`} aria-labelledby={`insights-tab-${tab}`} tabIndex={0} className="focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]">
           {loading && !data ? (
             <LoadingRows count={4} />
           ) : error ? (

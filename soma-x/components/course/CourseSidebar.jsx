@@ -78,7 +78,7 @@ function NavLinks({ onNavigate }) {
             aria-current={isActive ? "page" : undefined}
             className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
               isActive
-                ? "bg-[#203A3A] text-white"
+                ? "bg-[var(--brand-primary)] text-white"
                 : isHiddenFromStudents
                 ? "text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900/40"
                 : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900/40"
@@ -100,7 +100,7 @@ function NavLinks({ onNavigate }) {
             onClick={onNavigate}
             aria-current={isActive ? "page" : undefined}
             className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-              isActive ? "bg-[#203A3A] text-white" : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900/40"
+              isActive ? "bg-[var(--brand-primary)] text-white" : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900/40"
             }`}
           >
             <Sparkles className="w-4 h-4 shrink-0" />

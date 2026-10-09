@@ -160,7 +160,7 @@ export default function UserProfilePage() {
             header: t("admin.courses.colCourse"),
             render: (course) => (
                 <div className="min-w-0">
-                    <Link href={`/course/${course.id}/home`} className="font-semibold text-slate-900 dark:text-white hover:text-[#0D9488] hover:underline">
+                    <Link href={`/course/${course.id}/home`} className="font-semibold text-slate-900 dark:text-white hover:text-[var(--brand-secondary)] hover:underline">
                         {course.title}
                     </Link>
                     <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">{course.description || t("admin.user.noDescription")}</p>

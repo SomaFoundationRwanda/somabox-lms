@@ -7,9 +7,9 @@ import { useProgressText } from "@/components/progress/text";
 // Inline editor for an AI draft's payload. The teacher edits text, questions, criteria, etc.;
 // Save sends the whole payload back (PATCH) and the server checks it.
 
-const inputClass = "w-full text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-lg px-2.5 py-1.5 outline-none focus:border-[#0D9488]";
+const inputClass = "w-full text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-lg px-2.5 py-1.5 outline-none focus:border-[var(--brand-secondary)]";
 const labelClass = "block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5";
-const addBtn = "inline-flex items-center gap-1.5 text-xs font-semibold text-[#0D9488] hover:underline";
+const addBtn = "inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--brand-secondary)] hover:underline";
 const removeBtn = "p-1.5 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 disabled:opacity-30";
 
 const clone = (v) => JSON.parse(JSON.stringify(v ?? {}));
@@ -76,7 +76,7 @@ function QuestionsEditor({ questions, onChange, outcomes }) {
                         checked={q.correctIndex === j}
                         onChange={() => update(i, { correctIndex: j })}
                         aria-label={tp("ai.editor.optionCorrect", { n: j + 1 })}
-                        className="w-4 h-4 accent-[#0D9488] shrink-0"
+                        className="w-4 h-4 accent-[var(--brand-secondary)] shrink-0"
                       />
                       <input
                         value={opt}
@@ -309,7 +309,7 @@ export default function DraftEditor({ type, payload, outcomes, saving, error, on
       {error ? <p role="alert" className="text-xs font-semibold text-rose-600">{error}</p> : null}
       <div className="flex flex-wrap justify-end gap-2 pt-1">
         <button type="button" onClick={onCancel} disabled={saving} className="text-xs font-semibold text-slate-500 px-4 py-2">{tp("common.cancel")}</button>
-        <button type="submit" disabled={saving} className="text-xs font-bold text-white bg-[#0D9488] hover:bg-teal-700 disabled:opacity-60 px-5 py-2 rounded-lg">
+        <button type="submit" disabled={saving} className="text-xs font-bold text-white bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-dark)] disabled:opacity-60 px-5 py-2 rounded-lg">
           {saving ? tp("common.saving") : tp("ai.editor.saveChanges")}
         </button>
       </div>

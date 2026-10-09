@@ -9,6 +9,13 @@
      fallback so there's no flash of unstyled content. */
   --canvas-bg: #F5F6F8;
   --canvas-text: #000000;
+  /* The school's colours (GET /school/public), set on <html> by SchoolBrandingProvider.
+     These are the SOMABOX defaults until the school sets its own. The darker shades are
+     for hover states and follow whatever the school chose. */
+  --brand-primary: #203A3A;
+  --brand-secondary: #0D9488;
+  --brand-primary-dark: color-mix(in srgb, var(--brand-primary) 85%, black);
+  --brand-secondary-dark: color-mix(in srgb, var(--brand-secondary) 85%, black);
   --color-bg-light-green: #242722;
   --color-bg-light-blue: #E6F1FA;
   --color-dark-accent: #203b3b;
@@ -55,7 +62,8 @@
 }
 
 @theme {
-  --color-accent-dark: #203B3B;
+  /* The brand dark follows the school's primary colour. */
+  --color-accent-dark: var(--brand-primary, #203B3B);
   --color-accent-light: #295656;
   --color-accent-lighter:#2e8282;
   --color-accent-light-3: #B8D9D9;
@@ -615,10 +623,10 @@ html.dark ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.14); 
    focus style (focus/focus-visible ring, outline or border classes).
    ------------------------------------------------------------------------------------ */
 :is(a, button, summary, [role="button"], [role="tab"], [role="switch"], [role="menuitem"], [role="option"], [tabindex]):is(.outline-none, [class~="focus:outline-none"]):focus-visible:not([tabindex="-1"]):not([class*="focus-visible:ring"]):not([class*="focus:ring"]):not([class*="focus-visible:outline"]):not([class*="focus-visible:border"]):not([class*="focus:border"]) {
-  outline: 2px solid #0D9488;
+  outline: 2px solid var(--brand-secondary, #0D9488);
   outline-offset: 2px;
 }
 :is(input, select, textarea):is(.outline-none, [class~="focus:outline-none"]):focus-visible:not([class*="focus:"]):not([class*="focus-visible:"]) {
-  outline: 2px solid #0D9488;
+  outline: 2px solid var(--brand-secondary, #0D9488);
   outline-offset: 1px;
 }

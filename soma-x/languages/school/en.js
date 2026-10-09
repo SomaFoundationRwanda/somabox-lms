@@ -6,7 +6,9 @@ export default {
     "loading": "Loading…",
     "saving": "Saving…",
     "onboarding": {
-        "schoolLabel": "School:"
+        "schoolLabel": "School:",
+        "setBySchool": "Set by your school",
+        "errDisability": "Choose an answer for accessibility needs."
     },
     "login": {
         "label": "Email or learner code",
@@ -19,14 +21,16 @@ export default {
         "continue": "Continue"
     },
     "account": {
-        "codeHint": "You can log in with this code instead of your email."
+        "codeHint": "You can log in with this code instead of your email.",
+        "locationNote": "Your school sets this. Everyone on this box is placed at the school's location."
     },
     "users": {
-        "createdCode": "Give this code to the learner. They can log in with {code} instead of their email."
+        "createdCode": "Give this code to the learner. They can log in with {code} instead of their email.",
+        "locationNote": "Location and rural/urban come from the School page."
     },
     "settings": {
         "navTitle": "School",
-        "navSubtitle": "School name, learner codes and location",
+        "navSubtitle": "Name, logo, colours, location and visitor previews",
         "loadFailed": "Couldn't load the school settings.",
         "saveFailed": "Couldn't save the school settings.",
         "codeInvalid": "The code must be 2 to 8 letters or numbers.",
@@ -34,8 +38,7 @@ export default {
         "back": "Admin",
         "eyebrow": "School",
         "title": "School settings",
-        "description": "The school this box serves, and how learner codes are made.",
-        "oneBoxOneSchool": "One box serves one school, so learners aren't asked for their school, its place or whether it is rural. They are filled in from here, and changing the name or rural/urban updates every learner on this box.",
+        "description": "The school this box serves: its name, learner codes, location, look and visitor previews.",
         "codeOnlyNew": "Changing the code only affects new learners. Learners who already have a code keep it.",
         "name": "School name",
         "namePlaceholder": "e.g. GS Kigali",
@@ -51,10 +54,45 @@ export default {
         "rural": "Rural",
         "urban": "Urban (town or city)",
         "ruralUnset": "Not set",
-        "ruralHelp": "When this is set, learners aren't asked where they live.",
         "save": "Save school settings",
-        "brandingNote": "Logo and colours are set on the Branding page.",
-        "brandingLink": "Open Branding"
+        "sectionSchool": "School",
+        "sectionLocation": "Location",
+        "locationHelp": "Everyone on this box is placed at the school's location. Learners and teachers are never asked.",
+        "sectionLook": "Look",
+        "lookHelp": "The logo and colours are shown to everyone, including on the login page.",
+        "logo": "Logo",
+        "logoAlt": "{name} logo",
+        "logoHelp": "PNG, JPEG or WebP, up to 5 MB. It replaces the SOMABOX logo everywhere.",
+        "logoNone": "Using the SOMABOX logo",
+        "logoChoose": "Upload a logo",
+        "logoReplace": "Replace logo",
+        "logoRemove": "Remove (back to SOMABOX)",
+        "logoUploading": "Uploading…",
+        "logoUploaded": "Logo saved.",
+        "logoRemoved": "Back to the SOMABOX logo.",
+        "logoType": "The logo must be a PNG, JPEG or WebP image.",
+        "logoTooBig": "The logo must be 5 MB or smaller.",
+        "logoFailed": "Couldn't save the logo.",
+        "primary": "Primary colour",
+        "primaryHelp": "Header, selected menu item and dark buttons",
+        "secondary": "Secondary colour",
+        "secondaryHelp": "Main buttons, links and focus outlines",
+        "colourInvalid": "Colours must look like #203A3A.",
+        "lowContrast": "White text is hard to read on this colour. Choose a darker one.",
+        "resetColours": "Use the SOMABOX colours",
+        "preview": "Preview",
+        "previewButton": "Button",
+        "previewButtonDark": "Dark button",
+        "previewLink": "Link",
+        "sectionVisitors": "Visitor previews",
+        "visitorsHelp": "Visitors can open a few Explore and Library items for this long, then they are asked to sign up. Videos and audio stop.",
+        "visitorsOn": "Let visitors preview items",
+        "seconds": "Seconds per item",
+        "secondsHelp": "10 to 600 seconds.",
+        "secondsInvalid": "Preview time must be 10 to 600 seconds.",
+        "items": "Items per visitor per day",
+        "itemsHelp": "1 to 50 items.",
+        "itemsInvalid": "Visitors can preview 1 to 50 items."
     },
     "device": {
         "unknown": "Not known",
@@ -75,5 +113,13 @@ export default {
         "source": "Read by",
         "sourceScript": "Device script (as administrator)",
         "sourceServer": "The server only (no serial number)"
+    },
+    "brand": {
+        "poweredBy": "Powered by SOMABOX",
+        "welcomeTo": "Welcome to {name}"
+    },
+    "banner": {
+        "title": "Set up your school",
+        "body": "Name, logo, colours and location"
     }
 };

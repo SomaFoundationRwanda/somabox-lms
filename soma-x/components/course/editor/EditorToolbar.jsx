@@ -15,7 +15,7 @@ function ToolbarButton({ onClick, isActive, children, title }) {
       title={title}
       className={`p-1.5 rounded-md transition-colors ${
         isActive
-          ? "bg-[#203A3A] text-white"
+          ? "bg-[var(--brand-primary)] text-white"
           : "text-slate-500 hover:bg-slate-100 hover:text-slate-700"
       }`}
     >
@@ -167,13 +167,13 @@ export default function EditorToolbar({ editor }) {
             onChange={(e) => setLinkUrl(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); setLink(); } if (e.key === "Escape") setShowLinkInput(false); }}
             placeholder="https://..."
-            className="text-xs border-none outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488] w-48 bg-transparent"
+            className="text-xs border-none outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)] w-48 bg-transparent"
             autoFocus
           />
           <button
             type="button"
             onClick={setLink}
-            className="text-[10px] font-semibold text-white bg-[#203A3A] rounded px-2 py-0.5"
+            className="text-[10px] font-semibold text-white bg-[var(--brand-primary)] rounded px-2 py-0.5"
           >
             {t("editor.setLink")}
           </button>

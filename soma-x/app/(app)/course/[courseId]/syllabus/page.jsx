@@ -56,14 +56,14 @@ export default function SyllabusPage() {
         />
 
         {/* 1. Course Outcomes */}
-        <Section title={<span className="flex items-center gap-2"><Target className="w-4 h-4 text-[#0D9488]" /> {t("syllabus.outcomes")}</span>}>
+        <Section title={<span className="flex items-center gap-2"><Target className="w-4 h-4 text-[var(--brand-secondary)]" /> {t("syllabus.outcomes")}</span>}>
           {outcomes.length === 0 ? (
             <p className="text-xs text-slate-500">{t("syllabus.noOutcomes")}</p>
           ) : (
             <List label={t("syllabus.outcomes")}>
               {outcomes.map((o) => (
                 <li key={o.id} className="flex items-start gap-3 px-3 py-2.5">
-                  <span className="text-[10px] font-bold text-[#0D9488] bg-teal-50 px-2 py-0.5 rounded border border-teal-200 shrink-0 mt-0.5">
+                  <span className="text-[10px] font-bold text-[var(--brand-secondary)] bg-teal-50 px-2 py-0.5 rounded border border-teal-200 shrink-0 mt-0.5">
                     {o.code || `OUT-${o.id}`}
                   </span>
                   <div className="min-w-0">
@@ -77,7 +77,7 @@ export default function SyllabusPage() {
         </Section>
 
         {/* 2. Grading scale */}
-        <Section title={<span className="flex items-center gap-2"><Award className="w-4 h-4 text-[#0D9488]" /> {t("syllabus.gradingTitle")}</span>}>
+        <Section title={<span className="flex items-center gap-2"><Award className="w-4 h-4 text-[var(--brand-secondary)]" /> {t("syllabus.gradingTitle")}</span>}>
           <DataTable
             caption={t("syllabus.gradingScale")}
             rowKey={(r) => r.grade}
@@ -90,7 +90,7 @@ export default function SyllabusPage() {
         </Section>
 
         {/* 3. Weekly module schedule */}
-        <Section title={<span className="flex items-center gap-2"><Calendar className="w-4 h-4 text-[#0D9488]" /> {t("syllabus.schedule")}</span>}>
+        <Section title={<span className="flex items-center gap-2"><Calendar className="w-4 h-4 text-[var(--brand-secondary)]" /> {t("syllabus.schedule")}</span>}>
           {modules.length === 0 ? (
             loading ? <Loader variant="page" size={48} className="min-h-[25vh]" label={t("syllabus.loadingSchedule")} /> : <p className="text-xs text-slate-500">{t("syllabus.noSchedule")}</p>
           ) : (
@@ -98,7 +98,7 @@ export default function SyllabusPage() {
               {modules.map((m) => (
                 <div key={m.id} className="space-y-2">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-xs font-bold text-[#0D9488] bg-teal-50 px-2.5 py-0.5 rounded-md border border-teal-200">
+                    <span className="text-xs font-bold text-[var(--brand-secondary)] bg-teal-50 px-2.5 py-0.5 rounded-md border border-teal-200">
                       {weekLabel(m)}
                     </span>
                     <h3 className="text-sm font-bold text-slate-900 dark:text-white">{m.title}</h3>

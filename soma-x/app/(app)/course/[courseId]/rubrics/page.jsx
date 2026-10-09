@@ -54,7 +54,7 @@ export default function RubricsPage() {
 
         {/* One Section per instantiated rubric; criteria as a table */}
         {rubrics.length === 0 ? (
-          <Section title={<span className="flex items-center gap-2"><ListChecks className="w-4 h-4 text-[#0D9488]" /> {t("rubrics.inAssignments")}</span>}>
+          <Section title={<span className="flex items-center gap-2"><ListChecks className="w-4 h-4 text-[var(--brand-secondary)]" /> {t("rubrics.inAssignments")}</span>}>
             {loading ? (
               <Loader variant="page" size={48} className="min-h-[25vh]" label={t("rubrics.loading")} />
             ) : (
@@ -66,11 +66,11 @@ export default function RubricsPage() {
             <Section
               key={r.id}
               divided={i > 0}
-              title={<span className="flex items-center gap-2"><ListChecks className="w-4 h-4 text-[#0D9488]" /> {r.title}</span>}
+              title={<span className="flex items-center gap-2"><ListChecks className="w-4 h-4 text-[var(--brand-secondary)]" /> {r.title}</span>}
               description={r.assignment_id ? (
                 <Link
                   href={`/course/${courseId}/assignments/${r.assignment_id}`}
-                  className="font-semibold text-[#0D9488] hover:underline"
+                  className="font-semibold text-[var(--brand-secondary)] hover:underline"
                 >
                   {tf("rubrics.assignment", { title: r.assignment_title || `#${r.assignment_id}` })}
                 </Link>
@@ -97,14 +97,14 @@ export default function RubricsPage() {
                     header: t("rubrics.outcome"),
                     render: (c) => c.outcome_code ? (
                       <span
-                        className="text-[10px] font-bold text-[#0D9488] bg-teal-50 border border-teal-200 px-2 py-0.5 rounded-full"
+                        className="text-[10px] font-bold text-[var(--brand-secondary)] bg-teal-50 border border-teal-200 px-2 py-0.5 rounded-full"
                         title={c.outcome_title || undefined}
                       >
                         {c.outcome_code}
                       </span>
                     ) : <span className="text-slate-400">—</span>,
                   },
-                  { key: "points", header: t("rubrics.points"), align: "right", render: (c) => <span className="font-bold text-[#0D9488] whitespace-nowrap">{tf("common.points", { n: c.points })}</span> },
+                  { key: "points", header: t("rubrics.points"), align: "right", render: (c) => <span className="font-bold text-[var(--brand-secondary)] whitespace-nowrap">{tf("common.points", { n: c.points })}</span> },
                 ]}
               />
             </Section>
@@ -114,7 +114,7 @@ export default function RubricsPage() {
         {/* Mastery skeleton reference */}
         <Section
           divided
-          title={<span className="flex items-center gap-2"><Target className="w-4 h-4 text-[#0D9488]" /> {t("rubrics.skeletons")}</span>}
+          title={<span className="flex items-center gap-2"><Target className="w-4 h-4 text-[var(--brand-secondary)]" /> {t("rubrics.skeletons")}</span>}
           description={t("rubrics.skeletonsHelp")}
         >
           <DataTable
@@ -127,7 +127,7 @@ export default function RubricsPage() {
                 header: t("rubrics.outcome"),
                 render: (o) => (
                   <div className="flex items-start gap-2 min-w-0">
-                    <span className="text-[10px] font-bold text-[#0D9488] bg-teal-50 px-2 py-0.5 rounded border border-teal-200 shrink-0">
+                    <span className="text-[10px] font-bold text-[var(--brand-secondary)] bg-teal-50 px-2 py-0.5 rounded border border-teal-200 shrink-0">
                       {o.code || `OUT-${o.id}`}
                     </span>
                     <span className="text-xs font-semibold text-slate-800 dark:text-slate-100">{o.title}</span>

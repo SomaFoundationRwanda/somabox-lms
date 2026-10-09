@@ -210,10 +210,10 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
         <div className="bg-white rounded-xl p-4 md:p-6 border border-slate-200">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
-              <span className="text-xs font-bold uppercase tracking-wider text-[#0D9488]">{t("teacher.wizard.guided")}</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-[var(--brand-secondary)]">{t("teacher.wizard.guided")}</span>
               <h1 className="text-2xl font-black text-slate-900 mt-1">{t("teacher.wizard.heading")}</h1>
             </div>
-            <span className="text-xs font-semibold bg-teal-50 text-[#0D9488] border border-teal-200 px-3 py-1.5 rounded-full">
+            <span className="text-xs font-semibold bg-teal-50 text-[var(--brand-secondary)] border border-teal-200 px-3 py-1.5 rounded-full">
               {fill(t("teacher.wizard.stepOf"), { step, total: 5 })}
             </span>
           </div>
@@ -228,7 +228,7 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
                 aria-current={step === s.num ? "step" : undefined}
                 className={`flex flex-col items-start p-2.5 min-w-[5.5rem] rounded-xl border text-left transition-all ${
                   step === s.num
-                    ? "bg-[#203A3A] text-white border-[#203A3A] shadow-sm"
+                    ? "bg-[var(--brand-primary)] text-white border-[var(--brand-primary)] shadow-sm"
                     : s.num < step
                     ? "bg-teal-50 text-teal-800 border-teal-200"
                     : "bg-white text-slate-400 border-slate-200"
@@ -258,7 +258,7 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
         {step === 1 && (
           <div className="bg-white rounded-xl p-4 md:p-6 border border-slate-200 space-y-4">
             <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-[#0D9488]" /> {t("teacher.wizard.step1Title")}
+              <Calendar className="w-5 h-5 text-[var(--brand-secondary)]" /> {t("teacher.wizard.step1Title")}
             </h2>
             <p className="text-xs text-slate-600">
               {t("teacher.wizard.step1Help")}
@@ -271,7 +271,7 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
                   type="text"
                   value={setupForm.title}
                   onChange={(e) => setSetupForm((p) => ({ ...p, title: e.target.value }))}
-                  className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:border-[#0D9488]"
+                  className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:border-[var(--brand-secondary)]"
                   placeholder={t("teacher.wizard.titlePlaceholder")}
                 />
               </div>
@@ -282,7 +282,7 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
                   type="date"
                   value={setupForm.startDate}
                   onChange={(e) => setSetupForm((p) => ({ ...p, startDate: e.target.value }))}
-                  className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:border-[#0D9488]"
+                  className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:border-[var(--brand-secondary)]"
                 />
                 <p className="text-[11px] text-slate-500 mt-1">{t("teacher.wizard.startHelp")}</p>
               </div>
@@ -295,7 +295,7 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
                   max={52}
                   value={setupForm.lengthWeeks}
                   onChange={(e) => setSetupForm((p) => ({ ...p, lengthWeeks: Number(e.target.value) }))}
-                  className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:border-[#0D9488]"
+                  className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:border-[var(--brand-secondary)]"
                 />
               </div>
 
@@ -303,7 +303,7 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
                 <button
                   onClick={saveStep1}
                   disabled={loading || !setupForm.title.trim()}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-[#203A3A] text-white rounded-xl text-sm font-semibold hover:bg-[#182c2c] transition-colors disabled:opacity-50"
+                  className="flex items-center gap-2 px-5 py-2.5 bg-[var(--brand-primary)] text-white rounded-xl text-sm font-semibold hover:bg-[var(--brand-primary-dark)] transition-colors disabled:opacity-50"
                 >
                   {t("teacher.wizard.toOutcomes")} <ChevronRight className="w-4 h-4" />
                 </button>
@@ -318,7 +318,7 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                  <Target className="w-5 h-5 text-[#0D9488]" /> {t("teacher.wizard.step2Title")}
+                  <Target className="w-5 h-5 text-[var(--brand-secondary)]" /> {t("teacher.wizard.step2Title")}
                 </h2>
                 <p className="text-xs text-slate-600 mt-0.5">
                   {t("teacher.wizard.step2Help")}
@@ -333,12 +333,12 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
                     aria-label={t("teacher.wizard.aiTopic")}
                     value={aiTopic}
                     onChange={(e) => setAiTopic(e.target.value)}
-                    className="text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]"
+                    className="text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]"
                   />
                   <button
                     onClick={proposeAiOutcomes}
                     disabled={aiStarting === "outline" || (outlineJob && ["queued", "running"].includes(outlineJob.status))}
-                    className="flex items-center gap-1 text-xs font-semibold text-white bg-[#0D9488] hover:bg-teal-700 disabled:opacity-50 px-3 py-1.5 rounded-lg transition-colors"
+                    className="flex items-center gap-1 text-xs font-semibold text-white bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-dark)] disabled:opacity-50 px-3 py-1.5 rounded-lg transition-colors"
                   >
                     <Sparkles className="w-3.5 h-3.5" /> {aiStarting === "outline" ? t("teacher.wizard.starting") : t("teacher.wizard.aiPropose")}
                   </button>
@@ -366,12 +366,12 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
                 value={newOutcomeTitle}
                 onChange={(e) => setNewOutcomeTitle(e.target.value)}
                 placeholder={t("teacher.wizard.outcomePlaceholder")}
-                className="flex-1 text-sm border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-[#0D9488]"
+                className="flex-1 text-sm border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-[var(--brand-secondary)]"
               />
               <button
                 onClick={createOutcome}
                 disabled={loading || !newOutcomeTitle.trim()}
-                className="px-4 py-2 bg-[#203A3A] text-white rounded-xl text-xs font-semibold hover:bg-[#182c2c] transition-colors"
+                className="px-4 py-2 bg-[var(--brand-primary)] text-white rounded-xl text-xs font-semibold hover:bg-[var(--brand-primary-dark)] transition-colors"
               >
                 {t("teacher.wizard.addOutcome")}
               </button>
@@ -384,7 +384,7 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
               ) : (
                 outcomes.map((o) => (
                   <div key={o.id} className="p-3.5 flex items-start gap-3">
-                    <Target className="w-4 h-4 text-[#0D9488] shrink-0 mt-0.5" />
+                    <Target className="w-4 h-4 text-[var(--brand-secondary)] shrink-0 mt-0.5" />
                     <div>
                       <p className="text-sm font-semibold text-slate-800">{o.title}</p>
                       {o.description ? <p className="text-xs text-slate-500 mt-0.5">{o.description}</p> : null}
@@ -399,7 +399,7 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
               <button
                 onClick={() => setStep(3)}
                 disabled={outcomes.length === 0}
-                className="flex items-center gap-2 px-5 py-2.5 bg-[#203A3A] text-white rounded-xl text-sm font-semibold hover:bg-[#182c2c] transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 px-5 py-2.5 bg-[var(--brand-primary)] text-white rounded-xl text-sm font-semibold hover:bg-[var(--brand-primary-dark)] transition-colors disabled:opacity-50"
               >
                 {t("teacher.wizard.toBaseline")} <ChevronRight className="w-4 h-4" />
               </button>
@@ -411,7 +411,7 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
         {step === 3 && (
           <div className="bg-white rounded-xl p-4 md:p-6 border border-slate-200 space-y-4">
             <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-[#0D9488]" /> {t("teacher.wizard.step3Title")}
+              <BookOpen className="w-5 h-5 text-[var(--brand-secondary)]" /> {t("teacher.wizard.step3Title")}
             </h2>
             <p className="text-xs text-slate-600">
               {t("teacher.wizard.step3Help")}
@@ -429,7 +429,7 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
               <button onClick={() => setStep(2)} className="px-4 py-2 text-xs font-semibold text-slate-600">{t("teacher.wizard.back")}</button>
               <button
                 onClick={() => setStep(4)}
-                className="flex items-center gap-2 px-5 py-2.5 bg-[#203A3A] text-white rounded-xl text-sm font-semibold hover:bg-[#182c2c] transition-colors"
+                className="flex items-center gap-2 px-5 py-2.5 bg-[var(--brand-primary)] text-white rounded-xl text-sm font-semibold hover:bg-[var(--brand-primary-dark)] transition-colors"
               >
                 {t("teacher.wizard.toModules")} <ChevronRight className="w-4 h-4" />
               </button>
@@ -443,7 +443,7 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                  <Layers className="w-5 h-5 text-[#0D9488]" /> {t("teacher.wizard.step4Title")}
+                  <Layers className="w-5 h-5 text-[var(--brand-secondary)]" /> {t("teacher.wizard.step4Title")}
                 </h2>
                 <p className="text-xs text-slate-600">
                   {t("teacher.wizard.step4Help")}
@@ -455,7 +455,7 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
                   Math.max(0, ...modules.filter((m) => m.kind !== "baseline" && m.kind !== "unassigned").map((m) => Number(m.week_offset) || 0)) + 1
                 )}
                 disabled={loading}
-                className="flex items-center gap-1.5 text-xs font-semibold text-white bg-[#0D9488] hover:bg-teal-700 px-3.5 py-2 rounded-xl transition-colors"
+                className="flex items-center gap-1.5 text-xs font-semibold text-white bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-dark)] px-3.5 py-2 rounded-xl transition-colors"
               >
                 <Plus className="w-3.5 h-3.5" /> {t("teacher.wizard.addWeekSlot")}
               </button>
@@ -472,7 +472,7 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
                   <div key={m.id} className="py-3 border-b border-slate-100 last:border-b-0 space-y-2">
                     <div className="flex items-center justify-between">
                       <div>
-                        <span className="text-[10px] font-bold text-[#0D9488] uppercase tracking-wider">{weekLabelT(m, t)}</span>
+                        <span className="text-[10px] font-bold text-[var(--brand-secondary)] uppercase tracking-wider">{weekLabelT(m, t)}</span>
                         <h4 className="text-sm font-bold text-slate-800">{m.title}</h4>
                       </div>
 
@@ -482,14 +482,14 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
                           disabled={aiStarting === `fill-${m.id}` || fillStarted[m.id]}
                           className="flex items-center gap-1 text-xs font-medium text-teal-700 bg-teal-50 border border-teal-200 hover:bg-teal-100 disabled:opacity-50 px-3 py-1.5 rounded-lg transition-colors"
                         >
-                          <Sparkles className="w-3.5 h-3.5 text-[#0D9488]" /> {fillStarted[m.id] ? t("teacher.wizard.aiOnTheWay") : t("teacher.wizard.aiFillWeek")}
+                          <Sparkles className="w-3.5 h-3.5 text-[var(--brand-secondary)]" /> {fillStarted[m.id] ? t("teacher.wizard.aiOnTheWay") : t("teacher.wizard.aiFillWeek")}
                         </button>
                       ) : null}
                     </div>
                     {fillStarted[m.id] ? (
                       <p role="status" className="text-xs text-slate-600">
                         {t("teacher.wizard.startedBefore")}{" "}
-                        <Link href={`/course/${courseId}/ai`} className="font-semibold text-[#0D9488] hover:underline">{t("teacher.wizard.aiDrafts")}</Link>
+                        <Link href={`/course/${courseId}/ai`} className="font-semibold text-[var(--brand-secondary)] hover:underline">{t("teacher.wizard.aiDrafts")}</Link>
                         {" "}{t("teacher.wizard.startedAfter")}
                       </p>
                     ) : null}
@@ -505,7 +505,7 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
               <button
                 onClick={() => setStep(5)}
                 disabled={modules.length === 0}
-                className="flex items-center gap-2 px-5 py-2.5 bg-[#203A3A] text-white rounded-xl text-sm font-semibold hover:bg-[#182c2c] transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 px-5 py-2.5 bg-[var(--brand-primary)] text-white rounded-xl text-sm font-semibold hover:bg-[var(--brand-primary-dark)] transition-colors disabled:opacity-50"
               >
                 {t("teacher.wizard.toSyllabus")} <ChevronRight className="w-4 h-4" />
               </button>
@@ -517,7 +517,7 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
         {step === 5 && (
           <div className="bg-white rounded-xl p-4 md:p-6 border border-slate-200 space-y-4">
             <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-[#0D9488]" /> {t("teacher.wizard.step5Title")}
+              <BookOpen className="w-5 h-5 text-[var(--brand-secondary)]" /> {t("teacher.wizard.step5Title")}
             </h2>
             <p className="text-xs text-slate-600">
               {t("teacher.wizard.step5Help")}
@@ -556,7 +556,7 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
               <button
                 onClick={openCourseFinal}
                 disabled={loading}
-                className="flex items-center gap-2 px-6 py-3 bg-[#0D9488] text-white rounded-xl text-sm font-bold hover:bg-teal-700 transition-colors shadow-sm"
+                className="flex items-center gap-2 px-6 py-3 bg-[var(--brand-secondary)] text-white rounded-xl text-sm font-bold hover:bg-[var(--brand-secondary-dark)] transition-colors shadow-sm"
               >
                 {t("teacher.wizard.openLaunch")} <ArrowRight className="w-4 h-4" />
               </button>

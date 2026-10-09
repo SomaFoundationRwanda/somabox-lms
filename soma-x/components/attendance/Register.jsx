@@ -64,7 +64,7 @@ function StatusGroup({ name, value, onChange, disabled }) {
             disabled={disabled}
             onClick={() => onChange(checked ? null : s)}
             onKeyDown={(e) => onKey(e, i)}
-            className={`relative inline-flex h-12 min-w-12 items-center justify-center rounded-lg border-2 text-base font-bold transition-colors sm:w-12 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0D9488] disabled:cursor-not-allowed ${
+            className={`relative inline-flex h-12 min-w-12 items-center justify-center rounded-lg border-2 text-base font-bold transition-colors sm:w-12 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--brand-secondary)] disabled:cursor-not-allowed ${
               checked ? style.on : `bg-white dark:bg-slate-950 ${style.off} ${disabled ? "" : "hover:bg-slate-50 dark:hover:bg-slate-900"}`
             }`}
           >
@@ -118,7 +118,7 @@ function RosterRow({ row, mark, onStatus, onNote, noteOpen, toggleNote, readOnly
             maxLength={NOTE_MAX}
             onChange={(e) => onNote(e.target.value)}
             placeholder={tx("notePlaceholder")}
-            className="mt-1 h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-[#0D9488] dark:border-slate-700 dark:bg-slate-900"
+            className="mt-1 h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-[var(--brand-secondary)] dark:border-slate-700 dark:bg-slate-900"
           />
           {!mark.status ? <p className="mt-1 text-xs text-slate-500">{tx("noteNeedsStatus")}</p> : null}
         </div>
@@ -315,7 +315,7 @@ export default function Register({ session, readOnly = false, onClose, onSaved, 
               type="button"
               onClick={save}
               disabled={!dirty || saving}
-              className="inline-flex h-11 min-w-24 items-center justify-center gap-1.5 rounded-lg bg-[#0D9488] px-5 text-sm font-bold text-white hover:bg-[#0B7F75] disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex h-11 min-w-24 items-center justify-center gap-1.5 rounded-lg bg-[var(--brand-secondary)] px-5 text-sm font-bold text-white hover:bg-[var(--brand-secondary-dark)] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {saving ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : null}
               {saving ? tx("saving") : tx("save")}

@@ -77,7 +77,7 @@ export default function InterleavedReviewPage() {
                         {sessionData?.description || t("learner.review.notEnoughBody")}
                     </p>
                     <Link href="/manage/scholar-dashboard">
-                        <Button className="bg-[#203A3A] hover:bg-[#162727] text-white text-xs font-bold px-8 h-10 rounded-xl">
+                        <Button className="bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] text-white text-xs font-bold px-8 h-10 rounded-xl">
                             {t("learner.review.returnToDashboard")}
                         </Button>
                     </Link>
@@ -85,7 +85,7 @@ export default function InterleavedReviewPage() {
             ) : !isFinished ? (
                 <div className="bg-white dark:bg-[#0f1318] border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-xl">
                     <div className="flex items-center gap-3 mb-4 pb-4 border-b border-slate-100 dark:border-slate-800">
-                        <div className="p-2.5 bg-[#203A3A] text-white rounded-2xl">
+                        <div className="p-2.5 bg-[var(--brand-primary)] text-white rounded-2xl">
                             <Shuffle className="w-5 h-5" />
                         </div>
                         <div>
@@ -119,7 +119,7 @@ export default function InterleavedReviewPage() {
                             onChange={(e) => setRecallText(e.target.value)}
                             rows={3}
                             placeholder={t("learner.review.answerPlaceholder")}
-                            className="w-full text-sm border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 outline-none focus:border-[#2E8282] bg-white dark:bg-slate-900"
+                            className="w-full text-sm border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 outline-none focus:border-[var(--brand-secondary)] bg-white dark:bg-slate-900"
                         />
                     </div>
 
@@ -133,7 +133,7 @@ export default function InterleavedReviewPage() {
                             <button
                                 type="button"
                                 onClick={() => setRevealedPrevious(true)}
-                                className="text-xs font-semibold text-[#2E8282] hover:underline mb-4"
+                                className="text-xs font-semibold text-[var(--brand-secondary)] hover:underline mb-4"
                             >
                                 {t("learner.review.showLast")}
                             </button>
@@ -143,7 +143,7 @@ export default function InterleavedReviewPage() {
                     <div className="flex justify-end gap-2 mt-2">
                         <Button
                             onClick={handleNext}
-                            className="bg-[#203A3A] hover:bg-[#162727] text-white text-xs font-bold px-6 h-10 rounded-xl"
+                            className="bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] text-white text-xs font-bold px-6 h-10 rounded-xl"
                         >
                             {currentIdx + 1 < questions.length ? t("learner.diagnostic.next") : t("learner.review.finish")}
                         </Button>
@@ -158,7 +158,7 @@ export default function InterleavedReviewPage() {
                     </p>
                     <p className="-mt-4 mb-6"><PracticeLabel /></p>
                     <Link href="/manage/scholar-dashboard">
-                        <Button className="bg-[#203A3A] hover:bg-[#162727] text-white text-xs font-bold px-8 h-10 rounded-xl">
+                        <Button className="bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] text-white text-xs font-bold px-8 h-10 rounded-xl">
                             {t("learner.review.returnToDashboard")}
                         </Button>
                     </Link>

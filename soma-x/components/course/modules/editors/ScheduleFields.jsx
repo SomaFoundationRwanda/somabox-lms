@@ -61,7 +61,7 @@ function Preview({ start, value, empty }) {
   if (!isDateString(start) || !Number.isInteger(n) || n < 0) {
     return <span className="text-[10px] text-slate-400">{t("schedule.daysFromStart")}</span>;
   }
-  return <span className="text-[10px] font-semibold text-[#0D9488]">{fmtDay(addDays(start, n))}</span>;
+  return <span className="text-[10px] font-semibold text-[var(--brand-secondary)]">{fmtDay(addDays(start, n))}</span>;
 }
 
 export default function ScheduleFields({ values, onChange, moduleStartDate, showDue = true, className = "" }) {
@@ -69,7 +69,7 @@ export default function ScheduleFields({ values, onChange, moduleStartDate, show
   const { t, tf, fmtDay } = useCourseText();
   const set = (key) => (e) => onChange({ ...values, [key]: e.target.value });
   const error = scheduleError(values, t);
-  const inputCls = "w-full text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none bg-white focus:border-[#0D9488]";
+  const inputCls = "w-full text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none bg-white focus:border-[var(--brand-secondary)]";
 
   return (
     <div className={`p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2 ${className}`}>

@@ -196,7 +196,7 @@ export default function SubmissionGrader({ SERVER_URL, courseId, assignmentId, s
     }
   };
 
-  const inputClass = "text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-lg px-2.5 py-1.5 outline-none focus:border-[#0D9488]";
+  const inputClass = "text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-lg px-2.5 py-1.5 outline-none focus:border-[var(--brand-secondary)]";
 
   return (
     <li className="text-sm">
@@ -287,7 +287,7 @@ export default function SubmissionGrader({ SERVER_URL, courseId, assignmentId, s
                     <div className="flex flex-wrap items-baseline justify-between gap-2">
                       <label htmlFor={inputId} className="text-sm font-semibold text-slate-800 dark:text-slate-100">
                         {c.title}
-                        {c.outcome_code ? <span className="ml-2 text-[10px] font-bold text-[#0D9488]">{c.outcome_code}</span> : null}
+                        {c.outcome_code ? <span className="ml-2 text-[10px] font-bold text-[var(--brand-secondary)]">{c.outcome_code}</span> : null}
                       </label>
                       <span className="text-[11px] text-slate-500">{tp("grader.maxWeight", { max: fmtPoints(max), weight: fmtPoints(c.weight) })}</span>
                     </div>
@@ -320,8 +320,8 @@ export default function SubmissionGrader({ SERVER_URL, courseId, assignmentId, s
                             aria-label={tp("grader.quickAria", { title: c.title, v, max: fmtPoints(max) })}
                             className={`min-w-[2.25rem] h-9 rounded-lg text-xs font-bold border transition-colors ${
                               active
-                                ? "bg-[#0D9488] border-[#0D9488] text-white"
-                                : "border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-[#0D9488]"
+                                ? "bg-[var(--brand-secondary)] border-[var(--brand-secondary)] text-white"
+                                : "border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-[var(--brand-secondary)]"
                             }`}
                           >
                             {v}
@@ -366,7 +366,7 @@ export default function SubmissionGrader({ SERVER_URL, courseId, assignmentId, s
           {error ? <p role="alert" className="text-xs font-semibold text-rose-600">{error}</p> : null}
 
           <div className="flex justify-end">
-            <button type="button" onClick={save} disabled={saving} className="text-xs font-bold text-white bg-[#0D9488] hover:bg-teal-700 disabled:opacity-60 px-5 py-2.5 rounded-lg">
+            <button type="button" onClick={save} disabled={saving} className="text-xs font-bold text-white bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-dark)] disabled:opacity-60 px-5 py-2.5 rounded-lg">
               {saving ? tp("common.saving") : tp("grader.save")}
             </button>
           </div>

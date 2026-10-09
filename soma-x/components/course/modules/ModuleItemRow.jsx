@@ -122,7 +122,7 @@ export default function ModuleItemRow({ item, courseId, isTeacher, onTogglePubli
   // Normal item rendering
   const TitleContent = (
     <div className="flex items-center gap-2 min-w-0 flex-1 flex-wrap sm:flex-nowrap">
-      <Icon className={`w-4 h-4 shrink-0 ${item.published ? "text-[#0D9488]" : "text-slate-300"}`} />
+      <Icon className={`w-4 h-4 shrink-0 ${item.published ? "text-[var(--brand-secondary)]" : "text-slate-300"}`} />
       <span className={`text-sm truncate font-medium ${item.published ? "text-slate-800 dark:text-slate-100" : "text-slate-400 italic"}`}>
         {item.title}
       </span>
@@ -130,7 +130,7 @@ export default function ModuleItemRow({ item, courseId, isTeacher, onTogglePubli
       {/* Outcome Badges */}
       {hasOutcomeTag ? (
         <span
-          className="text-[10px] font-bold text-[#0D9488] bg-teal-50 border border-teal-200 px-2 py-0.5 rounded-full shrink-0 ml-1"
+          className="text-[10px] font-bold text-[var(--brand-secondary)] bg-teal-50 border border-teal-200 px-2 py-0.5 rounded-full shrink-0 ml-1"
           title={outcomes.map((o) => [o.code, o.title].filter(Boolean).join(" — ")).join("\n")}
         >
           {tf("modules.target", { outcomes: outcomes.map((o) => o.code || o.title).filter(Boolean).join(", ") || t("modules.outcomeTagged") })}
@@ -169,7 +169,7 @@ export default function ModuleItemRow({ item, courseId, isTeacher, onTogglePubli
           </button>
         )}
         {href ? (
-          <Link href={href} className="flex items-center gap-2 min-w-0 flex-1 hover:text-[#203A3A] rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]">
+          <Link href={href} className="flex items-center gap-2 min-w-0 flex-1 hover:text-[var(--brand-primary)] rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]">
             {TitleContent}
           </Link>
         ) : (

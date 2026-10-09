@@ -130,7 +130,7 @@ export default function DiagnosticQuizModal({ isOpen, onClose, serverUrl, schola
                             <Button
                                 onClick={handleNext}
                                 disabled={answers[currentQ.id] === undefined || isSubmitting}
-                                className="bg-[#203A3A] hover:bg-[#162727] text-white text-xs font-extrabold px-6 h-10 rounded-xl"
+                                className="bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] text-white text-xs font-extrabold px-6 h-10 rounded-xl"
                             >
                                 {step + 1 < DIAGNOSTIC_QUESTIONS.length ? t("learner.diagnostic.next") : (isSubmitting ? t("learner.diagnostic.submitting") : t("learner.diagnostic.finish"))}
                             </Button>
@@ -147,7 +147,7 @@ export default function DiagnosticQuizModal({ isOpen, onClose, serverUrl, schola
                         </p>
                         <Button
                             onClick={onClose}
-                            className="bg-[#203A3A] hover:bg-[#162727] text-white text-xs font-bold px-8 h-10 rounded-xl"
+                            className="bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] text-white text-xs font-bold px-8 h-10 rounded-xl"
                         >
                             {t("learner.diagnostic.toDashboard")}
                         </Button>

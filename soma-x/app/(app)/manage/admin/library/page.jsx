@@ -154,7 +154,7 @@ function LibraryUploadModal({ onClose, onSubmit }) {
                                     </div>
                                     <div className="text-center">
                                         <p className="text-[12px] font-semibold text-slate-600">
-                                            {t("admin.library.dropHere")} <span className="text-[#0D9488] underline underline-offset-2">{t("admin.library.browse")}</span>
+                                            {t("admin.library.dropHere")} <span className="text-[var(--brand-secondary)] underline underline-offset-2">{t("admin.library.browse")}</span>
                                         </p>
                                         <p className="text-[10px] text-slate-600 mt-0.5">{t("explore.manager.allowedTypes")}</p>
                                     </div>
@@ -173,7 +173,7 @@ function LibraryUploadModal({ onClose, onSubmit }) {
                                 value={bookName}
                                 onChange={(e) => setBookName(e.target.value)}
                                 placeholder={t("admin.library.bookNamePlaceholder")}
-                                className="w-full h-10 px-3 rounded-[5px] border border-slate-200 bg-white text-[13px] outline-none focus:border-[#0D9488] focus:ring-1 focus:ring-[#0D9488] transition-all"
+                                className="w-full h-10 px-3 rounded-[5px] border border-slate-200 bg-white text-[13px] outline-none focus:border-[var(--brand-secondary)] focus:ring-1 focus:ring-[var(--brand-secondary)] transition-all"
                                 required
                             />
                         </div>
@@ -217,7 +217,7 @@ function LibraryUploadModal({ onClose, onSubmit }) {
                         <Button
                             type="submit"
                             disabled={!file || status === 'uploading'}
-                            className="flex-1 h-9 rounded-[5px] text-[12px] font-semibold gap-1.5 bg-[#0D9488] hover:bg-[#0f766e] text-white"
+                            className="flex-1 h-9 rounded-[5px] text-[12px] font-semibold gap-1.5 bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-dark)] text-white"
                         >
                             {status === 'uploading'
                                 ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> {t("admin.library.uploading")}</>
@@ -452,7 +452,7 @@ const ManageLibrary = () => {
                 <div className="flex items-center justify-end gap-1">
                     <button
                         onClick={() => setViewBook(book)}
-                        className="inline-flex items-center gap-1.5 text-[11px] h-7 px-3 rounded-full text-[#0D9488] hover:bg-teal-50 font-semibold transition-colors"
+                        className="inline-flex items-center gap-1.5 text-[11px] h-7 px-3 rounded-full text-[var(--brand-secondary)] hover:bg-teal-50 font-semibold transition-colors"
                     >
                         <Eye className="w-3 h-3" />
                         {t("admin.library.open")}
@@ -478,7 +478,7 @@ const ManageLibrary = () => {
                     actions={
                         <Button
                             onClick={() => setShowUploadModal(true)}
-                            className="h-8 px-4 rounded-[5px] text-[12px] gap-1.5 flex items-center bg-[#0D9488] hover:bg-[#0f766e] text-white"
+                            className="h-8 px-4 rounded-[5px] text-[12px] gap-1.5 flex items-center bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-dark)] text-white"
                         >
                             <Upload className="w-3.5 h-3.5" />
                             {t("admin.library.addFromComputer")}
@@ -491,7 +491,7 @@ const ManageLibrary = () => {
 
                 <p className="text-[12px] text-slate-600 dark:text-slate-400">
                     {t("explore.library.adminNote")}{" "}
-                    <Link href="/manage/admin/manage-content" className="font-semibold text-[#0D9488] underline underline-offset-2">
+                    <Link href="/manage/admin/manage-content" className="font-semibold text-[var(--brand-secondary)] underline underline-offset-2">
                         {t("explore.library.openContentManager")}
                     </Link>
                 </p>

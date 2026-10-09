@@ -39,7 +39,7 @@ export default function TeacherPageChrome({ page, onEdit, onTogglePublish }) {
             </button>
             {stats && (
               <span className="inline-flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400">
-                <Users className="w-3.5 h-3.5 text-[#203A3A]" />
+                <Users className="w-3.5 h-3.5 text-[var(--brand-primary)]" />
                 <span>
                   {tf("pageView.viewed", { n: stats.viewedCount, total: stats.totalEnrolled })}
                 </span>
@@ -56,7 +56,7 @@ export default function TeacherPageChrome({ page, onEdit, onTogglePublish }) {
           <button
             type="button"
             onClick={onEdit}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-[#203A3A] hover:bg-[#162727] rounded-lg transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] rounded-lg transition-colors"
           >
             <Edit className="w-3.5 h-3.5" />
             <span>{t("editors.editPage")}</span>

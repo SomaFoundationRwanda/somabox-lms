@@ -387,14 +387,14 @@ export default function ModulesPage() {
               type="button"
               onClick={() => setHelperOpen(true)}
               disabled={!modules || modules.filter((m) => m.kind !== "unassigned").length === 0}
-              className="flex items-center gap-1.5 text-xs font-semibold text-[#203A3A] border border-slate-200 hover:bg-slate-50 disabled:opacity-40 rounded-lg px-3 py-2 transition-colors"
+              className="flex items-center gap-1.5 text-xs font-semibold text-[var(--brand-primary)] border border-slate-200 hover:bg-slate-50 disabled:opacity-40 rounded-lg px-3 py-2 transition-colors"
             >
               {explain("helper").entry?.button || "What should I create?"}
             </button>
             <button
               onClick={() => setCreating((v) => !v)}
               aria-expanded={creating}
-              className="flex items-center gap-1.5 text-xs font-semibold text-white bg-[#203A3A] hover:bg-[#162727] rounded-lg px-3 py-2 transition-colors"
+              className="flex items-center gap-1.5 text-xs font-semibold text-white bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] rounded-lg px-3 py-2 transition-colors"
             >
               <Plus className="w-3.5 h-3.5" /> {t("modules.addModule")}
             </button>
@@ -413,10 +413,10 @@ export default function ModulesPage() {
               onKeyDown={(e) => { if (e.key === "Enter") createModule(); }}
               placeholder={t("modules.newModulePlaceholder")}
               aria-label={t("modules.newModuleTitle")}
-              className="flex-1 min-w-[12rem] text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[#203A3A]"
+              className="flex-1 min-w-[12rem] text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[var(--brand-primary)]"
               autoFocus
             />
-            <button onClick={createModule} className="text-xs font-semibold text-white bg-[#203A3A] rounded-lg px-3 py-2">
+            <button onClick={createModule} className="text-xs font-semibold text-white bg-[var(--brand-primary)] rounded-lg px-3 py-2">
               {t("common.create")}
             </button>
             <button onClick={() => setCreating(false)} className="text-xs text-slate-400 hover:text-slate-600 px-2">
@@ -468,7 +468,7 @@ export default function ModulesPage() {
           <div className="fixed inset-0 z-40 flex items-end sm:items-center justify-center bg-black/30 backdrop-blur-sm">
             <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full max-w-md shadow-2xl mx-0 sm:mx-4 p-5 animate-in slide-in-from-bottom-4 duration-200">
               <h3 className="text-sm font-bold text-slate-900 mb-3">
-                {t("modules.addItemTo")} <span className="text-[#203A3A]">{addingItemFor.title}</span>
+                {t("modules.addItemTo")} <span className="text-[var(--brand-primary)]">{addingItemFor.title}</span>
               </h3>
               <div className="space-y-3">
                 <div>
@@ -482,7 +482,7 @@ export default function ModulesPage() {
                           aria-pressed={selectedItemType === opt.value}
                           className={`flex-1 text-xs font-medium py-2 rounded-lg border transition-colors ${
                             selectedItemType === opt.value
-                              ? "border-[#203A3A] bg-[#203A3A] text-white"
+                              ? "border-[var(--brand-primary)] bg-[var(--brand-primary)] text-white"
                               : "border-slate-200 text-slate-600 hover:border-slate-300"
                           }`}
                         >
@@ -508,7 +508,7 @@ export default function ModulesPage() {
                       onChange={(e) => setSubHeaderTitle(e.target.value)}
                       onKeyDown={(e) => { if (e.key === "Enter") startItemCreation(); }}
                       placeholder={t("modules.subHeaderPlaceholder")}
-                      className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[#203A3A]"
+                      className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[var(--brand-primary)]"
                       autoFocus
                     />
                   </div>
@@ -518,7 +518,7 @@ export default function ModulesPage() {
                   <button
                     onClick={startItemCreation}
                     disabled={selectedItemType === "sub_header" && !subHeaderTitle.trim()}
-                    className="flex-1 text-xs font-semibold text-white bg-[#203A3A] hover:bg-[#162727] disabled:opacity-50 rounded-lg py-2.5 transition-colors"
+                    className="flex-1 text-xs font-semibold text-white bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] disabled:opacity-50 rounded-lg py-2.5 transition-colors"
                   >
                     {t(`modules.addType.${selectedItemType}`)}
                   </button>

@@ -6,7 +6,9 @@ export default {
     "loading": "Chargement…",
     "saving": "Enregistrement…",
     "onboarding": {
-        "schoolLabel": "École :"
+        "schoolLabel": "École :",
+        "setBySchool": "Défini par votre école",
+        "errDisability": "Choisissez une réponse pour les besoins d'accessibilité."
     },
     "login": {
         "label": "E-mail ou code élève",
@@ -19,14 +21,16 @@ export default {
         "continue": "Continuer"
     },
     "account": {
-        "codeHint": "Vous pouvez vous connecter avec ce code au lieu de votre e-mail."
+        "codeHint": "Vous pouvez vous connecter avec ce code au lieu de votre e-mail.",
+        "locationNote": "C'est votre école qui le définit. Tout le monde sur cette box est placé à l'emplacement de l'école."
     },
     "users": {
-        "createdCode": "Donnez ce code à l'élève. Il peut se connecter avec {code} au lieu de son e-mail."
+        "createdCode": "Donnez ce code à l'élève. Il peut se connecter avec {code} au lieu de son e-mail.",
+        "locationNote": "L'emplacement et le milieu rural ou urbain viennent de la page École."
     },
     "settings": {
         "navTitle": "École",
-        "navSubtitle": "Nom de l'école, codes élèves et localisation",
+        "navSubtitle": "Nom, logo, couleurs, emplacement et aperçus pour les visiteurs",
         "loadFailed": "Impossible de charger les paramètres de l'école.",
         "saveFailed": "Impossible d'enregistrer les paramètres de l'école.",
         "codeInvalid": "Le code doit contenir de 2 à 8 lettres ou chiffres.",
@@ -34,8 +38,7 @@ export default {
         "back": "Administration",
         "eyebrow": "École",
         "title": "Paramètres de l'école",
-        "description": "L'école que ce boîtier dessert, et la façon dont les codes élèves sont créés.",
-        "oneBoxOneSchool": "Un boîtier dessert une seule école : on ne demande donc pas aux élèves leur école, son emplacement ni si elle est en zone rurale. Ces informations viennent d'ici, et changer le nom ou le choix rural/urbain met à jour tous les élèves de ce boîtier.",
+        "description": "L'école que cette box dessert : son nom, les codes des élèves, son emplacement, son apparence et les aperçus pour les visiteurs.",
         "codeOnlyNew": "Changer le code ne concerne que les nouveaux élèves. Ceux qui ont déjà un code le gardent.",
         "name": "Nom de l'école",
         "namePlaceholder": "ex. GS Kigali",
@@ -51,10 +54,45 @@ export default {
         "rural": "Rurale",
         "urban": "Urbaine (ville)",
         "ruralUnset": "Non défini",
-        "ruralHelp": "Quand ce choix est fait, on ne demande pas aux élèves où ils habitent.",
         "save": "Enregistrer les paramètres",
-        "brandingNote": "Le logo et les couleurs se règlent sur la page Image de marque.",
-        "brandingLink": "Ouvrir Image de marque"
+        "sectionSchool": "École",
+        "sectionLocation": "Emplacement",
+        "locationHelp": "Tout le monde sur cette box est placé à l'emplacement de l'école. On ne le demande jamais aux élèves ni aux enseignants.",
+        "sectionLook": "Apparence",
+        "lookHelp": "Le logo et les couleurs sont visibles par tous, y compris sur la page de connexion.",
+        "logo": "Logo",
+        "logoAlt": "Logo de {name}",
+        "logoHelp": "PNG, JPEG ou WebP, 5 Mo maximum. Il remplace le logo SOMABOX partout.",
+        "logoNone": "Logo SOMABOX utilisé",
+        "logoChoose": "Téléverser un logo",
+        "logoReplace": "Remplacer le logo",
+        "logoRemove": "Retirer (revenir à SOMABOX)",
+        "logoUploading": "Téléversement…",
+        "logoUploaded": "Logo enregistré.",
+        "logoRemoved": "Retour au logo SOMABOX.",
+        "logoType": "Le logo doit être une image PNG, JPEG ou WebP.",
+        "logoTooBig": "Le logo doit faire 5 Mo ou moins.",
+        "logoFailed": "Impossible d'enregistrer le logo.",
+        "primary": "Couleur principale",
+        "primaryHelp": "En-tête, élément de menu sélectionné et boutons foncés",
+        "secondary": "Couleur secondaire",
+        "secondaryHelp": "Boutons principaux, liens et contours de focus",
+        "colourInvalid": "Les couleurs doivent ressembler à #203A3A.",
+        "lowContrast": "Un texte blanc est difficile à lire sur cette couleur. Choisissez-en une plus foncée.",
+        "resetColours": "Utiliser les couleurs SOMABOX",
+        "preview": "Aperçu",
+        "previewButton": "Bouton",
+        "previewButtonDark": "Bouton foncé",
+        "previewLink": "Lien",
+        "sectionVisitors": "Aperçus pour les visiteurs",
+        "visitorsHelp": "Les visiteurs peuvent ouvrir quelques éléments d'Explorer et de la Bibliothèque pendant cette durée, puis on leur demande de s'inscrire. Les vidéos et l'audio s'arrêtent.",
+        "visitorsOn": "Permettre aux visiteurs d'avoir un aperçu",
+        "seconds": "Secondes par élément",
+        "secondsHelp": "De 10 à 600 secondes.",
+        "secondsInvalid": "La durée d'aperçu doit être de 10 à 600 secondes.",
+        "items": "Éléments par visiteur et par jour",
+        "itemsHelp": "De 1 à 50 éléments.",
+        "itemsInvalid": "Les visiteurs peuvent prévisualiser de 1 à 50 éléments."
     },
     "device": {
         "unknown": "Inconnu",
@@ -75,5 +113,13 @@ export default {
         "source": "Lu par",
         "sourceScript": "Script de l'appareil (en administrateur)",
         "sourceServer": "Le serveur seulement (pas de numéro de série)"
+    },
+    "brand": {
+        "poweredBy": "Propulsé par SOMABOX",
+        "welcomeTo": "Bienvenue à {name}"
+    },
+    "banner": {
+        "title": "Configurez votre école",
+        "body": "Nom, logo, couleurs et emplacement"
     }
 };

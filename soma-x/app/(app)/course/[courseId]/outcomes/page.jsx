@@ -126,7 +126,7 @@ export default function OutcomesPage() {
             <button
               onClick={() => setCreating((v) => !v)}
               aria-expanded={creating}
-              className="flex items-center gap-1.5 text-xs font-semibold text-white bg-[#0D9488] hover:bg-teal-700 rounded-lg px-3.5 py-2 transition-colors"
+              className="flex items-center gap-1.5 text-xs font-semibold text-white bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-dark)] rounded-lg px-3.5 py-2 transition-colors"
             >
               <Plus className="w-3.5 h-3.5" /> {tp("outcomes.newOutcome")}
             </button>
@@ -137,7 +137,7 @@ export default function OutcomesPage() {
 
         {isTeacher && aiOpen ? (
           <Section
-            title={<span className="flex items-center gap-2"><Sparkles className="w-4 h-4 text-[#0D9488]" /> {aiTarget ? tp("outcomes.aiRewriteTitle", { code: aiTarget.code || tp("outcomes.outcomeWord") }) : tp("outcomes.aiWriteTitle")}</span>}
+            title={<span className="flex items-center gap-2"><Sparkles className="w-4 h-4 text-[var(--brand-secondary)]" /> {aiTarget ? tp("outcomes.aiRewriteTitle", { code: aiTarget.code || tp("outcomes.outcomeWord") }) : tp("outcomes.aiWriteTitle")}</span>}
             description={tp("outcomes.aiDescription")}
             actions={<button type="button" onClick={() => setAiOpen(false)} className="text-xs font-semibold text-slate-500 px-2 py-1">{tp("common.close")}</button>}
           >
@@ -154,13 +154,13 @@ export default function OutcomesPage() {
                     maxLength={500}
                     onChange={(e) => setAiGoal(e.target.value)}
                     placeholder={tp("outcomes.aiGoalPlaceholder")}
-                    className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[#0D9488]"
+                    className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[var(--brand-secondary)]"
                   />
                 </div>
                 <button
                   type="submit"
                   disabled={saving || !aiGoal.trim() || (aiJob && ["queued", "running"].includes(aiJob.status))}
-                  className="flex items-center gap-1 text-xs font-semibold text-white bg-[#0D9488] hover:bg-teal-700 disabled:opacity-50 px-3.5 py-2 rounded-lg"
+                  className="flex items-center gap-1 text-xs font-semibold text-white bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-dark)] disabled:opacity-50 px-3.5 py-2 rounded-lg"
                 >
                   <Sparkles className="w-3.5 h-3.5" /> {saving ? tp("common.starting") : tp("outcomes.draftWithAi")}
                 </button>
@@ -190,7 +190,7 @@ export default function OutcomesPage() {
               <button
                 type="button"
                 onClick={() => openAiRewrite(null)}
-                className="flex items-center gap-1 text-xs font-semibold text-white bg-[#203A3A] px-3 py-1.5 rounded-lg"
+                className="flex items-center gap-1 text-xs font-semibold text-white bg-[var(--brand-primary)] px-3 py-1.5 rounded-lg"
               >
                 <Sparkles className="w-3.5 h-3.5 text-teal-400" /> {tp("outcomes.writeWithAi")}
               </button>
@@ -204,7 +204,7 @@ export default function OutcomesPage() {
                   value={form.title}
                   onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
                   placeholder={tp("outcomes.statementPlaceholder")}
-                  className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[#0D9488]"
+                  className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[var(--brand-secondary)]"
                 />
               </div>
 
@@ -216,13 +216,13 @@ export default function OutcomesPage() {
                   onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
                   rows={2}
                   placeholder={tp("outcomes.descriptionPlaceholder")}
-                  className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[#0D9488]"
+                  className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[var(--brand-secondary)]"
                 />
               </div>
 
               <div className="flex justify-end gap-2 pt-1">
                 <button onClick={() => setCreating(false)} className="text-xs font-semibold text-slate-500 px-3 py-2">{tp("common.cancel")}</button>
-                <button onClick={createOutcome} disabled={saving || !form.title.trim()} className="text-xs font-semibold text-white bg-[#0D9488] rounded-lg px-4 py-2">
+                <button onClick={createOutcome} disabled={saving || !form.title.trim()} className="text-xs font-semibold text-white bg-[var(--brand-secondary)] rounded-lg px-4 py-2">
                   {saving ? tp("common.saving") : tp("outcomes.save")}
                 </button>
               </div>
@@ -233,7 +233,7 @@ export default function OutcomesPage() {
         {/* Mastery vs baseline: one list, a row per outcome with its mastery bar */}
         <Section
           divided={creating}
-          title={<span className="flex items-center gap-2"><TrendingUp className="w-4 h-4 text-[#0D9488]" /> {tp("outcomes.masteryTitle")}</span>}
+          title={<span className="flex items-center gap-2"><TrendingUp className="w-4 h-4 text-[var(--brand-secondary)]" /> {tp("outcomes.masteryTitle")}</span>}
         >
           {masteryList.length === 0 ? (
             loading ? (
@@ -247,7 +247,7 @@ export default function OutcomesPage() {
                 <li key={m.id} className="px-3 py-3 space-y-2">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-start gap-2.5 min-w-0">
-                      <span className="text-xs font-bold text-[#0D9488] bg-teal-50 border border-teal-200 px-2 py-0.5 rounded-md shrink-0">
+                      <span className="text-xs font-bold text-[var(--brand-secondary)] bg-teal-50 border border-teal-200 px-2 py-0.5 rounded-md shrink-0">
                         {m.code}
                       </span>
                       <div className="min-w-0">
@@ -269,7 +269,7 @@ export default function OutcomesPage() {
                           onClick={() => openAiRewrite(outcomes.find((o) => Number(o.id) === Number(m.id)) || m)}
                           aria-label={tp("outcomes.rewriteAria", { name: m.code || m.title })}
                           title={tp("outcomes.rewriteWithAi")}
-                          className="text-slate-400 hover:text-[#0D9488] p-1"
+                          className="text-slate-400 hover:text-[var(--brand-secondary)] p-1"
                         >
                           <Sparkles className="w-4 h-4" />
                         </button>
@@ -287,7 +287,7 @@ export default function OutcomesPage() {
 
                     <div className="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden flex">
                       <div className="bg-slate-400 h-full" style={{ width: `${m.baselineScore ?? 0}%` }} title={tp("outcomes.baselineBar")} />
-                      <div className="bg-[#0D9488] h-full" style={{ width: `${m.currentMastery === null ? 0 : Math.max(0, m.currentMastery - (m.baselineScore ?? 0))}%` }} title={tp("outcomes.growth")} />
+                      <div className="bg-[var(--brand-secondary)] h-full" style={{ width: `${m.currentMastery === null ? 0 : Math.max(0, m.currentMastery - (m.baselineScore ?? 0))}%` }} title={tp("outcomes.growth")} />
                     </div>
                   </div>
                 </li>
@@ -299,7 +299,7 @@ export default function OutcomesPage() {
         {/* Mastery levels reference */}
         <Section
           divided
-          title={<span className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-[#0D9488]" /> {tp("outcomes.levelsTitle")}</span>}
+          title={<span className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-[var(--brand-secondary)]" /> {tp("outcomes.levelsTitle")}</span>}
           description={tp("outcomes.levelsDescription")}
         >
           <DataTable

@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import UniversalPlayerModal from '@/components/ui/UniversalPlayerModal';
 import Typography from '@/components/ui/Typography';
 import { useGuestGate } from '@/components/guest/GuestGate';
+import { useGuestPreview } from '@/components/guest/Preview';
 import { startRouteLoading } from "@/components/global/RouteLoader";
 import Loader from "@/components/ui/Loader";
 
@@ -55,9 +56,12 @@ function FolderPage({ levelInfo, breadcrumbs, onBreadcrumbClick }) {
   const [activeFilter, setActiveFilter] = useState('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState(null);
+  // A visitor's preview of the open item (null for signed-in people).
+  const [preview, setPreview] = useState(null);
   const { t } = useLanguage();
   const pathname = usePathname();
-  const { isGuest, requireAccount } = useGuestGate();
+  const { isGuest } = useGuestGate();
+  const { open: openPreview, starting: previewStarting } = useGuestPreview();
 
   const content = useMemo(() => levelInfo?.content || [], [levelInfo]);
   const folders = levelInfo?.items || [];
@@ -92,9 +96,12 @@ function FolderPage({ levelInfo, breadcrumbs, onBreadcrumbClick }) {
 
   const actionLabel = (type) => t(type === 'video' ? 'explore.watch' : type === 'book' ? 'explore.read' : 'explore.listen');
 
-  const handleItemClick = (item) => {
-    // Guests can browse; opening a video, book or audio needs an account.
-    if (!requireAccount(`${pathname}?open=${encodeURIComponent(item.id)}`)) return;
+  const handleItemClick = async (item) => {
+    // Guests can browse; opening a video, book or audio needs an account, or (when the school
+    // allows it) starts a short preview. ?open= brings them back to it after signing up.
+    const { ok, preview: started } = await openPreview(item.slug, `${pathname}?open=${encodeURIComponent(item.id)}`, item.type);
+    if (!ok) return;
+    setPreview(started);
     setSelectedMedia(item);
     setIsModalOpen(true);
   };
@@ -114,10 +121,13 @@ function FolderPage({ levelInfo, breadcrumbs, onBreadcrumbClick }) {
           onClose={() => {
             setIsModalOpen(false);
             setSelectedMedia(null);
+            setPreview(null);
           }}
           mediaItem={selectedMedia}
           summaryPath={selectedMedia?.slug || null}
+          preview={preview}
         />
+        {previewStarting ? <Loader variant="overlay" label={t("guest.previewStarting")} /> : null}
         <div className="flex-1 p-4 space-y-8">
           {hasFolders && (
             <section aria-labelledby="explore-folders-heading" className="space-y-4">

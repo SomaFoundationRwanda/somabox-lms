@@ -239,7 +239,7 @@ export default function NotificationBellDrawer({ className = "" }) {
                                                         <button
                                                             type="button"
                                                             onClick={(e) => { e.stopPropagation(); handleMarkAsRead(n.id); }}
-                                                            className="sr-only focus:not-sr-only focus:mt-1 focus:inline-block text-[11px] font-bold text-accent-dark underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]"
+                                                            className="sr-only focus:not-sr-only focus:mt-1 focus:inline-block text-[11px] font-bold text-accent-dark underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]"
                                                         >
                                                             {t('shell.notifications.markRead')}
                                                         </button>
@@ -263,7 +263,7 @@ export default function NotificationBellDrawer({ className = "" }) {
                                                 {/* Delete icon */}
                                                 <button
                                                     onClick={(e) => handleDelete(n.id, e)}
-                                                    className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488] p-1 text-slate-600 hover:text-rose-600 rounded transition-all absolute right-3 top-3"
+                                                    className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)] p-1 text-slate-600 hover:text-rose-600 rounded transition-all absolute right-3 top-3"
                                                     title={t('shell.notifications.dismiss')}
                                                     aria-label={fill(t('shell.notifications.dismissNamed'), { title: n.title })}
                                                 >

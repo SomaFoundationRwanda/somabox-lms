@@ -23,5 +23,12 @@ export default {
     "mediaExpiredBody": "Sign in again to keep watching and reading. You'll come back to this page.",
     "signInAgain": "Sign in again",
     "language": "Language",
-    "mediaForbidden": "This file belongs to a course you're not in."
+    "mediaForbidden": "This file belongs to a course you're not in.",
+    "previewChip": "Preview · {time} left",
+    "previewSignUpWatch": "Sign up to watch it all",
+    "previewSignUpRead": "Sign up to read it all",
+    "previewEndedWatch": "Your preview has ended. Create a free account to keep watching",
+    "previewEndedRead": "Your preview has ended. Create a free account to keep reading",
+    "previewStarting": "Starting your preview…",
+    "previewFailed": "Couldn't start the preview. Sign up for free to open this."
 };

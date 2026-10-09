@@ -35,7 +35,7 @@ export default function DeleteItemDialog({ open, onClose, item, onRemove, onDele
         <div className="flex flex-col gap-2 px-5 pb-5">
           <button
             onClick={() => { onRemove(); onClose(); }}
-            className="w-full text-sm font-semibold text-[#203A3A] bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl px-4 py-2.5 transition-colors"
+            className="w-full text-sm font-semibold text-[var(--brand-primary)] bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl px-4 py-2.5 transition-colors"
           >
             {isSubHeader ? t("modules.deleteDialog.deleteSubHeader") : t("modules.deleteDialog.moveToUnassigned")}
           </button>

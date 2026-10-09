@@ -85,7 +85,7 @@ export default function GradesPage() {
           title={tp("grades.title")}
           meta={data?.role === "student" && data.averagePct != null ? (
             <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-              {tp("grades.yourAverage")} <strong className="text-[#0D9488]">{fmtNum(data.averagePct)}%</strong>
+              {tp("grades.yourAverage")} <strong className="text-[var(--brand-secondary)]">{fmtNum(data.averagePct)}%</strong>
             </span>
           ) : data?.role === "student" ? (
             <span>{tp("grades.yourAverage")} {tp("common.noDataYet")}</span>
@@ -93,7 +93,7 @@ export default function GradesPage() {
           actions={data?.role === "student" ? (
             <Link
               href={`/course/${courseId}/progress`}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0D9488] border border-teal-200 dark:border-teal-900 hover:bg-teal-50 dark:hover:bg-teal-950/30 rounded-lg px-3 py-1.5"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--brand-secondary)] border border-teal-200 dark:border-teal-900 hover:bg-teal-50 dark:hover:bg-teal-950/30 rounded-lg px-3 py-1.5"
             >
               <TrendingUp className="w-3.5 h-3.5" aria-hidden="true" /> {tp("common.myProgress")}
             </Link>
@@ -124,7 +124,7 @@ export default function GradesPage() {
                     header: tp("common.item"),
                     render: (c) => (
                       <div className="min-w-[10rem]">
-                        <Link href={columnHref(courseId, c)} className="font-medium text-slate-800 dark:text-slate-100 hover:text-[#0D9488] hover:underline">
+                        <Link href={columnHref(courseId, c)} className="font-medium text-slate-800 dark:text-slate-100 hover:text-[var(--brand-secondary)] hover:underline">
                           {c.title}
                         </Link>
                         <div><TypeLabel col={c} /></div>
@@ -206,7 +206,7 @@ export default function GradesPage() {
                     <span className="flex flex-col items-center gap-0.5 normal-case tracking-normal">
                       <Link
                         href={columnHref(courseId, col)}
-                        className="text-xs font-semibold text-slate-700 dark:text-slate-200 hover:text-[#0D9488] hover:underline line-clamp-2 max-w-[10rem]"
+                        className="text-xs font-semibold text-slate-700 dark:text-slate-200 hover:text-[var(--brand-secondary)] hover:underline line-clamp-2 max-w-[10rem]"
                         title={col.title}
                       >
                         {col.title}

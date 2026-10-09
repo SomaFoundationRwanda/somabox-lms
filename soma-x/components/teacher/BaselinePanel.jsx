@@ -207,7 +207,7 @@ export default function BaselinePanel({ SERVER_URL, courseId, isDraft, onChanged
                 step={1}
                 value={perOutcome}
                 onChange={(e) => setPerOutcome(e.target.value)}
-                className="w-20 text-sm border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-[#0D9488]"
+                className="w-20 text-sm border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-[var(--brand-secondary)]"
               />
             </div>
             <button type="button" onClick={generate} disabled={anyBusy} className={`${btn} text-teal-800 bg-teal-50 border border-teal-200 hover:bg-teal-100`}>
@@ -219,7 +219,7 @@ export default function BaselinePanel({ SERVER_URL, courseId, isDraft, onChanged
             onClick={approve}
             disabled={anyBusy || !state.canApprove}
             title={state.canApprove ? undefined : t("teacher.baseline.fixFirst")}
-            className={`${btn} text-white bg-[#203A3A] hover:bg-[#182c2c]`}
+            className={`${btn} text-white bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)]`}
           >
             <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" /> {busy === "approve" ? t("teacher.baseline.approving") : t("teacher.baseline.approve")}
           </button>
@@ -245,7 +245,7 @@ export default function BaselinePanel({ SERVER_URL, courseId, isDraft, onChanged
             rows={2}
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[#0D9488]"
+            className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[var(--brand-secondary)]"
             placeholder={t("teacher.baseline.reasonPlaceholder")}
           />
           <div className="flex items-center gap-2">
@@ -253,7 +253,7 @@ export default function BaselinePanel({ SERVER_URL, courseId, isDraft, onChanged
               type="button"
               onClick={skip}
               disabled={anyBusy || reason.trim().length < MIN_REASON}
-              className={`${btn} text-white bg-[#203A3A] hover:bg-[#182c2c]`}
+              className={`${btn} text-white bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)]`}
             >
               {busy === "skip" ? t("teacher.baseline.saving") : t("teacher.baseline.confirmSkip")}
             </button>
@@ -274,7 +274,7 @@ export default function BaselinePanel({ SERVER_URL, courseId, isDraft, onChanged
             <Plus className="w-3.5 h-3.5" aria-hidden="true" /> {busy === "module" ? t("teacher.baseline.adding") : t("teacher.baseline.addModule")}
           </button>
         ) : null}
-        <Link href={editHref} className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0D9488] hover:underline px-1 py-2">
+        <Link href={editHref} className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--brand-secondary)] hover:underline px-1 py-2">
           {state.quizId ? <Pencil className="w-3.5 h-3.5" aria-hidden="true" /> : <BookOpen className="w-3.5 h-3.5" aria-hidden="true" />}
           {t("teacher.baseline.edit")}
         </Link>

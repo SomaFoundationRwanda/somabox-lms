@@ -59,7 +59,7 @@ export default function ClassTab({ data, reload, onShowFlagged }) {
             label={tp("insights.class.flaggedLabel")}
             value={c.atRisk ?? "—"}
             sub={(
-              <button type="button" onClick={onShowFlagged} className="font-semibold text-[#0D9488] hover:underline">
+              <button type="button" onClick={onShowFlagged} className="font-semibold text-[var(--brand-secondary)] hover:underline">
                 {tp("insights.class.seeWho")}
               </button>
             )}
@@ -71,7 +71,7 @@ export default function ClassTab({ data, reload, onShowFlagged }) {
               <>
                 {txn("basedOnLearners", c.learnersWithAttendance ?? 0)}
                 {" · "}
-                <Link href={`/course/${courseId}/attendance`} className="font-semibold text-[#0D9488] hover:underline">{tx("openAttendance")}</Link>
+                <Link href={`/course/${courseId}/attendance`} className="font-semibold text-[var(--brand-secondary)] hover:underline">{tx("openAttendance")}</Link>
               </>
             )}
           />
@@ -129,7 +129,7 @@ export default function ClassTab({ data, reload, onShowFlagged }) {
           </div>
         </div>
         <p className="mt-3 text-xs text-slate-500">
-          {tp("insights.class.flagsRuleNote")} <Link href={`/course/${courseId}/insights?tab=learners&flagged=1`} className="font-semibold text-[#0D9488] hover:underline">{tp("insights.class.openFlagged")}</Link>
+          {tp("insights.class.flagsRuleNote")} <Link href={`/course/${courseId}/insights?tab=learners&flagged=1`} className="font-semibold text-[var(--brand-secondary)] hover:underline">{tp("insights.class.openFlagged")}</Link>
         </p>
       </Section>
     </div>

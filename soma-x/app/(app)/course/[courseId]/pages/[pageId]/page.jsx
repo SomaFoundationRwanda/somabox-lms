@@ -126,7 +126,7 @@ export default function PageDetailPage() {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder={t("editors.pageTitle")}
-                className="w-full text-lg font-bold border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[#203A3A]"
+                className="w-full text-lg font-bold border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[var(--brand-primary)]"
               />
             </div>
 
@@ -154,7 +154,7 @@ export default function PageDetailPage() {
                   type="checkbox"
                   checked={published}
                   onChange={(e) => setPublished(e.target.checked)}
-                  className="rounded border-slate-300 text-[#203A3A] focus:ring-[#203A3A]"
+                  className="rounded border-slate-300 text-[var(--brand-primary)] focus:ring-[var(--brand-primary)]"
                 />
                 {t("pageView.publishedVisible")}
               </label>
@@ -171,7 +171,7 @@ export default function PageDetailPage() {
                   type="button"
                   onClick={save}
                   disabled={saving}
-                  className="text-xs font-semibold text-white bg-[#203A3A] hover:bg-[#162727] disabled:opacity-50 rounded-lg px-5 py-2.5 transition-colors shadow-sm"
+                  className="text-xs font-semibold text-white bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] disabled:opacity-50 rounded-lg px-5 py-2.5 transition-colors shadow-sm"
                 >
                   {saving ? t("common.saving") : t("editors.saveChanges")}
                 </button>

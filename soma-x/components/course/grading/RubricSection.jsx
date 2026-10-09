@@ -23,7 +23,7 @@ const emptyRow = (outcome) => ({
   outcomeId: outcome ? String(outcome.id) : "",
 });
 
-const inputClass = "w-full text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-lg px-2.5 py-1.5 outline-none focus:border-[#0D9488]";
+const inputClass = "w-full text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-lg px-2.5 py-1.5 outline-none focus:border-[var(--brand-secondary)]";
 
 // Teacher rubric for one assignment: read-only table, or an editor that PUTs the whole rubric.
 // `taggedOutcomes` are this assignment's outcome tags ({ outcome_id, outcome_code, outcome_title })
@@ -167,7 +167,7 @@ export default function RubricSection({ SERVER_URL, courseId, assignmentId, rubr
     }
   };
 
-  const heading = <span className="flex items-center gap-2"><Award className="w-4 h-4 text-[#0D9488]" /> {tp("rubric.title")}</span>;
+  const heading = <span className="flex items-center gap-2"><Award className="w-4 h-4 text-[var(--brand-secondary)]" /> {tp("rubric.title")}</span>;
 
   if (editing) {
     return (
@@ -231,7 +231,7 @@ export default function RubricSection({ SERVER_URL, courseId, assignmentId, rubr
             })}
           </ol>
 
-          <button type="button" onClick={() => setRows((rs) => [...rs, emptyRow()])} className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0D9488] hover:underline">
+          <button type="button" onClick={() => setRows((rs) => [...rs, emptyRow()])} className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--brand-secondary)] hover:underline">
             <Plus className="w-3.5 h-3.5" /> {tp("common.addCriterion")}
           </button>
 
@@ -247,7 +247,7 @@ export default function RubricSection({ SERVER_URL, courseId, assignmentId, rubr
             </div>
             <div className="flex gap-2">
               <button type="button" onClick={() => setEditing(false)} disabled={saving} className="text-xs font-semibold text-slate-500 px-4 py-2">{tp("common.cancel")}</button>
-              <button type="button" onClick={save} disabled={saving} className="text-xs font-bold text-white bg-[#0D9488] hover:bg-teal-700 disabled:opacity-60 px-5 py-2.5 rounded-lg">
+              <button type="button" onClick={save} disabled={saving} className="text-xs font-bold text-white bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-dark)] disabled:opacity-60 px-5 py-2.5 rounded-lg">
                 {saving ? tp("common.saving") : tp("rubric.save")}
               </button>
             </div>
@@ -267,7 +267,7 @@ export default function RubricSection({ SERVER_URL, courseId, assignmentId, rubr
           description={tp("rubric.noneHint")}
           action={
             <div className="flex flex-wrap items-center justify-center gap-2">
-              <button type="button" onClick={startEdit} className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-[#0D9488] hover:bg-teal-700 px-4 py-2 rounded-lg">
+              <button type="button" onClick={startEdit} className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-dark)] px-4 py-2 rounded-lg">
                 <Plus className="w-3.5 h-3.5" /> {tp("rubric.create")}
               </button>
               {aiButton}
@@ -324,7 +324,7 @@ export function RubricTable({ rubric, scores }) {
           key: "outcome",
           header: tp("common.outcome"),
           render: (c) => (c.outcome_code ? (
-            <span title={c.outcome_title || ""} className="text-xs font-bold text-[#0D9488] bg-teal-50 border border-teal-200 px-2 py-0.5 rounded-md whitespace-nowrap">{c.outcome_code}</span>
+            <span title={c.outcome_title || ""} className="text-xs font-bold text-[var(--brand-secondary)] bg-teal-50 border border-teal-200 px-2 py-0.5 rounded-md whitespace-nowrap">{c.outcome_code}</span>
           ) : <span className="text-slate-400">—</span>),
         },
         ...(hasScores ? [{

@@ -129,7 +129,7 @@ export default function SetupChecklist({ courseId, SERVER_URL, status, onChanged
         {showSettingsLink ? (
           <Link
             href={`/course/${courseId}/settings#course-setup`}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0D9488] hover:underline"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--brand-secondary)] hover:underline"
           >
             <Settings className="w-3.5 h-3.5" aria-hidden="true" /> {t("teacher.setup.inSettings")}
           </Link>
@@ -140,7 +140,7 @@ export default function SetupChecklist({ courseId, SERVER_URL, status, onChanged
               type="button"
               onClick={openCourse}
               disabled={!status.canOpen || opening}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#0D9488] hover:bg-teal-700 text-white rounded-xl text-sm font-bold transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-dark)] text-white rounded-xl text-sm font-bold transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Rocket className="w-4 h-4" aria-hidden="true" /> {opening ? t("teacher.setup.opening") : t("teacher.setup.openCourse")}
             </button>

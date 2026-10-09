@@ -97,7 +97,7 @@ function PasswordField({ id, label, placeholder, value, onChange }) {
 
 export default function AccountPage() {
     const { authenticated, SERVER_URL, isDark, user, refreshUser } = useContext(DataContext);
-    const ACCENT = isDark ? "#0D9488" : "#203A3A";
+    const ACCENT = isDark ? "var(--brand-secondary)" : "var(--brand-primary)";
     const pageBg = isDark ? "#080B0F" : "#F0F2F5";
     const heroFade = isDark ? "#080B0F" : "#F0F2F5";
 
@@ -122,11 +122,10 @@ export default function AccountPage() {
     const [passwordForm, setPasswordForm] = useState({
         currentPassword: "", newPassword: "", confirmPassword: "",
     });
+    // Location isn't edited here: everyone on the box is placed at the school's location
+    // (set by the admin on the School page), shown read-only below.
     const [demoForm, setDemoForm] = useState({
         gender: "prefer_not_to_say",
-        regionProvince: "",
-        regionDistrict: "",
-        isRural: false,
         disabilityStatus: "none"
     });
 
@@ -146,16 +145,13 @@ export default function AccountPage() {
                     learnerCode: data.learner_code || "",
                     schoolName: data.school?.name || data.school_name || "",
                     gender: data.gender || "prefer_not_to_say",
-                    province: data.region_province || "Not Specified",
-                    district: data.region_district || "Not Specified",
-                    isRural: data.is_rural === 1,
+                    province: data.school?.province || data.region_province || "Not Specified",
+                    district: data.school?.district || data.region_district || "Not Specified",
+                    isRural: data.school?.isRural != null ? data.school.isRural === true : data.is_rural === 1,
                     disability: data.disability_status || "none"
                 });
                 setDemoForm({
                     gender: data.gender || "prefer_not_to_say",
-                    regionProvince: data.region_province && data.region_province !== 'Not Specified' ? data.region_province : "",
-                    regionDistrict: data.region_district && data.region_district !== 'Not Specified' ? data.region_district : "",
-                    isRural: data.is_rural === 1,
                     disabilityStatus: data.disability_status || "none"
                 });
             } catch (err) {
@@ -177,24 +173,15 @@ export default function AccountPage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     gender: demoForm.gender,
-                    regionProvince: demoForm.regionProvince || "Not Specified",
-                    regionDistrict: demoForm.regionDistrict || "Not Specified",
-                    isRural: demoForm.isRural,
                     disabilityStatus: demoForm.disabilityStatus
                 })
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.message || t("learner.account.saveFailed"));
-            
-            const updatedProvince = demoForm.regionProvince || "Not Specified";
-            const updatedDistrict = demoForm.regionDistrict || "Not Specified";
 
             setProfileView(prev => ({
                 ...prev,
                 gender: demoForm.gender,
-                province: updatedProvince,
-                district: updatedDistrict,
-                isRural: demoForm.isRural,
                 disability: demoForm.disabilityStatus
             }));
 
@@ -449,42 +436,15 @@ export default function AccountPage() {
                                         </select>
                                     </div>
 
-                                    {/* Province */}
-                                    <div className="space-y-1">
-                                        <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">{t("learner.account.province")}</label>
-                                        <input aria-label={t("learner.account.province")}
-                                            type="text"
-                                            placeholder={t("learner.account.provincePlaceholder")}
-                                            value={demoForm.regionProvince}
-                                            onChange={e => setDemoForm({ ...demoForm, regionProvince: e.target.value })}
-                                            className="w-full h-10 px-3 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 bg-white outline-none focus:border-accent-dark"
-                                        />
-                                    </div>
-
-                                    {/* District */}
-                                    <div className="space-y-1">
-                                        <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">{t("learner.account.district")}</label>
-                                        <input aria-label={t("learner.account.district")}
-                                            type="text"
-                                            placeholder={t("learner.account.districtPlaceholder")}
-                                            value={demoForm.regionDistrict}
-                                            onChange={e => setDemoForm({ ...demoForm, regionDistrict: e.target.value })}
-                                            className="w-full h-10 px-3 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 bg-white outline-none focus:border-accent-dark"
-                                        />
-                                    </div>
-
-                                    {/* Is Rural checkbox */}
-                                    <div className="flex items-center gap-2 pt-1">
-                                        <input
-                                            type="checkbox"
-                                            id="account-is-rural"
-                                            checked={demoForm.isRural}
-                                            onChange={e => setDemoForm({ ...demoForm, isRural: e.target.checked })}
-                                            className="w-4 h-4 rounded text-accent-dark focus:ring-accent-dark border-slate-300 cursor-pointer"
-                                        />
-                                        <label htmlFor="account-is-rural" className="text-xs font-semibold text-slate-700 cursor-pointer select-none">
-                                            {t("learner.account.ruralCheckbox")}
-                                        </label>
+                                    {/* Location: the school's, not edited here */}
+                                    <div className="flex items-start gap-2 rounded-xl bg-slate-50 border border-slate-200 px-3 py-2.5">
+                                        <MapPin size={13} className="text-slate-600 mt-0.5 shrink-0" aria-hidden="true" />
+                                        <div className="min-w-0">
+                                            <p className="text-xs font-semibold text-slate-800">
+                                                {fill(t(profileView.isRural ? "learner.account.locationRural" : "learner.account.locationUrban"), { province: placeName(profileView.province), district: placeName(profileView.district) })}
+                                            </p>
+                                            <p className="text-[11px] text-slate-600 mt-0.5">{t("school.account.locationNote")}</p>
+                                        </div>
                                     </div>
 
                                     {/* Disability status */}

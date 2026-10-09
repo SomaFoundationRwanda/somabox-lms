@@ -109,7 +109,7 @@ export default function CourseCalendarPage() {
             action={isTeacher ? (
               <Link
                 href={`/course/${courseId}/settings`}
-                className="text-xs font-semibold text-white bg-[#203A3A] hover:bg-[#162727] rounded-lg px-3 py-2 transition-colors"
+                className="text-xs font-semibold text-white bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] rounded-lg px-3 py-2 transition-colors"
               >
                 {t("calendar.setStart")}
               </Link>

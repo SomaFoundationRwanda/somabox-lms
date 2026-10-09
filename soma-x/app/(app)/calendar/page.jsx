@@ -72,7 +72,7 @@ export default function MyCalendarPage() {
               onClick={() => setScope(opt.id)}
               aria-pressed={scope === opt.id}
               className={`text-xs font-semibold px-2.5 py-1.5 rounded-md transition-colors ${
-                scope === opt.id ? "bg-[#203A3A] text-white" : "text-slate-600 hover:text-slate-900"
+                scope === opt.id ? "bg-[var(--brand-primary)] text-white" : "text-slate-600 hover:text-slate-900"
               }`}
             >
               {opt.label}

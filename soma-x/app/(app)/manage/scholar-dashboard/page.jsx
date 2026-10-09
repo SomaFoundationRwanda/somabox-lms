@@ -21,7 +21,7 @@ const ScholarDashboard = () => {
     const { authenticated, role, SERVER_URL, isDark, user } = useContext(DataContext);
     const router = useRouter();
     const { t } = useLanguage();
-    const ACCENT = isDark ? "#0D9488" : "#203A3A";
+    const ACCENT = isDark ? "var(--brand-secondary)" : "var(--brand-primary)";
 
     const currentRole = useMemo(() => (role || ""), [role]);
 
@@ -147,7 +147,7 @@ const ScholarDashboard = () => {
                         <button
                             className="px-4 h-9 rounded-[5px] text-[12px] font-bold text-white transition-all"
                             style={{ backgroundColor: ACCENT }}
-                            onMouseEnter={e => e.currentTarget.style.backgroundColor = "#2d5050"}
+                            onMouseEnter={e => e.currentTarget.style.backgroundColor = "color-mix(in srgb, var(--brand-primary) 85%, white)"}
                             onMouseLeave={e => e.currentTarget.style.backgroundColor = ACCENT}
                         >
                             {t("learner.dashboard.browseLibrary")}
@@ -194,7 +194,7 @@ const ScholarDashboard = () => {
 
                                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto shrink-0">
                                         <Link href="/library" className="w-full sm:w-auto">
-                                            <Button className="w-full sm:w-auto h-11 px-6 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-teal-950/40 transition-all">
+                                            <Button className="w-full sm:w-auto h-11 px-6 rounded-xl bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-dark)] text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-teal-950/40 transition-all">
                                                 <BookOpen className="w-4 h-4" />
                                                 {t("learner.dashboard.browseLibrary")}
                                                 <ArrowRight className="w-4 h-4" />
@@ -320,7 +320,7 @@ const ScholarDashboard = () => {
                                             <Icon className="w-[13px] h-[13px] sm:w-[15px] sm:h-[15px]" />
                                         </div>
                                         <div className="min-w-0">
-                                            <p className="text-[11px] sm:text-[12px] font-semibold text-slate-800 group-hover:text-[#203A3A] transition-colors truncate">{label}</p>
+                                            <p className="text-[11px] sm:text-[12px] font-semibold text-slate-800 group-hover:text-[var(--brand-primary)] transition-colors truncate">{label}</p>
                                             <p className="text-[11px] text-slate-600 truncate">{sub}</p>
                                         </div>
                                     </div>

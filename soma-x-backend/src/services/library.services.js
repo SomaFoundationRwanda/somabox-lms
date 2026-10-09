@@ -14,6 +14,7 @@ import { requireMediaAccess } from '../helpers/media.js';
 import { absolutePath, fileType, coverPath } from './explore/roots.js';
 import { syncExploreIndex } from './explore/indexer.js';
 import { getCatalog, invalidateCatalog } from './explore/catalog.js';
+import { guestMayOpen, limitGuestRange } from './explore/preview.js';
 
 const router = express.Router();
 const requireAdmin = requireRole('admin');
@@ -173,16 +174,21 @@ router.get('/categories', async (req, res) => {
 
 // Opens a library file by its id in the catalogue (books from before the library was a folder
 // may also be asked for by their old number, kept as their file name).
-router.get('/file/:id', requireMediaAccess(), async (req, res) => {
+router.get('/file/:id', requireMediaAccess({ allowGuests: true }), async (req, res) => {
     const id = String(req.params.id);
     if (!/^\d+$/.test(id)) return res.status(404).json({ error: 'Book not found' });
     const row = await localDb.prepare("SELECT path_key FROM content_items WHERE id = ? AND path_key LIKE 'library/%'").get(id);
     const candidates = [row?.path_key, `library/${id}.epub`, `library/${id}.pdf`].filter(Boolean);
     const { isHidden } = await getCatalog();
+    const signUp = () => res.status(401).json({ error: 'Sign up for free to keep reading', code: 'LOGIN_REQUIRED' });
     for (const key of candidates) {
-        if (fs.existsSync(absolutePath(key)) && !isHidden(key)) return res.sendFile(absolutePath(key));
+        if (!fs.existsSync(absolutePath(key)) || isHidden(key)) continue;
+        // Visitors: only during their preview of this book, and only the start of videos and audio.
+        if (!req.mediaUser && (!await guestMayOpen(req, key) || !limitGuestRange(req, key))) return signUp();
+        return res.sendFile(absolutePath(key));
     }
-    return res.status(404).json({ error: 'Book not found' });
+    // Visitors are asked to sign up rather than told what exists.
+    return req.mediaUser ? res.status(404).json({ error: 'Book not found' }) : signUp();
 });
 
 // Admins: remove a library file (and its cover).

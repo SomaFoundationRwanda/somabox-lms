@@ -7,7 +7,9 @@ export default {
     "loading": "Tegereza…",
     "saving": "Birabikwa…",
     "onboarding": {
-        "schoolLabel": "Ishuri:"
+        "schoolLabel": "Ishuri:",
+        "setBySchool": "Byashyizweho n'ishuri ryawe",
+        "errDisability": "Hitamo igisubizo ku bufasha ukeneye."
     },
     "login": {
         "label": "Imeli cyangwa kode y'umunyeshuri",
@@ -20,14 +22,16 @@ export default {
         "continue": "Komeza"
     },
     "account": {
-        "codeHint": "Ushobora kwinjira ukoresheje iyi kode aho gukoresha imeli yawe."
+        "codeHint": "Ushobora kwinjira ukoresheje iyi kode aho gukoresha imeli yawe.",
+        "locationNote": "Ishuri ryawe ni ryo ribishyiraho. Buri wese uri kuri iyi SomaBox ashyirwa aho ishuri riherereye."
     },
     "users": {
-        "createdCode": "Ha umunyeshuri iyi kode. Ashobora kwinjira akoresheje {code} aho gukoresha imeli ye."
+        "createdCode": "Ha umunyeshuri iyi kode. Ashobora kwinjira akoresheje {code} aho gukoresha imeli ye.",
+        "locationNote": "Aho ishuri riherereye n'icyaro/umujyi biva kuri paji y'Ishuri."
     },
     "settings": {
         "navTitle": "Ishuri",
-        "navSubtitle": "Izina ry'ishuri, kode z'abanyeshuri n'aho riherereye",
+        "navSubtitle": "Izina, ikirango, amabara, aho riherereye n'ibyo abashyitsi bareba",
         "loadFailed": "Ntibyashobotse gufungura igenamiterere ry'ishuri.",
         "saveFailed": "Ntibyashobotse kubika igenamiterere ry'ishuri.",
         "codeInvalid": "Kode igomba kugira inyuguti cyangwa imibare kuva kuri 2 kugeza kuri 8.",
@@ -35,8 +39,7 @@ export default {
         "back": "Ubuyobozi",
         "eyebrow": "Ishuri",
         "title": "Igenamiterere ry'ishuri",
-        "description": "Ishuri iyi SomaBox ikorera, n'uko kode z'abanyeshuri zikorwa.",
-        "oneBoxOneSchool": "SomaBox imwe ikorera ishuri rimwe, bityo abanyeshuri ntibabazwa ishuri ryabo, aho riri cyangwa niba riri mu cyaro. Byuzuzwa uhereye hano, kandi guhindura izina cyangwa icyaro/umujyi bihindura buri munyeshuri uri kuri iyi SomaBox.",
+        "description": "Ishuri iyi SomaBox ikorera: izina ryaryo, kode z'abanyeshuri, aho riherereye, isura yaryo n'ibyo abashyitsi bareba.",
         "codeOnlyNew": "Guhindura kode bireba abanyeshuri bashya gusa. Abanyeshuri basanzwe bafite kode bakomeza kuyigumana.",
         "name": "Izina ry'ishuri",
         "namePlaceholder": "urugero: GS Kigali",
@@ -52,10 +55,45 @@ export default {
         "rural": "Icyaro",
         "urban": "Umujyi (santere cyangwa umujyi)",
         "ruralUnset": "Ntibyashyizweho",
-        "ruralHelp": "Iyo ibi byashyizweho, abanyeshuri ntibabazwa aho batuye.",
         "save": "Bika igenamiterere ry'ishuri",
-        "brandingNote": "Ikirango n'amabara bishyirwaho kuri paji y'Ikirango.",
-        "brandingLink": "Fungura Ikirango"
+        "sectionSchool": "Ishuri",
+        "sectionLocation": "Aho riherereye",
+        "locationHelp": "Buri wese uri kuri iyi SomaBox ashyirwa aho ishuri riherereye. Abanyeshuri n'abarimu ntibigera babibazwa.",
+        "sectionLook": "Isura",
+        "lookHelp": "Ikirango n'amabara bigaragara kuri buri wese, harimo no kuri paji yo Kwinjira.",
+        "logo": "Ikirango",
+        "logoAlt": "Ikirango cya {name}",
+        "logoHelp": "PNG, JPEG cyangwa WebP, kugeza kuri MB 5. Gisimbura ikirango cya SOMABOX ahantu hose.",
+        "logoNone": "Hakoreshwa ikirango cya SOMABOX",
+        "logoChoose": "Shyiraho ikirango",
+        "logoReplace": "Hindura ikirango",
+        "logoRemove": "Kuraho (subira kuri SOMABOX)",
+        "logoUploading": "Birimo koherezwa…",
+        "logoUploaded": "Ikirango cyabitswe.",
+        "logoRemoved": "Hagarutse ikirango cya SOMABOX.",
+        "logoType": "Ikirango kigomba kuba ifoto ya PNG, JPEG cyangwa WebP.",
+        "logoTooBig": "Ikirango kigomba kuba MB 5 cyangwa munsi yazo.",
+        "logoFailed": "Ntibyashobotse kubika ikirango.",
+        "primary": "Ibara ry'ibanze",
+        "primaryHelp": "Umutwe wa paji, ibyatoranyijwe muri menu na buto zijimye",
+        "secondary": "Ibara rya kabiri",
+        "secondaryHelp": "Buto z'ingenzi, imiyoboro n'imirongo yerekana aho uri",
+        "colourInvalid": "Amabara agomba kwandikwa nka #203A3A.",
+        "lowContrast": "Inyandiko y'umweru ntisomeka neza kuri iri bara. Hitamo irijimye kurushaho.",
+        "resetColours": "Koresha amabara ya SOMABOX",
+        "preview": "Uko bizagaragara",
+        "previewButton": "Buto",
+        "previewButtonDark": "Buto ijimye",
+        "previewLink": "Umuyoboro",
+        "sectionVisitors": "Ibyo abashyitsi bareba",
+        "visitorsHelp": "Abashyitsi bashobora gufungura ibintu bike byo muri Shakisha no mu Isomero muri icyo gihe, hanyuma bagasabwa Kwiyandikisha. Amashusho n'amajwi birahagarara.",
+        "visitorsOn": "Emerera abashyitsi kureba bike",
+        "seconds": "Amasegonda kuri buri kintu",
+        "secondsHelp": "Kuva ku masegonda 10 kugeza kuri 600.",
+        "secondsInvalid": "Igihe cyo kureba kigomba kuba hagati y'amasegonda 10 na 600.",
+        "items": "Ibintu kuri buri mushyitsi ku munsi",
+        "itemsHelp": "Kuva ku kintu 1 kugeza kuri 50.",
+        "itemsInvalid": "Abashyitsi bashobora kureba ibintu kuva kuri 1 kugeza kuri 50."
     },
     "device": {
         "unknown": "Ntibizwi",
@@ -76,5 +114,13 @@ export default {
         "source": "Byasomwe na",
         "sourceScript": "Porogaramu y'igikoresho (nk'umuyobozi)",
         "sourceServer": "Seriveri gusa (nta nimero y'uruganda)"
+    },
+    "brand": {
+        "poweredBy": "Ikoreshwa na SOMABOX",
+        "welcomeTo": "Murakaza neza kuri {name}"
+    },
+    "banner": {
+        "title": "Tegura ishuri ryawe",
+        "body": "Izina, ikirango, amabara n'aho riherereye"
     }
 };

@@ -75,7 +75,7 @@ function StatusLine({ status }) {
     detail = t("admin.cloud.nothingWaiting");
     tone = "text-emerald-800 dark:text-emerald-300";
   } else {
-    icon = <Clock className="w-5 h-5 text-[#0D9488]" aria-hidden="true" />;
+    icon = <Clock className="w-5 h-5 text-[var(--brand-secondary)]" aria-hidden="true" />;
     title = countText(t, status.pending, "admin.cloud.waitingOne", "admin.cloud.waitingMany");
     if (status.oldestPendingAt) title += ` ${fill(t("admin.cloud.since"), { when: formatRelative(status.oldestPendingAt) })}`;
     detail = status.intervalMinutes
@@ -152,7 +152,7 @@ function ScopeForm({ SERVER_URL, scope, onSaved }) {
               type="checkbox"
               checked={!!form[key]}
               onChange={() => toggle(key)}
-              className="mt-1 h-4 w-4 shrink-0 accent-[#0D9488]"
+              className="mt-1 h-4 w-4 shrink-0 accent-[var(--brand-secondary)]"
             />
             <span className="min-w-0">
               <span className="block text-sm font-semibold text-slate-800 dark:text-slate-100">{t(`admin.cloud.scope.${key}.label`)}</span>
@@ -172,7 +172,7 @@ function ScopeForm({ SERVER_URL, scope, onSaved }) {
               value={value}
               checked={form.people === value}
               onChange={() => setForm((f) => ({ ...f, people: value }))}
-              className="mt-1 h-4 w-4 shrink-0 accent-[#0D9488]"
+              className="mt-1 h-4 w-4 shrink-0 accent-[var(--brand-secondary)]"
             />
             <span className="min-w-0">
               <span className="block text-sm text-slate-800 dark:text-slate-100">{t(`admin.cloud.peopleOptions.${value}.label`)}</span>
@@ -187,7 +187,7 @@ function ScopeForm({ SERVER_URL, scope, onSaved }) {
           type="checkbox"
           checked={!!form.submissionText}
           onChange={() => toggle("submissionText")}
-          className="mt-1 h-4 w-4 shrink-0 accent-[#0D9488]"
+          className="mt-1 h-4 w-4 shrink-0 accent-[var(--brand-secondary)]"
         />
         <span className="min-w-0">
           <span className="block text-sm font-semibold text-slate-800 dark:text-slate-100">{t("admin.cloud.writtenLabel")}</span>
@@ -215,7 +215,7 @@ function ScopeForm({ SERVER_URL, scope, onSaved }) {
         <button
           type="submit"
           disabled={!dirty || saving}
-          className="text-xs font-semibold text-white bg-[#203A3A] hover:bg-[#162727] disabled:opacity-50 rounded-lg px-4 py-2"
+          className="text-xs font-semibold text-white bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] disabled:opacity-50 rounded-lg px-4 py-2"
         >
           {saving ? t("admin.analytics.saving") : t("admin.analytics.save")}
         </button>
@@ -284,7 +284,7 @@ export default function CloudSyncSection({ SERVER_URL }) {
             type="button"
             onClick={syncNow}
             disabled={running || !status}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#203A3A] hover:bg-[#162727] disabled:opacity-50 rounded-lg px-3 py-2"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] disabled:opacity-50 rounded-lg px-3 py-2"
           >
             {running ? <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" /> : <RefreshCw className="w-3.5 h-3.5" aria-hidden="true" />}
             {running ? t("admin.cloud.syncing") : t("admin.cloud.syncNow")}

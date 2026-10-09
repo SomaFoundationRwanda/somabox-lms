@@ -68,7 +68,7 @@ export default function Explainer({ k, variant = "link", label, className = "", 
         aria-expanded={open}
         aria-controls={panelId}
         aria-label={variant === "icon" ? `${buttonLabel}: ${entry.title}` : undefined}
-        className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#0D9488] hover:text-[#0b7c72] focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-300 rounded"
+        className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--brand-secondary)] hover:text-[#0b7c72] focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-300 rounded"
       >
         <HelpCircle className="w-3.5 h-3.5" aria-hidden="true" />
         {variant === "icon" ? null : <span>{buttonLabel}</span>}

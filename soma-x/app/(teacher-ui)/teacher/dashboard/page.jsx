@@ -92,7 +92,7 @@ export default function TeacherDashboardPage() {
           </Link>
           <button
             onClick={() => setCreateModal(true)}
-            className="flex items-center gap-1.5 text-xs font-medium text-white bg-[#2E8282] hover:bg-[#1f6767] rounded-lg px-3 py-2 transition-colors"
+            className="flex items-center gap-1.5 text-xs font-medium text-white bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-dark)] rounded-lg px-3 py-2 transition-colors"
           >
             <Plus className="w-3.5 h-3.5" /> {t("teacher.common.newCourse")}
           </button>
@@ -119,7 +119,7 @@ export default function TeacherDashboardPage() {
                 </Link>
                 <div className="p-4">
                   <Link href={`/course/${course.id}/home`}>
-                    <p className="text-base font-semibold text-slate-700 dark:text-slate-200 mb-1 hover:text-[#2E8282] transition-colors cursor-pointer">{course.title}</p>
+                    <p className="text-base font-semibold text-slate-700 dark:text-slate-200 mb-1 hover:text-[var(--brand-secondary)] transition-colors cursor-pointer">{course.title}</p>
                   </Link>
                   <p className="text-xs text-slate-600 mb-4">{course.grade} · {fill(t((course.studentCount || 0) === 1 ? "teacher.common.oneStudent" : "teacher.common.manyStudents"), { count: course.studentCount || 0 })}</p>
                   <button
@@ -143,13 +143,13 @@ export default function TeacherDashboardPage() {
             value={studentEmail}
             onChange={(e) => setStudentEmail(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleAddStudent()}
-            className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2.5 outline-none focus:border-[#2E8282] mb-2"
+            className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2.5 outline-none focus:border-[var(--brand-secondary)] mb-2"
           />
           {studentError && <p className="text-xs text-red-500 mb-2">{studentError}</p>}
           <button
             onClick={handleAddStudent}
             disabled={studentLoading || !studentEmail.trim()}
-            className="w-full py-2.5 rounded-lg text-sm font-medium bg-[#2E8282] text-white hover:bg-[#1f6767] transition-colors disabled:opacity-50"
+            className="w-full py-2.5 rounded-lg text-sm font-medium bg-[var(--brand-secondary)] text-white hover:bg-[var(--brand-secondary-dark)] transition-colors disabled:opacity-50"
           >
             {studentLoading ? t("teacher.dashboard.adding") : t("teacher.dashboard.addStudent")}
           </button>

@@ -6,7 +6,9 @@ export default {
     "loading": "Cargando…",
     "saving": "Guardando…",
     "onboarding": {
-        "schoolLabel": "Escuela:"
+        "schoolLabel": "Escuela:",
+        "setBySchool": "Lo establece tu escuela",
+        "errDisability": "Elige una respuesta sobre necesidades de accesibilidad."
     },
     "login": {
         "label": "Correo o código de estudiante",
@@ -19,14 +21,16 @@ export default {
         "continue": "Continuar"
     },
     "account": {
-        "codeHint": "Puedes iniciar sesión con este código en lugar de tu correo."
+        "codeHint": "Puedes iniciar sesión con este código en lugar de tu correo.",
+        "locationNote": "Lo establece tu escuela. Todas las personas de esta caja se ubican donde está la escuela."
     },
     "users": {
-        "createdCode": "Entrega este código al estudiante. Puede iniciar sesión con {code} en lugar de su correo."
+        "createdCode": "Entrega este código al estudiante. Puede iniciar sesión con {code} en lugar de su correo.",
+        "locationNote": "La ubicación y si es rural o urbana vienen de la página Escuela."
     },
     "settings": {
         "navTitle": "Escuela",
-        "navSubtitle": "Nombre de la escuela, códigos de estudiante y ubicación",
+        "navSubtitle": "Nombre, logotipo, colores, ubicación y vistas previas para visitantes",
         "loadFailed": "No se pudo cargar la configuración de la escuela.",
         "saveFailed": "No se pudo guardar la configuración de la escuela.",
         "codeInvalid": "El código debe tener de 2 a 8 letras o números.",
@@ -34,8 +38,7 @@ export default {
         "back": "Administración",
         "eyebrow": "Escuela",
         "title": "Configuración de la escuela",
-        "description": "La escuela a la que sirve esta caja y cómo se crean los códigos de estudiante.",
-        "oneBoxOneSchool": "Una caja sirve a una sola escuela, así que a los estudiantes no se les pregunta su escuela, dónde está ni si es rural. Se completa desde aquí, y cambiar el nombre o rural/urbano actualiza a todos los estudiantes de esta caja.",
+        "description": "La escuela a la que sirve esta caja: su nombre, los códigos de estudiante, su ubicación, su aspecto y las vistas previas para visitantes.",
         "codeOnlyNew": "Cambiar el código solo afecta a los estudiantes nuevos. Quienes ya tienen un código lo conservan.",
         "name": "Nombre de la escuela",
         "namePlaceholder": "p. ej. GS Kigali",
@@ -51,10 +54,45 @@ export default {
         "rural": "Rural",
         "urban": "Urbana (pueblo o ciudad)",
         "ruralUnset": "Sin definir",
-        "ruralHelp": "Cuando está definido, no se pregunta a los estudiantes dónde viven.",
         "save": "Guardar configuración",
-        "brandingNote": "El logotipo y los colores se configuran en la página de Marca.",
-        "brandingLink": "Abrir Marca"
+        "sectionSchool": "Escuela",
+        "sectionLocation": "Ubicación",
+        "locationHelp": "Todas las personas de esta caja se ubican donde está la escuela. Nunca se pregunta a estudiantes ni a docentes.",
+        "sectionLook": "Aspecto",
+        "lookHelp": "El logotipo y los colores los ve todo el mundo, también en la página de inicio de sesión.",
+        "logo": "Logotipo",
+        "logoAlt": "Logotipo de {name}",
+        "logoHelp": "PNG, JPEG o WebP, hasta 5 MB. Sustituye al logotipo de SOMABOX en todas partes.",
+        "logoNone": "Se usa el logotipo de SOMABOX",
+        "logoChoose": "Subir un logotipo",
+        "logoReplace": "Cambiar el logotipo",
+        "logoRemove": "Quitar (volver a SOMABOX)",
+        "logoUploading": "Subiendo…",
+        "logoUploaded": "Logotipo guardado.",
+        "logoRemoved": "Se ha vuelto al logotipo de SOMABOX.",
+        "logoType": "El logotipo debe ser una imagen PNG, JPEG o WebP.",
+        "logoTooBig": "El logotipo debe ocupar 5 MB o menos.",
+        "logoFailed": "No se pudo guardar el logotipo.",
+        "primary": "Color principal",
+        "primaryHelp": "Encabezado, elemento de menú seleccionado y botones oscuros",
+        "secondary": "Color secundario",
+        "secondaryHelp": "Botones principales, enlaces y contornos de foco",
+        "colourInvalid": "Los colores deben escribirse como #203A3A.",
+        "lowContrast": "El texto blanco se lee mal sobre este color. Elige uno más oscuro.",
+        "resetColours": "Usar los colores de SOMABOX",
+        "preview": "Vista previa",
+        "previewButton": "Botón",
+        "previewButtonDark": "Botón oscuro",
+        "previewLink": "Enlace",
+        "sectionVisitors": "Vistas previas para visitantes",
+        "visitorsHelp": "Los visitantes pueden abrir algunos elementos de Explorar y de la Biblioteca durante ese tiempo; después se les pide que se registren. Los vídeos y el audio se detienen.",
+        "visitorsOn": "Permitir vistas previas a los visitantes",
+        "seconds": "Segundos por elemento",
+        "secondsHelp": "De 10 a 600 segundos.",
+        "secondsInvalid": "El tiempo de vista previa debe ser de 10 a 600 segundos.",
+        "items": "Elementos por visitante al día",
+        "itemsHelp": "De 1 a 50 elementos.",
+        "itemsInvalid": "Los visitantes pueden ver de 1 a 50 elementos."
     },
     "device": {
         "unknown": "Desconocido",
@@ -75,5 +113,13 @@ export default {
         "source": "Leído por",
         "sourceScript": "Script del dispositivo (como administrador)",
         "sourceServer": "Solo el servidor (sin número de serie)"
+    },
+    "brand": {
+        "poweredBy": "Con la tecnología de SOMABOX",
+        "welcomeTo": "Te damos la bienvenida a {name}"
+    },
+    "banner": {
+        "title": "Configura tu escuela",
+        "body": "Nombre, logotipo, colores y ubicación"
     }
 };

@@ -118,7 +118,7 @@ export default function LearnerInsightsPage() {
                 <p className="text-sm text-slate-500">{tx("detailNone")}</p>
               )}
               <p className="mt-2 text-xs text-slate-500">
-                <Link href={`/course/${courseId}/attendance`} className="font-semibold text-[#0D9488] hover:underline">{tx("openAttendance")}</Link>
+                <Link href={`/course/${courseId}/attendance`} className="font-semibold text-[var(--brand-secondary)] hover:underline">{tx("openAttendance")}</Link>
               </p>
             </Section>
 
@@ -137,7 +137,7 @@ export default function LearnerInsightsPage() {
                       const info = titles.get(Number(o.outcomeId));
                       return (
                         <span>
-                          {info?.code ? <span className="mr-1.5 text-[11px] font-bold text-[#0D9488]">{info.code}</span> : null}
+                          {info?.code ? <span className="mr-1.5 text-[11px] font-bold text-[var(--brand-secondary)]">{info.code}</span> : null}
                           <span className="font-medium text-slate-800 dark:text-slate-100">{info?.title || tp("common.outcome")}</span>
                         </span>
                       );
@@ -180,7 +180,7 @@ export default function LearnerInsightsPage() {
                     className: "min-w-[10rem]",
                     render: (w) => {
                       const href = itemHref(courseId, w);
-                      return href ? <Link href={href} className="font-medium hover:text-[#0D9488] hover:underline">{w.title}</Link> : w.title;
+                      return href ? <Link href={href} className="font-medium hover:text-[var(--brand-secondary)] hover:underline">{w.title}</Link> : w.title;
                     },
                   },
                   { key: "type", header: tp("common.type"), hideOnMobile: true, render: (w) => <span className="text-xs">{itemType(tp, w.type) || w.type}</span> },

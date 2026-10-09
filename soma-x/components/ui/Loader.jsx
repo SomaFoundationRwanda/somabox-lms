@@ -11,7 +11,8 @@ import { useLanguage } from "@/context/LanguageContext";
  * - "overlay": centred on the whole screen over a soft backdrop (page changes, full-screen waits)
  * - fullScreen (older prop): a solid brand-coloured screen with the logo, as before
  *
- * The logo uses the text colour (brand green, light teal in dark mode) unless `color` is given.
+ * The logo uses the text colour (the school's primary colour, light teal in dark mode) unless
+ * `color` is given.
  */
 export default function Loader({
   size,
@@ -19,7 +20,7 @@ export default function Loader({
   variant = "icon",
   label,
   fullScreen = false,
-  background = "#203A3A",
+  background = "var(--brand-primary)",
   className = "",
 }) {
   // Safe outside the LanguageProvider too (falls back to English).
@@ -88,7 +89,7 @@ export default function Loader({
       <div
         role="status"
         aria-live="polite"
-        className={`fixed inset-0 z-[9999] grid place-items-center bg-white/70 dark:bg-slate-950/60 backdrop-blur-[2px] text-[#203A3A] dark:text-teal-300 ${className}`}
+        className={`fixed inset-0 z-[9999] grid place-items-center bg-white/70 dark:bg-slate-950/60 backdrop-blur-[2px] text-[var(--brand-primary)] dark:text-teal-300 ${className}`}
       >
         <div className="flex flex-col items-center gap-3">
           {icon}
@@ -103,7 +104,7 @@ export default function Loader({
     // Tailwind's CSS order, not the class order, would decide which one wins).
     const height = /(^|\s)min-h-/.test(className) ? "" : "min-h-[40vh]";
     return (
-      <div role="status" aria-live="polite" className={`w-full ${height} grid place-items-center text-[#203A3A] dark:text-teal-300 ${className}`}>
+      <div role="status" aria-live="polite" className={`w-full ${height} grid place-items-center text-[var(--brand-primary)] dark:text-teal-300 ${className}`}>
         {icon}
         {status}
       </div>
@@ -111,7 +112,7 @@ export default function Loader({
   }
 
   return (
-    <span role="status" className={`inline-flex text-[#203A3A] dark:text-teal-300 ${className}`}>
+    <span role="status" className={`inline-flex text-[var(--brand-primary)] dark:text-teal-300 ${className}`}>
       {icon}
       {status}
     </span>

@@ -6,7 +6,7 @@ import LanguageSwitcher from "@/components/global/LanguageSwitcher";
 import { fill } from "@/lib/fill";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import Image from "next/image";
+import { AuthPanelLogo } from "@/components/global/SchoolLogo";
 import { useToast } from "@/context/ToastContext";
 import { renewMediaSession, safeNext, setSessionToken, takeNext } from "@/lib/session";
 import { startRouteLoading } from "@/components/global/RouteLoader";
@@ -102,15 +102,7 @@ const AuthComp = () => {
                 <div className="relative z-10 flex flex-col items-center text-center gap-4 md:gap-6 max-w-sm w-full">
 
                     {/* Logo */}
-                    <Image
-                        src="/schoolLogo/somabox.png"
-                        alt="SomaBox"
-                        width={160}
-                        height={55}
-                        className="w-auto h-14 md:h-20 object-contain"
-                        style={{ filter: "brightness(0) invert(1)" }}
-                        priority
-                    />
+                    <AuthPanelLogo />
 
                     {/* Headline */}
                     <div className="space-y-1.5 md:space-y-2">

@@ -40,9 +40,7 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
     const { t }                             = useLanguage();
 
     const [gender, setGender]               = useState("prefer_not_to_say");
-    const [regionProvince, setRegionProvince] = useState("Not Specified");
-    const [regionDistrict, setRegionDistrict] = useState("Not Specified");
-    const [isRural, setIsRural]             = useState(false);
+    // No location fields: the server places everyone at the school's location (School page).
     const [disabilityStatus, setDisabilityStatus] = useState("none");
 
     /* Populate form when editing an existing user */
@@ -52,9 +50,6 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
             setFullName(user.full_name || "");
             setSelectedRole(user.role || "teacher");
             setGender(user.gender || "prefer_not_to_say");
-            setRegionProvince(user.region_province || "Not Specified");
-            setRegionDistrict(user.region_district || "Not Specified");
-            setIsRural(user.is_rural === 1);
             setDisabilityStatus(user.disability_status || "none");
             setPassword("");
         } else {
@@ -62,9 +57,6 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
             setFullName("");
             setSelectedRole("teacher");
             setGender("prefer_not_to_say");
-            setRegionProvince("Not Specified");
-            setRegionDistrict("Not Specified");
-            setIsRural(false);
             setDisabilityStatus("none");
             setPassword("");
         }
@@ -106,9 +98,6 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
                 body.fullName = fullName;
                 body.role = selectedRole;
                 body.gender = gender;
-                body.regionProvince = regionProvince;
-                body.regionDistrict = regionDistrict;
-                body.isRural = isRural;
                 body.disabilityStatus = disabilityStatus;
             }
             if (password) body.password = password;
@@ -182,7 +171,7 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
                                 <div className="flex items-center gap-3 p-3 rounded-[5px] bg-slate-50 border border-slate-100">
                                     <div
                                         className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 text-white text-[13px] font-black"
-                                        style={{ backgroundColor: "#203B3B" }}
+                                        style={{ backgroundColor: "var(--brand-primary)" }}
                                     >
                                         {initials}
                                     </div>
@@ -257,7 +246,7 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
                                                     value={gender}
                                                     onChange={(e) => setGender(e.target.value)}
                                                     disabled={loading}
-                                                    className="w-full h-9 px-2 rounded-[5px] border border-slate-200 bg-slate-50 text-xs text-slate-800 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]"
+                                                    className="w-full h-9 px-2 rounded-[5px] border border-slate-200 bg-slate-50 text-xs text-slate-800 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]"
                                                 >
                                                     <option value="prefer_not_to_say">{t("admin.addUser.preferNot")}</option>
                                                     <option value="female">{t("admin.user.genders.female")}</option>
@@ -272,7 +261,7 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
                                                     value={disabilityStatus}
                                                     onChange={(e) => setDisabilityStatus(e.target.value)}
                                                     disabled={loading}
-                                                    className="w-full h-9 px-2 rounded-[5px] border border-slate-200 bg-slate-50 text-xs text-slate-800 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]"
+                                                    className="w-full h-9 px-2 rounded-[5px] border border-slate-200 bg-slate-50 text-xs text-slate-800 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]"
                                                 >
                                                     <option value="none">{t("admin.user.none")}</option>
                                                     <option value="visual">{t("admin.addUser.visual")}</option>
@@ -284,44 +273,7 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
                                             </div>
                                         </div>
 
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <div>
-                                                <label className="text-[10px] font-bold text-slate-500 block mb-1">{t("admin.addUser.province")}</label>
-                                                <input aria-label={t("admin.addUser.province")}
-                                                    type="text"
-                                                    value={regionProvince}
-                                                    onChange={(e) => setRegionProvince(e.target.value)}
-                                                    placeholder={t("admin.addUser.provincePlaceholder")}
-                                                    disabled={loading}
-                                                    className="w-full h-9 px-2.5 rounded-[5px] border border-slate-200 bg-slate-50 text-xs text-slate-800 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="text-[10px] font-bold text-slate-500 block mb-1">{t("admin.addUser.district")}</label>
-                                                <input aria-label={t("admin.addUser.district")}
-                                                    type="text"
-                                                    value={regionDistrict}
-                                                    onChange={(e) => setRegionDistrict(e.target.value)}
-                                                    placeholder={t("admin.addUser.districtPlaceholder")}
-                                                    disabled={loading}
-                                                    className="w-full h-9 px-2.5 rounded-[5px] border border-slate-200 bg-slate-50 text-xs text-slate-800 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="flex items-center gap-2 pt-1">
-                                            <input
-                                                type="checkbox"
-                                                id="isRuralCheck"
-                                                checked={isRural}
-                                                onChange={(e) => setIsRural(e.target.checked)}
-                                                disabled={loading}
-                                                className="rounded border-slate-300 text-teal-600 focus:ring-teal-500"
-                                            />
-                                            <label htmlFor="isRuralCheck" className="text-xs font-bold text-slate-700 cursor-pointer">
-                                                {t("admin.addUser.rural")}
-                                            </label>
-                                        </div>
+                                        <p className="text-[11px] text-slate-500 pt-1">{t("school.users.locationNote")}</p>
                                     </div>
                                 )}
 

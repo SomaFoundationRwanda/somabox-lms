@@ -86,11 +86,11 @@ export default function LearnersTab({ data, flaggedOnly, setFlaggedOnly }) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={tp("insights.learners.searchPlaceholder")}
-            className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 py-1.5 pl-8 pr-2.5 text-sm outline-none focus:border-[#0D9488]"
+            className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 py-1.5 pl-8 pr-2.5 text-sm outline-none focus:border-[var(--brand-secondary)]"
           />
         </label>
         <label className="inline-flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
-          <input type="checkbox" checked={flaggedOnly} onChange={(e) => setFlaggedOnly(e.target.checked)} className="h-4 w-4 accent-[#0D9488]" />
+          <input type="checkbox" checked={flaggedOnly} onChange={(e) => setFlaggedOnly(e.target.checked)} className="h-4 w-4 accent-[var(--brand-secondary)]" />
           {tp("insights.learners.flaggedOnly")} <span className="text-xs text-slate-500">({flaggedCount})</span>
         </label>
         <span className="text-xs text-slate-500" aria-live="polite">{tp("insights.learners.countOf", { n: rows.length, total: learners.length })}</span>
@@ -111,7 +111,7 @@ export default function LearnersTab({ data, flaggedOnly, setFlaggedOnly }) {
             sortable: true,
             className: "min-w-[10rem]",
             render: (l) => (
-              <Link href={detailHref(l)} onClick={(e) => e.stopPropagation()} className="font-medium text-slate-800 dark:text-slate-100 hover:text-[#0D9488] hover:underline">
+              <Link href={detailHref(l)} onClick={(e) => e.stopPropagation()} className="font-medium text-slate-800 dark:text-slate-100 hover:text-[var(--brand-secondary)] hover:underline">
                 {l.name || l.email || tp("common.learner")}
               </Link>
             ),

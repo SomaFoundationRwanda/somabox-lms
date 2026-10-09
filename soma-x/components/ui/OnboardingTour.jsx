@@ -45,7 +45,7 @@ const STEPS = [
     },
 ];
 
-const ACCENT = "#203A3A";
+const ACCENT = "var(--brand-primary)";
 
 function Pointer({ top, left }) {
     return (
@@ -207,7 +207,7 @@ function TourCard({ step, stepIndex, total, onNext, onPrev, onSkip }) {
                             onClick={isLast ? onSkip : onNext}
                             className="flex items-center gap-1.5 h-10 px-5 rounded-xl text-[12px] font-black flex-1 justify-center transition-all shadow-lg"
                             style={{ backgroundColor: ACCENT, color: "#fff" }}
-                            onMouseEnter={e => e.currentTarget.style.backgroundColor = "#2d5050"}
+                            onMouseEnter={e => e.currentTarget.style.backgroundColor = "color-mix(in srgb, var(--brand-primary) 85%, white)"}
                             onMouseLeave={e => e.currentTarget.style.backgroundColor = ACCENT}
                         >
                             {isLast ? (
@@ -309,9 +309,9 @@ export function TourLaunchButton({ className = "" }) {
 
     if (!seen) return null;
 
-    const bg      = isDark ? "rgba(13,148,136,0.12)"  : "rgba(32,58,58,0.08)";
-    const bgHover = isDark ? "rgba(13,148,136,0.20)"  : "rgba(32,58,58,0.14)";
-    const color   = isDark ? "#0D9488"                 : ACCENT;
+    const bg      = `color-mix(in srgb, ${isDark ? "var(--brand-secondary)" : ACCENT} ${isDark ? 12 : 8}%, transparent)`;
+    const bgHover = `color-mix(in srgb, ${isDark ? "var(--brand-secondary)" : ACCENT} ${isDark ? 20 : 14}%, transparent)`;
+    const color   = isDark ? "var(--brand-secondary)" : ACCENT;
 
     return (
         <button

@@ -44,7 +44,7 @@ export default function FilesPage() {
         <PageHeader help="pages.files"
           title={t("nav.files")}
           actions={isTeacher ? (
-            <label className="flex items-center gap-1.5 text-xs font-semibold text-white bg-[#203A3A] hover:bg-[#162727] rounded-lg px-3 py-2 cursor-pointer focus-within:ring-2 focus-within:ring-[#0D9488]">
+            <label className="flex items-center gap-1.5 text-xs font-semibold text-white bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] rounded-lg px-3 py-2 cursor-pointer focus-within:ring-2 focus-within:ring-[var(--brand-secondary)]">
               <Upload className="w-3.5 h-3.5" /> {uploading ? t("editors.file.uploading") : t("editors.file.title")}
               <input type="file" className="sr-only" onChange={(e) => handleUpload(e.target.files?.[0])} />
             </label>
@@ -56,7 +56,7 @@ export default function FilesPage() {
             <List label={t("nav.files")}>
               {list.map((f) => (
                 <li key={f.id} className="flex items-center justify-between gap-3 px-3 py-2.5">
-                  <a href={`${SERVER_URL}${f.downloadUrl}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200 hover:text-[#203A3A] min-w-0">
+                  <a href={`${SERVER_URL}${f.downloadUrl}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200 hover:text-[var(--brand-primary)] min-w-0">
                     <FileIcon className="w-4 h-4 text-slate-400 shrink-0" />
                     <span className="truncate">{f.original_name}</span>
                   </a>

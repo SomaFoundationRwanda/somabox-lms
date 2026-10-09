@@ -61,7 +61,7 @@ export default function AssignmentEditorModal({ open, onClose, onSave, initialDa
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder={t("editors.assignmentTitlePlaceholder")}
-              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[#0D9488]"
+              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[var(--brand-secondary)]"
             />
           </div>
 
@@ -72,7 +72,7 @@ export default function AssignmentEditorModal({ open, onClose, onSave, initialDa
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
               placeholder={t("editors.instructionsPlaceholder")}
-              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[#0D9488] resize-none"
+              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[var(--brand-secondary)] resize-none"
             />
           </div>
 
@@ -87,7 +87,7 @@ export default function AssignmentEditorModal({ open, onClose, onSave, initialDa
               min="0"
               value={pointsPossible}
               onChange={(e) => setPointsPossible(e.target.value)}
-              className="w-full text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none bg-white focus:border-[#0D9488]"
+              className="w-full text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none bg-white focus:border-[var(--brand-secondary)]"
             />
           </div>
 
@@ -98,9 +98,9 @@ export default function AssignmentEditorModal({ open, onClose, onSave, initialDa
               <button
                 type="button"
                 onClick={generateRubricDraft}
-                className="flex items-center gap-1 text-[11px] font-bold text-[#0D9488] hover:underline"
+                className="flex items-center gap-1 text-[11px] font-bold text-[var(--brand-secondary)] hover:underline"
               >
-                <Sparkles className="w-3.5 h-3.5 text-[#0D9488]" /> {t("editors.generateRubric")}
+                <Sparkles className="w-3.5 h-3.5 text-[var(--brand-secondary)]" /> {t("editors.generateRubric")}
               </button>
             </div>
             <textarea aria-label={t("editors.assignmentRubric")}
@@ -108,7 +108,7 @@ export default function AssignmentEditorModal({ open, onClose, onSave, initialDa
               onChange={(e) => setRubricDraft(e.target.value)}
               rows={3}
               placeholder={t("editors.rubricPlaceholder")}
-              className="w-full text-xs border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[#0D9488]"
+              className="w-full text-xs border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[var(--brand-secondary)]"
             />
           </div>
         </div>
@@ -120,7 +120,7 @@ export default function AssignmentEditorModal({ open, onClose, onSave, initialDa
           <button
             onClick={handleSave}
             disabled={saving || !title.trim() || Boolean(scheduleError(schedule))}
-            className="text-xs font-semibold text-white bg-[#0D9488] hover:bg-teal-700 disabled:opacity-50 rounded-lg px-4 py-2 transition-colors"
+            className="text-xs font-semibold text-white bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-dark)] disabled:opacity-50 rounded-lg px-4 py-2 transition-colors"
           >
             {saving ? t("common.saving") : isEdit ? t("editors.saveChanges") : t("editors.createAssignment")}
           </button>

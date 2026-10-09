@@ -147,7 +147,7 @@ export default function AiDraftsPage() {
           title={tp("ai.page.title")}
           description={tp("ai.page.description")}
           actions={
-            <Link href={`/course/${courseId}/modules`} className="text-xs font-semibold text-[#203A3A] dark:text-teal-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg px-3 py-2">
+            <Link href={`/course/${courseId}/modules`} className="text-xs font-semibold text-[var(--brand-primary)] dark:text-teal-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg px-3 py-2">
               {tp("ai.page.goToModules")}
             </Link>
           }

@@ -90,7 +90,7 @@ export default function AiJobPanel({ SERVER_URL, courseId, job: initialJob, labe
 
       {job?.status === "done" && drafts?.length ? (
         <p className="text-[11px] text-slate-500">
-          {fillNode(tp("ai.alsoWaitIn", { link: "{link}" }), { link: <Link href={`/course/${courseId}/ai`} className="font-semibold text-[#0D9488] hover:underline">{tp("ai.draftsLink")}</Link> })}
+          {fillNode(tp("ai.alsoWaitIn", { link: "{link}" }), { link: <Link href={`/course/${courseId}/ai`} className="font-semibold text-[var(--brand-secondary)] hover:underline">{tp("ai.draftsLink")}</Link> })}
         </p>
       ) : null}
     </div>

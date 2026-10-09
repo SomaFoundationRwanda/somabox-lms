@@ -257,7 +257,7 @@ export default function AIAssistantWidget({ courseId = "", lessonId = "", onInse
               <button
                 type="submit"
                 disabled={isGenerating || !question.trim()}
-                className="w-full py-2 px-4 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white font-semibold text-xs rounded-lg shadow-sm flex items-center justify-center gap-2 transition-colors"
+                className="w-full py-2 px-4 bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-dark)] disabled:opacity-50 text-white font-semibold text-xs rounded-lg shadow-sm flex items-center justify-center gap-2 transition-colors"
               >
                 {isGenerating ? (
                   <>
@@ -296,7 +296,7 @@ export default function AIAssistantWidget({ courseId = "", lessonId = "", onInse
                       type="button"
                       onClick={handleAcceptAndInsert}
                       disabled={isGenerating || !output}
-                      className="px-3 py-1.5 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white text-xs rounded-lg font-semibold flex items-center gap-1.5 shadow-sm transition-all"
+                      className="px-3 py-1.5 bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-dark)] disabled:opacity-50 text-white text-xs rounded-lg font-semibold flex items-center gap-1.5 shadow-sm transition-all"
                     >
                       {inserted ? (
                         <>

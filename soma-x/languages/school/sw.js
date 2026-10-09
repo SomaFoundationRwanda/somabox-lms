@@ -6,7 +6,9 @@ export default {
     "loading": "Inapakia…",
     "saving": "Inahifadhi…",
     "onboarding": {
-        "schoolLabel": "Shule:"
+        "schoolLabel": "Shule:",
+        "setBySchool": "Imewekwa na shule yako",
+        "errDisability": "Chagua jibu kuhusu mahitaji ya ufikivu."
     },
     "login": {
         "label": "Barua pepe au namba ya mwanafunzi",
@@ -19,14 +21,16 @@ export default {
         "continue": "Endelea"
     },
     "account": {
-        "codeHint": "Unaweza kuingia kwa kutumia namba hii badala ya barua pepe yako."
+        "codeHint": "Unaweza kuingia kwa kutumia namba hii badala ya barua pepe yako.",
+        "locationNote": "Shule yako ndiyo inaweka hili. Kila mtu kwenye box hii anawekwa mahali shule ilipo."
     },
     "users": {
-        "createdCode": "Mpe mwanafunzi namba hii. Anaweza kuingia kwa {code} badala ya barua pepe yake."
+        "createdCode": "Mpe mwanafunzi namba hii. Anaweza kuingia kwa {code} badala ya barua pepe yake.",
+        "locationNote": "Mahali na kijijini/mjini vinatoka kwenye ukurasa wa Shule."
     },
     "settings": {
         "navTitle": "Shule",
-        "navSubtitle": "Jina la shule, namba za wanafunzi na mahali",
+        "navSubtitle": "Jina, nembo, rangi, mahali na hakikisho kwa wageni",
         "loadFailed": "Imeshindwa kupakia mipangilio ya shule.",
         "saveFailed": "Imeshindwa kuhifadhi mipangilio ya shule.",
         "codeInvalid": "Namba ya shule lazima iwe na herufi au tarakimu 2 hadi 8.",
@@ -34,8 +38,7 @@ export default {
         "back": "Utawala",
         "eyebrow": "Shule",
         "title": "Mipangilio ya shule",
-        "description": "Shule inayohudumiwa na kisanduku hiki, na jinsi namba za wanafunzi zinavyotengenezwa.",
-        "oneBoxOneSchool": "Kisanduku kimoja kinahudumia shule moja, kwa hivyo wanafunzi hawaulizwi shule yao, mahali ilipo wala kama iko kijijini. Taarifa hizi zinatoka hapa, na kubadilisha jina au kijijini/mjini kunasasisha kila mwanafunzi kwenye kisanduku hiki.",
+        "description": "Shule ambayo box hii inahudumia: jina lake, namba za wanafunzi, mahali, mwonekano na hakikisho kwa wageni.",
         "codeOnlyNew": "Kubadilisha namba ya shule kunaathiri wanafunzi wapya tu. Wanafunzi ambao tayari wana namba wanaibaki nayo.",
         "name": "Jina la shule",
         "namePlaceholder": "mfano GS Kigali",
@@ -51,10 +54,45 @@ export default {
         "rural": "Kijijini",
         "urban": "Mjini",
         "ruralUnset": "Haijawekwa",
-        "ruralHelp": "Ikiwekwa, wanafunzi hawaulizwi wanapoishi.",
         "save": "Hifadhi mipangilio ya shule",
-        "brandingNote": "Nembo na rangi huwekwa kwenye ukurasa wa Utambulisho.",
-        "brandingLink": "Fungua Utambulisho"
+        "sectionSchool": "Shule",
+        "sectionLocation": "Mahali",
+        "locationHelp": "Kila mtu kwenye box hii anawekwa mahali shule ilipo. Wanafunzi na walimu hawaulizwi kamwe.",
+        "sectionLook": "Mwonekano",
+        "lookHelp": "Nembo na rangi zinaonekana kwa kila mtu, hata kwenye ukurasa wa kuingia.",
+        "logo": "Nembo",
+        "logoAlt": "Nembo ya {name}",
+        "logoHelp": "PNG, JPEG au WebP, hadi MB 5. Inachukua nafasi ya nembo ya SOMABOX kila mahali.",
+        "logoNone": "Inatumia nembo ya SOMABOX",
+        "logoChoose": "Pakia nembo",
+        "logoReplace": "Badilisha nembo",
+        "logoRemove": "Ondoa (rudi kwa SOMABOX)",
+        "logoUploading": "Inapakia…",
+        "logoUploaded": "Nembo imehifadhiwa.",
+        "logoRemoved": "Imerudi kwenye nembo ya SOMABOX.",
+        "logoType": "Nembo lazima iwe picha ya PNG, JPEG au WebP.",
+        "logoTooBig": "Nembo lazima iwe MB 5 au chini.",
+        "logoFailed": "Imeshindwa kuhifadhi nembo.",
+        "primary": "Rangi kuu",
+        "primaryHelp": "Kichwa, kipengee cha menyu kilichochaguliwa na vitufe vilivyokolea",
+        "secondary": "Rangi ya pili",
+        "secondaryHelp": "Vitufe vikuu, viungo na mistari ya kulenga",
+        "colourInvalid": "Rangi lazima ziandikwe kama #203A3A.",
+        "lowContrast": "Maandishi meupe ni magumu kusoma kwenye rangi hii. Chagua iliyokolea zaidi.",
+        "resetColours": "Tumia rangi za SOMABOX",
+        "preview": "Hakikisho",
+        "previewButton": "Kitufe",
+        "previewButtonDark": "Kitufe kilichokolea",
+        "previewLink": "Kiungo",
+        "sectionVisitors": "Hakikisho kwa wageni",
+        "visitorsHelp": "Wageni wanaweza kufungua vitu vichache vya Vinjari na Maktaba kwa muda huu, kisha wanaombwa kujisajili. Video na sauti zinasimama.",
+        "visitorsOn": "Ruhusu wageni kuona hakikisho",
+        "seconds": "Sekunde kwa kila kitu",
+        "secondsHelp": "Sekunde 10 hadi 600.",
+        "secondsInvalid": "Muda wa hakikisho lazima uwe sekunde 10 hadi 600.",
+        "items": "Vitu kwa kila mgeni kwa siku",
+        "itemsHelp": "Vitu 1 hadi 50.",
+        "itemsInvalid": "Wageni wanaweza kuona vitu 1 hadi 50."
     },
     "device": {
         "unknown": "Haijulikani",
@@ -75,5 +113,13 @@ export default {
         "source": "Imesomwa na",
         "sourceScript": "Skripti ya kifaa (kama msimamizi)",
         "sourceServer": "Seva pekee (hakuna namba ya utambulisho)"
+    },
+    "brand": {
+        "poweredBy": "Inaendeshwa na SOMABOX",
+        "welcomeTo": "Karibu {name}"
+    },
+    "banner": {
+        "title": "Weka mipangilio ya shule yako",
+        "body": "Jina, nembo, rangi na mahali"
     }
 };

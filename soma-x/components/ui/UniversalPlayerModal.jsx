@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useContext } from 'react';
 import { X, Play, Pause, Volume2, VolumeX, Maximize, Minimize, SkipBack, SkipForward, FileText, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MediaAccessNotice, useMediaAccess } from '@/components/guest/MediaAccess';
+import { PreviewChip, PreviewEndedPanel, usePreview } from '@/components/guest/Preview';
 import SummaryPanel, { SummaryToggleButton, useContentSummary } from '@/components/explore/SummaryPanel';
 import { useLanguage } from '@/context/LanguageContext';
 import { fill } from '@/lib/fill';
@@ -11,7 +12,10 @@ const UniversalPlayerModal = ({
     onClose,
     mediaItem = null,
     // The file's path_key (Explore item `slug`, Library `path_key`): enables the AI summary panel.
-    summaryPath = null
+    summaryPath = null,
+    // A visitor's preview ({ seconds, secondsLeft, next } from useGuestPreview), or null. Videos
+    // and audio count playback time, PDFs the time they're open; then the sign-up panel shows.
+    preview = null
 }) => {
     const { t } = useLanguage();
     const [summaryOpen, setSummaryOpen] = useState(false);
@@ -47,7 +51,27 @@ const UniversalPlayerModal = ({
     // Check it first: an expired cookie is renewed, or the person is asked to sign in again,
     // instead of showing a broken player or a PDF frame full of JSON.
     const mediaUrl = mediaItem?.url ? getMediaUrl(mediaItem.url) : '';
-    const { state: accessState, onMediaError, reloadKey } = useMediaAccess(mediaUrl, { active: Boolean(isOpen && mediaItem) });
+    const { state: accessState, onMediaError, reloadKey } = useMediaAccess(mediaUrl, { active: Boolean(isOpen && mediaItem), preview: Boolean(preview) });
+
+    // Visitor preview: playing (not paused or buffering) counts for video and audio.
+    const [playingNow, setPlayingNow] = useState(false);
+    const isTimedMedia = mediaItem?.type === 'video' || mediaItem?.type === 'audio';
+    const isReading = ['book', 'pdf', 'document'].includes(mediaItem?.type);
+    const previewRunning = Boolean(preview && isOpen && mediaItem) && (isTimedMedia ? playingNow : accessState === 'ok');
+    const { left: previewLeft, ended: previewEnded, end: endPreview } = usePreview(isOpen ? preview : null, previewRunning);
+    // The box stops sending the file once the preview is over (401): end it here too.
+    const handleMediaError = preview ? endPreview : onMediaError;
+
+    // When the preview ends: stop playing and leave full screen; the sign-up panel covers the player.
+    useEffect(() => {
+        if (!previewEnded) return;
+        videoRef.current?.pause();
+        audioRef.current?.pause();
+        setIsPlaying(false);
+        setPlayingNow(false);
+        setIsFullscreen(false);
+        if (typeof document !== 'undefined' && document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+    }, [previewEnded]);
 
     // Reset state when modal opens with new media
     useEffect(() => {
@@ -57,6 +81,7 @@ const UniversalPlayerModal = ({
             setPdfPage(1);
             setPdfZoom(1);
             setIsFullscreen(false);
+            setPlayingNow(false);
         }
     }, [isOpen, mediaItem]);
 
@@ -78,6 +103,7 @@ const UniversalPlayerModal = ({
 
     const togglePlay = () => {
         const mediaElement = mediaItem?.type === 'video' ? videoRef.current : audioRef.current;
+        if (previewEnded) return;
         if (mediaElement) {
             if (isPlaying) {
                 mediaElement.pause();
@@ -156,6 +182,8 @@ const UniversalPlayerModal = ({
 
     const renderMediaPlayer = () => {
         if (!mediaItem) return null;
+        // A visitor's preview of a document has ended: nothing to read behind the sign-up panel.
+        if (previewEnded && isReading) return <div className="w-full h-full bg-slate-950" />;
         if (mediaUrl && accessState !== 'ok') {
             return (
                 <div className="w-full h-full flex items-center justify-center bg-black">
@@ -171,7 +199,7 @@ const UniversalPlayerModal = ({
                         <video
                             key={reloadKey}
                             ref={videoRef}
-                            onError={onMediaError}
+                            onError={handleMediaError}
                             onClick={togglePlay}
                             src={mediaUrl}
                             poster={mediaItem.thumbnail}
@@ -179,7 +207,10 @@ const UniversalPlayerModal = ({
                             onTimeUpdate={handleTimeUpdate}
                             onLoadedMetadata={handleTimeUpdate}
                             onPlay={() => setIsPlaying(true)}
-                            onPause={() => setIsPlaying(false)}
+                            onPause={() => { setIsPlaying(false); setPlayingNow(false); }}
+                            onPlaying={() => setPlayingNow(true)}
+                            onWaiting={() => setPlayingNow(false)}
+                            onEnded={() => setPlayingNow(false)}
                         />
                         {/* Video Controls Overlay */}
                         <div className="absolute inset-0 opacity-0 hover:opacity-100 focus-within:opacity-100 transition-opacity duration-300">
@@ -233,12 +264,15 @@ const UniversalPlayerModal = ({
                         <audio
                             key={reloadKey}
                             ref={audioRef}
-                            onError={onMediaError}
+                            onError={handleMediaError}
                             src={mediaUrl}
                             onTimeUpdate={handleTimeUpdate}
                             onLoadedMetadata={handleTimeUpdate}
                             onPlay={() => setIsPlaying(true)}
-                            onPause={() => setIsPlaying(false)}
+                            onPause={() => { setIsPlaying(false); setPlayingNow(false); }}
+                            onPlaying={() => setPlayingNow(true)}
+                            onWaiting={() => setPlayingNow(false)}
+                            onEnded={() => setPlayingNow(false)}
                         />
                         <div className="text-center mb-8">
                             <div className="w-32 h-32 bg-white/10 rounded-full flex items-center justify-center mb-6 mx-auto backdrop-blur-sm">
@@ -425,11 +459,16 @@ const UniversalPlayerModal = ({
                     </div>
                 </div>
 
+                {preview && !previewEnded ? (
+                    <PreviewChip left={previewLeft} next={preview.next} reading={isReading} />
+                ) : null}
+
                 {/* Modal Content: the player, and the AI summary beside it (below it on phones).
                     Playing or reading carries on while the summary is open or being made. */}
                 <div className="flex-1 min-h-0 flex flex-col md:flex-row">
-                    <div className="flex-1 min-h-0 min-w-0">
+                    <div className="relative flex-1 min-h-0 min-w-0">
                         {renderMediaPlayer()}
+                        {preview && previewEnded ? <PreviewEndedPanel next={preview.next} reading={isReading} /> : null}
                     </div>
                     {summaryOpen && summaryPath ? (
                         <aside id="player-summary" className="bg-white w-full md:w-[380px] max-h-[50%] md:max-h-none shrink-0 overflow-y-auto p-4 border-t md:border-t-0 md:border-l border-slate-200">

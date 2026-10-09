@@ -62,7 +62,7 @@ export default function WhatShouldICreate({ open, onClose, modules, defaultModul
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="w-full sm:max-w-lg max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-white dark:bg-slate-900 p-5 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]"
+        className="w-full sm:max-w-lg max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-white dark:bg-slate-900 p-5 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]"
       >
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -82,8 +82,8 @@ export default function WhatShouldICreate({ open, onClose, modules, defaultModul
               const Icon = g.icon;
               return (
                 <label key={g.id} className={`flex cursor-pointer items-center gap-3 px-3 py-2.5 ${goal === g.id ? "bg-teal-50 dark:bg-teal-950/30" : ""}`}>
-                  <input type="radio" name="create-goal" value={g.id} checked={goal === g.id} onChange={() => setGoal(g.id)} className="accent-[#0D9488]" />
-                  <Icon className="w-4 h-4 text-[#0D9488] shrink-0" aria-hidden="true" />
+                  <input type="radio" name="create-goal" value={g.id} checked={goal === g.id} onChange={() => setGoal(g.id)} className="accent-[var(--brand-secondary)]" />
+                  <Icon className="w-4 h-4 text-[var(--brand-secondary)] shrink-0" aria-hidden="true" />
                   <span className="min-w-0">
                     <span className="block text-sm font-semibold text-slate-800 dark:text-slate-100">{text.label || g.id}</span>
                     <span className="block text-xs text-slate-500">{text.hint}</span>
@@ -113,7 +113,7 @@ export default function WhatShouldICreate({ open, onClose, modules, defaultModul
             type="button"
             onClick={create}
             disabled={!goal || !moduleId}
-            className="rounded-lg bg-[#203A3A] px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
+            className="rounded-lg bg-[var(--brand-primary)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
           >
             {helper.create || "Create it"}
           </button>

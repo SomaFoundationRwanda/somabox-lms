@@ -76,7 +76,7 @@ function CourseSetupSection({ SERVER_URL, courseId, course, userEmail, onCourseC
               setShowWizard(!showWizard);
             }}
             aria-expanded={showWizard}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0D9488] bg-teal-50 border border-teal-200 px-3 py-2 rounded-lg hover:bg-teal-100 transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--brand-secondary)] bg-teal-50 border border-teal-200 px-3 py-2 rounded-lg hover:bg-teal-100 transition-colors"
           >
             {showWizard ? <><X className="w-3.5 h-3.5" aria-hidden="true" /> {t("settings.closeGuided")}</> : <><ListChecks className="w-3.5 h-3.5" aria-hidden="true" /> {t("settings.guided")}</>}
           </button>
@@ -187,7 +187,7 @@ function ShiftTimelinePanel({ SERVER_URL, courseId, startDate, onApplied }) {
                 step="1"
                 value={days}
                 onChange={(e) => setDays(e.target.value)}
-                className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]"
+                className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]"
               />
               <p className="text-[10px] text-slate-500 mt-0.5">{t("settings.shift.negative")}</p>
             </div>
@@ -197,7 +197,7 @@ function ShiftTimelinePanel({ SERVER_URL, courseId, startDate, onApplied }) {
                 id="shift-from"
                 value={fromModuleId}
                 onChange={(e) => setFromModuleId(e.target.value)}
-                className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488] bg-white"
+                className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)] bg-white"
               >
                 <option value="">{t("settings.shift.whole")}</option>
                 {modules.map((m) => (
@@ -223,7 +223,7 @@ function ShiftTimelinePanel({ SERVER_URL, courseId, startDate, onApplied }) {
               type="button"
               onClick={() => send(false)}
               disabled={busy || !previewIsCurrent}
-              className="text-xs font-semibold text-white bg-[#203A3A] hover:bg-[#162727] disabled:opacity-50 px-3 py-1.5 rounded-lg transition-colors"
+              className="text-xs font-semibold text-white bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] disabled:opacity-50 px-3 py-1.5 rounded-lg transition-colors"
               title={previewIsCurrent ? undefined : t("settings.shift.previewFirst")}
             >
               {busy && previewIsCurrent ? t("settings.shift.applying") : t("settings.shift.apply")}
@@ -246,7 +246,7 @@ function ShiftTimelinePanel({ SERVER_URL, courseId, startDate, onApplied }) {
                         <span className="font-medium text-slate-700 flex-1 min-w-[8rem] truncate">{m.title}</span>
                         <span className="text-slate-500">{formatDate(m.fromStart) || "—"}</span>
                         <ArrowRight className="w-3 h-3 text-slate-400" aria-label={t("settings.shift.to")} />
-                        <span className="font-semibold text-[#0D9488]">{formatDate(m.toStart) || "—"}</span>
+                        <span className="font-semibold text-[var(--brand-secondary)]">{formatDate(m.toStart) || "—"}</span>
                       </li>
                     ))}
                   </ul>
@@ -261,7 +261,7 @@ function ShiftTimelinePanel({ SERVER_URL, courseId, startDate, onApplied }) {
                         <span className="font-medium text-slate-700 flex-1 min-w-[8rem] truncate">{i.title}</span>
                         <span className="text-slate-500">{formatDate(i.fromDue) || "—"}</span>
                         <ArrowRight className="w-3 h-3 text-slate-400" aria-label={t("settings.shift.to")} />
-                        <span className="font-semibold text-[#0D9488]">{formatDate(i.toDue) || "—"}</span>
+                        <span className="font-semibold text-[var(--brand-secondary)]">{formatDate(i.toDue) || "—"}</span>
                       </li>
                     ))}
                   </ul>
@@ -415,13 +415,13 @@ export default function CourseSettingsPage() {
         <PageHeader help="pages.settings" title={t("nav.settings")} />
 
         <div className="flex items-center gap-1.5 border-b border-slate-200 overflow-x-auto">
-          <button onClick={() => setTab("details")} className={`text-sm font-semibold px-3 py-2 border-b-2 ${tab === "details" ? "border-[#203A3A] text-[#203A3A]" : "border-transparent text-slate-500"}`}>{t("settings.tabs.details")}</button>
-          <button onClick={() => setTab("navigation")} className={`text-sm font-semibold px-3 py-2 border-b-2 ${tab === "navigation" ? "border-[#203A3A] text-[#203A3A]" : "border-transparent text-slate-500"}`}>{t("settings.tabs.navigation")}</button>
+          <button onClick={() => setTab("details")} className={`text-sm font-semibold px-3 py-2 border-b-2 ${tab === "details" ? "border-[var(--brand-primary)] text-[var(--brand-primary)]" : "border-transparent text-slate-500"}`}>{t("settings.tabs.details")}</button>
+          <button onClick={() => setTab("navigation")} className={`text-sm font-semibold px-3 py-2 border-b-2 ${tab === "navigation" ? "border-[var(--brand-primary)] text-[var(--brand-primary)]" : "border-transparent text-slate-500"}`}>{t("settings.tabs.navigation")}</button>
           {isTeacher && (
-            <button onClick={() => setTab("setup")} className={`text-sm font-semibold px-3 py-2 border-b-2 ${tab === "setup" ? "border-[#203A3A] text-[#203A3A]" : "border-transparent text-slate-500"}`}>{t("settings.tabs.setup")}</button>
+            <button onClick={() => setTab("setup")} className={`text-sm font-semibold px-3 py-2 border-b-2 ${tab === "setup" ? "border-[var(--brand-primary)] text-[var(--brand-primary)]" : "border-transparent text-slate-500"}`}>{t("settings.tabs.setup")}</button>
           )}
           {isTeacher && (
-            <button onClick={() => setTab("share")} className={`text-sm font-semibold px-3 py-2 border-b-2 whitespace-nowrap ${tab === "share" ? "border-[#203A3A] text-[#203A3A]" : "border-transparent text-slate-500"}`}>{t("settings.tabs.share")}</button>
+            <button onClick={() => setTab("share")} className={`text-sm font-semibold px-3 py-2 border-b-2 whitespace-nowrap ${tab === "share" ? "border-[var(--brand-primary)] text-[var(--brand-primary)]" : "border-transparent text-slate-500"}`}>{t("settings.tabs.share")}</button>
           )}
         </div>
 
@@ -442,16 +442,16 @@ export default function CourseSettingsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label htmlFor="course-start-date" className="text-xs font-semibold text-slate-600 mb-1 block">{t("settings.startDate")}</label>
-                <input id="course-start-date" type="date" value={form.startDate || ""} onChange={(e) => setForm((p) => ({ ...p, startDate: e.target.value }))} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]" />
+                <input id="course-start-date" type="date" value={form.startDate || ""} onChange={(e) => setForm((p) => ({ ...p, startDate: e.target.value }))} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]" />
               </div>
               <div>
                 <label htmlFor="course-end-date" className="text-xs font-semibold text-slate-600 mb-1 block">{t("settings.endDate")}</label>
-                <input id="course-end-date" type="date" value={form.endDate || ""} min={form.startDate || undefined} onChange={(e) => setForm((p) => ({ ...p, endDate: e.target.value }))} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]" />
+                <input id="course-end-date" type="date" value={form.endDate || ""} min={form.startDate || undefined} onChange={(e) => setForm((p) => ({ ...p, endDate: e.target.value }))} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]" />
               </div>
             </div>
             <div>
               <label htmlFor="course-length" className="text-xs font-semibold text-slate-600 mb-1 block">{t("settings.duration")}</label>
-              <input id="course-length" type="number" min={1} max={52} value={form.lengthWeeks} onChange={(e) => setForm((p) => ({ ...p, lengthWeeks: Number(e.target.value) }))} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]" />
+              <input id="course-length" type="number" min={1} max={52} value={form.lengthWeeks} onChange={(e) => setForm((p) => ({ ...p, lengthWeeks: Number(e.target.value) }))} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]" />
             </div>
             </div>
             </Section>
@@ -469,11 +469,11 @@ export default function CourseSettingsPage() {
             <div className="space-y-3">
             <div>
               <label htmlFor="course-grade" className="text-xs font-semibold text-slate-600 mb-1 block">{t("settings.grade")}</label>
-              <input id="course-grade" value={form.grade} onChange={(e) => setForm((p) => ({ ...p, grade: e.target.value }))} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]" />
+              <input id="course-grade" value={form.grade} onChange={(e) => setForm((p) => ({ ...p, grade: e.target.value }))} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]" />
             </div>
             <div>
               <label htmlFor="course-description" className="text-xs font-semibold text-slate-600 mb-1 block">{t("common.description")}</label>
-              <textarea id="course-description" value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} rows={4} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]" />
+              <textarea id="course-description" value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} rows={4} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]" />
             </div>
             <div>
               <label htmlFor="course-banner" className="text-xs font-semibold text-slate-600 mb-1 block">{t("settings.banner")}</label>
@@ -485,7 +485,7 @@ export default function CourseSettingsPage() {
                 id="course-visibility"
                 value={form.visibility}
                 onChange={(e) => setForm((p) => ({ ...p, visibility: e.target.value }))}
-                className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488] bg-white"
+                className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)] bg-white"
               >
                 <option value="private">{t("settings.private")}</option>
                 <option value="public">{t("settings.public")}</option>
@@ -497,7 +497,7 @@ export default function CourseSettingsPage() {
             </div>
             </Section>
             {detailsError && <p className="text-xs text-rose-600" role="alert">{detailsError}</p>}
-            <button onClick={saveDetails} disabled={saving} className="text-xs font-semibold text-white bg-[#203A3A] rounded-lg px-4 py-2 disabled:opacity-50">
+            <button onClick={saveDetails} disabled={saving} className="text-xs font-semibold text-white bg-[var(--brand-primary)] rounded-lg px-4 py-2 disabled:opacity-50">
               {saving ? t("common.saving") : t("editors.saveChanges")}
             </button>
           </div>
@@ -535,7 +535,7 @@ export default function CourseSettingsPage() {
               </ul>
             </Section>
 
-            <button onClick={saveNav} disabled={saving} className="text-xs font-semibold text-white bg-[#203A3A] rounded-lg px-4 py-2 disabled:opacity-50">
+            <button onClick={saveNav} disabled={saving} className="text-xs font-semibold text-white bg-[var(--brand-primary)] rounded-lg px-4 py-2 disabled:opacity-50">
               {saving ? t("common.saving") : t("settings.saveNav")}
             </button>
           </div>

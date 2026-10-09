@@ -72,14 +72,14 @@ export default function CollaborationsPage() {
               onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
               placeholder={t("collab.titlePlaceholder")}
               aria-label={t("collab.titleLabel")}
-              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[#203A3A]"
+              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[var(--brand-primary)]"
             />
             <input
               value={form.url}
               onChange={(e) => setForm((p) => ({ ...p, url: e.target.value }))}
               placeholder="https://docs.google.com/..."
               aria-label={t("collab.link")}
-              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[#203A3A]"
+              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[var(--brand-primary)]"
             />
             <fieldset>
               <legend className="text-xs font-semibold text-slate-600 mb-1.5">{t("collab.whoCanAccess")}</legend>
@@ -94,7 +94,7 @@ export default function CollaborationsPage() {
             </fieldset>
             <div className="flex justify-end gap-2">
               <button onClick={() => setCreating(false)} className="text-xs font-medium text-slate-500 px-3 py-2">{t("common.cancel")}</button>
-              <button onClick={create} disabled={saving || !form.title.trim() || !form.url.trim()} className="text-xs font-semibold text-white bg-[#203A3A] rounded-lg px-3 py-2 disabled:opacity-50">
+              <button onClick={create} disabled={saving || !form.title.trim() || !form.url.trim()} className="text-xs font-semibold text-white bg-[var(--brand-primary)] rounded-lg px-3 py-2 disabled:opacity-50">
                 {saving ? t("collab.creating") : t("common.create")}
               </button>
             </div>
@@ -106,7 +106,7 @@ export default function CollaborationsPage() {
             <List label={t("nav.collaborations")}>
               {list.map((c) => (
                 <li key={c.id} className="flex items-center justify-between gap-3 px-3 py-2.5">
-                  <a href={c.url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200 hover:text-[#203A3A] min-w-0">
+                  <a href={c.url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200 hover:text-[var(--brand-primary)] min-w-0">
                     <Share2 className="w-4 h-4 text-slate-400 shrink-0" />
                     <span className="truncate">{c.title}</span>
                     <ExternalLink className="w-3 h-3 text-slate-300 shrink-0" />

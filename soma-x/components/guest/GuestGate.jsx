@@ -4,7 +4,8 @@
 // (a video, a book, a lesson, a course) needs an account: the files themselves are only
 // served to signed-in people. requireAccount(next) returns true for signed-in people and,
 // for guests, shows the "create a free account" prompt and remembers `next` so they come
-// back to it after signing up (and the profile step) or logging in.
+// back to it after signing up (and the profile step) or logging in. requireAccount(next, { message })
+// also shows why (e.g. the box's "You've tried 5 items…" after visitor previews, see Preview.jsx).
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { LockKeyhole, X } from "lucide-react";
 import DataContext from "@/context/DataContext";
@@ -24,7 +25,7 @@ export function authLinks(next) {
 }
 
 /** The prompt's content, used in the modal and inline (e.g. the /frame page). */
-export function SignUpPrompt({ next, onDismiss, titleId = "guest-gate-title", autoFocus = false }) {
+export function SignUpPrompt({ next, onDismiss, titleId = "guest-gate-title", autoFocus = false, message = "" }) {
     const { t } = useLanguage();
     const target = next || currentPath();
     const links = authLinks(target);
@@ -48,12 +49,15 @@ export function SignUpPrompt({ next, onDismiss, titleId = "guest-gate-title", au
                     <X className="w-4 h-4" aria-hidden="true" />
                 </button>
             ) : null}
-            <div className="w-14 h-14 rounded-2xl bg-teal-50 text-[#203A3A] flex items-center justify-center mx-auto mb-4">
+            <div className="w-14 h-14 rounded-2xl bg-teal-50 text-[var(--brand-primary)] flex items-center justify-center mx-auto mb-4">
                 <LockKeyhole className="w-7 h-7" aria-hidden="true" />
             </div>
             <h2 id={titleId} className="text-xl font-bold text-slate-900 leading-snug">
                 {t("guest.gateTitle")}
             </h2>
+            {message ? (
+                <p className="text-sm font-semibold text-amber-900 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mt-3">{message}</p>
+            ) : null}
             <p className="text-sm text-slate-600 mt-2">{t("guest.gateWhy")}</p>
             <p className="text-xs text-slate-500 mt-1">{t("guest.gateReturn")}</p>
             <div className="mt-6 flex flex-col gap-2.5">
@@ -61,14 +65,14 @@ export function SignUpPrompt({ next, onDismiss, titleId = "guest-gate-title", au
                     ref={signUpRef}
                     href={links.signup}
                     onClick={remember}
-                    className="w-full h-11 rounded-xl bg-[#203A3A] hover:bg-black text-white text-[15px] font-bold flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#203A3A]"
+                    className="w-full h-11 rounded-xl bg-[var(--brand-primary)] hover:bg-black text-white text-[15px] font-bold flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--brand-primary)]"
                 >
                     {t("guest.signUp")}
                 </a>
                 <a
                     href={links.login}
                     onClick={remember}
-                    className="w-full h-11 rounded-xl border-2 border-slate-300 hover:border-slate-400 text-slate-800 text-[15px] font-bold flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#203A3A]"
+                    className="w-full h-11 rounded-xl border-2 border-slate-300 hover:border-slate-400 text-slate-800 text-[15px] font-bold flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--brand-primary)]"
                 >
                     {t("guest.haveAccount")}
                 </a>
@@ -86,7 +90,7 @@ export function SignUpPrompt({ next, onDismiss, titleId = "guest-gate-title", au
     );
 }
 
-function SignUpModal({ next, onClose }) {
+function SignUpModal({ next, message, onClose }) {
     useEffect(() => {
         const onKey = (e) => { if (e.key === "Escape") onClose(); };
         const previous = document.activeElement;
@@ -109,7 +113,7 @@ function SignUpModal({ next, onClose }) {
                 className="w-full max-w-md"
                 onClick={(e) => e.stopPropagation()}
             >
-                <SignUpPrompt next={next} onDismiss={onClose} autoFocus />
+                <SignUpPrompt next={next} message={message} onDismiss={onClose} autoFocus />
             </div>
         </div>
     );
@@ -118,20 +122,22 @@ function SignUpModal({ next, onClose }) {
 export function GuestGateProvider({ children }) {
     const { authenticated } = useContext(DataContext);
     const [pendingNext, setPendingNext] = useState(null);
+    const [message, setMessage] = useState("");
 
-    const requireAccount = useCallback((next) => {
+    const requireAccount = useCallback((next, { message: why = "" } = {}) => {
         if (authenticated) return true;
+        setMessage(why || "");
         setPendingNext(safeNext(next) || currentPath());
         return false;
     }, [authenticated]);
 
-    const close = useCallback(() => setPendingNext(null), []);
+    const close = useCallback(() => { setPendingNext(null); setMessage(""); }, []);
     const value = useMemo(() => ({ isGuest: !authenticated, requireAccount }), [authenticated, requireAccount]);
 
     return (
         <GuestGateContext.Provider value={value}>
             {children}
-            {pendingNext !== null && !authenticated ? <SignUpModal next={pendingNext} onClose={close} /> : null}
+            {pendingNext !== null && !authenticated ? <SignUpModal next={pendingNext} message={message} onClose={close} /> : null}
         </GuestGateContext.Provider>
     );
 }

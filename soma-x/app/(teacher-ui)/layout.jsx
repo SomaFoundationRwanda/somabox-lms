@@ -1,5 +1,5 @@
 "use client"
-import Image from "next/image"
+import SchoolLogo, { PoweredBySomabox } from "@/components/global/SchoolLogo";
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useContext, useEffect, useState } from "react"
@@ -12,8 +12,8 @@ import { BookOpen, CalendarDays, Compass, LayoutDashboard, LogOut, PanelLeftClos
 import Loader from "@/components/ui/Loader";
 import { startRouteLoading } from "@/components/global/RouteLoader";
 
-const ACCENT_LIGHT = "#203A3A"
-const ACCENT_DARK = "#0D9488"
+const ACCENT_LIGHT = "var(--brand-primary)"
+const ACCENT_DARK = "var(--brand-secondary)"
 const EXPANDED_WIDTH = 180
 const COLLAPSED_WIDTH = 64
 
@@ -72,7 +72,7 @@ export default function TeacherUILayout({ children }) {
   const NavRow = ({ href, label, Icon, onClick, iconOnly }) => {
     const on = isActive(href)
     const activeStyle = dm
-      ? { backgroundColor: "rgba(13,148,136,0.10)", color: "#0D9488", border: "1px solid rgba(13,148,136,0.18)", boxShadow: "0 0 14px rgba(13,148,136,0.10)" }
+      ? { backgroundColor: "color-mix(in srgb, var(--brand-secondary) 10%, transparent)", color: "var(--brand-secondary)", border: "1px solid color-mix(in srgb, var(--brand-secondary) 18%, transparent)", boxShadow: "0 0 14px color-mix(in srgb, var(--brand-secondary) 10%, transparent)" }
       : { backgroundColor: ACCENT_LIGHT, color: "#fff" }
     const inactiveColor = dm ? "#7A8595" : "#393F30"
     const hoverBg = dm ? "rgba(255,255,255,0.05)" : "#f1f5f9"
@@ -99,9 +99,9 @@ export default function TeacherUILayout({ children }) {
       <div className={`flex items-center shrink-0 ${iconOnly ? "flex-col gap-2 px-2 py-4" : "justify-between px-4 py-5"}`}>
         <div className={iconOnly ? "" : "flex-1 flex justify-center"}>
           {iconOnly ? (
-            <Image src="/schoolLogo/somabox-logo-dark.webp" alt="SomaBox" width={32} height={32} className="w-8 h-8 object-contain" priority />
+            <SchoolLogo variant="mark" priority />
           ) : (
-            <Image src="/schoolLogo/somabox.png" alt="SomaBox" width={160} height={55} className="w-auto h-12 object-contain" priority />
+            <div className="flex flex-col items-center gap-1 min-w-0"><SchoolLogo priority className="w-auto h-12 max-w-[140px]" /><PoweredBySomabox className="text-center" /></div>
           )}
         </div>
         <button

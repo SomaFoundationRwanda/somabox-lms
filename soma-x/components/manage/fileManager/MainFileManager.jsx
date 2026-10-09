@@ -254,7 +254,7 @@ function NewFolderModal({ onClose, onSubmit }) {
                             value={name}
                             onChange={(e) => setName(e.target.value.slice(0, MAX_FOLDER_NAME))}
                             placeholder={t("explore.manager.folderNamePlaceholder")}
-                            className="w-full h-10 px-3 rounded-[5px] border border-slate-200 bg-slate-50 text-[13px] text-slate-800 placeholder:text-slate-400 outline-none focus:border-slate-400 focus:bg-white focus-visible:ring-2 focus-visible:ring-[#0D9488]"
+                            className="w-full h-10 px-3 rounded-[5px] border border-slate-200 bg-slate-50 text-[13px] text-slate-800 placeholder:text-slate-400 outline-none focus:border-slate-400 focus:bg-white focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]"
                         />
                     </div>
                     {status === 'error' && <Notice tone="error">{errorMsg}</Notice>}
@@ -506,7 +506,7 @@ function RenameModal({ row, onClose, onSubmit }) {
                             maxLength={200}
                             autoFocus
                             onChange={(e) => setTitle(e.target.value)}
-                            className="w-full h-10 px-3 rounded-[5px] border border-slate-200 bg-slate-50 text-[13px] text-slate-800 outline-none focus:border-slate-400 focus:bg-white focus-visible:ring-2 focus-visible:ring-[#0D9488]"
+                            className="w-full h-10 px-3 rounded-[5px] border border-slate-200 bg-slate-50 text-[13px] text-slate-800 outline-none focus:border-slate-400 focus:bg-white focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]"
                         />
                     </div>
                     <div>
@@ -519,7 +519,7 @@ function RenameModal({ row, onClose, onSubmit }) {
                             maxLength={1000}
                             rows={3}
                             onChange={(e) => setSubtitle(e.target.value)}
-                            className="w-full px-3 py-2 rounded-[5px] border border-slate-200 bg-slate-50 text-[13px] text-slate-800 outline-none focus:border-slate-400 focus:bg-white focus-visible:ring-2 focus-visible:ring-[#0D9488]"
+                            className="w-full px-3 py-2 rounded-[5px] border border-slate-200 bg-slate-50 text-[13px] text-slate-800 outline-none focus:border-slate-400 focus:bg-white focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]"
                         />
                     </div>
                     <p className="text-[11px] text-slate-600">{t("explore.manager.renameHelp")}</p>
@@ -921,7 +921,7 @@ const FileManager = () => {
                             onClick={() => setModal({ kind: 'upload' })}
                             disabled={!canChangeFiles || !folder}
                             title={!canChangeFiles ? t("explore.manager.cloudNotice") : undefined}
-                            className="flex items-center gap-1.5 h-8 px-3 rounded-[5px] text-[12px] font-semibold text-white transition-colors bg-[#203B3B] hover:bg-[#295656] disabled:opacity-40 disabled:cursor-not-allowed"
+                            className="flex items-center gap-1.5 h-8 px-3 rounded-[5px] text-[12px] font-semibold text-white transition-colors bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                             <Upload className="w-3.5 h-3.5" aria-hidden="true" />
                             <span className="hidden sm:inline">{t("explore.manager.upload")}</span>

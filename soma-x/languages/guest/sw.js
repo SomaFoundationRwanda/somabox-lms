@@ -23,5 +23,12 @@ export default {
     "mediaExpiredBody": "Ingia tena ili uendelee kutazama na kusoma. Utarudi kwenye ukurasa huu.",
     "signInAgain": "Ingia tena",
     "language": "Lugha",
-    "mediaForbidden": "Faili hili ni la kozi ambayo haumo."
+    "mediaForbidden": "Faili hili ni la kozi ambayo haumo.",
+    "previewChip": "Hakikisho · zimebaki {time}",
+    "previewSignUpWatch": "Jisajili utazame yote",
+    "previewSignUpRead": "Jisajili usome yote",
+    "previewEndedWatch": "Hakikisho lako limeisha. Fungua akaunti ya bure uendelee kutazama",
+    "previewEndedRead": "Hakikisho lako limeisha. Fungua akaunti ya bure uendelee kusoma",
+    "previewStarting": "Inaanzisha hakikisho…",
+    "previewFailed": "Imeshindwa kuanzisha hakikisho. Jisajili bure ili ufungue hiki."
 };

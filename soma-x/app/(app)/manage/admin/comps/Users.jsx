@@ -260,7 +260,7 @@ export default function Users() {
     };
 
     /* ── Design tokens ── */
-    const avatarBg      = dm ? "#0D9488" : "#203B3B";
+    const avatarBg      = dm ? "var(--brand-secondary)" : "var(--brand-primary)";
     const thColor       = dm ? "#7A8595" : "#64748b";
     const textPrimary   = dm ? "#E8ECF0" : "#0f172a";
     const textSecondary = dm ? "#8B929E" : "#64748b";
@@ -532,7 +532,7 @@ export default function Users() {
                             <select
                                 aria-label={t("admin.users.filterRole")} value={roleFilter}
                                 onChange={(e) => { setRoleFilter(e.target.value); setPage(1); }}
-                                className="bg-transparent text-xs font-bold text-slate-800 dark:text-slate-200 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488] cursor-pointer"
+                                className="bg-transparent text-xs font-bold text-slate-800 dark:text-slate-200 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)] cursor-pointer"
                             >
                                 <option value="all">{t("admin.users.allRoles")}</option>
                                 <option value="scholar">{t("admin.users.roleScholar")}</option>
@@ -547,7 +547,7 @@ export default function Users() {
                             <select
                                 aria-label={t("admin.users.filterStatus")} value={statusFilter}
                                 onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-                                className="bg-transparent text-xs font-bold text-slate-800 dark:text-slate-200 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488] cursor-pointer"
+                                className="bg-transparent text-xs font-bold text-slate-800 dark:text-slate-200 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)] cursor-pointer"
                             >
                                 <option value="all">{t("admin.users.allStatus")}</option>
                                 <option value="active">{t("admin.users.activeOnly")}</option>
@@ -560,7 +560,7 @@ export default function Users() {
                             <select
                                 aria-label={t("admin.users.filterDate")} value={dateFilter}
                                 onChange={(e) => { setDateFilter(e.target.value); setPage(1); }}
-                                className="bg-transparent text-xs font-bold text-slate-800 dark:text-slate-200 outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488] cursor-pointer"
+                                className="bg-transparent text-xs font-bold text-slate-800 dark:text-slate-200 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)] cursor-pointer"
                             >
                                 <option value="all">{t("admin.users.allTime")}</option>
                                 <option value="7days">{t("admin.users.last7")}</option>
@@ -672,7 +672,7 @@ export default function Users() {
                         {hasActiveFilters && (
                             <button
                                 onClick={clearFilters}
-                                className="mt-2 px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold transition-colors"
+                                className="mt-2 px-4 py-2 rounded-xl bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-dark)] text-white text-xs font-bold transition-colors"
                             >
                                 {t("admin.users.clearFilters")}
                             </button>
@@ -826,7 +826,7 @@ export default function Users() {
                         <select
                             aria-label={t("admin.users.newRoleLabel")} value={selectedBulkRole}
                             onChange={(e) => setSelectedBulkRole(e.target.value)}
-                            className="w-full h-10 px-3 rounded-xl border-2 border-slate-300 text-xs font-semibold text-slate-900 bg-white outline-none focus-visible:ring-2 focus-visible:ring-[#0D9488]"
+                            className="w-full h-10 px-3 rounded-xl border-2 border-slate-300 text-xs font-semibold text-slate-900 bg-white outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]"
                         >
                             <option value="scholar">{t("admin.users.roleScholar")}</option>
                             <option value="teacher">{t("admin.users.roleTeacherMeOfficer")}</option>

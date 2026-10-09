@@ -131,7 +131,7 @@ export default function TeacherExplorePage() {
         aria-label={activeTab === "categories" ? t("explore.teacher.searchExplore") : t("explore.teacher.searchBooks")}
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        className="w-full max-w-sm text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 outline-none focus:border-[#2E8282] bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 mb-5"
+        className="w-full max-w-sm text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 outline-none focus:border-[var(--brand-secondary)] bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 mb-5"
       />
 
       <div className="flex gap-1 mb-6 bg-slate-100 dark:bg-slate-800 rounded-lg p-1 w-fit" role="tablist">
@@ -166,7 +166,7 @@ export default function TeacherExplorePage() {
                 href={entry.href}
                 target={entry.external ? "_blank" : undefined}
                 rel={entry.external ? "noopener noreferrer" : undefined}
-                className="w-44 border border-slate-200 dark:border-slate-700/50 rounded-xl overflow-hidden bg-white dark:bg-[#0f1318] shadow-sm hover:shadow-md transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2E8282]"
+                className="w-44 border border-slate-200 dark:border-slate-700/50 rounded-xl overflow-hidden bg-white dark:bg-[#0f1318] shadow-sm hover:shadow-md transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]"
               >
                 <div className="w-full h-28 bg-slate-100 dark:bg-slate-800 relative flex items-center justify-center">
                   {entry.external ? (
