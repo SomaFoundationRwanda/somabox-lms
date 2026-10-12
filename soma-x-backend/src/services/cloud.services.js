@@ -4,7 +4,7 @@ import path from 'path';
 
 import { fileURLToPath } from 'url';
 import { syncExploreIndex } from './explore/indexer.js';
-import { cloudFetch, cloudFiles, forgetCloudFiles, isCurrent, rememberCloudFile } from './sync/cloud-content.js';
+import { cloudFetch, cloudFiles, downloadTo, forgetCloudFiles, isCurrent, rememberCloudFile } from './sync/cloud-content.js';
 
 import { config } from '../config/index.js';
 import { requireRole } from '../helpers/auth.js';
@@ -116,6 +116,7 @@ router.get('/metadata', (req, res) => {
 
 const MAX_CONCURRENT = 5;
 let downloadStatus = "init";
+let downloadSummary = null;
 let downloading = false;
 
 function limitConcurrency(tasks, limit) {
@@ -168,24 +169,8 @@ async function downloadFile(filePath, cloud) {
         return { file: filePath, status: 'skipped' };
     }
 
-    const res = await cloudFetch(contentPath);
-    if (!res.ok) throw new Error(`Failed to download: ${contentPath}`);
-
-    // Written next to the file and renamed when complete, so a dropped link never leaves half a file.
-    const partial = `${localPath}.part`;
-    const writeStream = fs.createWriteStream(partial);
-    try {
-        for await (const chunk of res.body) {
-            writeStream.write(chunk);
-        }
-        writeStream.end();
-        await new Promise(resolve => writeStream.on('finish', resolve));
-        fs.renameSync(partial, localPath);
-    } catch (err) {
-        writeStream.destroy();
-        fs.rmSync(partial, { force: true });
-        throw err;
-    }
+    // Resumes a download the box lost its connection in the middle of, and checks the hash.
+    await downloadTo(contentPath, localPath, { sha256: info.sha256 });
     if (info.id) await rememberCloudFile(pathKeyOf(filePath), { collection: 'curriculum', ...info });
 
     return { file: filePath, status: localStat ? 'updated' : 'downloaded' };
@@ -208,7 +193,12 @@ async function startDownload(files) {
         // Explore follows the disk: index what arrived (covers are made in the background).
         await syncExploreIndex({ root: ROOT_KEY });
 
-        downloadStatus = "finished";
+        // A file that failed (often: the cable was unplugged) keeps its partial download;
+        // downloading again resumes it.
+        const failed = results.filter((r) => r instanceof Error);
+        for (const err of failed) console.error('Download failed:', err.message);
+        downloadSummary = { total: files.length, failed: failed.length };
+        downloadStatus = failed.length ? "failed" : "finished";
         return results;
     } catch (err) {
         console.error(err);
@@ -236,7 +226,7 @@ router.post('/download', (req, res) => {
 });
 
 router.get('/download-status', (req, res) => {
-    res.json({ status: downloadStatus });
+    res.json({ status: downloadStatus, ...(downloadSummary || {}) });
 });
 
 router.post('/delete', async (req, res) => {

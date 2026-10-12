@@ -69,6 +69,22 @@ Every push carries the box's hardware identity, its school (name, code, province
 rural/urban, as set on the School page), and its recent sync runs. Cloud content downloads send the
 same key.
 
+**Boxes are offline most of the time.** They get internet only while an Ethernet cable to a
+router, or to a computer sharing its connection, is plugged in, sometimes for just a few minutes.
+So the box:
+- **Watches its network interfaces** every 10 s. That's a local check with no traffic. When they
+  change (cable plugged in, sharing turned on), or once a minute while offline, it makes one quick
+  request to the cloud. Once the cloud answers, it **pushes straight away** and forgets its retry
+  backoff. Without this, a box that had been offline for a while could wait up to 6 hours for its
+  next attempt.
+- **Keeps going every 30 s** while a backlog remains, instead of every `SYNC_INTERVAL_MINUTES`, so
+  a short connection window sends as much as possible.
+- **Resumes interrupted downloads:** the partial file (`.part`) is kept and continued with a Range
+  request. The finished file is checked against the cloud's sha256, so a resumed file is never
+  corrupt. A download cut off by unplugging reports `failed` with the number of files, and
+  downloading again resumes it.
+- The admin Sync status shows `connectivity: { online, since, lastCheckedAt }`.
+
 **Content usage:** opening an Explore or Library file records a `content_opened` usage event
 (at most once per person, file, and half hour; video seeking doesn't count). The event has the
 file's root, path, title, and type, plus the catalogue id when the file came from the cloud. It is

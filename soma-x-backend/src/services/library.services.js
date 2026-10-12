@@ -16,7 +16,7 @@ import { syncExploreIndex } from './explore/indexer.js';
 import { getCatalog, invalidateCatalog } from './explore/catalog.js';
 import { guestMayOpen, limitGuestRange } from './explore/preview.js';
 import { recordContentOpen } from './explore/usage.js';
-import { cloudFetch, cloudFiles, forgetCloudFiles, isCurrent, rememberCloudFile } from './sync/cloud-content.js';
+import { cloudFetch, cloudFiles, downloadTo, forgetCloudFiles, isCurrent, rememberCloudFile } from './sync/cloud-content.js';
 
 const router = express.Router();
 const requireAdmin = requireRole('admin');
@@ -92,14 +92,7 @@ async function downloadBook(book) {
     }
     if (local && isCurrent({ localSize: local.size, recorded: known, cloud: book })) return { id: book.id, status: 'skipped' };
 
-    const res = await cloudFetch(`/content/library/${book.id}.epub`);
-    if (!res.ok) throw new Error(`Failed to download book ${book.id}: ${res.statusText}`);
-    const partial = `${absolutePath(target)}.part`;
-    const out = fs.createWriteStream(partial);
-    for await (const chunk of res.body) out.write(chunk);
-    out.end();
-    await new Promise((resolve) => out.on('finish', resolve));
-    fs.renameSync(partial, absolutePath(target));
+    await downloadTo(`/content/library/${book.id}.epub`, absolutePath(target), { sha256: book.sha256 });
     await rememberCloudFile(target, { collection: 'library', id: book.id, sha256: book.sha256, version: book.version });
     return { id: book.id, status: local ? 'updated' : 'downloaded', pathKey: target, title: book.book_name };
 }

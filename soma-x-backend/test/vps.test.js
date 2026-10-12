@@ -27,7 +27,9 @@ async function startCloud() {
     files: { [`${tag}/p4/fractions.pdf`]: { id: 41, body: "fractions v1" } },
     books: { 77: { book_name: "Tag Book", categories: tag, body: "epub v1" } },
     auth: [],
+    ranges: [],
     pushes: [],
+    offline: false, // drop every connection, as if the cable were unplugged
   };
   const tree = () => [{
     type: "folder", name: tag, path: tag, children: [{
@@ -37,13 +39,22 @@ async function startCloud() {
     }],
   }];
   const server = http.createServer((req, res) => {
+    if (state.offline) return req.socket.destroy();
     state.auth.push(`${req.method} ${req.url.split("?")[0]} ${req.headers.authorization || "-"}`);
     let body = "";
     req.on("data", (c) => { body += c; });
     req.on("end", () => {
       const url = decodeURIComponent(req.url);
       const send = (status, data, type = "application/json") => {
-        const buf = Buffer.from(typeof data === "string" ? data : JSON.stringify(data));
+        let buf = Buffer.from(typeof data === "string" ? data : JSON.stringify(data));
+        const range = status === 200 && req.headers.range?.match(/^bytes=(\d+)-$/);
+        if (range) {
+          state.ranges.push(`${url} ${req.headers.range}`);
+          const from = Number(range[1]);
+          if (from >= buf.length) { res.writeHead(416); return res.end(); }
+          res.writeHead(206, { "Content-Type": type, "Content-Length": buf.length - from, "Content-Range": `bytes ${from}-${buf.length - 1}/${buf.length}` });
+          return res.end(req.method === "HEAD" ? undefined : buf.subarray(from));
+        }
         res.writeHead(status, { "Content-Type": type, "Content-Length": buf.length });
         res.end(req.method === "HEAD" ? undefined : buf);
       };
@@ -207,4 +218,119 @@ test("library downloads are refreshed when the cloud copy changes, and never ove
   await downloadBooks(available);
   assert.equal(fs.readFileSync(target, "utf8"), "epub v2");
   assert.ok(cloud.state.auth.some((a) => a === `GET /content/library/77.epub Bearer ${KEY}`));
+});
+
+// --- Boxes are mostly offline ---------------------------------------------------------------------
+
+const ETH = { eth0: [{ address: "192.168.137.20", family: "IPv4", internal: false }] };
+const LOOPBACK = { lo: [{ address: "127.0.0.1", family: "IPv4", internal: true }] };
+
+test("the connectivity watch notices a cable being plugged in, without probing the cloud constantly", async () => {
+  const { startConnectivityWatch } = await import("../src/services/sync/connectivity.js");
+  let ifaces = LOOPBACK;
+  let cloudUp = true;
+  let probes = 0;
+  let onlines = 0;
+  const watch = startConnectivityWatch({
+    interfaces: () => ifaces,
+    probe: async () => { probes++; return cloudUp; },
+    onOnline: () => { onlines++; },
+    checkEveryMs: 10,
+    probeOfflineEveryMs: 60_000,
+  });
+  try {
+    await new Promise((r) => setTimeout(r, 60));
+    assert.deepEqual([watch.state.online, probes, onlines], [false, 0, 0], "no network: nothing to ask");
+
+    ifaces = { ...LOOPBACK, ...ETH }; // cable to a laptop sharing its internet
+    await waitFor(() => onlines === 1);
+    assert.equal(watch.state.online, true);
+    const probesWhenOnline = probes;
+    await new Promise((r) => setTimeout(r, 60));
+    assert.equal(probes, probesWhenOnline, "online and nothing changed: no probing");
+
+    ifaces = LOOPBACK; // unplugged
+    await waitFor(() => watch.state.online === false);
+    ifaces = { ...LOOPBACK, ...ETH };
+    await waitFor(() => onlines === 2);
+
+    // A router without internet: the cable is in but the cloud doesn't answer. One probe on the
+    // change, then only once a minute.
+    ifaces = LOOPBACK;
+    await waitFor(() => watch.state.online === false);
+    cloudUp = false;
+    ifaces = { ...LOOPBACK, ...ETH };
+    const before = probes;
+    await waitFor(() => probes === before + 1);
+    await new Promise((r) => setTimeout(r, 80));
+    assert.deepEqual([probes, watch.state.online, onlines], [before + 1, false, 2]);
+  } finally {
+    watch.stop();
+  }
+});
+
+test("an offline box pushes the moment it gets online instead of waiting out its backoff", async () => {
+  const { scheduleSync, stopSync } = await import("../src/services/sync/outbox.js");
+  process.env.SYNC_URL = `${cloud.url}/api/v1/box-sync`;
+  cloud.state.offline = true;
+  let ifaces = LOOPBACK;
+  const pushesBefore = cloud.state.pushes.length;
+  scheduleSync({ connectivityOptions: { interfaces: () => ifaces, checkEveryMs: 20, probeOfflineEveryMs: 50 } });
+  try {
+    await new Promise((r) => setTimeout(r, 150));
+    assert.equal(cloud.state.pushes.length, pushesBefore, "nothing reaches the cloud while offline");
+    const status = (await asAdmin("GET", "/sync/status")).body;
+    assert.equal(status.connectivity.online, false);
+
+    cloud.state.offline = false;
+    ifaces = { ...LOOPBACK, ...ETH };
+    await waitFor(() => cloud.state.pushes.length > pushesBefore, 5000);
+    assert.equal((await asAdmin("GET", "/sync/status")).body.connectivity.online, true);
+  } finally {
+    stopSync();
+    cloud.state.offline = false;
+    delete process.env.SYNC_URL;
+  }
+});
+
+test("a download cut off by unplugging resumes where it stopped, and a stale part is refetched", async () => {
+  const rel = `${tag}/p5/video.mp4`;
+  const body = "0123456789".repeat(50);
+  cloud.state.files[rel] = { id: 42, body };
+  const local = path.join(content, "rwandan-education", rel);
+  fs.mkdirSync(path.dirname(local), { recursive: true });
+
+  // Half of it arrived before the cable came out.
+  fs.writeFileSync(`${local}.part`, body.slice(0, 200));
+  await downloadCurriculum([rel]);
+  assert.equal(fs.readFileSync(local, "utf8"), body);
+  assert.ok(cloud.state.ranges.includes(`/content/${rel} bytes=200-`), "only the rest was fetched");
+  assert.ok(!fs.existsSync(`${local}.part`));
+
+  // The cloud changed the file between the two attempts: the resumed bytes don't match, so it
+  // starts over and still ends up with the cloud's exact copy.
+  const v2 = "abcdefghij".repeat(50);
+  cloud.state.files[rel].body = v2;
+  fs.writeFileSync(`${local}.part`, body.slice(0, 200));
+  await downloadCurriculum([rel]);
+  assert.equal(fs.readFileSync(local, "utf8"), v2);
+});
+
+test("a download that fails (cable unplugged) is reported as failed, not finished", async () => {
+  const rel = `${tag}/p5/later.mp4`;
+  cloud.state.files[rel] = { id: 43, body: "x".repeat(100) };
+  cloud.state.offline = true;
+  try {
+    const res = await asAdmin("POST", "/cloud/download", { files: [rel] });
+    assert.equal(res.status, 202);
+    const status = await waitFor(async () => {
+      const s = (await asAdmin("GET", "/cloud/download-status")).body;
+      return s.status !== "downloading" && s;
+    });
+    assert.deepEqual([status.status, status.failed, status.total], ["failed", 1, 1]);
+  } finally {
+    cloud.state.offline = false;
+  }
+  await downloadCurriculum([rel]); // plugged back in: downloading again works
+  assert.ok(fs.existsSync(path.join(content, "rwandan-education", rel)));
 });
