@@ -15,10 +15,11 @@ import { absolutePath, fileType, coverPath } from './explore/roots.js';
 import { syncExploreIndex } from './explore/indexer.js';
 import { getCatalog, invalidateCatalog } from './explore/catalog.js';
 import { guestMayOpen, limitGuestRange } from './explore/preview.js';
+import { recordContentOpen } from './explore/usage.js';
+import { cloudFetch, cloudFiles, downloadTo, forgetCloudFiles, isCurrent, rememberCloudFile } from './sync/cloud-content.js';
 
 const router = express.Router();
 const requireAdmin = requireRole('admin');
-const CLOUD_URL = config.cloudUrl;
 const LIBRARY_DIR = config.paths.library;
 const upload = multer({ dest: path.join(os.tmpdir(), 'somabox-uploads'), limits: { fileSize: 1024 * 1024 * 1024 } });
 
@@ -46,36 +47,54 @@ async function setTitle(pathKey, title) {
 let downloadStatus = 'init';
 let downloading = false;
 
-// Admins: books available in the cloud library.
+// Admins: books available in the cloud library, with whether this box has each one and whether
+// the cloud's copy is newer.
 router.get('/available-books', requireAdmin, async (req, res) => {
     try {
-        const cloudRes = await fetch(`${CLOUD_URL}/library-metadata`);
+        const cloudRes = await cloudFetch('/library-metadata');
         if (!cloudRes.ok) return res.status(503).json({ error: 'Cloud server is not reachable' });
-        return res.json(await cloudRes.json());
+        const books = await cloudRes.json();
+        const byCloudId = new Map([...(await cloudFiles('library')).values()].map((r) => [String(r.cloud_id), r]));
+        return res.json(books.map((book) => {
+            const recorded = byCloudId.get(String(book.id));
+            const isDownloaded = !!recorded && fs.existsSync(absolutePath(recorded.path_key));
+            return { ...book, isDownloaded, isOutdated: isDownloaded && !!book.sha256 && recorded.sha256 !== book.sha256 };
+        }));
     } catch (err) {
         console.error('Error fetching available books:', err);
         return res.status(503).json({ error: 'Cloud server is not reachable' });
     }
 });
 
-/** Downloads one cloud book into library/<first category>/<title>.epub. */
+/**
+ * Downloads one cloud book into library/<first category>/<title>.epub, or refreshes the copy
+ * downloaded before if the cloud has a newer one.
+ */
 async function downloadBook(book) {
     if (!/^\d+$/.test(String(book?.id))) throw new Error(`Invalid book id: ${book?.id}`);
-    const category = String(book.categories || '').split(',').map((c) => c.trim()).find(Boolean);
-    const folderKey = category ? `library/${fileStem(category)}` : 'library';
-    fs.mkdirSync(absolutePath(folderKey), { recursive: true });
-    const target = `${folderKey}/${fileStem(book.book_name)}.epub`;
-    if (fs.existsSync(absolutePath(target))) return { id: book.id, status: 'skipped' };
+    const known = (await localDb.prepare("SELECT * FROM cloud_content WHERE collection = 'library' AND cloud_id = ?").all(Number(book.id)))
+        .find((r) => fs.existsSync(absolutePath(r.path_key)));
+    let target = known?.path_key;
+    if (!target) {
+        const category = String(book.categories || '').split(',').map((c) => c.trim()).find(Boolean);
+        const folderKey = category ? `library/${fileStem(category)}` : 'library';
+        fs.mkdirSync(absolutePath(folderKey), { recursive: true });
+        target = `${folderKey}/${fileStem(book.book_name)}.epub`;
+    }
+    const local = fs.existsSync(absolutePath(target)) ? fs.statSync(absolutePath(target)) : null;
+    if (local && !known) {
+        // A file by that name that the box didn't record downloading: from before hashes were
+        // recorded (same size: adopt it) or someone's own upload (never overwrite it).
+        if (Number(local.size) === Number(book.size)) {
+            await rememberCloudFile(target, { collection: 'library', id: book.id, sha256: book.sha256, version: book.version });
+        }
+        return { id: book.id, status: 'skipped' };
+    }
+    if (local && isCurrent({ localSize: local.size, recorded: known, cloud: book })) return { id: book.id, status: 'skipped' };
 
-    const res = await fetch(`${CLOUD_URL}/content/library/${book.id}.epub`);
-    if (!res.ok) throw new Error(`Failed to download book ${book.id}: ${res.statusText}`);
-    const partial = `${absolutePath(target)}.part`;
-    const out = fs.createWriteStream(partial);
-    for await (const chunk of res.body) out.write(chunk);
-    out.end();
-    await new Promise((resolve) => out.on('finish', resolve));
-    fs.renameSync(partial, absolutePath(target));
-    return { id: book.id, status: 'downloaded', pathKey: target, title: book.book_name };
+    await downloadTo(`/content/library/${book.id}.epub`, absolutePath(target), { sha256: book.sha256 });
+    await rememberCloudFile(target, { collection: 'library', id: book.id, sha256: book.sha256, version: book.version });
+    return { id: book.id, status: local ? 'updated' : 'downloaded', pathKey: target, title: book.book_name };
 }
 
 router.post('/download', requireAdmin, async (req, res) => {
@@ -185,6 +204,7 @@ router.get('/file/:id', requireMediaAccess({ allowGuests: true }), async (req, r
         if (!fs.existsSync(absolutePath(key)) || isHidden(key)) continue;
         // Visitors: only during their preview of this book, and only the start of videos and audio.
         if (!req.mediaUser && (!await guestMayOpen(req, key) || !limitGuestRange(req, key))) return signUp();
+        recordContentOpen(req, key, req.mediaUser);
         return res.sendFile(absolutePath(key));
     }
     // Visitors are asked to sign up rather than told what exists.
@@ -198,6 +218,7 @@ router.delete('/book/:id', requireAdmin, async (req, res) => {
         if (!row) return res.status(404).json({ error: 'Book not found' });
         fs.rmSync(absolutePath(row.path_key), { force: true });
         fs.rmSync(coverPath(row.path_key), { force: true });
+        await forgetCloudFiles(row.path_key);
         await syncExploreIndex({ root: 'library' });
         return res.json({ message: 'Book deleted successfully' });
     } catch (err) {

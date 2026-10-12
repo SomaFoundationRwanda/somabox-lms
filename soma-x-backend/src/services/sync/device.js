@@ -5,6 +5,7 @@
 import fs from 'fs';
 import os from 'os';
 import { localDb } from '../../helpers/db-manager.js';
+import { getSchool } from '../school.js';
 
 const DEVICE_FILE = () => process.env.DEVICE_INFO_PATH || '/etc/somabox/device.json';
 
@@ -64,4 +65,19 @@ export async function syncHistory(limit = 20) {
         try { details = JSON.parse(r.details); } catch { /* plain text */ }
         return { startedAt: r.started_at, finishedAt: r.finished_at, status: r.status, details };
     });
+}
+
+/**
+ * The school this box serves, as its admin set it up (name, code, province, district,
+ * rural/urban), so the cloud can report per school and district. Null until it is set.
+ */
+export async function schoolInfo() {
+    try {
+        const s = await getSchool();
+        if (!s.name) return null;
+        return { name: s.name, code: s.code || null, province: s.province, district: s.district, isRural: s.isRural };
+    } catch (error) {
+        console.error('Could not read the school for sync:', error.message);
+        return null;
+    }
 }

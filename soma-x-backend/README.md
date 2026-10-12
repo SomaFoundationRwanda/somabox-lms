@@ -53,6 +53,51 @@ FIREBASE_SERVICE_ACCOUNT_PATH=/etc/somabox/firebase-service-account.json
 # SYNC_INTERVAL_MINUTES=15            # retries back off up to 6 hours while offline
 ```
 
+#### With soma-x-server (the SOMABOX VPS)
+Full box installation, including this step: [docs/ops-box-setup.md](../docs/ops-box-setup.md).
+
+[soma-x-server](https://github.com/SomaFoundationRwanda/soma-x-server) receives the outbox and
+serves the cloud content catalogue. Each box has its own key:
+
+1. On the VPS: `npm run device:create -- --name "GS Kigali box 1"`. It prints the key once.
+2. On the box, in `.env`:
+   ```bash
+   CLOUD_URL=https://cloud.somaglobaltalent.org
+   SYNC_URL=https://cloud.somaglobaltalent.org/api/v1/box-sync
+   SYNC_TOKEN=sbx_...   # the key from step 1
+   ```
+
+Every push carries the box's hardware identity, its school (name, code, province, district,
+rural/urban, as set on the School page), and its recent sync runs. Cloud content downloads send the
+same key.
+
+**Boxes are offline most of the time.** They get internet only while an Ethernet cable to a
+router, or to a computer sharing its connection, is plugged in, sometimes for just a few minutes.
+So the box:
+- **Watches its network interfaces** every 10 s. That's a local check with no traffic. When they
+  change (cable plugged in, sharing turned on), or once a minute while offline, it makes one quick
+  request to the cloud. Once the cloud answers, it **pushes straight away** and forgets its retry
+  backoff. Without this, a box that had been offline for a while could wait up to 6 hours for its
+  next attempt.
+- **Keeps going every 30 s** while a backlog remains, instead of every `SYNC_INTERVAL_MINUTES`, so
+  a short connection window sends as much as possible.
+- **Resumes interrupted downloads:** the partial file (`.part`) is kept and continued with a Range
+  request. The finished file is checked against the cloud's sha256, so a resumed file is never
+  corrupt. A download cut off by unplugging reports `failed` with the number of files, and
+  downloading again resumes it.
+- The admin Sync status shows `connectivity: { online, since, lastCheckedAt }`.
+
+**Content usage:** opening an Explore or Library file records a `content_opened` usage event
+(at most once per person, file, and half hour; video seeking doesn't count). The event has the
+file's root, path, title, and type, plus the catalogue id when the file came from the cloud. It is
+synced like any usage event, so the "events" switch on the Sync page controls whether it leaves
+the box.
+
+**Cloud downloads remember what they fetched** (`cloud_content`: catalogue id, sha256, version).
+The Sync page's content list marks files whose cloud copy is newer (`isOutdated`), and
+downloading them again replaces the local copy. A Library file the box didn't download from the
+cloud is never overwritten.
+
 **Never put the Firebase key in this repository.** Store it outside the repo (readable only by
 the service user).
 

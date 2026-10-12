@@ -4,7 +4,8 @@
 // record keyed by its own sync_id, so a retried batch can't create duplicates.
 import { localDb } from "../../helpers/db-manager.js";
 import { createTransport } from "./transports.js";
-import { deviceInfo, syncHistory } from "./device.js";
+import { deviceInfo, schoolInfo, syncHistory } from "./device.js";
+import { reachable, startConnectivityWatch } from "./connectivity.js";
 
 export const DEFAULT_SCOPE = {
   courses: true,
@@ -146,7 +147,7 @@ export async function pushOutbox({ transport = createTransport() } = {}) {
       await cleanupSent();
       // Nothing new: still tell the cloud this box is alive, what it is, and how syncing has gone.
       try {
-        await transport.status?.({ boxId: await boxId(), device: deviceInfo(), history: await syncHistory() });
+        await transport.status?.({ boxId: await boxId(), device: deviceInfo(), school: await schoolInfo(), history: await syncHistory() });
       } catch (err) {
         const result = { status: "failed", sent: 0, skipped: 0, pending: 0, error: err.message || String(err) };
         await logRun(started, result.status, result);
@@ -182,7 +183,7 @@ export async function pushOutbox({ transport = createTransport() } = {}) {
       }
       const ids = rows.map((r) => r.id);
       try {
-        if (records.length) await transport.send(records, { boxId: box, device: deviceInfo(), history: await syncHistory() });
+        if (records.length) await transport.send(records, { boxId: box, device: deviceInfo(), school: await schoolInfo(), history: await syncHistory() });
       } catch (err) {
         error = err.message || String(err);
         await localDb.prepare(`UPDATE sync_outbox SET attempts = attempts + 1, last_error = ? WHERE id IN (${ids.map(() => "?").join(",")})`)
@@ -238,6 +239,7 @@ export async function syncStatus() {
     lastSuccessAt: lastOk?.finished_at ?? null,
     runs: runs.map((r) => ({ startedAt: r.started_at, finishedAt: r.finished_at, status: r.status, details: parse(r.details) })),
     scope: await syncScope(),
+    connectivity: connectivityState(),
   };
 }
 
@@ -245,26 +247,92 @@ export function intervalMinutes() {
   return Math.max(1, Number(process.env.SYNC_INTERVAL_MINUTES) || 15);
 }
 
-// Scheduled pushes. After a failure (the internet link is down, say) the wait doubles each time,
-// up to 6 hours, so a box offline for weeks doesn't keep retrying every few minutes.
+// Scheduled pushes. Boxes are offline most of the time and get internet only while a cable is
+// plugged in, sometimes for minutes, so:
+// - after a failure the wait doubles (up to 6 hours), so an offline box doesn't keep retrying;
+// - but the moment the box gets online (connectivity.js) it pushes straight away;
+// - and while a backlog remains it keeps going every 30 seconds instead of waiting the interval.
+const MAX_BACKOFF_MS = 6 * 60 * 60 * 1000;
+const BACKLOG_DELAY_MS = 30 * 1000;
+const FIRST_RUN_DELAY_MS = 30 * 1000;
 let timer = null;
+let started = false;
 let failures = 0;
-export function scheduleSync() {
-  if (timer) return;
-  const base = intervalMinutes() * 60 * 1000;
-  const tick = async () => {
-    let result;
-    try {
-      result = await pushOutbox();
-    } catch (error) {
-      console.error("Sync run failed:", error.message);
-      result = { status: "failed" };
-    }
-    failures = result.status === "failed" ? failures + 1 : 0;
-    const wait = failures ? Math.min(base * 2 ** failures, 6 * 60 * 60 * 1000) : base;
-    timer = setTimeout(tick, wait);
-    timer.unref?.();
-  };
-  timer = setTimeout(tick, 30 * 1000);
+let connectivity = null;
+
+/** Where to check that the cloud can be reached, for the configured transport. */
+function probeUrl(env = process.env) {
+  const transport = createTransport(env);
+  if (transport?.name === "http") {
+    try { return new URL(env.SYNC_URL).origin; } catch { return null; }
+  }
+  if (transport?.name === "firestore") return "https://firestore.googleapis.com";
+  return null;
+}
+
+function scheduleIn(ms) {
+  clearTimeout(timer);
+  timer = setTimeout(tick, ms);
   timer.unref?.();
+}
+
+async function tick() {
+  let result;
+  try {
+    result = await pushOutbox();
+  } catch (error) {
+    console.error("Sync run failed:", error.message);
+    result = { status: "failed" };
+  }
+  if (result.status === "busy") return scheduleIn(BACKLOG_DELAY_MS);
+  failures = result.status === "failed" ? failures + 1 : 0;
+  // "Cloud answered 401" means the cloud was reached but refused (bad key, server error): that is
+  // not being offline, so it keeps the backoff instead of being retried on every reconnect check.
+  const reachedCloud = result.status === "failed" && /^Cloud answered/.test(result.error || "");
+  if (result.status === "failed") connectivity?.report(reachedCloud);
+  else if (result.status !== "not_configured") connectivity?.report(true);
+
+  const base = intervalMinutes() * 60 * 1000;
+  if (failures) scheduleIn(Math.min(base * 2 ** failures, MAX_BACKOFF_MS));
+  else if (result.status === "ok" && result.pending > 0) scheduleIn(BACKLOG_DELAY_MS);
+  else scheduleIn(base);
+}
+
+/** Push now (e.g. the box just got online), forgetting the failure backoff. */
+export function syncNow(reason = "requested") {
+  if (!started) return;
+  console.log(`Sync: pushing now (${reason})`);
+  failures = 0;
+  scheduleIn(0);
+}
+
+export function scheduleSync({ connectivityOptions = {} } = {}) {
+  if (started) return;
+  started = true;
+  scheduleIn(FIRST_RUN_DELAY_MS);
+  const url = probeUrl();
+  if (url) {
+    connectivity = startConnectivityWatch({
+      probe: () => reachable(url),
+      onOnline: () => syncNow("the box got online"),
+      ...connectivityOptions,
+    });
+  }
+}
+
+/** Tests only. */
+export function stopSync() {
+  clearTimeout(timer);
+  connectivity?.stop();
+  timer = null;
+  connectivity = null;
+  started = false;
+  failures = 0;
+}
+
+/** Whether the box can reach the cloud right now, as last seen (null = not checked / no cloud set up). */
+export function connectivityState() {
+  if (!connectivity) return { online: null, since: null, lastCheckedAt: null };
+  const { online, since, lastProbeAt } = connectivity.state;
+  return { online, since, lastCheckedAt: lastProbeAt ? new Date(lastProbeAt).toISOString() : null };
 }

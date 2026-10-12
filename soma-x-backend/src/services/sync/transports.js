@@ -13,9 +13,10 @@ export function createTransport(env = process.env) {
 }
 
 /**
- * POST { boxId, device, history, records } as JSON; any 2xx is success. `device` is the box's
- * hardware identity (serial, MACs, machine id) and `history` its recent sync runs; a run with
- * nothing new still sends them (records: []) so the cloud knows the box is alive.
+ * POST { boxId, device, school, history, records } as JSON; any 2xx is success. `device` is the
+ * box's hardware identity (serial, MACs, machine id), `school` the school it serves, and `history`
+ * its recent sync runs; a run with nothing new still sends them (records: []) so the cloud knows
+ * the box is alive. soma-x-server receives this at /api/v1/box-sync.
  */
 export function httpTransport(url, token) {
   const post = async (body) => {
@@ -29,8 +30,8 @@ export function httpTransport(url, token) {
   };
   return {
     name: "http",
-    send: (records, { boxId, device, history }) => post({ boxId, device, history, records }),
-    status: ({ boxId, device, history }) => post({ boxId, device, history, records: [] }),
+    send: (records, { boxId, device, school, history }) => post({ boxId, device, school, history, records }),
+    status: ({ boxId, device, school, history }) => post({ boxId, device, school, history, records: [] }),
   };
 }
 
@@ -62,9 +63,9 @@ export function firestoreTransport(env) {
       }
     },
     // One document per box (id = boxId) with its hardware identity and recent sync runs.
-    async status({ boxId, device, history }) {
+    async status({ boxId, device, school, history }) {
       const db = await firestoreDb(env);
-      await db.collection(env.FIRESTORE_BOX_COLLECTION || "boxes").doc(boxId).set({ boxId, device, history, lastSeenAt: new Date().toISOString() }, { merge: true });
+      await db.collection(env.FIRESTORE_BOX_COLLECTION || "boxes").doc(boxId).set({ boxId, device, school: school ?? null, history, lastSeenAt: new Date().toISOString() }, { merge: true });
     },
   };
 }
