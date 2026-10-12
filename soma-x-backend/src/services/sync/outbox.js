@@ -46,7 +46,15 @@ const EMAIL_COLUMNS = {
   attendance_records: ["marked_by"],
 };
 const TEXT_COLUMNS = { assignment_submissions: ["body", "feedback"] };
-const PSEUDONYMOUS_USER_FIELDS = ["id", "sync_id", "role", "grade_level", "is_active", "created_at"];
+// What the cloud learns about a person outside "full" mode: no name, email or phone, but the
+// school-issued learner code and the profile answers the foundation reports on (share of girls,
+// rural learners, learners with a disability, languages...). profile_completed_at tells real
+// answers apart from the old column defaults ("prefer_not_to_say", "Not Specified", urban, none).
+const PSEUDONYMOUS_USER_FIELDS = [
+  "id", "sync_id", "role", "grade_level", "is_active", "created_at",
+  "learner_code", "gender", "disability_status", "is_rural", "region_province", "region_district",
+  "preferred_language", "profile_completed_at",
+];
 
 const BATCH_SIZE = () => Math.max(1, Number(process.env.SYNC_BATCH_SIZE) || 200);
 const MAX_BATCHES = 50;

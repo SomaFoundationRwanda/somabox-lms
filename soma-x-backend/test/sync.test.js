@@ -110,8 +110,12 @@ test("a sync sends pseudonymous, append-only records once; nobody's email or ess
   for (const u of Object.values(USERS)) assert.ok(!text.includes(u.email), `${u.email} never leaves the box`);
   assert.ok(!text.includes("My private essay text"), "submission text stays on the box by default");
   assert.ok(!text.includes("password_hash"));
-  const user = cloud.state.records.find((r) => r.entity === "users");
-  assert.deepEqual(Object.keys(user.data).sort(), ["created_at", "grade_level", "id", "is_active", "role", "sync_id"].filter((k) => k in user.data).sort());
+  const user = cloud.state.records.find((r) => r.entity === "users" && r.data.role === "scholar");
+  for (const k of ["full_name", "email", "phone", "accessibility_profile", "school_name"]) assert.ok(!(k in user.data), `${k} stays on the box`);
+  const allowed = ["id", "sync_id", "role", "grade_level", "is_active", "created_at", "learner_code", "gender", "disability_status", "is_rural",
+    "region_province", "region_district", "preferred_language", "profile_completed_at"];
+  assert.deepEqual(Object.keys(user.data).filter((k) => !allowed.includes(k)), [], "only pseudonymous fields leave the box");
+  for (const k of ["gender", "disability_status", "is_rural", "region_district", "preferred_language"]) assert.ok(k in user.data, `${k} is sent for statistics`);
   const enrollment = cloud.state.records.find((r) => r.entity === "enrollments" && r.data.role === "student");
   const student = await db.prepare("SELECT sync_id FROM users WHERE email = ?").get(USERS.student.email);
   assert.equal(enrollment.data.user_person, student.sync_id, "people are referenced by sync_id");
