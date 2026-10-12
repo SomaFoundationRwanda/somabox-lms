@@ -14,6 +14,7 @@ import { syncExploreIndex, lastIndexRun } from "./explore/indexer.js";
 import { getCatalog, invalidateCatalog } from "./explore/catalog.js";
 import { coverQueueLength } from "./explore/covers.js";
 import { startPreview, guestMayOpen, limitGuestRange } from "./explore/preview.js";
+import { recordContentOpen } from "./explore/usage.js";
 import { SUMMARY_LANGUAGES, summariesEnabled, summarisable, userLanguage, getSummary, summaryView, requestSummary } from "./explore/summaries.js";
 
 const router = express.Router();
@@ -68,6 +69,7 @@ router.get("/files/*filePath", requireMediaAccess({ allowGuests: true }), async 
     if (!fs.existsSync(file)) return res.status(404).json({ message: "File not found" });
     // Visitors get only the start of videos and audio.
     if (!req.mediaUser && !limitGuestRange(req, pathKey)) return signUp();
+    recordContentOpen(req, pathKey, req.mediaUser);
     return res.sendFile(file, { dotfiles: "deny" });
   } catch (error) {
     next(error);

@@ -4,6 +4,7 @@ import path from 'path';
 
 import { fileURLToPath } from 'url';
 import { syncExploreIndex } from './explore/indexer.js';
+import { cloudFetch, cloudFiles, forgetCloudFiles, isCurrent, rememberCloudFile } from './sync/cloud-content.js';
 
 import { config } from '../config/index.js';
 import { requireRole } from '../helpers/auth.js';
@@ -11,11 +12,27 @@ import { requireRole } from '../helpers/auth.js';
 const router = express.Router();
 // Content sync manages files on the box: admins only.
 router.use(requireRole('admin'));
-const CLOUD_URL = config.cloudUrl;
-const normalizedCloudUrl = CLOUD_URL.replace(/\/$/, '');
-const CLOUD_CONTENT_ROOT = `${normalizedCloudUrl}/content`;
 const LOCAL_STORAGE_ROOT = config.paths.rwandanEducation;
 const LOCAL_STORAGE_ROOT_PDF_COVERS = config.paths.rwandanPdfCovers;
+// Cloud curriculum paths live under this Explore root on the box.
+const ROOT_KEY = 'rwandan-education';
+const pathKeyOf = (relPath) => `${ROOT_KEY}/${relPath}`;
+
+/** The cloud's curriculum tree (/metadata). */
+async function fetchCloudTree() {
+    const res = await cloudFetch('/metadata');
+    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+    return res.json();
+}
+
+/** relPath -> { id, size, sha256, version } for every file in the cloud tree. */
+function flattenTree(nodes, out = new Map()) {
+    for (const node of nodes || []) {
+        if (node.type === 'file') out.set(node.path, node);
+        else flattenTree(node.children, out);
+    }
+    return out;
+}
 
 // A relative content path that stays strictly inside LOCAL_STORAGE_ROOT (no "..",
 // absolute paths, or the root itself).
@@ -28,41 +45,29 @@ function isSafeRelPath(relPath) {
 
 router.get('/available-content', async (req, res) => {
     try {
-        let cloudRes;
+        let cloudMetadata;
         try {
-            cloudRes = await fetch(`${normalizedCloudUrl}/metadata`);
-            if (!cloudRes.ok) throw new Error(`HTTP error! status: ${cloudRes.status}`);
+            cloudMetadata = await fetchCloudTree();
         } catch (err) {
             console.error('Network error fetching cloud:', err);
             return res.status(503).json({ error: 'Cloud server is not reachable' });
         }
+        const recorded = await cloudFiles('curriculum');
 
-        const cloudMetadata = await cloudRes.json();
+        // isDownloaded: the file (or folder) is on the box. isOutdated: the cloud has a newer copy
+        // of the file (or of something in the folder); downloading it again fetches the new one.
+        const addDownloadStatus = (nodes) => nodes.map((node) => {
+            const localPath = path.join(LOCAL_STORAGE_ROOT, node.path);
+            if (node.type === 'folder') {
+                const children = addDownloadStatus(node.children || []);
+                return { ...node, children, isDownloaded: fs.existsSync(localPath), isOutdated: children.some((c) => c.isOutdated) };
+            }
+            const stat = fs.existsSync(localPath) ? fs.statSync(localPath) : null;
+            const isOutdated = !!stat && !isCurrent({ localSize: stat.size, recorded: recorded.get(pathKeyOf(node.path)), cloud: node });
+            return { ...node, isDownloaded: !!stat, isOutdated };
+        });
 
-        // Recursively add isDownloaded flag
-        const addDownloadStatus = (nodes) => {
-            return nodes.map(node => {
-                const localPath = path.join(LOCAL_STORAGE_ROOT, node.path);
-                let isDownloaded = false;
-                
-                if (node.type === 'file') {
-                    isDownloaded = fs.existsSync(localPath);
-                } else if (node.type === 'folder') {
-                    // For folders, we consider it downloaded if the directory exists
-                    // and might want to check if it's fully downloaded, but for now
-                    // simple existence check is a good start.
-                    isDownloaded = fs.existsSync(localPath);
-                    if (node.children) {
-                        node.children = addDownloadStatus(node.children);
-                    }
-                }
-                
-                return { ...node, isDownloaded };
-            });
-        };
-
-        const enrichedMetadata = addDownloadStatus(cloudMetadata);
-        return res.json(enrichedMetadata);
+        return res.json(addDownloadStatus(cloudMetadata));
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Failed to fetch available content' });
@@ -139,11 +144,10 @@ function limitConcurrency(tasks, limit) {
     });
 }
 
-async function downloadFile(filePath) {
+async function downloadFile(filePath, cloud) {
     const encodedPath = filePath.split('/').map(encodeURIComponent).join('/');
-    const cloudFileUrl = `${CLOUD_CONTENT_ROOT}/${encodedPath}`;
+    const contentPath = `/content/${encodedPath}`;
     const localPath = path.join(LOCAL_STORAGE_ROOT, filePath);
-
     fs.mkdirSync(path.dirname(localPath), { recursive: true });
 
     let localStat;
@@ -151,32 +155,40 @@ async function downloadFile(filePath) {
         localStat = fs.statSync(localPath);
     } catch {}
 
-    const headRes = await fetch(cloudFileUrl, { method: 'HEAD' });
-    if (!headRes.ok) throw new Error(`File not found in cloud: ${cloudFileUrl}`);
-
-    const cloudSize = parseInt(headRes.headers.get('content-length'), 10);
-
-    if (localStat && localStat.size === cloudSize) {
+    // The catalogue entry says what the cloud has; without it (older cloud) ask for the size.
+    let info = cloud;
+    if (!info) {
+        const headRes = await cloudFetch(contentPath, { method: 'HEAD' });
+        if (!headRes.ok) throw new Error(`File not found in cloud: ${contentPath}`);
+        info = { size: parseInt(headRes.headers.get('content-length'), 10) };
+    }
+    const recorded = (await cloudFiles('curriculum')).get(pathKeyOf(filePath));
+    if (localStat && isCurrent({ localSize: localStat.size, recorded, cloud: info })) {
+        if (!recorded && info.id) await rememberCloudFile(pathKeyOf(filePath), { collection: 'curriculum', ...info });
         return { file: filePath, status: 'skipped' };
     }
 
-    const res = await fetch(cloudFileUrl);
-    if (!res.ok) throw new Error(`Failed to download: ${cloudFileUrl}`);
+    const res = await cloudFetch(contentPath);
+    if (!res.ok) throw new Error(`Failed to download: ${contentPath}`);
 
-    const writeStream = fs.createWriteStream(localPath);
-
+    // Written next to the file and renamed when complete, so a dropped link never leaves half a file.
+    const partial = `${localPath}.part`;
+    const writeStream = fs.createWriteStream(partial);
     try {
         for await (const chunk of res.body) {
             writeStream.write(chunk);
         }
         writeStream.end();
         await new Promise(resolve => writeStream.on('finish', resolve));
+        fs.renameSync(partial, localPath);
     } catch (err) {
         writeStream.destroy();
+        fs.rmSync(partial, { force: true });
         throw err;
     }
+    if (info.id) await rememberCloudFile(pathKeyOf(filePath), { collection: 'curriculum', ...info });
 
-    return { file: filePath, status: 'downloaded' };
+    return { file: filePath, status: localStat ? 'updated' : 'downloaded' };
 }
 
 // Background download helper
@@ -184,11 +196,17 @@ async function startDownload(files) {
     downloadStatus = "downloading";
     downloading = true;
     try {
-        const fileTasks = files.map(f => () => downloadFile(f));
+        let catalogue = new Map();
+        try {
+            catalogue = flattenTree(await fetchCloudTree());
+        } catch (err) {
+            console.error('Could not read the cloud catalogue; comparing sizes only:', err.message);
+        }
+        const fileTasks = files.map(f => () => downloadFile(f, catalogue.get(f)));
         const results = await limitConcurrency(fileTasks, MAX_CONCURRENT);
 
         // Explore follows the disk: index what arrived (covers are made in the background).
-        await syncExploreIndex({ root: 'rwandan-education' });
+        await syncExploreIndex({ root: ROOT_KEY });
 
         downloadStatus = "finished";
         return results;
@@ -258,8 +276,10 @@ router.post('/delete', async (req, res) => {
 
         }
 
+        for (const relPath of paths) await forgetCloudFiles(pathKeyOf(relPath));
+
         // 2. Explore follows the disk: drop what was deleted from the index.
-        await syncExploreIndex({ root: 'rwandan-education' });
+        await syncExploreIndex({ root: ROOT_KEY });
 
         res.json({ message: 'Content deleted successfully' });
     } catch (err) {

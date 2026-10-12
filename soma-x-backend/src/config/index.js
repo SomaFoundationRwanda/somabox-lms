@@ -11,6 +11,9 @@ const ROOT_DIR = path.join(__dirname, '../../');
 export const config = {
     port: process.env.PORT || 3000,
     cloudUrl: process.env.CLOUD_URL || 'http://localhost:2999',
+    // The box's key on the soma-x-server (VPS). The same key is used for sync (SYNC_TOKEN), so
+    // one key per box is enough; CLOUD_TOKEN only needs setting if they differ.
+    cloudToken: process.env.CLOUD_TOKEN || process.env.SYNC_TOKEN || '',
     db: {
         connectionString: process.env.DATABASE_URL || undefined,
         host: process.env.PGHOST || 'localhost',
