@@ -180,6 +180,9 @@ export default {
     "target": "Intego: {outcomes}",
     "outcomeTagged": "Ifite intego",
     "missingOutcome": "Nta ntego ifite",
+    "prerequisites": "Ibisabwa mbere: {list}",
+    "points": "amanota {n}",
+    "complete": "Byarangiye",
     "status": {
       "upcoming": "Ntirarafungurwa",
       "past_due": "Igihe cyarenze",

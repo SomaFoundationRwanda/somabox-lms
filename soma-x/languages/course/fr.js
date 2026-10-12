@@ -180,6 +180,9 @@ export default {
     "target": "Objectif : {outcomes}",
     "outcomeTagged": "Objectif associé",
     "missingOutcome": "Objectif manquant",
+    "prerequisites": "Prérequis : {list}",
+    "points": "{n} pts",
+    "complete": "Terminé",
     "status": {
       "upcoming": "Pas encore ouvert",
       "past_due": "En retard",

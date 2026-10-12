@@ -180,6 +180,9 @@ export default {
     "target": "Lengo: {outcomes}",
     "outcomeTagged": "Lina lengo",
     "missingOutcome": "Lengo halipo",
+    "prerequisites": "Mahitaji ya awali: {list}",
+    "points": "alama {n}",
+    "complete": "Imekamilika",
     "status": {
       "upcoming": "Bado haijafunguliwa",
       "past_due": "Muda umepita",

@@ -439,13 +439,13 @@ export default function ModulesPage() {
         {/* Module list with drag-and-drop */}
         {modules && modules.length > 0 && (
           isTeacher ? (
-            <div className="space-y-8">
+            <div className="space-y-10">
               <Suspense fallback={modules.map((moduleRow) => renderTeacherModule(moduleRow))}>
                 <SortableModuleList modules={modules} onReorder={handleModuleReorder} renderModule={renderTeacherModule} />
               </Suspense>
             </div>
           ) : (
-            <div className="space-y-8">
+            <div className="space-y-10">
               {modules.map((moduleRow) => (
                 <ModuleCard
                   key={moduleRow.id}

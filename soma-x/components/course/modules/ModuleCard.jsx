@@ -3,7 +3,7 @@
 import { useState, lazy, Suspense } from "react";
 import Link from "next/link";
 import {
-  Eye, EyeOff, Trash2, GripVertical, Plus, ChevronDown, ChevronRight, Pencil, Sparkles,
+  Eye, EyeOff, Trash2, GripVertical, Plus, ChevronDown, ChevronRight, Pencil, Sparkles, Check,
 } from "lucide-react";
 import ModuleItemRow from "./ModuleItemRow";
 import { useToast } from "@/context/ToastContext";
@@ -20,7 +20,7 @@ async function readError(res, fallback) {
   return payload?.message || fallback;
 }
 
-// File name kept for import stability; renders a flat, dated module section.
+// File name kept for import stability; renders one module: a header bar and its item rows.
 export default function ModuleCard({
   module: moduleRow,
   courseId,
@@ -137,12 +137,21 @@ export default function ModuleCard({
     onRefetch();
   };
 
+  // Items that follow a group label (a sub-header such as "Pre-work") are indented under it.
+  const groupedIds = new Set();
+  let inGroup = false;
+  for (const item of moduleRow.items) {
+    if (item.item_type === "sub_header") inGroup = true;
+    else if (inGroup) groupedIds.add(item.id);
+  }
+
   const renderItem = (item, itemDnd = null) => (
     <ModuleItemRow
       key={item.id}
       item={item}
       courseId={courseId}
       isTeacher={isTeacher}
+      grouped={groupedIds.has(item.id)}
       dnd={itemDnd}
       onTogglePublish={() => toggleItemPublish(item)}
       onEdit={() => onEditItem(moduleRow, item)}
@@ -156,20 +165,33 @@ export default function ModuleCard({
     : !moduleRow.published && isTeacher
       ? "border-dashed border-slate-300 dark:border-slate-700"
       : "border-slate-200 dark:border-slate-800";
+  // Prerequisites and completion are shown when the module data carries them.
+  const prerequisites = Array.isArray(moduleRow.prerequisites) ? moduleRow.prerequisites.filter(Boolean) : [];
+  const isComplete = moduleRow.completed === true || moduleRow.complete === true;
 
-  // A dated module section: a header row (week, title, dates, status, actions) followed by
-  // its items as rows in ONE list. Not a card: the only bordered box is the item list.
+  // Clicking anywhere on the header bar (outside its buttons and fields) collapses the module.
+  const onHeaderClick = (e) => {
+    if (e.target.closest("button, a, input, form, [role='dialog']")) return;
+    setCollapsed((v) => !v);
+  };
+
+  // One module: a full-width header bar and, under it, its items as rows in the same bordered box.
   return (
     <section
       ref={dnd?.setNodeRef}
       style={dnd?.style}
       aria-label={`${weekLabel(moduleRow)}: ${moduleRow.title}`}
-      className={`space-y-2 ${dnd?.isDragging ? "opacity-50" : ""}`}
+      className={`rounded-md border overflow-hidden ${listBorder} ${dnd?.isDragging ? "opacity-50" : ""}`}
       {...(dnd?.attributes || {})}
     >
-      {/* Section header row */}
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0 flex-1 flex-wrap">
+      {/* Module header bar */}
+      <div
+        onClick={onHeaderClick}
+        className={`flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 px-4 py-3 cursor-pointer select-none ${
+          isUnassigned ? "bg-amber-50/60 dark:bg-amber-950/20" : "bg-slate-50 dark:bg-slate-900/40"
+        } ${collapsed ? "" : `border-b ${listBorder}`}`}
+      >
+        <div className="flex items-center gap-2 min-w-0 flex-1">
           {isTeacher && (
             <button {...(dnd?.listeners || {})} aria-label={t("modules.dragModule")} className="cursor-grab active:cursor-grabbing p-0.5 text-slate-300 hover:text-slate-500 shrink-0 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]">
               <GripVertical className="w-4 h-4" />
@@ -180,17 +202,10 @@ export default function ModuleCard({
             onClick={() => setCollapsed((v) => !v)}
             aria-expanded={!collapsed}
             aria-label={collapsed ? t("modules.expandModule") : t("modules.collapseModule")}
-            className="p-0.5 text-slate-400 hover:text-slate-600 shrink-0"
+            className="p-0.5 text-slate-500 hover:text-slate-700 shrink-0"
           >
             {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
-          <span className={`text-xs font-bold px-2.5 py-0.5 rounded-md shrink-0 border ${
-            isUnassigned ? "text-amber-700 bg-amber-50 border-amber-200" : "text-[var(--brand-secondary)] bg-teal-50 border-teal-200"
-          }`}>
-            {weekLabel(moduleRow)}
-          </span>
-          {isUnassigned ? <Explainer k="pages.unassigned" variant="icon" /> : null}
-          {moduleRow.kind === "baseline" ? <Explainer k="pages.baseline" variant="icon" /> : null}
           {editingTitle ? (
             <input
               value={titleDraft}
@@ -203,81 +218,86 @@ export default function ModuleCard({
             />
           ) : (
             <h2
-              className="text-base font-bold text-slate-900 dark:text-white truncate cursor-default"
+              className={`text-base font-bold truncate ${isUnassigned ? "text-amber-800 dark:text-amber-300" : "text-slate-900 dark:text-white"}`}
               onDoubleClick={() => isTeacher && setEditingTitle(true)}
             >
-              {moduleRow.title}
+              {weekLabel(moduleRow)} - {moduleRow.title}
             </h2>
           )}
+          {isUnassigned ? <Explainer k="pages.unassigned" variant="icon" /> : null}
+          {moduleRow.kind === "baseline" ? <Explainer k="pages.baseline" variant="icon" /> : null}
           {!isUnassigned && (
-            <span className={`text-xs font-medium shrink-0 ${moduleRow.status === "past" ? "text-slate-400" : "text-slate-600 dark:text-slate-300"}`}>
+            <span className={`hidden sm:inline text-xs shrink-0 ${moduleRow.status === "past" ? "text-slate-400" : "text-slate-500 dark:text-slate-400"}`}>
               {hasDates ? formatRange(moduleRow.startDate, moduleRow.endDate) : t("home.noDatesYet")}
-            </span>
-          )}
-          {!isUnassigned && moduleRow.status === "current" && (
-            <span className="text-[11px] font-bold uppercase text-white bg-[var(--brand-secondary)] px-1.5 py-0.5 rounded shrink-0">
-              {t("home.current")}
-            </span>
-          )}
-          {!isUnassigned && moduleRow.status === "past" && (
-            <span className="text-[11px] font-semibold uppercase text-slate-400 border border-slate-200 px-1.5 py-0.5 rounded shrink-0">
-              {t("modules.past")}
-            </span>
-          )}
-          {!moduleRow.published && isTeacher && (
-            <span className="text-[11px] font-bold uppercase text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded shrink-0">
-              {t("common.draft")}
             </span>
           )}
         </div>
 
-        {isTeacher && (
-          <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
-            {isUnassigned ? null : ai?.status?.allowed ? (
-              <>
-                <button
-                  type="button"
-                  onClick={startFillWeek}
-                  disabled={aiBusy === "fill_week" || fillRunning}
-                  className="flex items-center gap-1 text-[11px] font-semibold text-teal-800 bg-teal-50 border border-teal-200 hover:bg-teal-100 disabled:opacity-50 px-2.5 py-1 rounded-lg transition-colors"
-                  title={fillRunning ? t("modules.ai.fillRunningHint") : t("modules.ai.fillHint")}
-                >
-                  <Sparkles className="w-3 h-3 text-[var(--brand-secondary)]" /> {fillRunning ? t("modules.ai.filling") : t("modules.ai.fillWeek")}
+        <div className="flex items-center gap-3 shrink-0 flex-wrap">
+          {prerequisites.length > 0 ? (
+            <span className="text-xs text-slate-500 dark:text-slate-400">
+              {tf("modules.prerequisites", { list: prerequisites.join(", ") })}
+            </span>
+          ) : null}
+          {!isUnassigned && moduleRow.status === "current" ? (
+            <span className="text-xs font-semibold text-[var(--brand-secondary)]">{t("home.current")}</span>
+          ) : null}
+          {!isUnassigned && moduleRow.status === "past" ? (
+            <span className="text-xs text-slate-400">{t("modules.past")}</span>
+          ) : null}
+          {!moduleRow.published && isTeacher ? (
+            <span className="text-xs font-semibold text-amber-600">{t("common.draft")}</span>
+          ) : null}
+          {isComplete ? <Check className="w-4 h-4 text-emerald-600" aria-label={t("modules.complete")} /> : null}
+
+          {isTeacher && (
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {isUnassigned ? null : ai?.status?.allowed ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={startFillWeek}
+                    disabled={aiBusy === "fill_week" || fillRunning}
+                    className="flex items-center gap-1 text-[11px] font-semibold text-teal-800 bg-teal-50 border border-teal-200 hover:bg-teal-100 disabled:opacity-50 px-2.5 py-1 rounded-lg transition-colors"
+                    title={fillRunning ? t("modules.ai.fillRunningHint") : t("modules.ai.fillHint")}
+                  >
+                    <Sparkles className="w-3 h-3 text-[var(--brand-secondary)]" /> {fillRunning ? t("modules.ai.filling") : t("modules.ai.fillWeek")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStoryOpen((v) => !v)}
+                    aria-expanded={storyOpen}
+                    disabled={storyRunning}
+                    className="flex items-center gap-1 text-[11px] font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 px-2.5 py-1 rounded-lg transition-colors"
+                    title={storyRunning ? t("modules.ai.storyRunningHint") : t("modules.ai.storyHint")}
+                  >
+                    <Sparkles className="w-3 h-3 text-slate-500" /> {storyRunning ? t("modules.ai.writingStoryShort") : t("modules.ai.story")}
+                  </button>
+                </>
+              ) : ai?.status && !ai.status.loading && ai.status.reason ? (
+                <span className="text-[11px] text-slate-400" title={ai.status.reason}>
+                  <Sparkles className="inline w-3 h-3 mr-0.5" aria-hidden="true" />{t("modules.ai.off")}
+                  <span className="sr-only">: {ai.status.reason}</span>
+                </span>
+              ) : null}
+              {!editingTitle && (
+                <button onClick={() => { setTitleDraft(moduleRow.title); setEditingTitle(true); }} className="p-1.5 rounded-md hover:bg-slate-100 text-slate-400" title={t("modules.rename")} aria-label={t("modules.renameModule")}>
+                  <Pencil className="w-3.5 h-3.5" />
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setStoryOpen((v) => !v)}
-                  aria-expanded={storyOpen}
-                  disabled={storyRunning}
-                  className="flex items-center gap-1 text-[11px] font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 px-2.5 py-1 rounded-lg transition-colors"
-                  title={storyRunning ? t("modules.ai.storyRunningHint") : t("modules.ai.storyHint")}
-                >
-                  <Sparkles className="w-3 h-3 text-slate-500" /> {storyRunning ? t("modules.ai.writingStoryShort") : t("modules.ai.story")}
-                </button>
-              </>
-            ) : ai?.status && !ai.status.loading && ai.status.reason ? (
-              <span className="text-[11px] text-slate-400" title={ai.status.reason}>
-                <Sparkles className="inline w-3 h-3 mr-0.5" aria-hidden="true" />{t("modules.ai.off")}
-                <span className="sr-only">: {ai.status.reason}</span>
-              </span>
-            ) : null}
-            {!editingTitle && (
-              <button onClick={() => { setTitleDraft(moduleRow.title); setEditingTitle(true); }} className="p-1.5 rounded-md hover:bg-slate-100 text-slate-400" title={t("modules.rename")} aria-label={t("modules.renameModule")}>
-                <Pencil className="w-3.5 h-3.5" />
+              )}
+              <button onClick={togglePublish} className="p-1.5 rounded-md hover:bg-slate-100 text-slate-500" title={moduleRow.published ? t("modules.unpublish") : t("modules.publish")} aria-label={moduleRow.published ? t("modules.unpublishModule") : t("modules.publishModule")}>
+                {moduleRow.published ? <Eye className="w-4 h-4 text-emerald-600" /> : <EyeOff className="w-4 h-4" />}
               </button>
-            )}
-            <button onClick={togglePublish} className="p-1.5 rounded-md hover:bg-slate-100 text-slate-500" title={moduleRow.published ? t("modules.unpublish") : t("modules.publish")} aria-label={moduleRow.published ? t("modules.unpublishModule") : t("modules.publishModule")}>
-              {moduleRow.published ? <Eye className="w-4 h-4 text-emerald-600" /> : <EyeOff className="w-4 h-4" />}
-            </button>
-            <button onClick={deleteModule} className="p-1.5 rounded-md hover:bg-rose-50 text-rose-500" title={t("modules.deleteModule")} aria-label={t("modules.deleteModule")}>
-              <Trash2 className="w-4 h-4" />
-            </button>
-          </div>
-        )}
+              <button onClick={deleteModule} className="p-1.5 rounded-md hover:bg-rose-50 text-rose-500" title={t("modules.deleteModule")} aria-label={t("modules.deleteModule")}>
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {isTeacher && storyOpen ? (
-        <form onSubmit={startStory} className="flex flex-wrap items-end gap-2">
+        <form onSubmit={startStory} className="flex flex-wrap items-end gap-2 px-5 py-3 border-b border-slate-100 dark:border-slate-800">
           <div className="flex-1 min-w-[12rem]">
             <label htmlFor={`story-idea-${moduleRow.id}`} className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5">
               {tf("modules.ai.storyIdeaFor", { week: weekLabel(moduleRow) })}
@@ -300,7 +320,7 @@ export default function ModuleCard({
       ) : null}
 
       {isTeacher && (aiNote || moduleJobs.length > 0) ? (
-        <p role="status" className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-600 dark:text-slate-300">
+        <p role="status" className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-600 dark:text-slate-300 px-5 py-2.5 border-b border-slate-100 dark:border-slate-800">
           <Sparkles className="w-3.5 h-3.5 text-[var(--brand-secondary)]" aria-hidden="true" />
           <span>{moduleJobs.length > 0 ? t("modules.ai.beingWritten") : aiNote}</span>
           <Link href={`/course/${courseId}/ai`} className="font-semibold text-[var(--brand-secondary)] hover:underline">{t("modules.ai.openDrafts")}</Link>
@@ -311,7 +331,7 @@ export default function ModuleCard({
       ) : null}
 
       {isUnassigned && moduleRow.items.length > 0 && (
-        <p className="text-xs font-medium text-amber-800 dark:text-amber-300">
+        <p className="text-xs font-medium text-amber-800 dark:text-amber-300 px-5 py-2.5 border-b border-amber-200 dark:border-amber-900">
           ⚠️ {t("modules.unassignedWarning")}
         </p>
       )}
@@ -320,12 +340,12 @@ export default function ModuleCard({
       {!collapsed && (
         <ul
           aria-label={tf("modules.itemsIn", { title: moduleRow.title })}
-          className={`divide-y divide-slate-100 dark:divide-slate-800 rounded-xl border overflow-hidden ${listBorder} ${
+          className={`divide-y divide-slate-200 dark:divide-slate-800 ${
             isUnassigned ? "bg-amber-50/40 dark:bg-amber-950/10" : "bg-white dark:bg-transparent"
           }`}
         >
           {moduleRow.items.length === 0 && (
-            <li className="text-xs text-slate-400 px-4 py-3 italic">{t("modules.noItems")}</li>
+            <li className="text-xs text-slate-400 px-5 py-3.5 italic">{t("modules.noItems")}</li>
           )}
 
           {isTeacher ? (
@@ -341,7 +361,7 @@ export default function ModuleCard({
             <li>
               <button
                 onClick={() => onAddItem(moduleRow)}
-                className="flex items-center gap-1.5 text-xs font-semibold text-[var(--brand-primary)] dark:text-teal-300 px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-900/40 w-full text-left transition-colors"
+                className="flex items-center gap-1.5 text-xs font-semibold text-[var(--brand-primary)] dark:text-teal-300 px-5 py-3.5 hover:bg-slate-50 dark:hover:bg-slate-900/40 w-full text-left transition-colors"
               >
                 <Plus className="w-3.5 h-3.5" /> {t("modules.addItem")}
               </button>
