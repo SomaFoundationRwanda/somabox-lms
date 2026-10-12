@@ -54,6 +54,8 @@ FIREBASE_SERVICE_ACCOUNT_PATH=/etc/somabox/firebase-service-account.json
 ```
 
 #### With soma-x-server (the SOMABOX VPS)
+Full box installation, including this step: [docs/ops-box-setup.md](../docs/ops-box-setup.md).
+
 [soma-x-server](https://github.com/SomaFoundationRwanda/soma-x-server) receives the outbox and
 serves the cloud content catalogue. Each box has its own key:
 
