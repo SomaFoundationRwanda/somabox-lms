@@ -296,6 +296,7 @@ export default {
     "instructionsPlaceholder": "Instrucciones de la tarea...",
     "pointsPossible": "Puntos posibles",
     "assignmentRubric": "Rúbrica de la tarea",
+    "rubricLater": "Después de guardar, abre la tarea para añadir su rúbrica (puedes prepararla con IA allí).",
     "assignmentOutcomes": "Resultados que evalúa esta tarea",
     "assignmentOutcomesHelp": "Elige al menos uno. Sin un resultado, la tarea se guarda sin publicar y los estudiantes no la ven.",
     "noOutcomesYet": "Este curso aún no tiene resultados.",

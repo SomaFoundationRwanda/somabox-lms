@@ -296,6 +296,7 @@ export default {
     "instructionsPlaceholder": "Assignment instructions...",
     "pointsPossible": "Points possible",
     "assignmentRubric": "Assignment rubric",
+    "rubricLater": "After saving, open the assignment to add its rubric (you can draft it with AI there).",
     "assignmentOutcomes": "Outcomes this assignment assesses",
     "assignmentOutcomesHelp": "Pick at least one. Without an outcome the assignment is saved unpublished and learners can't see it.",
     "noOutcomesYet": "This course has no outcomes yet.",

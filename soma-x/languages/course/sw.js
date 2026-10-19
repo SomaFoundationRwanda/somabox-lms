@@ -296,6 +296,7 @@ export default {
     "instructionsPlaceholder": "Maelekezo ya kazi...",
     "pointsPossible": "Alama zinazowezekana",
     "assignmentRubric": "Rubriki ya kazi",
+    "rubricLater": "Baada ya kuhifadhi, fungua kazi ili kuongeza rubriki yake (unaweza kuiandaa kwa AI hapo).",
     "assignmentOutcomes": "Malengo yanayopimwa na kazi hii",
     "assignmentOutcomesHelp": "Chagua angalau moja. Bila lengo, kazi huhifadhiwa bila kuchapishwa na wanafunzi hawaioni.",
     "noOutcomesYet": "Kozi hii bado haina malengo.",

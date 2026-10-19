@@ -296,6 +296,7 @@ export default {
     "instructionsPlaceholder": "Consignes du devoir...",
     "pointsPossible": "Points possibles",
     "assignmentRubric": "Grille d'évaluation du devoir",
+    "rubricLater": "Après l'enregistrement, ouvrez le devoir pour ajouter sa grille d'évaluation (vous pouvez la préparer avec l'IA).",
     "assignmentOutcomes": "Objectifs évalués par ce devoir",
     "assignmentOutcomesHelp": "Choisissez-en au moins un. Sans objectif, le devoir est enregistré non publié et les apprenants ne le voient pas.",
     "noOutcomesYet": "Ce cours n'a pas encore d'objectifs.",

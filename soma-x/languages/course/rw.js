@@ -296,6 +296,7 @@ export default {
     "instructionsPlaceholder": "Amabwiriza y'inshingano...",
     "pointsPossible": "Amanota yose ashoboka",
     "assignmentRubric": "Ibipimo by'amanota by'inshingano",
+    "rubricLater": "Numara kubika, fungura inshingano wongeremo ibipimo by'amanota byazo (ushobora kubitegura ukoresheje AI).",
     "assignmentOutcomes": "Intego izi nshingano zisuzuma",
     "assignmentOutcomesHelp": "Hitamo nibura imwe. Zidafite intego, inshingano zibikwa zitatangajwe kandi abanyeshuri ntibazibona.",
     "noOutcomesYet": "Iri somo nta ntego rirafite.",
