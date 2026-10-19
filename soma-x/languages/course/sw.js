@@ -656,6 +656,18 @@ export default {
     "email": "Anwani ya barua pepe",
     "role": "Jukumu",
     "filterByRole": "Chuja kwa jukumu",
+    "join": {
+      "title": "Msimbo wa kujiunga",
+      "help": "Wanafunzi huandika msimbo huu kwenye \"Jiunge kwa msimbo\" katika Gundua kozi ili kujiunga wenyewe. Hakuna barua pepe inayohitajika.",
+      "off": "Kujiunga kwa msimbo kumezimwa kwa kozi hii.",
+      "turnOn": "Washa msimbo wa kujiunga",
+      "newCode": "Msimbo mpya",
+      "turnOff": "Zima",
+      "confirmNew": "Tengeneza msimbo mpya? Msimbo wa sasa utaacha kufanya kazi.",
+      "failed": "Imeshindwa kubadilisha msimbo wa kujiunga",
+      "draftNote": "Wanafunzi wanaweza kujiunga kozi ikishafunguliwa.",
+      "orEmail": "Au ongeza mtu kwa barua pepe"
+    },
     "all": "Wote",
     "empty": "Hakuna mtu hapa bado.",
     "members": "Wanachama wa kozi",

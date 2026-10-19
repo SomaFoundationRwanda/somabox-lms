@@ -166,6 +166,17 @@ export default {
     "discover": {
         "loadFailed": "Impossible de charger les cours",
         "joinFailed": "Impossible de rejoindre le cours",
+        "code": {
+          "title": "Rejoindre avec un code",
+          "help": "Saisissez le code donné par votre enseignant.",
+          "placeholder": "ex. K7M4QX",
+          "button": "Rejoindre",
+          "errors": {
+            "INVALID_CODE": "Aucun cours n'a ce code. Vérifiez-le avec votre enseignant.",
+            "NOT_OPEN": "Ce cours n'est pas encore ouvert. Demandez à votre enseignant.",
+            "TOO_MANY": "Trop de codes erronés. Attendez quelques minutes et réessayez."
+          }
+        },
         "subtitle": "Parcourez les cours publics et rejoignez-les tout de suite, sans invitation",
         "empty": "Aucun cours public pour le moment. Revenez plus tard.",
         "oneEnrolled": "1 élève",

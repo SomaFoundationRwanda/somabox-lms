@@ -7,6 +7,7 @@ import { ChevronRight, Plus, X } from "lucide-react"
 import DataContext from "@/context/DataContext"
 import ProfileCompletionBanner from "@/components/notifications/ProfileCompletionBanner"
 import CreateCourseModal from "@/components/teacher/CreateCourseModal"
+import JoinCodePanel from "@/components/teacher/JoinCodePanel"
 import { useLanguage } from "@/context/LanguageContext"
 import { fill } from "@/lib/fill"
 import Loader from "@/components/ui/Loader";
@@ -138,6 +139,10 @@ export default function TeacherDashboardPage() {
 
       {studentModal && (
         <Modal title={fill(t("teacher.dashboard.addStudentTo"), { course: courses.find(c => c.id === studentModal)?.title || "" })} onClose={() => setStudentModal(null)} dirty={Boolean(studentEmail.trim())}>
+          <div className="mb-4">
+            <JoinCodePanel SERVER_URL={SERVER_URL} courseId={studentModal} isDraft={courses.find((c) => c.id === studentModal)?.lifecycle === "draft"} />
+          </div>
+          <p className="text-xs font-semibold text-slate-600 mb-1.5">{t("course.people.join.orEmail")}</p>
           <input aria-label={t("teacher.dashboard.studentEmail")}
             type="email"
             placeholder={t("teacher.dashboard.studentEmail")}

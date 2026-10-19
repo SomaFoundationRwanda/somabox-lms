@@ -656,6 +656,18 @@ export default {
     "email": "Aderesi ya imeli",
     "role": "Uruhare",
     "filterByRole": "Shungura ukurikije uruhare",
+    "join": {
+      "title": "Kode yo kwinjira",
+      "help": "Abanyeshuri bandika iyi kode muri \"Injira ukoresheje kode\" ku paji yo Gushaka amasomo kugira ngo biyandikishe ubwabo. Nta imeli ikenewe.",
+      "off": "Kwinjira ukoresheje kode birafunze kuri iri somo.",
+      "turnOn": "Fungura kode yo kwinjira",
+      "newCode": "Kode nshya",
+      "turnOff": "Funga",
+      "confirmNew": "Gukora kode nshya? Iyari isanzwe ntizongera gukora.",
+      "failed": "Ntibyakunze guhindura kode yo kwinjira",
+      "draftNote": "Abanyeshuri bazinjira isomo nirimara gufungurwa.",
+      "orEmail": "Cyangwa wongeremo umuntu ukoresheje imeli"
+    },
     "all": "Bose",
     "empty": "Nta muntu urajyamo.",
     "members": "Abagize isomo",

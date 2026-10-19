@@ -656,6 +656,18 @@ export default {
     "email": "Adresse e-mail",
     "role": "Rôle",
     "filterByRole": "Filtrer par rôle",
+    "join": {
+      "title": "Code d'accès",
+      "help": "Les élèves saisissent ce code dans « Rejoindre avec un code » sur Découvrir des cours pour s'inscrire eux-mêmes. Aucun e-mail nécessaire.",
+      "off": "L'inscription par code est désactivée pour ce cours.",
+      "turnOn": "Activer le code d'accès",
+      "newCode": "Nouveau code",
+      "turnOff": "Désactiver",
+      "confirmNew": "Créer un nouveau code ? L'actuel ne fonctionnera plus.",
+      "failed": "Impossible de modifier le code d'accès",
+      "draftNote": "Les élèves pourront s'inscrire une fois le cours ouvert.",
+      "orEmail": "Ou ajoutez quelqu'un par e-mail"
+    },
     "all": "Tous",
     "empty": "Personne pour l'instant.",
     "members": "Membres du cours",

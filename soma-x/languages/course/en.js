@@ -656,6 +656,18 @@ export default {
     "email": "Email address",
     "role": "Role",
     "filterByRole": "Filter by role",
+    "join": {
+      "title": "Join code",
+      "help": "Learners type this code under \"Join with a code\" on Discover courses to join by themselves. No email needed.",
+      "off": "Joining by code is off for this course.",
+      "turnOn": "Turn on join code",
+      "newCode": "New code",
+      "turnOff": "Turn off",
+      "confirmNew": "Make a new code? The current one will stop working.",
+      "failed": "Couldn't change the join code",
+      "draftNote": "Learners can join once the course is open.",
+      "orEmail": "Or add someone by email"
+    },
     "all": "All",
     "empty": "No one here yet.",
     "members": "Course members",

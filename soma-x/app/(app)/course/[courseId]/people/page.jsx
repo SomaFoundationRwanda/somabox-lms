@@ -9,11 +9,12 @@ import Breadcrumbs from "@/components/course/Breadcrumbs";
 import AsyncListState from "@/components/course/AsyncListState";
 import { PageHeader, DataTable } from "@/components/layout";
 import { useCourseText } from "@/components/course/useCourseText";
+import JoinCodePanel from "@/components/teacher/JoinCodePanel";
 
 const ROLE_OPTIONS = ["teacher", "ta", "student", "observer"];
 
 export default function PeoplePage() {
-  const { SERVER_URL, courseId, isTeacher } = useCourse();
+  const { SERVER_URL, courseId, isTeacher, course } = useCourse();
   const { t, tf, tOr } = useCourseText();
   const roleLabel = (r) => tOr(`people.roles.${r}`, r);
   const { data: people, loading, error, refetch } = useCourseSection("people");
@@ -67,6 +68,9 @@ export default function PeoplePage() {
             </button>
           ) : null}
         />
+
+        {/* Learners join with the code; email is for the few who have one (and for staff). */}
+        {isTeacher ? <JoinCodePanel SERVER_URL={SERVER_URL} courseId={courseId} isDraft={course?.lifecycle === "draft"} /> : null}
 
         {adding ? (
           <div className="flex flex-wrap items-center gap-2">

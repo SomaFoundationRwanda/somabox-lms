@@ -166,6 +166,17 @@ export default {
     "discover": {
         "loadFailed": "Couldn't load the courses",
         "joinFailed": "Couldn't join the course",
+        "code": {
+          "title": "Join with a code",
+          "help": "Type the code your teacher gave you.",
+          "placeholder": "e.g. K7M4QX",
+          "button": "Join",
+          "errors": {
+            "INVALID_CODE": "No course has this code. Check it with your teacher.",
+            "NOT_OPEN": "This course isn't open yet. Ask your teacher.",
+            "TOO_MANY": "Too many wrong codes. Wait a few minutes and try again."
+          }
+        },
         "subtitle": "Browse public courses and join straight away — no invitation needed",
         "empty": "No public courses are available right now. Check back later.",
         "oneEnrolled": "1 learner",

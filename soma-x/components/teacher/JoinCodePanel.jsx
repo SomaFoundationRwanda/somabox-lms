@@ -1,0 +1,78 @@
+"use client"
+import { useEffect, useState } from "react"
+import { KeyRound, RefreshCw } from "lucide-react"
+import { useLanguage } from "@/context/LanguageContext"
+
+// A course's join code (teachers only): learners type it on Discover courses to join by themselves,
+// so they don't need an email address. Off until the teacher turns it on.
+export default function JoinCodePanel({ SERVER_URL, courseId, isDraft = false }) {
+  const { t } = useLanguage()
+  const tj = (key) => t(`course.people.join.${key}`)
+  const [code, setCode] = useState(undefined) // undefined: loading; null: off
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState("")
+
+  useEffect(() => {
+    if (!SERVER_URL || !courseId) return undefined
+    let alive = true
+    fetch(`${SERVER_URL}/courses/${courseId}/join-code`)
+      .then((res) => (res.ok ? res.json() : { code: null }))
+      .then((data) => { if (alive) setCode(data.code ?? null) })
+      .catch(() => { if (alive) setCode(null) })
+    return () => { alive = false }
+  }, [SERVER_URL, courseId])
+
+  const change = async (action) => {
+    if (action === "new" && !window.confirm(tj("confirmNew"))) return
+    setBusy(true)
+    setError("")
+    try {
+      const res = await fetch(`${SERVER_URL}/courses/${courseId}/join-code`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error()
+      setCode(data.code ?? null)
+    } catch {
+      setError(tj("failed"))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (code === undefined) return null
+
+  const button = "inline-flex items-center gap-1.5 text-xs font-semibold rounded-lg px-3 py-2 transition-colors disabled:opacity-50"
+  return (
+    <section aria-labelledby={`join-code-${courseId}`} className="space-y-2 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+      <h3 id={`join-code-${courseId}`} className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+        <KeyRound className="w-4 h-4 text-[var(--brand-secondary)]" aria-hidden="true" /> {tj("title")}
+      </h3>
+      {code ? (
+        <>
+          <p className="text-3xl font-mono font-bold tracking-[0.3em] text-slate-900 dark:text-white select-all" aria-live="polite">{code}</p>
+          <p className="text-xs text-slate-600 dark:text-slate-400">{tj("help")}</p>
+          {isDraft ? <p className="text-xs text-amber-800">{tj("draftNote")}</p> : null}
+          <div className="flex flex-wrap gap-2 pt-1">
+            <button type="button" onClick={() => change("new")} disabled={busy} className={`${button} text-slate-700 border border-slate-200 hover:bg-slate-50`}>
+              <RefreshCw className="w-3.5 h-3.5" aria-hidden="true" /> {tj("newCode")}
+            </button>
+            <button type="button" onClick={() => change("off")} disabled={busy} className={`${button} text-rose-700 border border-rose-200 hover:bg-rose-50`}>
+              {tj("turnOff")}
+            </button>
+          </div>
+        </>
+      ) : (
+        <>
+          <p className="text-xs text-slate-600 dark:text-slate-400">{tj("off")} {tj("help")}</p>
+          <button type="button" onClick={() => change("on")} disabled={busy} className={`${button} text-white bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-dark)]`}>
+            <KeyRound className="w-3.5 h-3.5" aria-hidden="true" /> {tj("turnOn")}
+          </button>
+        </>
+      )}
+      {error ? <p role="alert" className="text-xs text-rose-600">{error}</p> : null}
+    </section>
+  )
+}

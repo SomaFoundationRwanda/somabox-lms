@@ -656,6 +656,18 @@ export default {
     "email": "Correo electrónico",
     "role": "Rol",
     "filterByRole": "Filtrar por rol",
+    "join": {
+      "title": "Código de acceso",
+      "help": "Los estudiantes escriben este código en «Unirse con un código» en Descubrir cursos para inscribirse solos. No hace falta correo.",
+      "off": "La inscripción con código está desactivada en este curso.",
+      "turnOn": "Activar código de acceso",
+      "newCode": "Nuevo código",
+      "turnOff": "Desactivar",
+      "confirmNew": "¿Crear un código nuevo? El actual dejará de funcionar.",
+      "failed": "No se pudo cambiar el código de acceso",
+      "draftNote": "Los estudiantes podrán unirse cuando el curso esté abierto.",
+      "orEmail": "O añade a alguien por correo"
+    },
     "all": "Todos",
     "empty": "Aún no hay nadie.",
     "members": "Miembros del curso",
