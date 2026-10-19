@@ -139,6 +139,7 @@ export default {
           },
           "warnings": {
             "unassessed_outcomes": "Malengo yasiyopimwa na kazi yoyote ya alama ({n}): {titles}",
+            "baseline_pending": "Tathmini ya awali (Wiki 0) bado haijaidhinishwa wala kurukwa, kwa hiyo kiwango cha kuanzia cha wanafunzi hakitapimwa. Unaweza kufanya hivyo baadaye.",
             "unpublished_weeks": "Wiki zenye maudhui ambazo wanafunzi hawaoni kwa sababu hazijachapishwa: {n}",
             "no_due_date": "Kazi au majaribio yasiyo na tarehe ya mwisho: {n}",
             "empty_weeks": "Wiki ambazo bado hazina maudhui ({n}): {titles}",

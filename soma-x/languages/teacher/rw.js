@@ -139,6 +139,7 @@ export default {
           },
           "warnings": {
             "unassessed_outcomes": "Intego zidasuzumwa n'umurimo n'umwe ukosorwa ({n}): {titles}",
+            "baseline_pending": "Isuzuma ry'ibanze (Icyumweru 0) ntiriremezwa cyangwa ngo risimbukwe, bityo urwego abanyeshuri batangiriyeho ntiruzapimwa. Ushobora kubikora nyuma.",
             "unpublished_weeks": "Ibyumweru bifite ibyigwa abanyeshuri batabona kuko bitatangajwe: {n}",
             "no_due_date": "Inshingano cyangwa amasuzuma adafite itariki ntarengwa: {n}",
             "empty_weeks": "Ibyumweru bitarabona ibyigwa ({n}): {titles}",

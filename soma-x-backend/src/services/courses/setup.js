@@ -157,11 +157,13 @@ export async function getSetupReport(courseId) {
   if (untagged.length > 0) {
     blocking.push({ id: "untagged", params: { n: untagged.length, ...titleParams(untagged) }, message: `Tag ${plural(untagged.length, "graded item")} with an outcome: ${titles(untagged)}`, href: `${base}/modules` });
   }
-  if (baseline.status === "pending") {
-    blocking.push({ id: "baseline", params: {}, message: "Approve the baseline quiz, or skip the baseline and say why", href: `${base}/settings#course-setup` });
-  }
+  // The baseline is recommended, not required: a course can open without it, and the teacher
+  // can still approve or skip it afterwards.
 
   const warnings = [];
+  if (baseline.status === "pending") {
+    warnings.push({ id: "baseline_pending", params: {}, message: "The Week 0 baseline isn't approved or skipped yet, so learners' starting level won't be measured", href: `${base}/settings#course-setup` });
+  }
   const assessed = new Set((await localDb.prepare(`
     SELECT outcome_id FROM item_outcomes WHERE course_id = ?
     UNION SELECT qq.outcome_id FROM quiz_questions qq JOIN quizzes q ON q.id = qq.quiz_id WHERE q.course_id = ? AND qq.outcome_id IS NOT NULL
@@ -199,7 +201,7 @@ export async function getSetupReport(courseId) {
       id: "baseline",
       label: baseline.status === "skipped" ? "Baseline skipped (reason recorded)" : "Baseline quiz approved",
       labelKey: baseline.status === "skipped" ? "baseline_skipped" : "baseline",
-      done: baseline.status !== "pending", blocking: true, href: `${base}/settings#course-setup`,
+      done: baseline.status !== "pending", blocking: false, href: `${base}/settings#course-setup`,
     },
     { id: "published", label: "Weeks with content are published", done: hiddenWeeks.length === 0, blocking: false, href: `${base}/modules` },
     { id: "open", label: "Course opened", done: course.lifecycle !== "draft", blocking: false, href: `${base}/home` },

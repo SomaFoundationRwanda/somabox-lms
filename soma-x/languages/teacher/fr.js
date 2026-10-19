@@ -139,6 +139,7 @@ export default {
           },
           "warnings": {
             "unassessed_outcomes": "Objectifs évalués par aucun travail noté ({n}) : {titles}",
+            "baseline_pending": "L'évaluation de départ (semaine 0) n'est pas encore validée ni ignorée : le niveau de départ des élèves ne sera pas mesuré. Vous pourrez le faire plus tard.",
             "unpublished_weeks": "Semaines avec du contenu invisibles pour les élèves car non publiées : {n}",
             "no_due_date": "Devoirs ou quiz sans date limite : {n}",
             "empty_weeks": "Semaines encore sans contenu ({n}) : {titles}",

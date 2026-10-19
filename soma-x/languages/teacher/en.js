@@ -139,6 +139,7 @@ export default {
           },
           "warnings": {
             "unassessed_outcomes": "Outcomes not assessed by any graded work ({n}): {titles}",
+            "baseline_pending": "The Week 0 baseline isn't approved or skipped yet, so learners' starting level won't be measured. You can do it later.",
             "unpublished_weeks": "Weeks with content that learners can't see because they're unpublished: {n}",
             "no_due_date": "Assignments or quizzes with no due date: {n}",
             "empty_weeks": "Weeks with no content yet ({n}): {titles}",
