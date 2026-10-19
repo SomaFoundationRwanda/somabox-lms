@@ -12,6 +12,7 @@ import { AiStatusNote } from "@/components/ai/AiBits";
 import AiJobPanel from "@/components/ai/AiJobPanel";
 import { useLanguage } from "@/context/LanguageContext";
 import { fill } from "@/lib/fill";
+import useSetupText from "@/lib/useSetupText";
 
 // moduleWeekLabel, in the current language.
 function weekLabelT(m, t) {
@@ -23,6 +24,7 @@ function weekLabelT(m, t) {
 
 export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, course, onCompleted }) {
   const { t } = useLanguage();
+  const { blockingText } = useSetupText();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -184,8 +186,9 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
         onCompleted?.();
       } else {
         const data = await res.json().catch(() => ({}));
-        const blocking = Array.isArray(data.blocking) ? data.blocking.map((b) => b.message).filter(Boolean) : [];
-        setError(data.message || t("teacher.setup.cantOpenYet"));
+        const blocking = Array.isArray(data.blocking) ? data.blocking.map(blockingText).filter(Boolean) : [];
+        // The listed steps say what's missing; the server's summary sentence is English only.
+        setError(blocking.length ? t("teacher.setup.cantOpenTitle") : (data.message || t("teacher.setup.cantOpenYet")));
         setOpenErrors(blocking);
       }
     } catch (err) {

@@ -114,7 +114,45 @@ export default {
         "inSettings": "Gutegura isomo mu igenamiterere",
         "opening": "Birafungurwa...",
         "openCourse": "Fungura isomo",
-        "finishRequired": "Banza urangize ibya ngombwa."
+        "finishRequired": "Banza urangize ibya ngombwa.",
+        "text": {
+          "andMore": "n'ibindi {n}",
+          "checklist": {
+            "outcomes": "Intego z'isomo zongeweho",
+            "start_date": "Itariki yo gutangira yashyizweho",
+            "content": "Ibyumweru bifite ibyigwa",
+            "unassigned": "Nta kintu gisigaye muri \"Bitarashyirwa ahantu\"",
+            "untagged": "Buri gikosorwa gifite intego",
+            "baseline": "Isuzuma ry'ibanze ryemejwe",
+            "baseline_skipped": "Isuzuma ry'ibanze ryasimbuwe (impamvu yanditswe)",
+            "published": "Ibyumweru bifite ibyigwa byatangajwe",
+            "open": "Isomo ryafunguwe"
+          },
+          "blocking": {
+            "outcomes": "Ongeraho intego z'isomo",
+            "start_date": "Shyiraho itariki isomo ritangiriraho (umunsi wa mbere w'Icyumweru cya 1)",
+            "content": "Ongeraho nibura icyumweru kimwe gifite ibyigwa",
+            "unassigned": "Imura ibintu biri muri \"Bitarashyirwa ahantu\" ubishyire mu cyumweru: {n}",
+            "untagged": "Huza imirimo ikosorwa n'intego ({n}): {titles}",
+            "baseline": "Emeza isuzuma ry'ibanze, cyangwa urisimbuke uvuge impamvu"
+          },
+          "warnings": {
+            "unassessed_outcomes": "Intego zidasuzumwa n'umurimo n'umwe ukosorwa ({n}): {titles}",
+            "unpublished_weeks": "Ibyumweru bifite ibyigwa abanyeshuri batabona kuko bitatangajwe: {n}",
+            "no_due_date": "Inshingano cyangwa amasuzuma adafite itariki ntarengwa: {n}",
+            "empty_weeks": "Ibyumweru bitarabona ibyigwa ({n}): {titles}",
+            "no_end_date": "Isomo nta tariki risozwaho rifite",
+            "end_before_last_week": "Isomo rirangira ku wa {end}, mbere y'uko icyumweru cyaryo cya nyuma kirangira ({last})",
+            "baseline_coverage": "Intego isuzuma ry'ibanze ridasuzuma ({n}): {titles}"
+          },
+          "baseline": {
+            "no_module": "Ongeraho Icyumweru cya 0 (isuzuma ry'ibanze)",
+            "no_quiz": "Ongeraho isuzuma ry'ibanze mu Cyumweru cya 0",
+            "no_questions": "Ongeraho ibibazo mu isuzuma ry'ibanze",
+            "untagged": "Ibibazo by'isuzuma ry'ibanze bidafite intego: {n}",
+            "not_scorable": "Ibibazo by'isuzuma ry'ibanze bidashobora gukosorwa byikora (koresha guhitamo igisubizo kimwe gifite igisubizo nyacyo): {n}"
+          }
+        },
     },
     "baseline": {
         "loadFailed": "Ntibyashobotse kuzana isuzuma ry'ibanze",

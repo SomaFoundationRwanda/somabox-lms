@@ -114,7 +114,45 @@ export default {
         "inSettings": "Configuration du cours dans les paramètres",
         "opening": "Ouverture...",
         "openCourse": "Ouvrir le cours",
-        "finishRequired": "Terminez d'abord les éléments obligatoires."
+        "finishRequired": "Terminez d'abord les éléments obligatoires.",
+        "text": {
+          "andMore": "et {n} de plus",
+          "checklist": {
+            "outcomes": "Objectifs d'apprentissage ajoutés",
+            "start_date": "Date de début fixée",
+            "content": "Les semaines ont du contenu",
+            "unassigned": "Plus rien dans « Non attribué »",
+            "untagged": "Chaque élément noté a un objectif",
+            "baseline": "Quiz de départ validé",
+            "baseline_skipped": "Évaluation de départ ignorée (raison notée)",
+            "published": "Les semaines avec du contenu sont publiées",
+            "open": "Cours ouvert"
+          },
+          "blocking": {
+            "outcomes": "Ajoutez les objectifs d'apprentissage du cours",
+            "start_date": "Fixez la date de début du cours (le premier jour de la semaine 1)",
+            "content": "Ajoutez au moins une semaine avec du contenu",
+            "unassigned": "Déplacez les éléments de « Non attribué » vers une semaine : {n}",
+            "untagged": "Liez un objectif aux travaux notés ({n}) : {titles}",
+            "baseline": "Validez le quiz de départ, ou ignorez l'évaluation de départ en indiquant pourquoi"
+          },
+          "warnings": {
+            "unassessed_outcomes": "Objectifs évalués par aucun travail noté ({n}) : {titles}",
+            "unpublished_weeks": "Semaines avec du contenu invisibles pour les élèves car non publiées : {n}",
+            "no_due_date": "Devoirs ou quiz sans date limite : {n}",
+            "empty_weeks": "Semaines encore sans contenu ({n}) : {titles}",
+            "no_end_date": "Le cours n'a pas de date de fin",
+            "end_before_last_week": "Le cours se termine le {end}, avant la fin de sa dernière semaine ({last})",
+            "baseline_coverage": "Objectifs non couverts par l'évaluation de départ ({n}) : {titles}"
+          },
+          "baseline": {
+            "no_module": "Ajoutez la Semaine 0 (évaluation de départ)",
+            "no_quiz": "Ajoutez un quiz de départ à la Semaine 0",
+            "no_questions": "Ajoutez des questions au quiz de départ",
+            "untagged": "Questions de départ sans objectif : {n}",
+            "not_scorable": "Questions de départ impossibles à corriger automatiquement (utilisez un choix multiple avec une bonne réponse) : {n}"
+          }
+        },
     },
     "baseline": {
         "loadFailed": "Impossible de charger l'évaluation initiale",

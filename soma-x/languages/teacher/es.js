@@ -114,7 +114,45 @@ export default {
         "inSettings": "Configuración del curso en Ajustes",
         "opening": "Abriendo...",
         "openCourse": "Abrir curso",
-        "finishRequired": "Primero completa los elementos obligatorios."
+        "finishRequired": "Primero completa los elementos obligatorios.",
+        "text": {
+          "andMore": "y {n} más",
+          "checklist": {
+            "outcomes": "Resultados de aprendizaje añadidos",
+            "start_date": "Fecha de inicio definida",
+            "content": "Las semanas tienen contenido",
+            "unassigned": "No queda nada en «Sin asignar»",
+            "untagged": "Cada elemento calificado tiene un resultado",
+            "baseline": "Cuestionario inicial aprobado",
+            "baseline_skipped": "Evaluación inicial omitida (motivo registrado)",
+            "published": "Las semanas con contenido están publicadas",
+            "open": "Curso abierto"
+          },
+          "blocking": {
+            "outcomes": "Añade los resultados de aprendizaje del curso",
+            "start_date": "Define la fecha de inicio del curso (el primer día de la Semana 1)",
+            "content": "Añade al menos una semana con contenido",
+            "unassigned": "Mueve los elementos de «Sin asignar» a una semana: {n}",
+            "untagged": "Asocia un resultado a los trabajos calificados ({n}): {titles}",
+            "baseline": "Aprueba el cuestionario inicial, u omite la evaluación inicial e indica por qué"
+          },
+          "warnings": {
+            "unassessed_outcomes": "Resultados que ningún trabajo calificado evalúa ({n}): {titles}",
+            "unpublished_weeks": "Semanas con contenido que los estudiantes no ven porque no están publicadas: {n}",
+            "no_due_date": "Tareas o cuestionarios sin fecha de entrega: {n}",
+            "empty_weeks": "Semanas aún sin contenido ({n}): {titles}",
+            "no_end_date": "El curso no tiene fecha de fin",
+            "end_before_last_week": "El curso termina el {end}, antes de que acabe su última semana ({last})",
+            "baseline_coverage": "Resultados que la evaluación inicial no cubre ({n}): {titles}"
+          },
+          "baseline": {
+            "no_module": "Añade la Semana 0 (evaluación inicial)",
+            "no_quiz": "Añade un cuestionario inicial a la Semana 0",
+            "no_questions": "Añade preguntas al cuestionario inicial",
+            "untagged": "Preguntas iniciales sin resultado: {n}",
+            "not_scorable": "Preguntas iniciales que no se pueden corregir automáticamente (usa opción múltiple con una respuesta correcta): {n}"
+          }
+        },
     },
     "baseline": {
         "loadFailed": "No se pudo cargar la evaluación inicial",

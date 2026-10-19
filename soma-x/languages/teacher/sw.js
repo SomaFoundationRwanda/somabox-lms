@@ -114,7 +114,45 @@ export default {
         "inSettings": "Maandalizi ya kozi katika Mipangilio",
         "opening": "Inafungua...",
         "openCourse": "Fungua kozi",
-        "finishRequired": "Kamilisha vipengele vinavyohitajika kwanza."
+        "finishRequired": "Kamilisha vipengele vinavyohitajika kwanza.",
+        "text": {
+          "andMore": "na {n} zaidi",
+          "checklist": {
+            "outcomes": "Malengo ya kujifunza yameongezwa",
+            "start_date": "Tarehe ya kuanza imewekwa",
+            "content": "Wiki zina maudhui",
+            "unassigned": "Hakuna kilichobaki \"Haijapangwa\"",
+            "untagged": "Kila kazi ya alama ina lengo",
+            "baseline": "Jaribio la awali limeidhinishwa",
+            "baseline_skipped": "Tathmini ya awali imerukwa (sababu imeandikwa)",
+            "published": "Wiki zenye maudhui zimechapishwa",
+            "open": "Kozi imefunguliwa"
+          },
+          "blocking": {
+            "outcomes": "Ongeza malengo ya kujifunza ya kozi",
+            "start_date": "Weka tarehe ya kuanza kozi (siku ya kwanza ya Wiki 1)",
+            "content": "Ongeza angalau wiki moja yenye maudhui",
+            "unassigned": "Hamisha vipengele kutoka \"Haijapangwa\" kwenda kwenye wiki: {n}",
+            "untagged": "Unganisha kazi za alama na lengo ({n}): {titles}",
+            "baseline": "Idhinisha jaribio la awali, au ruka tathmini ya awali na useme kwa nini"
+          },
+          "warnings": {
+            "unassessed_outcomes": "Malengo yasiyopimwa na kazi yoyote ya alama ({n}): {titles}",
+            "unpublished_weeks": "Wiki zenye maudhui ambazo wanafunzi hawaoni kwa sababu hazijachapishwa: {n}",
+            "no_due_date": "Kazi au majaribio yasiyo na tarehe ya mwisho: {n}",
+            "empty_weeks": "Wiki ambazo bado hazina maudhui ({n}): {titles}",
+            "no_end_date": "Kozi haina tarehe ya mwisho",
+            "end_before_last_week": "Kozi inaisha {end}, kabla wiki yake ya mwisho kuisha ({last})",
+            "baseline_coverage": "Malengo ambayo tathmini ya awali haipimi ({n}): {titles}"
+          },
+          "baseline": {
+            "no_module": "Ongeza Wiki 0 (tathmini ya awali)",
+            "no_quiz": "Ongeza jaribio la awali kwenye Wiki 0",
+            "no_questions": "Ongeza maswali kwenye jaribio la awali",
+            "untagged": "Maswali ya awali yasiyo na lengo: {n}",
+            "not_scorable": "Maswali ya awali yasiyoweza kusahihishwa kiotomatiki (tumia chaguo-nyingi lenye jibu sahihi): {n}"
+          }
+        },
     },
     "baseline": {
         "loadFailed": "Imeshindwa kupakia tathmini ya awali",

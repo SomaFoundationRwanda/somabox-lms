@@ -114,7 +114,45 @@ export default {
         "inSettings": "Course setup in Settings",
         "opening": "Opening...",
         "openCourse": "Open course",
-        "finishRequired": "Finish the required items first."
+        "finishRequired": "Finish the required items first.",
+        "text": {
+          "andMore": "and {n} more",
+          "checklist": {
+            "outcomes": "Learning outcomes added",
+            "start_date": "Start date set",
+            "content": "Weeks have learning content",
+            "unassigned": "Nothing left in \"Unassigned\"",
+            "untagged": "Every graded item has an outcome",
+            "baseline": "Baseline quiz approved",
+            "baseline_skipped": "Baseline skipped (reason recorded)",
+            "published": "Weeks with content are published",
+            "open": "Course opened"
+          },
+          "blocking": {
+            "outcomes": "Add the course's learning outcomes",
+            "start_date": "Set the course start date (the first day of Week 1)",
+            "content": "Add at least one week with learning content",
+            "unassigned": "Move items out of \"Unassigned\" into a week: {n}",
+            "untagged": "Tag graded work with an outcome ({n}): {titles}",
+            "baseline": "Approve the baseline quiz, or skip the baseline and say why"
+          },
+          "warnings": {
+            "unassessed_outcomes": "Outcomes not assessed by any graded work ({n}): {titles}",
+            "unpublished_weeks": "Weeks with content that learners can't see because they're unpublished: {n}",
+            "no_due_date": "Assignments or quizzes with no due date: {n}",
+            "empty_weeks": "Weeks with no content yet ({n}): {titles}",
+            "no_end_date": "The course has no end date",
+            "end_before_last_week": "The course ends on {end}, before its last week ends ({last})",
+            "baseline_coverage": "Outcomes the baseline doesn't cover ({n}): {titles}"
+          },
+          "baseline": {
+            "no_module": "Add Week 0 (baseline)",
+            "no_quiz": "Add a baseline quiz to Week 0",
+            "no_questions": "Add questions to the baseline quiz",
+            "untagged": "Baseline questions without an outcome: {n}",
+            "not_scorable": "Baseline questions that can't be scored automatically (use multiple choice with a correct answer): {n}"
+          }
+        },
     },
     "baseline": {
         "loadFailed": "Could not load the baseline",

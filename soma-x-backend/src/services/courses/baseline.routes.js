@@ -103,7 +103,7 @@ router.post("/:id/baseline/approve", async (req, res) => {
 
     const state = await getBaselineState(courseId);
     if (!state.canApprove) {
-      return res.status(422).json({ message: `The baseline isn't ready: ${state.problems.join("; ")}`, problems: state.problems });
+      return res.status(422).json({ message: `The baseline isn't ready: ${state.problems.join("; ")}`, problems: state.problems, problemCodes: state.problemCodes });
     }
     await localDb.transaction(async () => {
       // A baseline is taken once, before teaching; it's visible to learners once the course opens.

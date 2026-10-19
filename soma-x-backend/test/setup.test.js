@@ -53,7 +53,11 @@ test("each blocker clears as it's fixed, then the course opens", async () => {
   // An untagged graded assignment blocks; a practice quiz doesn't.
   const essay = await asTeacher("POST", `/courses/${courseId}/modules/${week.id}/items`, { itemType: "assignment", title: "Essay" });
   await asTeacher("POST", `/courses/${courseId}/modules/${week.id}/items`, { itemType: "quiz", title: "Warm-up", kind: "practice" });
-  assert.deepEqual(ids((await status(courseId)).body.blocking), ["baseline", "untagged"]);
+  const withUntagged = (await status(courseId)).body;
+  assert.deepEqual(ids(withUntagged.blocking), ["baseline", "untagged"]);
+  // Params let the page translate the step: a count and the item names.
+  assert.deepEqual(withUntagged.blocking.find((b) => b.id === "untagged").params, { n: 1, titles: ["Essay"], more: 0 });
+  assert.ok(withUntagged.baseline.problemCodes.some((p) => p.id === "no_module"));
   await asTeacher("POST", `/courses/${courseId}/item-outcomes`, { itemType: "assignment", itemId: essay.body.content_id, outcomeIds: [outcome.id] });
 
   // A graded quiz is tagged by tagging its questions.
@@ -115,7 +119,7 @@ test("a baseline can only be approved when every question is scorable and tagged
   const { courseId, o1 } = await baselineCourse();
   const notReady = await asTeacher("POST", `/courses/${courseId}/baseline/approve`, {});
   assert.equal(notReady.status, 422);
-  assert.ok(notReady.body.problems.some((p) => p.includes("baseline (Week 0) module")));
+  assert.ok(notReady.body.problemCodes.some((p) => p.id === "no_module"));
 
   const zero = (await asTeacher("POST", `/courses/${courseId}/modules`, { title: "Week 0", kind: "baseline" })).body;
   await asTeacher("POST", `/courses/${courseId}/modules/${zero.id}/items`, {
