@@ -24,6 +24,7 @@ export default {
     "progress": "My progress",
     "courseNavigation": "Course navigation",
     "courseMenu": "Course menu",
+    "more": "More",
     "hiddenFromStudents": "Hidden from students",
     "course": "Course"
   },

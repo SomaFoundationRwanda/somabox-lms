@@ -24,6 +24,7 @@ export default {
     "progress": "Aho ngeze",
     "courseNavigation": "Ibice by'isomo",
     "courseMenu": "Ibikubiye mu isomo",
+    "more": "Ibindi",
     "hiddenFromStudents": "Ntibigaragara ku banyeshuri",
     "course": "Isomo"
   },

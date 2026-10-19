@@ -24,6 +24,7 @@ export default {
     "progress": "Maendeleo yangu",
     "courseNavigation": "Urambazaji wa kozi",
     "courseMenu": "Menyu ya kozi",
+    "more": "Zaidi",
     "hiddenFromStudents": "Imefichwa kwa wanafunzi",
     "course": "Kozi"
   },
