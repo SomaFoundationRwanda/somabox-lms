@@ -8,7 +8,7 @@ import { useToast } from "@/context/ToastContext";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
 import { PageHeader, Section, List, EmptyState } from "@/components/layout";
 import useAiStatus from "@/lib/useAiStatus";
-import { aiFetch, cancelAiJob, isActiveJob } from "@/lib/ai";
+import { aiFetch, cancelAiJob, isActiveJob, startAiJob } from "@/lib/ai";
 import { useProgressText, jobKindLabel, weekLabel } from "@/components/progress/text";
 import { AiStatusNote, JobProgress } from "@/components/ai/AiBits";
 import DraftCard, { ApprovedNote, DecidedDraftRow } from "@/components/ai/DraftCard";
@@ -41,6 +41,9 @@ export default function AiDraftsPage() {
   const [cancelling, setCancelling] = useState(null);
   const [showDecided, setShowDecided] = useState(false);
   const [lastApproved, setLastApproved] = useState(null); // { draft, message }
+  // Start a week draft from here, so the page isn't only a place to wait.
+  const [fillWeekId, setFillWeekId] = useState("");
+  const [starting, setStarting] = useState(false);
 
   useEffect(() => { setDismissed(readDismissed()); }, []);
 
@@ -108,6 +111,18 @@ export default function AiDraftsPage() {
     setJobs((list) => list.map((j) => (j.id === job.id ? r.data : j)));
   };
 
+  const startFillWeek = async (e) => {
+    e?.preventDefault();
+    if (!fillWeekId) return;
+    setStarting(true);
+    const r = await startAiJob(SERVER_URL, courseId, { kind: "fill_week", moduleId: Number(fillWeekId), input: {} });
+    setStarting(false);
+    if (!r.ok) { showToast(r.message, "error"); return; }
+    showToast(tp("ai.page.started"), "success");
+    setFillWeekId("");
+    loadJobs();
+  };
+
   const dismiss = (id) => {
     setDismissed((s) => {
       const next = new Set(s);
@@ -132,6 +147,10 @@ export default function AiDraftsPage() {
   const activeJobs = jobs.filter(isActiveJob);
   const failedJobs = jobs.filter((j) => j.status === "failed" && !dismissed.has(j.id) && Date.now() - new Date(j.finishedAt || j.createdAt).getTime() < DAY_MS);
   const visibleJobs = [...activeJobs, ...failedJobs].filter((j) => j.kind !== "grading" || isActiveJob(j));
+
+  // Regular weeks a draft can be made for; a week already being filled is listed but disabled.
+  const weeks = modules.filter((m) => m.kind === "regular");
+  const busyWeekIds = new Set(activeJobs.filter((j) => j.kind === "fill_week").map((j) => Number(j.moduleId)));
 
   const jobLabel = (j) => {
     const m = j.moduleId ? moduleFor(j.moduleId) : null;
@@ -160,7 +179,45 @@ export default function AiDraftsPage() {
           <ApprovedNote draft={lastApproved.draft} courseId={courseId} message={lastApproved.message} onDismiss={() => setLastApproved(null)} />
         ) : null}
 
+        {aiStatus.allowed ? (
+          <Section
+            title={<span className="flex items-center gap-2"><Sparkles className="w-4 h-4 text-[var(--brand-secondary)]" /> {tp("ai.page.startTitle")}</span>}
+            description={tp("ai.page.startHint")}
+          >
+            {weeks.length === 0 ? (
+              <p className="text-xs text-slate-500">
+                {tp("ai.page.noWeeks")}{" "}
+                <Link href={`/course/${courseId}/modules`} className="font-semibold text-[var(--brand-secondary)] hover:underline">{tp("ai.page.goToModules")}</Link>
+              </p>
+            ) : (
+              <form onSubmit={startFillWeek} className="flex flex-wrap items-center gap-2">
+                <select
+                  aria-label={tp("ai.page.chooseWeek")}
+                  value={fillWeekId}
+                  onChange={(e) => setFillWeekId(e.target.value)}
+                  className="min-w-[14rem] text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 outline-none focus:border-[var(--brand-secondary)]"
+                >
+                  <option value="">{tp("ai.page.chooseWeek")}</option>
+                  {weeks.map((m) => (
+                    <option key={m.id} value={m.id} disabled={busyWeekIds.has(Number(m.id))}>
+                      {weekLabel(tp, m)}{m.title ? `: ${m.title}` : ""}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="submit"
+                  disabled={!fillWeekId || starting}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-dark)] disabled:opacity-50 rounded-lg px-3.5 py-2"
+                >
+                  <Sparkles className="w-3.5 h-3.5" /> {starting ? tp("common.starting") : tp("ai.page.startButton")}
+                </button>
+              </form>
+            )}
+          </Section>
+        ) : null}
+
         <Section
+          divided={aiStatus.allowed}
           title={tp("ai.page.inProgress")}
           description={tp("ai.page.inProgressHint")}
         >
