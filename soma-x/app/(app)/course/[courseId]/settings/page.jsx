@@ -20,7 +20,13 @@ function CourseSetupSection({ SERVER_URL, courseId, course, userEmail, onCourseC
   const { t } = useCourseText();
   const [status, setStatus] = useState(null);
   const [statusError, setStatusError] = useState("");
-  const [showWizard, setShowWizard] = useState(false);
+  // "#guided-setup" (e.g. right after creating a course) opens the wizard straight away.
+  const [showWizard, setShowWizard] = useState(() => typeof window !== "undefined" && window.location.hash === "#guided-setup");
+  useEffect(() => {
+    if (showWizard && window.location.hash === "#guided-setup") {
+      requestAnimationFrame(() => document.getElementById("guided-setup")?.scrollIntoView({ block: "start" }));
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [baselineKey, setBaselineKey] = useState(0); // remounts the baseline panel after the wizard changes things
 
   const loadStatus = useCallback(async () => {
@@ -84,6 +90,7 @@ function CourseSetupSection({ SERVER_URL, courseId, course, userEmail, onCourseC
       />
 
       {showWizard && (
+        <div id="guided-setup" className="scroll-mt-4">
         <CourseSetupWizard
           SERVER_URL={SERVER_URL}
           courseId={courseId}
@@ -96,6 +103,7 @@ function CourseSetupSection({ SERVER_URL, courseId, course, userEmail, onCourseC
             onCourseChanged();
           }}
         />
+        </div>
       )}
     </section>
   );
@@ -309,7 +317,7 @@ export default function CourseSettingsPage() {
     if (!isTeacher) return;
     const syncFromHash = () => {
       if (window.location.hash === "#share") setTab("share");
-      if (window.location.hash === "#course-setup") {
+      if (window.location.hash === "#course-setup" || window.location.hash === "#guided-setup") {
         setTab("setup");
         requestAnimationFrame(() => document.getElementById("course-setup")?.scrollIntoView({ block: "start" }));
       }

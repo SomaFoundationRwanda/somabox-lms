@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Trash2, Sparkles, TrendingUp, CheckCircle2 } from "lucide-react";
+import { Plus, Trash2, Sparkles, TrendingUp, CheckCircle2, Pencil } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
 import { useToast } from "@/context/ToastContext";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
@@ -35,6 +35,8 @@ export default function OutcomesPage() {
   const [form, setForm] = useState({ title: "", description: "" });
   const [aiGoal, setAiGoal] = useState("");
   const [saving, setSaving] = useState(false);
+  // Manual edit of one outcome: { id, title, description } or null.
+  const [editing, setEditing] = useState(null);
   const aiStatus = useAiStatus();
   // AI rewrite: target is null (a new outcome) or the outcome being rewritten.
   const [aiOpen, setAiOpen] = useState(false);
@@ -112,6 +114,29 @@ export default function OutcomesPage() {
     setSaving(false);
     if (!r.ok) { setAiError(r.message); return; }
     setAiJob(r.data);
+  };
+
+  const saveEdit = async () => {
+    if (!editing?.title.trim()) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`${SERVER_URL}/courses/${courseId}/outcomes/${editing.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: editing.title.trim(), description: editing.description }),
+      });
+      if (!res.ok) {
+        const payload = await res.json().catch(() => ({}));
+        showToast(payload?.message || tp("outcomes.saveFailed"), "error");
+        return;
+      }
+      setEditing(null);
+      loadData();
+    } catch {
+      showToast(tp("outcomes.saveFailed"), "error");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const removeOutcome = async (outcome) => {
@@ -296,12 +321,54 @@ export default function OutcomesPage() {
                         </button>
                       ) : null}
                       {isTeacher && (
+                        <button
+                          type="button"
+                          onClick={() => setEditing({ id: m.id, title: m.title || "", description: m.description || "" })}
+                          aria-label={tp("outcomes.editAria", { name: m.code || m.title })}
+                          title={tp("common.edit")}
+                          className="text-slate-400 hover:text-[var(--brand-secondary)] p-1"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                      )}
+                      {isTeacher && (
                         <button onClick={() => removeOutcome(m)} aria-label={tp("outcomes.deleteAria", { name: m.code || m.title })} className="text-slate-400 hover:text-rose-500 p-1">
                           <Trash2 className="w-4 h-4" />
                         </button>
                       )}
                     </div>
                   </div>
+
+                  {editing?.id === m.id ? (
+                    <div className="space-y-2 border border-slate-200 rounded-lg p-3">
+                      <div>
+                        <label htmlFor={`edit-outcome-title-${m.id}`} className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">{tp("outcomes.statementLabel")}</label>
+                        <input
+                          id={`edit-outcome-title-${m.id}`}
+                          value={editing.title}
+                          onChange={(e) => setEditing((p) => ({ ...p, title: e.target.value }))}
+                          className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[var(--brand-secondary)]"
+                          autoFocus
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor={`edit-outcome-description-${m.id}`} className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">{tp("outcomes.descriptionLabel")}</label>
+                        <textarea
+                          id={`edit-outcome-description-${m.id}`}
+                          rows={2}
+                          value={editing.description}
+                          onChange={(e) => setEditing((p) => ({ ...p, description: e.target.value }))}
+                          className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[var(--brand-secondary)]"
+                        />
+                      </div>
+                      <div className="flex justify-end gap-2">
+                        <button type="button" onClick={() => setEditing(null)} className="text-xs font-semibold text-slate-500 px-3 py-2">{tp("common.cancel")}</button>
+                        <button type="button" onClick={saveEdit} disabled={saving || !editing.title.trim()} className="text-xs font-semibold text-white bg-[var(--brand-secondary)] disabled:opacity-50 rounded-lg px-4 py-2">
+                          {saving ? tp("common.saving") : tp("outcomes.save")}
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
 
                   <div className="space-y-1">
                     <MasterySummary outcome={m} isTeacher={isTeacher} />

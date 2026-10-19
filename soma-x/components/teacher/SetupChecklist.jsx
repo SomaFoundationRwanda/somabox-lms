@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, CheckCircle2, Circle, ChevronRight, Rocket, Settings } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Circle, ChevronRight, ListChecks, Rocket, Settings } from "lucide-react";
 import { useToast } from "@/context/ToastContext";
 import Explainer from "@/components/help/Explainer";
 import { useLanguage } from "@/context/LanguageContext";
@@ -127,12 +127,22 @@ export default function SetupChecklist({ courseId, SERVER_URL, status, onChanged
 
       <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
         {showSettingsLink ? (
-          <Link
-            href={`/course/${courseId}/settings#course-setup`}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--brand-secondary)] hover:underline"
-          >
-            <Settings className="w-3.5 h-3.5" aria-hidden="true" /> {t("teacher.setup.inSettings")}
-          </Link>
+          <div className="flex flex-wrap items-center gap-3">
+            {isDraft && (
+              <Link
+                href={`/course/${courseId}/settings#guided-setup`}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--brand-secondary)] bg-teal-50 border border-teal-200 hover:bg-teal-100 px-3 py-2 rounded-lg transition-colors"
+              >
+                <ListChecks className="w-3.5 h-3.5" aria-hidden="true" /> {t("teacher.wizard.guided")}
+              </Link>
+            )}
+            <Link
+              href={`/course/${courseId}/settings#course-setup`}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--brand-secondary)] hover:underline"
+            >
+              <Settings className="w-3.5 h-3.5" aria-hidden="true" /> {t("teacher.setup.inSettings")}
+            </Link>
+          </div>
         ) : <span />}
         {isDraft && (
           <div className="flex flex-col items-end gap-1">

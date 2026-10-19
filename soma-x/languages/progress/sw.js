@@ -144,6 +144,7 @@ export default {
     rewriteAria: "Andika upya lengo {name} kwa AI",
     rewriteWithAi: "Andika upya kwa AI",
     deleteAria: "Futa lengo {name}",
+    editAria: "Hariri lengo {name}",
     confirmDelete: "Futa lengo \"{name}\"? Data yake ya umahiri na viungo vyake na kazi za kozi pia vitafutwa.",
     deleteFailed: "Imeshindwa kufuta lengo",
     saveFailed: "Imeshindwa kuhifadhi lengo",

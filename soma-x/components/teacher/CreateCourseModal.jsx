@@ -1,6 +1,7 @@
 "use client"
 import { useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { X } from "lucide-react"
 import { useLanguage } from "@/context/LanguageContext"
 
@@ -23,6 +24,7 @@ const GRADE_OPTIONS = [
 // Shared by every entry point that creates a course, so there's exactly one create-course UX.
 export default function CreateCourseModal({ SERVER_URL, onClose, onCreated }) {
   const { t } = useLanguage()
+  const router = useRouter()
   const [form, setForm] = useState({ title: "", grade: "", gradeOther: "", description: "" })
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
@@ -46,6 +48,8 @@ export default function CreateCourseModal({ SERVER_URL, onClose, onCreated }) {
       const data = await res.json()
       if (!res.ok) { setError(data.message || t("teacher.createCourse.failed")); return }
       onCreated?.(data)
+      // Straight into the guided setup: a new course is a draft that needs outcomes, dates and weeks.
+      if (data?.id) router.push(`/course/${data.id}/settings#guided-setup`)
     } catch {
       setError(t("teacher.common.somethingWrong"))
     } finally {

@@ -144,6 +144,7 @@ export default {
     rewriteAria: "Réécrire l'objectif {name} avec l'IA",
     rewriteWithAi: "Réécrire avec l'IA",
     deleteAria: "Supprimer l'objectif {name}",
+    editAria: "Modifier l'objectif {name}",
     confirmDelete: "Supprimer l'objectif « {name} » ? Ses données de maîtrise et ses liens avec les travaux du cours seront aussi supprimés.",
     deleteFailed: "Impossible de supprimer l'objectif",
     saveFailed: "Impossible d'enregistrer l'objectif",

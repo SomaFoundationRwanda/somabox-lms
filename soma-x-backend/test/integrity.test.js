@@ -134,6 +134,14 @@ test("an outcome that is the only tag of published graded work can't be deleted"
   assert.equal((await asTeacher("DELETE", `/courses/${courseId}/outcomes/${outcomeId}`)).status, 204);
 });
 
+test("an outcome can be edited, but not to an empty statement", async () => {
+  const { courseId, outcomeId } = await setupCourse("Outcome edit");
+  const edited = await asTeacher("PATCH", `/courses/${courseId}/outcomes/${outcomeId}`, { title: "  Reads fluently  ", description: "Aloud" });
+  assert.equal(edited.status, 200);
+  assert.equal(edited.body.title, "Reads fluently");
+  assert.equal((await asTeacher("PATCH", `/courses/${courseId}/outcomes/${outcomeId}`, { title: "   " })).status, 400);
+});
+
 test("outcome tags must come from the same course and the item must exist", async () => {
   const { courseId, week1 } = await setupCourse("Tags");
   const other = await setupCourse("Other tags");

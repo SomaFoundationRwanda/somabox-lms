@@ -144,6 +144,7 @@ export default {
     rewriteAria: "Ongera wandike intego {name} ukoresheje AI",
     rewriteWithAi: "Ongera wandike ukoresheje AI",
     deleteAria: "Siba intego {name}",
+    editAria: "Hindura intego {name}",
     confirmDelete: "Gusiba intego \"{name}\"? Amakuru y'imyigire yayo n'aho ihujwe n'imirimo y'isomo na byo birasibwa.",
     deleteFailed: "Ntibyakunze gusiba intego",
     saveFailed: "Ntibyakunze kubika intego",

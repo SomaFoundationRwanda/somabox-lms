@@ -57,7 +57,10 @@ router.patch("/:id/outcomes/:outcomeId", async (req, res) => {
     const { title, description, masteryScale } = req.body;
     const updates = [];
     const params = [];
-    if (title !== undefined) { updates.push("title = ?"); params.push(title); }
+    if (title !== undefined) {
+      if (!String(title).trim()) return res.status(400).json({ message: "The outcome statement can't be empty" });
+      updates.push("title = ?"); params.push(String(title).trim());
+    }
     if (description !== undefined) { updates.push("description = ?"); params.push(description); }
     if (masteryScale !== undefined && ["4pt", "percent", "pass_fail"].includes(masteryScale)) { updates.push("mastery_scale = ?"); params.push(masteryScale); }
     if (!updates.length) return res.status(400).json({ message: "No fields to update" });

@@ -146,6 +146,7 @@ export default {
     rewriteAria: "Rewrite outcome {name} with AI",
     rewriteWithAi: "Rewrite with AI",
     deleteAria: "Delete outcome {name}",
+    editAria: "Edit outcome {name}",
     confirmDelete: "Delete the outcome \"{name}\"? Its mastery data and its tags on course work are removed too.",
     deleteFailed: "Couldn't delete the outcome",
     saveFailed: "Couldn't save the outcome",

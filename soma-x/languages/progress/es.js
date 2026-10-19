@@ -144,6 +144,7 @@ export default {
     rewriteAria: "Reescribir el resultado {name} con IA",
     rewriteWithAi: "Reescribir con IA",
     deleteAria: "Eliminar el resultado {name}",
+    editAria: "Editar el resultado {name}",
     confirmDelete: "¿Eliminar el resultado «{name}»? También se eliminan sus datos de dominio y sus vínculos con los trabajos del curso.",
     deleteFailed: "No se pudo eliminar el resultado",
     saveFailed: "No se pudo guardar el resultado",
