@@ -173,7 +173,7 @@ router.post("/:id/modules", async (req, res) => {
     const kind = req.body.kind === "baseline" ? "baseline" : "regular";
     if (kind === "baseline") {
       const existing = await localDb.prepare("SELECT id FROM modules WHERE course_id = ? AND kind = 'baseline'").get(courseId);
-      if (existing) return res.status(409).json({ message: "This course already has a baseline (Week 0) module" });
+      if (existing) return res.status(409).json({ message: "This course already has a Week 0 (baseline)" });
     }
     let weekOffset = 0;
     if (kind === "regular") {
@@ -255,7 +255,7 @@ router.delete("/:id/modules/:moduleId", async (req, res) => {
     const contentCount = Number((await localDb.prepare("SELECT COUNT(*) AS c FROM module_items WHERE module_id = ? AND item_type <> 'sub_header'").get(moduleRow.id))?.c || 0);
     if (contentCount > 0) {
       return res.status(409).json({
-        message: `This module still has ${contentCount} item${contentCount === 1 ? "" : "s"}. Move or delete them first.`,
+        message: `This week still has ${contentCount} item${contentCount === 1 ? "" : "s"}. Move or delete them first.`,
         code: "MODULE_NOT_EMPTY",
       });
     }
@@ -601,7 +601,7 @@ router.delete("/:id/modules/:moduleId/items/:itemId", async (req, res) => {
     // "Unassigned (fix me)" module (unpublished) instead of leaving it orphaned.
     const unassigned = await getUnassignedModule(courseId);
     if (Number(item.module_id) === Number(unassigned.id)) {
-      return res.status(400).json({ message: "This item is already unassigned. Move it into a module or delete it." });
+      return res.status(400).json({ message: "This item is already unassigned. Move it into a week or delete it." });
     }
     await moveContentToModule(courseId, item.item_type, item.content_id, unassigned.id);
     await localDb.prepare("UPDATE module_items SET published = 0 WHERE id = ?").run(item.id);

@@ -187,41 +187,62 @@ router.get("/:id/home-loop", async (req, res) => {
     const openNow = inCurrent.filter((i) => i.status === "open" && i.dueDate);
     const nextDue = openNow.map((i) => i.dueDate).sort()[0];
 
+    // Each title and label also has a key (+ params) so the page can show it in the UI language;
+    // the English text stays for older screens. A "week" param is the current module's
+    // { kind, week_offset }, for the page's week label.
+    const week = current ? { kind: current.kind, week_offset: current.week_offset } : null;
     let beat = "prepare";
     let beatTitle;
-    let primaryAction = { label: "Open Modules", href: `/course/${courseId}/modules` };
+    let beatKey;
+    let beatParams = {};
+    const action = (key, label, path) => ({ key, label, href: `/course/${courseId}/${path}` });
+    let primaryAction = action("openModules", "Open Weeks", "modules");
     if (!tl.startDate) {
+      beatKey = "noStartDate";
       beatTitle = "Set the course start date to place each week on the calendar";
-      primaryAction = { label: "Open Settings", href: `/course/${courseId}/settings` };
+      primaryAction = action("openSettings", "Open Settings", "settings");
     } else if (!current) {
-      beatTitle = "Add a module to start planning the weeks";
+      beatKey = "noWeek";
+      beatTitle = "Add a week to start planning";
     } else if (isTeacher && ungradedCount > 0) {
       beat = "grade";
+      beatKey = "toGrade";
+      beatParams = { n: ungradedCount };
       beatTitle = `${ungradedCount} submission${ungradedCount === 1 ? "" : "s"} waiting to be graded`;
-      primaryAction = { label: "Open Grades", href: `/course/${courseId}/grades` };
+      primaryAction = action("openGrades", "Open Grades", "grades");
     } else if (today < current.startDate) {
+      beatKey = "startsOn";
+      beatParams = { week, date: current.startDate };
       beatTitle = `${label(current)} starts on ${current.startDate}`;
     } else if (isTeacher && releasingUnpublished.length > 0) {
+      beatKey = "unpublishedSoon";
+      beatParams = { week, n: releasingUnpublished.length, date: soon };
       beatTitle = `${releasingUnpublished.length} item${releasingUnpublished.length === 1 ? "" : "s"} in ${label(current)} release by ${soon} but aren't published`;
     } else if (openNow.length > 0) {
       beat = "collect";
+      beatKey = "openNow";
+      beatParams = { week, n: openNow.length, date: nextDue };
       beatTitle = `${label(current)}: ${openNow.length} item${openNow.length === 1 ? "" : "s"} open, next due ${nextDue}`;
       primaryAction = isTeacher
-        ? { label: "Check Submissions", href: `/course/${courseId}/grades` }
-        : { label: "Open Calendar", href: `/course/${courseId}/calendar` };
+        ? action("checkSubmissions", "Check Submissions", "grades")
+        : action("openCalendar", "Open Calendar", "calendar");
     } else if (today > current.endDate || (inCurrent.length > 0 && inCurrent.every((i) => !i.dueDate || i.dueDate < today))) {
       beat = "review";
+      beatKey = "finished";
+      beatParams = { week };
       beatTitle = `${label(current)} is finished: review progress before the next week`;
-      primaryAction = { label: "View Outcomes", href: `/course/${courseId}/outcomes` };
+      primaryAction = action("viewOutcomes", "View Outcomes", "outcomes");
     } else {
       beat = "release";
+      beatKey = "live";
+      beatParams = { week };
       beatTitle = `${label(current)} is live`;
     }
 
     const needsAttention = [];
     if (isTeacher) {
       if (!tl.startDate) {
-        needsAttention.push({ id: "no-start-date", title: "The course has no start date, so nothing has a date yet", actionLabel: "Set Start Date", href: `/course/${courseId}/settings` });
+        needsAttention.push({ id: "no-start-date", key: "noStartDate", params: {}, actionKey: "setStartDate", title: "The course has no start date, so nothing has a date yet", actionLabel: "Set Start Date", href: `/course/${courseId}/settings` });
       }
       const untagged = await localDb.prepare(`
         SELECT COUNT(*) AS c FROM module_items mi
@@ -231,14 +252,14 @@ router.get("/:id/home-loop", async (req, res) => {
           AND NOT EXISTS (SELECT 1 FROM item_outcomes io WHERE io.item_type = mi.item_type AND io.item_id = mi.content_id)
       `).get(courseId);
       if (Number(untagged?.c) > 0) {
-        needsAttention.push({ id: "missing-outcomes", title: `${untagged.c} graded item(s) missing outcome tags`, actionLabel: "Tag Outcomes", href: `/course/${courseId}/modules` });
+        needsAttention.push({ id: "missing-outcomes", key: "missingOutcomes", params: { n: Number(untagged.c) }, actionKey: "tagOutcomes", title: `${untagged.c} graded item(s) missing outcome tags`, actionLabel: "Tag Outcomes", href: `/course/${courseId}/modules` });
       }
       if (releasingUnpublished.length > 0) {
-        needsAttention.push({ id: "release-soon", title: `${releasingUnpublished.length} item(s) release by ${soon} but aren't published`, actionLabel: "Review Items", href: `/course/${courseId}/modules` });
+        needsAttention.push({ id: "release-soon", key: "releaseSoon", params: { n: releasingUnpublished.length, date: soon }, actionKey: "reviewItems", title: `${releasingUnpublished.length} item(s) release by ${soon} but aren't published`, actionLabel: "Review Items", href: `/course/${courseId}/modules` });
       }
       const unassigned = tl.items.filter((i) => tl.modules.find((m) => Number(m.id) === Number(i.module_id))?.kind === "unassigned").length;
       if (unassigned > 0) {
-        needsAttention.push({ id: "unassigned", title: `${unassigned} item(s) are not in a week yet`, actionLabel: "Move Items", href: `/course/${courseId}/modules` });
+        needsAttention.push({ id: "unassigned", key: "unassigned", params: { n: unassigned }, actionKey: "moveItems", title: `${unassigned} item(s) are not in a week yet`, actionLabel: "Move Items", href: `/course/${courseId}/modules` });
       }
     }
 
@@ -258,6 +279,8 @@ router.get("/:id/home-loop", async (req, res) => {
       currentWeekNumber: current ? Number(current.week_offset) : null,
       currentModuleId: current?.id ?? null,
       beatTitle,
+      beatKey,
+      beatParams,
       primaryAction,
       needsAttention,
       timeline,

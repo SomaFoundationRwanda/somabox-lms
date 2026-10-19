@@ -16,7 +16,17 @@ import Loader from "@/components/ui/Loader";
 
 export default function CourseHomePage() {
   const { courseId, course, SERVER_URL, userEmail, isTeacher, refresh } = useCourse();
-  const { t, tf, weekLabel, lifecycleLabel } = useCourseText();
+  const { t, tf, tOr, weekLabel, lifecycleLabel, fmtDay } = useCourseText();
+  // Server text for the weekly loop comes with a key + params; show it in the UI language,
+  // falling back to the server's English when a key is unknown.
+  const loopText = (group, key, params, fallback) => {
+    const template = key ? tOr(`home.${group}.${key}`, null) : null;
+    if (!template) return fallback;
+    const vars = { ...(params || {}) };
+    if (vars.week) vars.week = weekLabel(vars.week);
+    if (vars.date) vars.date = fmtDay(vars.date);
+    return tf(`home.${group}.${key}`, vars);
+  };
   const [setupStatus, setSetupStatus] = useState(null);
   const [homeLoop, setHomeLoop] = useState(null);
   const [outcomePulse, setOutcomePulse] = useState(null);
@@ -133,7 +143,7 @@ export default function CourseHomePage() {
           </div>
 
           <div>
-            <h2 id="now-title" className="text-lg font-bold text-slate-900 dark:text-white">{beatInfo.beatTitle || t("home.currentBeat")}</h2>
+            <h2 id="now-title" className="text-lg font-bold text-slate-900 dark:text-white">{loopText("loopTitles", beatInfo.beatKey, beatInfo.beatParams, beatInfo.beatTitle) || t("home.currentBeat")}</h2>
             <p className="text-sm text-slate-500 mt-1 max-w-2xl">
               {["prepare", "release", "collect", "grade", "review"].includes(currentBeat) ? t(`home.beatHelp.${currentBeat}`) : null}
             </p>
@@ -144,7 +154,7 @@ export default function CourseHomePage() {
               href={beatInfo.primaryAction.href}
               className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] text-white rounded-lg text-sm font-semibold transition-colors"
             >
-              <Play className="w-4 h-4 fill-white" /> {beatInfo.primaryAction.label}
+              <Play className="w-4 h-4 fill-white" /> {loopText("loopActions", beatInfo.primaryAction.key, null, beatInfo.primaryAction.label)}
             </Link>
           )}
         </section>
@@ -164,10 +174,10 @@ export default function CourseHomePage() {
                   key={item.id}
                   tone="warning"
                   icon={<AlertTriangle className="w-4 h-4 text-amber-500" />}
-                  title={item.title}
+                  title={loopText("attention", item.key, item.params, item.title)}
                   actions={
                     <Link href={item.href} className="text-xs font-bold text-amber-700 hover:underline">
-                      {item.actionLabel} &rarr;
+                      {loopText("loopActions", item.actionKey, null, item.actionLabel)} &rarr;
                     </Link>
                   }
                 />

@@ -90,8 +90,8 @@ export default {
       when: "Anza hapa kila siku.",
     },
     modules: {
-      title: "Moduli",
-      what: "Kozi wiki kwa wiki. Kila moduli ni wiki moja na ina kila kitu wanafunzi wanachofanya wiki hiyo.",
+      title: "Wiki",
+      what: "Kozi wiki kwa wiki. Kila wiki ina kila kitu wanafunzi wanachofanya wiki hiyo.",
       when: "Panga na uandae kozi hapa: kila kipengele unachounda ni cha wiki fulani.",
       mistake: "Kuacha vipengele katika \"Havijapangwa\". Vihamishie kwenye wiki, la sivyo kozi haiwezi kufunguliwa.",
     },
@@ -117,7 +117,7 @@ export default {
       title: "Kazi",
       what: "Kazi zote zenye alama katika kozi: kazi, majaribio yenye alama, na majadiliano yenye alama.",
       when: "Angalia kinachotakiwa kuwasilishwa na kinachosubiri kusahihishwa.",
-      mistake: "Kuunda kazi hapa. Iunde katika wiki sahihi kwenye ukurasa wa \"Moduli\".",
+      mistake: "Kuunda kazi hapa. Iunde katika wiki sahihi kwenye ukurasa wa \"Wiki\".",
     },
     quizzes: {
       title: "Majaribio",
@@ -127,7 +127,7 @@ export default {
     pages: {
       title: "Kurasa",
       what: "Kurasa zote za somo katika kozi.",
-      when: "Tafuta na uhariri ukurasa. Kuongeza ukurasa, nenda kwenye wiki sahihi katika ukurasa wa \"Moduli\".",
+      when: "Tafuta na uhariri ukurasa. Kuongeza ukurasa, nenda kwenye wiki sahihi katika ukurasa wa \"Wiki\".",
     },
     discussions: {
       title: "Majadiliano",
