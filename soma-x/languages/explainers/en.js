@@ -92,8 +92,8 @@ export default {
       when: "Start here each day.",
     },
     modules: {
-      title: "Modules",
-      what: "The course week by week. Each module is a week and holds everything learners do that week.",
+      title: "Weeks",
+      what: "The course week by week. Each week holds everything learners do that week.",
       when: "Plan and build the course here: every item you create belongs to a week.",
       mistake: "Leaving items in \"Unassigned\". Move them into a week, or the course can't open.",
     },
@@ -119,7 +119,7 @@ export default {
       title: "Assignments",
       what: "All graded work in the course: assignments, graded quizzes, and graded discussions.",
       when: "Check what's due and what still needs grading.",
-      mistake: "Creating work here. Create it in the right week on the Modules page.",
+      mistake: "Creating work here. Create it in the right week on the Weeks page.",
     },
     quizzes: {
       title: "Quizzes",
@@ -129,7 +129,7 @@ export default {
     pages: {
       title: "Pages",
       what: "Every page of learning material in the course.",
-      when: "Find and edit a page. To add one, go to the right week on the Modules page.",
+      when: "Find and edit a page. To add one, go to the right week on the Weeks page.",
     },
     discussions: {
       title: "Discussions",

@@ -1,7 +1,7 @@
 // Phase 2: data integrity rules (lifecycle, module ownership, quizzes, rubrics).
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { startTestServer } from "./helpers.js";
+import { startTestServer, USERS } from "./helpers.js";
 
 let ctx;
 let db;
@@ -116,6 +116,94 @@ test("graded items without an outcome are saved as drafts and can't be published
   assert.equal(page.body.published, true, "pages don't need outcomes");
   const practice = await addItem(courseId, week1.id, { itemType: "quiz", title: "Warm-up", kind: "practice" });
   assert.equal(practice.body.published, true, "practice quizzes don't need outcomes");
+});
+
+test("an outcome that is the only tag of published graded work can't be deleted", async () => {
+  const { courseId, week1, outcomeId } = await setupCourse("Outcome delete");
+  const tagged = await addItem(courseId, week1.id, { itemType: "assignment", title: "Essay", outcomeIds: [outcomeId] });
+  assert.equal(tagged.body.published, true);
+
+  const blocked = await asTeacher("DELETE", `/courses/${courseId}/outcomes/${outcomeId}`);
+  assert.equal(blocked.status, 422);
+  assert.equal(blocked.body.code, "OUTCOME_IN_USE");
+  assert.deepEqual(blocked.body.items, ["Essay"]);
+
+  // With a second outcome on the work, the first one can go.
+  const second = await asTeacher("POST", `/courses/${courseId}/outcomes`, { title: "Second" });
+  await asTeacher("POST", `/courses/${courseId}/item-outcomes`, { itemType: "assignment", itemId: tagged.body.content_id, outcomeIds: [outcomeId, second.body.id] });
+  assert.equal((await asTeacher("DELETE", `/courses/${courseId}/outcomes/${outcomeId}`)).status, 204);
+});
+
+test("learners join a private course with the teacher's join code", async () => {
+  const asOutsider = call("outsider");
+  const courseId = await ctx.createCourse("Join code");
+  assert.equal((await db.prepare("SELECT visibility FROM courses WHERE id = ?").get(courseId)).visibility, "private");
+
+  // Off until the teacher turns it on; only teachers can see or change it.
+  assert.deepEqual((await asTeacher("GET", `/courses/${courseId}/join-code`)).body, { code: null });
+  assert.equal((await asStudent("GET", `/courses/${courseId}/join-code`)).status, 403);
+  assert.equal((await asStudent("POST", `/courses/${courseId}/join-code`, { action: "on" })).status, 403);
+  const on = await asTeacher("POST", `/courses/${courseId}/join-code`, { action: "on" });
+  assert.match(on.body.code, /^[2-9A-HJKMNP-Z]{6}$/);
+  assert.equal((await asTeacher("POST", `/courses/${courseId}/join-code`, { action: "on" })).body.code, on.body.code, "on keeps the code");
+
+  // The code never reaches learners through course rows.
+  const asJson = JSON.stringify((await asStudent("GET", `/courses/${courseId}`)).body) + JSON.stringify((await asStudent("GET", "/courses/mine")).body);
+  assert.ok(!asJson.includes(on.body.code));
+
+  // Typed loosely (lower case, spaces, a dash) it still works, and joins as a student.
+  assert.equal((await asOutsider("POST", "/courses/join-by-code", { code: "XXXXXX" })).status, 404);
+  const typed = `${on.body.code.slice(0, 3).toLowerCase()} - ${on.body.code.slice(3)}`;
+  const joined = await asOutsider("POST", "/courses/join-by-code", { code: typed });
+  assert.equal(joined.status, 200);
+  assert.equal(joined.body.courseId, courseId);
+  const enrollment = await db.prepare("SELECT role, status FROM enrollments WHERE course_id = ? AND user_email = ?").get(courseId, USERS.outsider.email);
+  assert.deepEqual([enrollment.role, enrollment.status], ["student", "active"]);
+
+  // A new code replaces the old one; off stops joining.
+  const renewed = await asTeacher("POST", `/courses/${courseId}/join-code`, { action: "new" });
+  assert.notEqual(renewed.body.code, on.body.code);
+  assert.equal((await asOutsider("POST", "/courses/join-by-code", { code: on.body.code })).status, 404);
+  await asTeacher("POST", `/courses/${courseId}/join-code`, { action: "off" });
+  assert.equal((await asOutsider("POST", "/courses/join-by-code", { code: renewed.body.code })).status, 404);
+
+  // A draft course can't be joined yet.
+  const draftId = await ctx.createCourse("Draft join", { lifecycle: "draft" });
+  const draftCode = (await asTeacher("POST", `/courses/${draftId}/join-code`, { action: "on" })).body.code;
+  const notOpen = await asOutsider("POST", "/courses/join-by-code", { code: draftCode });
+  assert.equal(notOpen.status, 400);
+  assert.equal(notOpen.body.code, "NOT_OPEN");
+});
+
+test("guessing join codes is cut off after repeated misses", async () => {
+  const asAdmin = call("admin");
+  for (let i = 0; i < 10; i++) assert.equal((await asAdmin("POST", "/courses/join-by-code", { code: `ZZZZ${i}` })).status, 404);
+  const blocked = await asAdmin("POST", "/courses/join-by-code", { code: "ZZZZZZ" });
+  assert.equal(blocked.status, 429);
+  assert.equal(blocked.body.code, "TOO_MANY");
+});
+
+test("a quiz stops assessing an outcome its questions no longer use", async () => {
+  const { courseId, week1, outcomeId } = await setupCourse("Quiz retag");
+  const second = (await asTeacher("POST", `/courses/${courseId}/outcomes`, { title: "Second" })).body.id;
+  const question = (outcome) => ({ prompt: "2 + 2?", options: ["4", "5"], correctOption: "4", outcomeId: outcome });
+  const quiz = await addItem(courseId, week1.id, { itemType: "quiz", title: "Check", questions: [question(outcomeId)] });
+  const tags = async () => (await asTeacher("GET", `/courses/${courseId}/item-outcomes`)).body
+    .filter((t) => t.item_type === "quiz" && Number(t.item_id) === Number(quiz.body.content_id))
+    .map((t) => Number(t.outcome_id));
+
+  assert.deepEqual(await tags(), [outcomeId]);
+  const res = await asTeacher("PATCH", `/courses/${courseId}/modules/${week1.id}/items/${quiz.body.id}/content`, { questions: [question(second)] });
+  assert.equal(res.status, 200);
+  assert.deepEqual(await tags(), [second]);
+});
+
+test("an outcome can be edited, but not to an empty statement", async () => {
+  const { courseId, outcomeId } = await setupCourse("Outcome edit");
+  const edited = await asTeacher("PATCH", `/courses/${courseId}/outcomes/${outcomeId}`, { title: "  Reads fluently  ", description: "Aloud" });
+  assert.equal(edited.status, 200);
+  assert.equal(edited.body.title, "Reads fluently");
+  assert.equal((await asTeacher("PATCH", `/courses/${courseId}/outcomes/${outcomeId}`, { title: "   " })).status, 400);
 });
 
 test("outcome tags must come from the same course and the item must exist", async () => {

@@ -167,6 +167,17 @@ export default {
     "discover": {
         "loadFailed": "Ntibyashobotse kuzana amasomo",
         "joinFailed": "Ntibyashobotse kwinjira mu isomo",
+        "code": {
+          "title": "Injira ukoresheje kode",
+          "help": "Andika kode umwarimu wawe yaguhaye.",
+          "placeholder": "urugero: K7M4QX",
+          "button": "Injira",
+          "errors": {
+            "INVALID_CODE": "Nta somo rifite iyi kode. Yibaze umwarimu wawe.",
+            "NOT_OPEN": "Iri somo ntirirafungurwa. Baza umwarimu wawe.",
+            "TOO_MANY": "Kode nyinshi zitari zo. Tegereza iminota mike wongere ugerageze."
+          }
+        },
         "subtitle": "Reba amasomo afunguye kuri bose kandi uyinjiremo ako kanya, nta butumire bukenewe",
         "empty": "Nta masomo afunguye kuri bose ahari ubu. Uzongere urebe nyuma.",
         "oneEnrolled": "Umunyeshuri 1",

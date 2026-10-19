@@ -1,25 +1,41 @@
 "use client";
 
-import { useState } from "react";
-import { X, Sparkles, Target } from "lucide-react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { X, Target } from "lucide-react";
+import { useCourse } from "@/context/CourseContext";
 import ScheduleFields, { initialScheduleValues, scheduleError, schedulePayload } from "./ScheduleFields";
 import { useCourseText } from "@/components/course/useCourseText";
 
 // initialDays: the module item's { release_day, due_day, close_day } when editing.
 // moduleStartDate: the module's first day ('YYYY-MM-DD'), for previewing dates.
-export default function AssignmentEditorModal({ open, onClose, onSave, initialData, initialDays, moduleStartDate }) {
+// initialOutcomeIds: the outcomes the assignment is tagged with when editing.
+export default function AssignmentEditorModal({ open, onClose, onSave, initialData, initialDays, moduleStartDate, initialOutcomeIds = [] }) {
+  const { SERVER_URL, courseId } = useCourse();
   const isEdit = Boolean(initialData?.id);
   const { t } = useCourseText();
+  // Tagging happens here so a new assignment can be published right away (untagged graded
+  // work is saved unpublished).
+  const [outcomes, setOutcomes] = useState(null);
+  const [outcomeIds, setOutcomeIds] = useState(() => initialOutcomeIds.map(Number));
+  useEffect(() => {
+    if (!open || !SERVER_URL || !courseId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${SERVER_URL}/courses/${courseId}/outcomes`);
+        const payload = await res.json().catch(() => []);
+        if (!cancelled) setOutcomes(res.ok && Array.isArray(payload) ? payload : []);
+      } catch { if (!cancelled) setOutcomes([]); }
+    })();
+    return () => { cancelled = true; };
+  }, [open, SERVER_URL, courseId]);
+  const toggleOutcome = (id) => setOutcomeIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
   const [title, setTitle] = useState(initialData?.title || "");
   const [description, setDescription] = useState(initialData?.description || "");
   const [schedule, setSchedule] = useState(() => initialScheduleValues(initialDays));
   const [pointsPossible, setPointsPossible] = useState(initialData?.points_possible ?? 100);
-  const [rubricDraft, setRubricDraft] = useState(initialData?.rubric_draft || "");
   const [saving, setSaving] = useState(false);
-
-  const generateRubricDraft = () => {
-    setRubricDraft(t("editors.rubricTemplate"));
-  };
 
   const handleSave = async () => {
     if (!title.trim() || scheduleError(schedule)) return;
@@ -30,7 +46,7 @@ export default function AssignmentEditorModal({ open, onClose, onSave, initialDa
         description,
         ...schedulePayload(schedule),
         pointsPossible: Number(pointsPossible) || 100,
-        rubricDraft,
+        outcomeIds,
       });
       onClose();
     } catch {
@@ -91,26 +107,40 @@ export default function AssignmentEditorModal({ open, onClose, onSave, initialDa
             />
           </div>
 
-          {/* Rubric Generator from Tagged Outcomes */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="block text-xs font-semibold text-slate-700">{t("editors.assignmentRubric")}</label>
-              <button
-                type="button"
-                onClick={generateRubricDraft}
-                className="flex items-center gap-1 text-[11px] font-bold text-[var(--brand-secondary)] hover:underline"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-[var(--brand-secondary)]" /> {t("editors.generateRubric")}
-              </button>
-            </div>
-            <textarea aria-label={t("editors.assignmentRubric")}
-              value={rubricDraft}
-              onChange={(e) => setRubricDraft(e.target.value)}
-              rows={3}
-              placeholder={t("editors.rubricPlaceholder")}
-              className="w-full text-xs border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[var(--brand-secondary)]"
-            />
-          </div>
+          <fieldset className="space-y-1.5">
+            <legend className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 mb-1">
+              <Target className="w-3.5 h-3.5 text-[var(--brand-secondary)]" aria-hidden="true" /> {t("editors.assignmentOutcomes")} *
+            </legend>
+            {outcomes === null ? null : outcomes.length === 0 ? (
+              <p className="text-xs text-amber-800">
+                {t("editors.noOutcomesYet")}{" "}
+                <Link href={`/course/${courseId}/outcomes`} className="font-semibold underline">{t("editors.addOutcomesLink")}</Link>
+              </p>
+            ) : (
+              <>
+                <div className="max-h-40 overflow-auto border border-slate-200 rounded-lg divide-y divide-slate-100">
+                  {outcomes.map((o) => (
+                    <label key={o.id} className="flex items-start gap-2 px-3 py-2 text-xs text-slate-700 cursor-pointer hover:bg-slate-50">
+                      <input
+                        type="checkbox"
+                        checked={outcomeIds.includes(Number(o.id))}
+                        onChange={() => toggleOutcome(Number(o.id))}
+                        className="mt-0.5 accent-[var(--brand-secondary)]"
+                      />
+                      <span>{o.code ? <span className="font-bold text-[var(--brand-secondary)] mr-1">{o.code}</span> : null}{o.title}</span>
+                    </label>
+                  ))}
+                </div>
+                {outcomeIds.length === 0 ? <p className="text-[11px] text-amber-800">{t("editors.assignmentOutcomesHelp")}</p> : null}
+              </>
+            )}
+          </fieldset>
+
+          {/* Rubrics are built on the assignment's page (criteria linked to outcomes); this
+              editor used to offer a free-text "rubric draft" that was never saved. */}
+          <p className="text-xs text-slate-500">
+            <span className="font-semibold text-slate-700">{t("editors.assignmentRubric")}:</span> {t("editors.rubricLater")}
+          </p>
         </div>
 
         <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-100">

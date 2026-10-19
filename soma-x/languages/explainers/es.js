@@ -90,8 +90,8 @@ export default {
       when: "Empieza aquí cada día.",
     },
     modules: {
-      title: "Módulos",
-      what: "El curso semana a semana. Cada módulo es una semana y tiene todo lo que los estudiantes hacen esa semana.",
+      title: "Semanas",
+      what: "El curso semana a semana. Cada semana tiene todo lo que los estudiantes hacen esa semana.",
       when: "Planifica y prepara el curso aquí: cada elemento que creas pertenece a una semana.",
       mistake: "Dejar elementos en \"Sin asignar\". Muévelos a una semana o el curso no podrá abrirse.",
     },
@@ -117,7 +117,7 @@ export default {
       title: "Tareas",
       what: "Todo el trabajo calificado del curso: tareas, cuestionarios calificados y debates calificados.",
       when: "Revisar qué hay que entregar y qué falta por calificar.",
-      mistake: "Crear trabajos aquí. Créalos en la semana correcta en la página Módulos.",
+      mistake: "Crear trabajos aquí. Créalos en la semana correcta en la página Semanas.",
     },
     quizzes: {
       title: "Cuestionarios",
@@ -127,7 +127,7 @@ export default {
     pages: {
       title: "Páginas",
       what: "Todas las páginas de material de estudio del curso.",
-      when: "Buscar y editar una página. Para añadir una, ve a la semana correcta en la página Módulos.",
+      when: "Buscar y editar una página. Para añadir una, ve a la semana correcta en la página Semanas.",
     },
     discussions: {
       title: "Debates",

@@ -2,7 +2,7 @@
 
 import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Compass, Users } from "lucide-react";
+import { Compass, KeyRound, Users } from "lucide-react";
 import DataContext from "@/context/DataContext";
 import AsyncListState from "@/components/course/AsyncListState";
 import { useGuestGate } from "@/components/guest/GuestGate";
@@ -55,6 +55,31 @@ export default function DiscoverCoursesPage() {
     });
   }, [isGuest, courses]);
 
+  // Join with the code a teacher shares: works for private courses too.
+  const [joinCode, setJoinCode] = useState("");
+  const [codeError, setCodeError] = useState("");
+  const [codeBusy, setCodeBusy] = useState(false);
+  const joinByCode = async (e) => {
+    e.preventDefault();
+    if (!joinCode.trim() || !requireAccount("/discover-courses")) return;
+    setCodeBusy(true);
+    setCodeError("");
+    try {
+      const res = await fetch(`${SERVER_URL}/courses/join-by-code`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: joinCode }),
+      });
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error((payload.code && t(`learner.discover.code.errors.${payload.code}`)) || payload.message || t("learner.discover.joinFailed"));
+      startRouteLoading();
+      router.push(`/course/${payload.courseId}/home`);
+    } catch (err) {
+      setCodeError(err.message || t("learner.discover.joinFailed"));
+      setCodeBusy(false);
+    }
+  };
+
   const join = async (courseId) => {
     if (!requireAccount(`/discover-courses?join=${encodeURIComponent(courseId)}`)) return;
     if (!userEmail) return;
@@ -86,7 +111,30 @@ export default function DiscoverCoursesPage() {
         </div>
       </div>
 
-      <div className="p-4 md:p-6">
+      <div className="p-4 md:p-6 space-y-6">
+        <form onSubmit={joinByCode} className="max-w-xl rounded-xl border border-slate-200 bg-white p-4 space-y-2">
+          <label htmlFor="join-code" className="text-sm font-bold text-slate-900 flex items-center gap-2">
+            <KeyRound className="w-4 h-4 text-[var(--brand-primary)]" aria-hidden="true" /> {t("learner.discover.code.title")}
+          </label>
+          <p className="text-xs text-slate-600">{t("learner.discover.code.help")}</p>
+          <div className="flex flex-wrap gap-2">
+            <input
+              id="join-code"
+              value={joinCode}
+              onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+              placeholder={t("learner.discover.code.placeholder")}
+              autoComplete="off"
+              autoCapitalize="characters"
+              maxLength={12}
+              className="flex-1 min-w-[10rem] text-base font-mono tracking-widest border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[var(--brand-primary)]"
+            />
+            <button type="submit" disabled={codeBusy || !joinCode.trim()} className="text-sm font-semibold text-white bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] disabled:opacity-50 rounded-lg px-4 py-2">
+              {codeBusy ? t("learner.discover.joining") : t("learner.discover.code.button")}
+            </button>
+          </div>
+          {codeError ? <p role="alert" className="text-xs text-rose-600">{codeError}</p> : null}
+        </form>
+
         <AsyncListState
           loading={loading}
           error={error}

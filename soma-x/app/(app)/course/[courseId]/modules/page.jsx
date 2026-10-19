@@ -68,6 +68,12 @@ export default function ModulesPage() {
     }
   }, [SERVER_URL, courseId, isTeacher]);
   useEffect(() => { loadAiSummary(); }, [loadAiSummary]);
+  // "#module-<id>" links (from the Home timeline) scroll to that week once the list has loaded.
+  useEffect(() => {
+    if (!modules?.length || typeof window === "undefined") return;
+    const id = window.location.hash.slice(1);
+    if (id.startsWith("module-")) document.getElementById(id)?.scrollIntoView({ block: "start" });
+  }, [modules]);
   // While jobs run, refresh every few seconds so the counts and buttons stay current.
   useEffect(() => {
     if (aiActiveJobs.length === 0) return undefined;
@@ -243,7 +249,7 @@ export default function ModulesPage() {
     refetch();
   };
 
-  const handleAssignmentSave = async (data) => {
+  const handleAssignmentSave = async ({ outcomeIds = [], ...data }) => {
     let res;
     if (assignmentModal.itemId) {
       res = await fetch(`${SERVER_URL}/courses/${courseId}/modules/${assignmentModal.moduleId}/items/${assignmentModal.itemId}/content`, {
@@ -251,11 +257,25 @@ export default function ModulesPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...data }),
       });
+      await handleResponse(res, t("modules.errors.saveAssignment"));
+      // Outcome tags are saved separately; only when they changed.
+      const before = [...(assignmentModal.outcomeIds || [])].sort().join(",");
+      if ([...outcomeIds].sort().join(",") !== before) {
+        const tagRes = await fetch(`${SERVER_URL}/courses/${courseId}/item-outcomes`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ itemType: "assignment", itemId: assignmentModal.data?.id, outcomeIds }),
+        });
+        try { await handleResponse(tagRes, t("modules.errors.saveAssignment")); } finally { refetch(); }
+        return;
+      }
+      refetch();
+      return;
     } else {
       res = await fetch(`${SERVER_URL}/courses/${courseId}/modules/${assignmentModal.moduleId}/items`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ itemType: "assignment", ...data }),
+        body: JSON.stringify({ itemType: "assignment", ...data, outcomeIds }),
       });
     }
     await handleResponse(res, t("modules.errors.saveAssignment"));
@@ -308,7 +328,7 @@ export default function ModulesPage() {
     } else if (item.item_type === "assignment") {
       const res = await fetch(`${SERVER_URL}/courses/${courseId}/assignments/${contentId}`);
       const data = await res.json();
-      setAssignmentModal({ open: true, moduleId: moduleRow.id, data, itemId: item.id, days: itemDays(item), startDate: moduleRow.startDate || null });
+      setAssignmentModal({ open: true, moduleId: moduleRow.id, data, itemId: item.id, days: itemDays(item), startDate: moduleRow.startDate || null, outcomeIds: (item.outcomes || []).map((o) => Number(o.id)) });
     } else if (item.item_type === "quiz") {
       const res = await fetch(`${SERVER_URL}/courses/${courseId}/quizzes/${contentId}`);
       const data = await res.json();
@@ -559,6 +579,7 @@ export default function ModulesPage() {
         initialData={assignmentModal.data}
         initialDays={assignmentModal.days}
         moduleStartDate={assignmentModal.startDate}
+        initialOutcomeIds={assignmentModal.outcomeIds || []}
       />}
 
       {quizModal.open && <QuizEditorModal

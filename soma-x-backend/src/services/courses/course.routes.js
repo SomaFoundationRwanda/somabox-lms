@@ -2,6 +2,7 @@
 import express from "express";
 import { dateIn } from "@somabox/timeline";
 import { SCHOOL_TIMEZONE, refreshDueDates } from "./schedule.js";
+import crypto from "crypto";
 import fs from "fs";
 import path from "path";
 import { localDb, seedDefaultNavItems } from "../../helpers/db-manager.js";
@@ -126,6 +127,101 @@ router.get("/public", async (req, res) => {
     return res.json({ courses, page, pageSize, total });
   } catch (error) {
     console.error("Error listing public courses:", error);
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+// ===== Join codes =====
+// A teacher turns on a short code; learners type it to join, even when the course is private.
+// Codes live in course_join_codes (never in course rows, which learners and the cloud receive).
+
+// No 0/O, 1/I/L: codes are read aloud and copied from a board.
+const JOIN_ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";
+const JOIN_CODE_LENGTH = 6;
+const normalizeJoinCode = (raw) => String(raw || "").toUpperCase().replace(/[^0-9A-Z]/g, "");
+
+async function newJoinCode() {
+  for (let attempt = 0; attempt < 50; attempt++) {
+    let code = "";
+    for (let i = 0; i < JOIN_CODE_LENGTH; i++) code += JOIN_ALPHABET[crypto.randomInt(JOIN_ALPHABET.length)];
+    if (!await localDb.prepare("SELECT 1 FROM course_join_codes WHERE code = ?").get(code)) return code;
+  }
+  throw new Error("Failed to generate a join code");
+}
+
+// Wrong codes per user, to make guessing impractical: at most JOIN_MAX_MISSES per window.
+const JOIN_WINDOW_MS = 10 * 60 * 1000;
+const JOIN_MAX_MISSES = 10;
+const joinMisses = new Map(); // email -> [timestamps]
+const recentMisses = (email) => (joinMisses.get(email) || []).filter((t) => Date.now() - t < JOIN_WINDOW_MS);
+
+router.post("/join-by-code", async (req, res) => {
+  try {
+    const email = req.user.email;
+    if (recentMisses(email).length >= JOIN_MAX_MISSES) {
+      return res.status(429).json({ message: "Too many wrong codes. Wait a few minutes and try again.", code: "TOO_MANY" });
+    }
+    const row = await localDb.prepare("SELECT course_id FROM course_join_codes WHERE code = ?").get(normalizeJoinCode(req.body?.code));
+    const course = row ? await courseExists(row.course_id) : null;
+    if (!course) {
+      joinMisses.set(email, [...recentMisses(email), Date.now()]);
+      return res.status(404).json({ message: "No course has this code. Check it with your teacher.", code: "INVALID_CODE" });
+    }
+    if (course.lifecycle !== "open") {
+      return res.status(400).json({ message: "This course isn't open yet. Ask your teacher.", code: "NOT_OPEN" });
+    }
+
+    // Someone already in the course (a teacher included) keeps their role.
+    const existing = await getEnrollment(course.id, email);
+    if (existing) {
+      if (existing.status !== "active") {
+        await localDb.prepare("UPDATE enrollments SET status = 'active' WHERE course_id = ? AND LOWER(user_email) = LOWER(?)").run(course.id, email);
+      }
+    } else {
+      await localDb.prepare("INSERT INTO enrollments (course_id, user_email, role, status) VALUES (?, ?, 'student', 'active')").run(course.id, email);
+    }
+    return res.json({ message: "Joined course", courseId: course.id, title: course.title });
+  } catch (error) {
+    console.error("Error joining by code:", error);
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+router.get("/:id/join-code", async (req, res) => {
+  try {
+    const courseId = String(req.params.id || "").trim();
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await requireTeacher(req, res, courseId)) return;
+    const row = await localDb.prepare("SELECT code FROM course_join_codes WHERE course_id = ?").get(courseId);
+    return res.json({ code: row?.code || null });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+// body.action: "on" (keep the current code, or make one), "new" (replace it), "off" (remove it).
+router.post("/:id/join-code", async (req, res) => {
+  try {
+    const courseId = String(req.params.id || "").trim();
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    const auth = await requireTeacher(req, res, courseId);
+    if (!auth) return;
+    const action = req.body?.action;
+    if (!["on", "new", "off"].includes(action)) return res.status(400).json({ message: "action must be on, new or off" });
+
+    if (action === "off") {
+      await localDb.prepare("DELETE FROM course_join_codes WHERE course_id = ?").run(courseId);
+      return res.json({ code: null });
+    }
+    const current = await localDb.prepare("SELECT code FROM course_join_codes WHERE course_id = ?").get(courseId);
+    if (current && action === "on") return res.json({ code: current.code });
+    const code = await newJoinCode();
+    await localDb.prepare(`
+      INSERT INTO course_join_codes (course_id, code, created_by) VALUES (?, ?, ?)
+      ON CONFLICT (course_id) DO UPDATE SET code = EXCLUDED.code, created_by = EXCLUDED.created_by, created_at = CURRENT_TIMESTAMP
+    `).run(courseId, code, auth.email);
+    return res.json({ code });
+  } catch (error) {
     return res.status(500).json({ message: error.message });
   }
 });

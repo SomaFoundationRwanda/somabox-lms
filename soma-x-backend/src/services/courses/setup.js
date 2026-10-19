@@ -4,6 +4,8 @@ import { localDb } from "../../helpers/db-manager.js";
 import { loadCourseTimeline } from "./schedule.js";
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+// The same names as params, so the page can format them in the UI language.
+const titleParams = (rows, max = 3) => ({ titles: rows.slice(0, max).map((r) => r.title), more: Math.max(0, rows.length - max) });
 const titles = (rows, max = 3) => {
   const names = rows.slice(0, max).map((r) => `"${r.title}"`).join(", ");
   return rows.length > max ? `${names} and ${rows.length - max} more` : names;
@@ -26,12 +28,21 @@ export async function getBaselineState(courseId) {
   const untagged = questions.filter((q) => !q.outcome_id).length;
   const notScorable = questions.filter((q) => q.question_type !== "multiple_choice" || !q.correct_option).length;
 
-  const problems = [];
-  if (!module) problems.push("Add a baseline (Week 0) module");
-  else if (!quiz) problems.push("Add a baseline quiz to the Week 0 module");
-  else if (questions.length === 0) problems.push("Add questions to the baseline quiz");
-  if (untagged > 0) problems.push(`Tag ${plural(untagged, "baseline question")} with an outcome`);
-  if (notScorable > 0) problems.push(`${plural(notScorable, "baseline question")} can't be scored automatically: use multiple choice with a correct answer`);
+  // problems: English text; problemCodes: the same as { id, params } for the page to translate.
+  const problemCodes = [];
+  if (!module) problemCodes.push({ id: "no_module", params: {} });
+  else if (!quiz) problemCodes.push({ id: "no_quiz", params: {} });
+  else if (questions.length === 0) problemCodes.push({ id: "no_questions", params: {} });
+  if (untagged > 0) problemCodes.push({ id: "untagged", params: { n: untagged } });
+  if (notScorable > 0) problemCodes.push({ id: "not_scorable", params: { n: notScorable } });
+  const PROBLEM_TEXT = {
+    no_module: () => "Add Week 0 (baseline)",
+    no_quiz: () => "Add a baseline quiz to Week 0",
+    no_questions: () => "Add questions to the baseline quiz",
+    untagged: ({ n }) => `Tag ${plural(n, "baseline question")} with an outcome`,
+    not_scorable: ({ n }) => `${plural(n, "baseline question")} can't be scored automatically: use multiple choice with a correct answer`,
+  };
+  const problems = problemCodes.map((p) => PROBLEM_TEXT[p.id](p.params));
 
   return {
     status: course?.baseline_status || "pending",
@@ -46,6 +57,7 @@ export async function getBaselineState(courseId) {
     outcomesMissing: outcomes.filter((o) => !covered.has(Number(o.id))),
     canApprove: problems.length === 0,
     problems,
+    problemCodes,
   };
 }
 
@@ -133,45 +145,49 @@ export async function getSetupReport(courseId) {
     ORDER BY m.position, mi.position
   `).all(courseId);
 
+  // Every blocking step and warning carries params (counts, names, dates) next to its English
+  // message, so the page can show it in the teacher's language by id.
   const blocking = [];
-  if (outcomes.length === 0) blocking.push({ id: "outcomes", message: "Add the course's learning outcomes", href: `${base}/outcomes` });
-  if (!tl.startDate) blocking.push({ id: "start_date", message: "Set the course start date (the first day of Week 1)", href: `${base}/settings` });
-  if (weeksWithContent.length === 0) blocking.push({ id: "content", message: "Add at least one week with learning content", href: `${base}/modules` });
+  if (outcomes.length === 0) blocking.push({ id: "outcomes", params: {}, message: "Add the course's learning outcomes", href: `${base}/outcomes` });
+  if (!tl.startDate) blocking.push({ id: "start_date", params: {}, message: "Set the course start date (the first day of Week 1)", href: `${base}/settings` });
+  if (weeksWithContent.length === 0) blocking.push({ id: "content", params: {}, message: "Add at least one week with learning content", href: `${base}/modules` });
   if (unassignedItems.length > 0) {
-    blocking.push({ id: "unassigned", message: `Move ${plural(unassignedItems.length, "item")} out of "Unassigned (fix me)" into a week`, href: `${base}/modules` });
+    blocking.push({ id: "unassigned", params: { n: unassignedItems.length }, message: `Move ${plural(unassignedItems.length, "item")} out of "Unassigned" into a week`, href: `${base}/modules` });
   }
   if (untagged.length > 0) {
-    blocking.push({ id: "untagged", message: `Tag ${plural(untagged.length, "graded item")} with an outcome: ${titles(untagged)}`, href: `${base}/modules` });
+    blocking.push({ id: "untagged", params: { n: untagged.length, ...titleParams(untagged) }, message: `Tag ${plural(untagged.length, "graded item")} with an outcome: ${titles(untagged)}`, href: `${base}/modules` });
   }
-  if (baseline.status === "pending") {
-    blocking.push({ id: "baseline", message: "Approve the baseline quiz, or skip the baseline and say why", href: `${base}/settings#course-setup` });
-  }
+  // The baseline is recommended, not required: a course can open without it, and the teacher
+  // can still approve or skip it afterwards.
 
   const warnings = [];
+  if (baseline.status === "pending") {
+    warnings.push({ id: "baseline_pending", params: {}, message: "The Week 0 baseline isn't approved or skipped yet, so learners' starting level won't be measured", href: `${base}/settings#course-setup` });
+  }
   const assessed = new Set((await localDb.prepare(`
     SELECT outcome_id FROM item_outcomes WHERE course_id = ?
     UNION SELECT qq.outcome_id FROM quiz_questions qq JOIN quizzes q ON q.id = qq.quiz_id WHERE q.course_id = ? AND qq.outcome_id IS NOT NULL
   `).all(courseId, courseId)).map((r) => Number(r.outcome_id)));
   const unassessed = outcomes.filter((o) => !assessed.has(Number(o.id)));
   if (unassessed.length > 0) {
-    warnings.push({ id: "unassessed_outcomes", message: `${plural(unassessed.length, "outcome")} not assessed by any graded work: ${titles(unassessed)}`, href: `${base}/outcomes` });
+    warnings.push({ id: "unassessed_outcomes", params: { n: unassessed.length, ...titleParams(unassessed) }, message: `${plural(unassessed.length, "outcome")} not assessed by any graded work: ${titles(unassessed)}`, href: `${base}/outcomes` });
   }
   const hiddenWeeks = weeksWithContent.filter((m) => Number(m.published) !== 1);
   if (hiddenWeeks.length > 0) {
-    warnings.push({ id: "unpublished_weeks", message: `${plural(hiddenWeeks.length, "week")} with content ${hiddenWeeks.length === 1 ? "is" : "are"} unpublished, so learners won't see ${hiddenWeeks.length === 1 ? "it" : "them"}`, href: `${base}/modules` });
+    warnings.push({ id: "unpublished_weeks", params: { n: hiddenWeeks.length }, message: `${plural(hiddenWeeks.length, "week")} with content ${hiddenWeeks.length === 1 ? "is" : "are"} unpublished, so learners won't see ${hiddenWeeks.length === 1 ? "it" : "them"}`, href: `${base}/modules` });
   }
   const noDue = contentItems.filter((i) => ["assignment", "quiz"].includes(i.item_type) && i.due_day == null
     && modules.find((m) => Number(m.id) === Number(i.module_id))?.kind === "regular");
-  if (noDue.length > 0) warnings.push({ id: "no_due_date", message: `${plural(noDue.length, "assignment or quiz")} ${noDue.length === 1 ? "has" : "have"} no due date`, href: `${base}/modules` });
-  if (emptyWeeks.length > 0) warnings.push({ id: "empty_weeks", message: `${plural(emptyWeeks.length, "week")} ${emptyWeeks.length === 1 ? "has" : "have"} no content yet: ${titles(emptyWeeks)}`, href: `${base}/modules` });
+  if (noDue.length > 0) warnings.push({ id: "no_due_date", params: { n: noDue.length }, message: `${plural(noDue.length, "assignment or quiz")} ${noDue.length === 1 ? "has" : "have"} no due date`, href: `${base}/modules` });
+  if (emptyWeeks.length > 0) warnings.push({ id: "empty_weeks", params: { n: emptyWeeks.length, ...titleParams(emptyWeeks) }, message: `${plural(emptyWeeks.length, "week")} ${emptyWeeks.length === 1 ? "has" : "have"} no content yet: ${titles(emptyWeeks)}`, href: `${base}/modules` });
   const lastEnd = regular.map((m) => m.endDate).filter(Boolean).sort().pop();
   if (tl.startDate && !course.end_date) {
-    warnings.push({ id: "no_end_date", message: "The course has no end date", href: `${base}/settings` });
+    warnings.push({ id: "no_end_date", params: {}, message: "The course has no end date", href: `${base}/settings` });
   } else if (lastEnd && course.end_date && course.end_date < lastEnd) {
-    warnings.push({ id: "end_before_last_week", message: `The course ends on ${course.end_date}, before its last week ends (${lastEnd})`, href: `${base}/settings` });
+    warnings.push({ id: "end_before_last_week", params: { end: course.end_date, last: lastEnd }, message: `The course ends on ${course.end_date}, before its last week ends (${lastEnd})`, href: `${base}/settings` });
   }
   if (baseline.status === "approved" && baseline.outcomesMissing.length > 0) {
-    warnings.push({ id: "baseline_coverage", message: `The baseline doesn't cover ${plural(baseline.outcomesMissing.length, "outcome")}: ${titles(baseline.outcomesMissing)}`, href: `${base}/settings#course-setup` });
+    warnings.push({ id: "baseline_coverage", params: { n: baseline.outcomesMissing.length, ...titleParams(baseline.outcomesMissing) }, message: `The baseline doesn't cover ${plural(baseline.outcomesMissing.length, "outcome")}: ${titles(baseline.outcomesMissing)}`, href: `${base}/settings#course-setup` });
   }
 
   const has = (id) => blocking.some((b) => b.id === id);
@@ -184,7 +200,8 @@ export async function getSetupReport(courseId) {
     {
       id: "baseline",
       label: baseline.status === "skipped" ? "Baseline skipped (reason recorded)" : "Baseline quiz approved",
-      done: baseline.status !== "pending", blocking: true, href: `${base}/settings#course-setup`,
+      labelKey: baseline.status === "skipped" ? "baseline_skipped" : "baseline",
+      done: baseline.status !== "pending", blocking: false, href: `${base}/settings#course-setup`,
     },
     { id: "published", label: "Weeks with content are published", done: hiddenWeeks.length === 0, blocking: false, href: `${base}/modules` },
     { id: "open", label: "Course opened", done: course.lifecycle !== "draft", blocking: false, href: `${base}/home` },
@@ -204,5 +221,7 @@ export async function getSetupReport(courseId) {
       items: contentItems.length,
       unassignedItems: unassignedItems.length,
     },
+    // Weeks with content that learners can't see yet (open-course can publish them).
+    hiddenWeekIds: hiddenWeeks.map((m) => m.id),
   };
 }

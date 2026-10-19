@@ -12,6 +12,7 @@ import { useCourseText } from "@/components/course/useCourseText";
 import SetupChecklist from "@/components/teacher/SetupChecklist";
 import BaselinePanel from "@/components/teacher/BaselinePanel";
 import CourseSetupWizard from "@/components/teacher/CourseSetupWizard";
+import GradeSelect from "@/components/teacher/GradeSelect";
 import Explainer from "@/components/help/Explainer";
 import ShareCourseSection from "@/components/course/ShareCourseSection";
 
@@ -20,7 +21,13 @@ function CourseSetupSection({ SERVER_URL, courseId, course, userEmail, onCourseC
   const { t } = useCourseText();
   const [status, setStatus] = useState(null);
   const [statusError, setStatusError] = useState("");
-  const [showWizard, setShowWizard] = useState(false);
+  // "#guided-setup" (e.g. right after creating a course) opens the wizard straight away.
+  const [showWizard, setShowWizard] = useState(() => typeof window !== "undefined" && window.location.hash === "#guided-setup");
+  useEffect(() => {
+    if (showWizard && window.location.hash === "#guided-setup") {
+      requestAnimationFrame(() => document.getElementById("guided-setup")?.scrollIntoView({ block: "start" }));
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [baselineKey, setBaselineKey] = useState(0); // remounts the baseline panel after the wizard changes things
 
   const loadStatus = useCallback(async () => {
@@ -84,6 +91,7 @@ function CourseSetupSection({ SERVER_URL, courseId, course, userEmail, onCourseC
       />
 
       {showWizard && (
+        <div id="guided-setup" className="scroll-mt-4">
         <CourseSetupWizard
           SERVER_URL={SERVER_URL}
           courseId={courseId}
@@ -96,6 +104,7 @@ function CourseSetupSection({ SERVER_URL, courseId, course, userEmail, onCourseC
             onCourseChanged();
           }}
         />
+        </div>
       )}
     </section>
   );
@@ -309,7 +318,7 @@ export default function CourseSettingsPage() {
     if (!isTeacher) return;
     const syncFromHash = () => {
       if (window.location.hash === "#share") setTab("share");
-      if (window.location.hash === "#course-setup") {
+      if (window.location.hash === "#course-setup" || window.location.hash === "#guided-setup") {
         setTab("setup");
         requestAnimationFrame(() => document.getElementById("course-setup")?.scrollIntoView({ block: "start" }));
       }
@@ -469,7 +478,7 @@ export default function CourseSettingsPage() {
             <div className="space-y-3">
             <div>
               <label htmlFor="course-grade" className="text-xs font-semibold text-slate-600 mb-1 block">{t("settings.grade")}</label>
-              <input id="course-grade" value={form.grade} onChange={(e) => setForm((p) => ({ ...p, grade: e.target.value }))} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]" />
+              <GradeSelect id="course-grade" value={form.grade || ""} onChange={(grade) => setForm((p) => ({ ...p, grade }))} />
             </div>
             <div>
               <label htmlFor="course-description" className="text-xs font-semibold text-slate-600 mb-1 block">{t("common.description")}</label>

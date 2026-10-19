@@ -8,8 +8,11 @@ import DataContext from "@/context/DataContext";
 const CACHE_MS = 30000;
 let cached = null; // { at, promise }
 
-function loadStatus(SERVER_URL) {
-  if (cached && Date.now() - cached.at < CACHE_MS) return cached.promise;
+// While the model is down, re-check this often so the warning clears once it starts.
+const RECHECK_MS = 15000;
+
+function loadStatus(SERVER_URL, { fresh = false } = {}) {
+  if (!fresh && cached && Date.now() - cached.at < CACHE_MS) return cached.promise;
   const promise = fetch(`${SERVER_URL}/ai/status`)
     .then(async (res) => {
       const data = await res.json().catch(() => ({}));
@@ -32,6 +35,19 @@ export default function useAiStatus() {
     loadStatus(SERVER_URL).then((s) => { if (alive) setStatus({ loading: false, ...s }); });
     return () => { alive = false; };
   }, [SERVER_URL]);
+
+  // AI allowed but the model isn't up (still loading, or not started): keep checking, and
+  // check again when the teacher comes back to the tab.
+  const waitingForModel = !status.loading && status.allowed && !status.modelRunning;
+  useEffect(() => {
+    if (!SERVER_URL || !waitingForModel) return undefined;
+    let alive = true;
+    const recheck = () => loadStatus(SERVER_URL, { fresh: true }).then((s) => { if (alive) setStatus({ loading: false, ...s }); });
+    const timer = setInterval(recheck, RECHECK_MS);
+    const onFocus = () => { if (document.visibilityState === "visible") recheck(); };
+    document.addEventListener("visibilitychange", onFocus);
+    return () => { alive = false; clearInterval(timer); document.removeEventListener("visibilitychange", onFocus); };
+  }, [SERVER_URL, waitingForModel]);
 
   return status;
 }

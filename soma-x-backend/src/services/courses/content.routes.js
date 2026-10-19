@@ -626,7 +626,7 @@ router.post("/:id/discussions", async (req, res) => {
     const isTeacher = isTeacherRole(auth.enrollment.role);
 
     // Every discussion lives in a module. Learners can start one in any module they can see.
-    if (!req.body.moduleId) return res.status(400).json({ message: "Choose the module this discussion belongs to (moduleId)" });
+    if (!req.body.moduleId) return res.status(400).json({ message: "Choose the week this discussion belongs to" });
     const moduleRow = await localDb.prepare("SELECT * FROM modules WHERE id = ? AND course_id = ?").get(req.body.moduleId, courseId);
     if (!moduleRow || (!isTeacher && (Number(moduleRow.published) !== 1 || moduleRow.kind === "unassigned"))) {
       return res.status(404).json({ message: "Module not found" });

@@ -201,6 +201,10 @@ test("the Home loop follows real dates", async () => {
   assert.equal(loop.body.currentModuleId, w1.id);
   assert.equal(loop.body.currentBeat, "collect");
   assert.match(loop.body.beatTitle, new RegExp(addDays(start, 4)));
+  // Keys + params let the page translate the title and button.
+  assert.equal(loop.body.beatKey, "openNow");
+  assert.deepEqual(loop.body.beatParams, { week: { kind: "regular", week_offset: 1 }, n: 1, date: addDays(start, 4) });
+  assert.equal(loop.body.primaryAction.key, "openCalendar");
 
   const future = await course({ start: addDays(today, 10) });
   const upcoming = await asTeacher("GET", `/courses/${future.courseId}/home-loop`);
@@ -209,5 +213,6 @@ test("the Home loop follows real dates", async () => {
 
   const undated = await course({ start: null });
   const noStart = await asTeacher("GET", `/courses/${undated.courseId}/home-loop`);
-  assert.ok(noStart.body.needsAttention.some((n) => n.id === "no-start-date"));
+  assert.ok(noStart.body.needsAttention.some((n) => n.id === "no-start-date" && n.key === "noStartDate" && n.actionKey === "setStartDate"));
+  assert.equal(noStart.body.beatKey, "noStartDate");
 });

@@ -1,35 +1,25 @@
 "use client"
 import { useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { X } from "lucide-react"
 import { useLanguage } from "@/context/LanguageContext"
-
-const GRADE_OPTIONS = [
-  { value: "P1", labelKey: "teacher.grades.P1" },
-  { value: "P2", labelKey: "teacher.grades.P2" },
-  { value: "P3", labelKey: "teacher.grades.P3" },
-  { value: "P4", labelKey: "teacher.grades.P4" },
-  { value: "P5", labelKey: "teacher.grades.P5" },
-  { value: "P6", labelKey: "teacher.grades.P6" },
-  { value: "S1", labelKey: "teacher.grades.S1" },
-  { value: "S2", labelKey: "teacher.grades.S2" },
-  { value: "S3", labelKey: "teacher.grades.S3" },
-  { value: "S4", labelKey: "teacher.grades.S4" },
-  { value: "S5", labelKey: "teacher.grades.S5" },
-  { value: "S6", labelKey: "teacher.grades.S6" },
-  { value: "other", labelKey: "teacher.grades.other" },
-]
+import GradeSelect from "@/components/teacher/GradeSelect"
 
 // Shared by every entry point that creates a course, so there's exactly one create-course UX.
 export default function CreateCourseModal({ SERVER_URL, onClose, onCreated }) {
   const { t } = useLanguage()
-  const [form, setForm] = useState({ title: "", grade: "", gradeOther: "", description: "" })
+  const router = useRouter()
+  const [form, setForm] = useState({ title: "", grade: "", description: "" })
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
 
+  const dirty = Boolean(form.title.trim() || form.grade.trim() || form.description.trim())
+
   const handleSubmit = async () => {
-    const resolvedGrade = form.grade === "other" ? form.gradeOther.trim() : form.grade
+    const resolvedGrade = form.grade.trim()
     if (!form.title.trim()) { setError(t("teacher.createCourse.titleRequired")); return }
+    if (!resolvedGrade) { setError(t("teacher.createCourse.gradeRequired")); return }
     setError("")
     setLoading(true)
     try {
@@ -45,6 +35,8 @@ export default function CreateCourseModal({ SERVER_URL, onClose, onCreated }) {
       const data = await res.json()
       if (!res.ok) { setError(data.message || t("teacher.createCourse.failed")); return }
       onCreated?.(data)
+      // Straight into the guided setup: a new course is a draft that needs outcomes, dates and weeks.
+      if (data?.id) router.push(`/course/${data.id}/settings#guided-setup`)
     } catch {
       setError(t("teacher.common.somethingWrong"))
     } finally {
@@ -53,7 +45,8 @@ export default function CreateCourseModal({ SERVER_URL, onClose, onCreated }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
+    // Clicking outside closes only an untouched form, so a stray click doesn't lose the teacher's typing.
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => { if (!dirty) onClose() }}>
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 p-6" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-base font-semibold text-slate-800">{t("teacher.createCourse.title")}</h3>
@@ -75,25 +68,7 @@ export default function CreateCourseModal({ SERVER_URL, onClose, onCreated }) {
           </div>
           <div>
             <label className="text-xs text-slate-600 mb-1 block">{t("teacher.createCourse.grade")} *</label>
-            <select aria-label={t("teacher.createCourse.grade")}
-              value={form.grade}
-              onChange={(e) => setForm((p) => ({ ...p, grade: e.target.value }))}
-              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2.5 outline-none focus:border-[var(--brand-secondary)] bg-white"
-            >
-              <option value="">{t("teacher.createCourse.selectGrade")}</option>
-              {GRADE_OPTIONS.map((g) => (
-                <option key={g.value} value={g.value}>{t(g.labelKey)}</option>
-              ))}
-            </select>
-            {form.grade === "other" && (
-              <input aria-label={t("teacher.createCourse.describeGrade")}
-                type="text"
-                placeholder={t("teacher.createCourse.describeGrade")}
-                value={form.gradeOther}
-                onChange={(e) => setForm((p) => ({ ...p, gradeOther: e.target.value }))}
-                className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2.5 outline-none focus:border-[var(--brand-secondary)] mt-2"
-              />
-            )}
+            <GradeSelect value={form.grade} onChange={(grade) => setForm((p) => ({ ...p, grade }))} />
           </div>
           <div>
             <label className="text-xs text-slate-600 mb-1 block">{t("teacher.createCourse.description")}</label>
@@ -108,7 +83,7 @@ export default function CreateCourseModal({ SERVER_URL, onClose, onCreated }) {
           {error && <p className="text-xs text-red-500">{error}</p>}
           <button
             onClick={handleSubmit}
-            disabled={loading || !form.title.trim() || (!form.grade || (form.grade === "other" && !form.gradeOther.trim()))}
+            disabled={loading}
             className="w-full py-2.5 rounded-lg text-sm font-medium bg-[var(--brand-secondary)] text-white hover:bg-[var(--brand-secondary-dark)] transition-colors disabled:opacity-50"
           >
             {loading ? t("teacher.createCourse.creating") : t("teacher.createCourse.create")}

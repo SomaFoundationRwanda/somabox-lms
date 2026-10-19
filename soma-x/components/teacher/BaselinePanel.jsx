@@ -8,6 +8,7 @@ import { formatInstantDate } from "@/lib/dates";
 import { useLanguage } from "@/context/LanguageContext";
 import { fill } from "@/lib/fill";
 import Loader from "@/components/ui/Loader";
+import useSetupText from "@/lib/useSetupText";
 
 const MIN_REASON = 10;
 
@@ -33,6 +34,7 @@ export default function BaselinePanel({ SERVER_URL, courseId, isDraft, onChanged
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [problems, setProblems] = useState([]);
+  const { baselineProblems } = useSetupText();
   const [perOutcome, setPerOutcome] = useState("2");
   const [skipOpen, setSkipOpen] = useState(false);
   const [reason, setReason] = useState("");
@@ -66,7 +68,7 @@ export default function BaselinePanel({ SERVER_URL, courseId, isDraft, onChanged
       if (!res.ok) {
         if (Array.isArray(payload?.problems) && payload.problems.length > 0) {
           setError(t("teacher.baseline.notReady"));
-          setProblems(payload.problems);
+          setProblems(baselineProblems(payload.problemCodes, payload.problems));
         } else {
           setError(payload?.message || t("teacher.common.somethingWrong"));
         }
@@ -131,7 +133,7 @@ export default function BaselinePanel({ SERVER_URL, courseId, isDraft, onChanged
   const status = state.status || "pending";
   const covered = Array.isArray(state.outcomesCovered) ? state.outcomesCovered.length : 0;
   const missing = Array.isArray(state.outcomesMissing) ? state.outcomesMissing : [];
-  const stateProblems = Array.isArray(state.problems) ? state.problems : [];
+  const stateProblems = baselineProblems(state.problemCodes, Array.isArray(state.problems) ? state.problems : []);
   const editHref = state.quizId ? `/course/${courseId}/quizzes/${state.quizId}` : `/course/${courseId}/modules`;
   const anyBusy = Boolean(busy);
 

@@ -90,8 +90,8 @@ export default {
       when: "Commencez ici chaque jour.",
     },
     modules: {
-      title: "Modules",
-      what: "Le cours semaine par semaine. Chaque module est une semaine et contient tout ce que les apprenants font cette semaine-là.",
+      title: "Semaines",
+      what: "Le cours semaine par semaine. Chaque semaine contient tout ce que les apprenants font cette semaine-là.",
       when: "Préparez et construisez le cours ici : chaque élément créé appartient à une semaine.",
       mistake: "Laisser des éléments dans \"Non attribués\". Placez-les dans une semaine, sinon le cours ne peut pas ouvrir.",
     },
@@ -117,7 +117,7 @@ export default {
       title: "Devoirs",
       what: "Tout le travail noté du cours : devoirs, quiz notés et discussions notées.",
       when: "Voir ce qui est à rendre et ce qui reste à noter.",
-      mistake: "Créer du travail ici. Créez-le dans la bonne semaine sur la page Modules.",
+      mistake: "Créer du travail ici. Créez-le dans la bonne semaine sur la page Semaines.",
     },
     quizzes: {
       title: "Quiz",
@@ -127,7 +127,7 @@ export default {
     pages: {
       title: "Pages",
       what: "Toutes les pages de cours.",
-      when: "Trouver et modifier une page. Pour en ajouter une, allez dans la bonne semaine sur la page Modules.",
+      when: "Trouver et modifier une page. Pour en ajouter une, allez dans la bonne semaine sur la page Semaines.",
     },
     discussions: {
       title: "Discussions",

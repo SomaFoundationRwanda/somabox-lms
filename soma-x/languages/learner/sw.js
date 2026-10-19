@@ -166,6 +166,17 @@ export default {
     "discover": {
         "loadFailed": "Imeshindikana kupakia kozi",
         "joinFailed": "Imeshindikana kujiunga na kozi",
+        "code": {
+          "title": "Jiunge kwa msimbo",
+          "help": "Andika msimbo uliopewa na mwalimu wako.",
+          "placeholder": "mf. K7M4QX",
+          "button": "Jiunge",
+          "errors": {
+            "INVALID_CODE": "Hakuna kozi yenye msimbo huu. Uthibitishe na mwalimu wako.",
+            "NOT_OPEN": "Kozi hii bado haijafunguliwa. Muulize mwalimu wako.",
+            "TOO_MANY": "Misimbo mingi isiyo sahihi. Subiri dakika chache kisha ujaribu tena."
+          }
+        },
         "subtitle": "Vinjari kozi za wazi na ujiunge mara moja — hakuna mwaliko unaohitajika",
         "empty": "Hakuna kozi za wazi kwa sasa. Rudi baadaye.",
         "oneEnrolled": "Mwanafunzi 1",

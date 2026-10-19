@@ -39,6 +39,8 @@ export default function ModuleCard({
   const { showToast } = useToast();
   const { t, tf, weekLabel } = useCourseText();
   const isUnassigned = isUnassignedModule(moduleRow);
+  // The holding module's stored title is English ("Unassigned (fix me)"); its translated label says it all.
+  const heading = isUnassigned ? weekLabel(moduleRow) : `${weekLabel(moduleRow)} - ${moduleRow.title}`;
   const [aiBusy, setAiBusy] = useState("");
   const [aiNote, setAiNote] = useState("");
   const [storyOpen, setStoryOpen] = useState(false);
@@ -178,9 +180,10 @@ export default function ModuleCard({
   // One module: a full-width header bar and, under it, its items as rows in the same bordered box.
   return (
     <section
+      id={`module-${moduleRow.id}`}
       ref={dnd?.setNodeRef}
       style={dnd?.style}
-      aria-label={`${weekLabel(moduleRow)}: ${moduleRow.title}`}
+      aria-label={heading}
       className={`rounded-md border overflow-hidden ${listBorder} ${dnd?.isDragging ? "opacity-50" : ""}`}
       {...(dnd?.attributes || {})}
     >
@@ -221,7 +224,7 @@ export default function ModuleCard({
               className={`text-base font-bold truncate ${isUnassigned ? "text-amber-800 dark:text-amber-300" : "text-slate-900 dark:text-white"}`}
               onDoubleClick={() => isTeacher && setEditingTitle(true)}
             >
-              {weekLabel(moduleRow)} - {moduleRow.title}
+              {heading}
             </h2>
           )}
           {isUnassigned ? <Explainer k="pages.unassigned" variant="icon" /> : null}
@@ -339,7 +342,7 @@ export default function ModuleCard({
       {/* Items: one list of rows */}
       {!collapsed && (
         <ul
-          aria-label={tf("modules.itemsIn", { title: moduleRow.title })}
+          aria-label={tf("modules.itemsIn", { title: isUnassigned ? heading : moduleRow.title })}
           className={`divide-y divide-slate-200 dark:divide-slate-800 ${
             isUnassigned ? "bg-amber-50/40 dark:bg-amber-950/10" : "bg-white dark:bg-transparent"
           }`}

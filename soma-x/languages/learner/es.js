@@ -166,6 +166,17 @@ export default {
     "discover": {
         "loadFailed": "No se pudieron cargar los cursos",
         "joinFailed": "No se pudo unir al curso",
+        "code": {
+          "title": "Unirse con un código",
+          "help": "Escribe el código que te dio tu docente.",
+          "placeholder": "p. ej. K7M4QX",
+          "button": "Unirse",
+          "errors": {
+            "INVALID_CODE": "Ningún curso tiene este código. Compruébalo con tu docente.",
+            "NOT_OPEN": "Este curso aún no está abierto. Pregunta a tu docente.",
+            "TOO_MANY": "Demasiados códigos incorrectos. Espera unos minutos e inténtalo de nuevo."
+          }
+        },
         "subtitle": "Explora los cursos públicos y únete al momento, sin invitación",
         "empty": "No hay cursos públicos disponibles ahora. Vuelve más tarde.",
         "oneEnrolled": "1 estudiante",

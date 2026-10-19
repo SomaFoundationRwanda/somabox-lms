@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, CheckCircle2, Circle, ChevronRight, Rocket, Settings } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Circle, ChevronRight, ListChecks, Rocket, Settings } from "lucide-react";
 import { useToast } from "@/context/ToastContext";
 import Explainer from "@/components/help/Explainer";
 import { useLanguage } from "@/context/LanguageContext";
 import { fill } from "@/lib/fill";
+import useSetupText from "@/lib/useSetupText";
 
 /** True when a teacher still has something to look at: a draft course, an unfinished checklist item, or warnings. */
 export function setupNeedsAttention(status) {
@@ -22,8 +23,11 @@ export function setupNeedsAttention(status) {
 export default function SetupChecklist({ courseId, SERVER_URL, status, onChanged, showSettingsLink = true }) {
   const { showToast } = useToast();
   const { t } = useLanguage();
+  const { checklistLabel, blockingText, warningText } = useSetupText();
   const [opening, setOpening] = useState(false);
   const [openErrors, setOpenErrors] = useState([]);
+  // Opening doesn't publish anything by itself: offer to publish the hidden weeks with content.
+  const [publishWeeks, setPublishWeeks] = useState(true);
 
   if (!status || !Array.isArray(status.checklist)) return null;
 
@@ -31,6 +35,7 @@ export default function SetupChecklist({ courseId, SERVER_URL, status, onChanged
   const warnings = Array.isArray(status.warnings) ? status.warnings : [];
   const isDraft = !status.isOpened;
   const doneCount = checklist.filter((c) => c.done).length;
+  const hiddenWeeks = Array.isArray(status.hiddenWeekIds) ? status.hiddenWeekIds.length : 0;
 
   const openCourse = async () => {
     setOpening(true);
@@ -39,15 +44,15 @@ export default function SetupChecklist({ courseId, SERVER_URL, status, onChanged
       const res = await fetch(`${SERVER_URL}/courses/${courseId}/open-course`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ publishWeeks: hiddenWeeks > 0 && publishWeeks }),
       });
       const payload = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const blocking = Array.isArray(payload?.blocking) ? payload.blocking.map((b) => b.message).filter(Boolean) : [];
+        const blocking = Array.isArray(payload?.blocking) ? payload.blocking.map(blockingText).filter(Boolean) : [];
         setOpenErrors(blocking.length > 0 ? blocking : [payload?.message || t("teacher.setup.cantOpenYet")]);
         return;
       }
-      showToast(payload?.message || t("teacher.setup.opened"), "success");
+      showToast(t("teacher.setup.opened"), "success");
       onChanged?.();
     } catch {
       setOpenErrors([t("teacher.setup.openFailed")]);
@@ -85,7 +90,7 @@ export default function SetupChecklist({ courseId, SERVER_URL, status, onChanged
               )}
               <span className={`flex-1 min-w-0 text-sm ${item.done ? "text-slate-500" : "text-slate-800 font-medium"}`}>
                 <span className="sr-only">{item.done ? t("teacher.setup.srDone") : t("teacher.setup.srNotDone")}{" "}</span>
-                {item.label}
+                {checklistLabel(item)}
               </span>
               {item.blocking && !item.done && (
                 <span className="text-[10px] font-bold uppercase text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full shrink-0">{t("teacher.setup.required")}</span>
@@ -104,7 +109,7 @@ export default function SetupChecklist({ courseId, SERVER_URL, status, onChanged
           <ul className="divide-y divide-amber-200 border border-amber-200 rounded-xl overflow-hidden">
             {warnings.map((w) => (
               <li key={w.id} className="px-3 py-2.5 bg-amber-50/60 flex flex-wrap items-center justify-between gap-2">
-                <p className="text-xs font-medium text-amber-900 flex-1 min-w-[12rem]">{w.message}</p>
+                <p className="text-xs font-medium text-amber-900 flex-1 min-w-[12rem]">{warningText(w)}</p>
                 {w.href && (
                   <Link href={w.href} className="text-xs font-bold text-amber-700 hover:underline shrink-0">
                     {t("teacher.setup.fix")} &rarr;
@@ -127,15 +132,36 @@ export default function SetupChecklist({ courseId, SERVER_URL, status, onChanged
 
       <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
         {showSettingsLink ? (
-          <Link
-            href={`/course/${courseId}/settings#course-setup`}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--brand-secondary)] hover:underline"
-          >
-            <Settings className="w-3.5 h-3.5" aria-hidden="true" /> {t("teacher.setup.inSettings")}
-          </Link>
+          <div className="flex flex-wrap items-center gap-3">
+            {isDraft && (
+              <Link
+                href={`/course/${courseId}/settings#guided-setup`}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--brand-secondary)] bg-teal-50 border border-teal-200 hover:bg-teal-100 px-3 py-2 rounded-lg transition-colors"
+              >
+                <ListChecks className="w-3.5 h-3.5" aria-hidden="true" /> {t("teacher.wizard.guided")}
+              </Link>
+            )}
+            <Link
+              href={`/course/${courseId}/settings#course-setup`}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--brand-secondary)] hover:underline"
+            >
+              <Settings className="w-3.5 h-3.5" aria-hidden="true" /> {t("teacher.setup.inSettings")}
+            </Link>
+          </div>
         ) : <span />}
         {isDraft && (
           <div className="flex flex-col items-end gap-1">
+            {hiddenWeeks > 0 && (
+              <label className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={publishWeeks}
+                  onChange={(e) => setPublishWeeks(e.target.checked)}
+                  className="accent-[var(--brand-secondary)]"
+                />
+                {fill(t("teacher.setup.publishWeeksToo"), { n: hiddenWeeks })}
+              </label>
+            )}
             <button
               type="button"
               onClick={openCourse}

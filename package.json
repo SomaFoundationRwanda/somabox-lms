@@ -9,7 +9,11 @@
     "soma-x-backend"
   ],
   "scripts": {
-    "dev": "concurrently -n \"BACKEND,FRONTEND\" -c \"cyan,magenta\" \"npm run dev --workspace=soma-x-backend\" \"npm run dev --workspace=soma-x\"",
+    "dev": "concurrently -n \"BACKEND,FRONTEND,AI-MODEL,AI-GATEWAY\" -c \"cyan,magenta,yellow,green\" \"npm run dev --workspace=soma-x-backend\" \"npm run dev --workspace=soma-x\" \"npm run ai:runtime\" \"npm run ai:gateway\"",
+    "dev:app": "concurrently -n \"BACKEND,FRONTEND\" -c \"cyan,magenta\" \"npm run dev --workspace=soma-x-backend\" \"npm run dev --workspace=soma-x\"",
+    "dev:ai": "concurrently -n \"AI-MODEL,AI-GATEWAY\" -c \"yellow,green\" \"npm run ai:runtime\" \"npm run ai:gateway\"",
+    "ai:runtime": "./ai/runtime/start_runtime.sh",
+    "ai:gateway": "npm start --prefix ai/gateway",
     "build": "npm run build --workspace=soma-x",
     "start": "pm2 start ecosystem.config.cjs",
     "start:dev": "npm run dev",

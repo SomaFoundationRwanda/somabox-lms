@@ -1,14 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Trash2, Sparkles, TrendingUp, CheckCircle2 } from "lucide-react";
+import { Plus, Trash2, Sparkles, TrendingUp, CheckCircle2, Pencil } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
+import { useToast } from "@/context/ToastContext";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
 import { PageHeader, Section, List, DataTable, EmptyState } from "@/components/layout";
 import MasterySummary from "@/components/course/outcomes/MasterySummary";
 import useAiStatus from "@/lib/useAiStatus";
 import { startAiJob } from "@/lib/ai";
-import { AiStatusNote } from "@/components/ai/AiBits";
+import { AiStatusNote, AiOffBadge } from "@/components/ai/AiBits";
 import AiJobPanel from "@/components/ai/AiJobPanel";
 import { useProgressText } from "@/components/progress/text";
 import Loader from "@/components/ui/Loader";
@@ -26,6 +27,7 @@ const STATUS_KEYS = { "Needs Reteach": "needsReteach", "On Track": "onTrack", "M
 export default function OutcomesPage() {
   const { SERVER_URL, courseId, userEmail, isTeacher } = useCourse();
   const { tp, tpn, tpOr } = useProgressText();
+  const { showToast } = useToast();
   const [outcomes, setOutcomes] = useState([]);
   const [masteryData, setMasteryData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -33,6 +35,8 @@ export default function OutcomesPage() {
   const [form, setForm] = useState({ title: "", description: "" });
   const [aiGoal, setAiGoal] = useState("");
   const [saving, setSaving] = useState(false);
+  // Manual edit of one outcome: { id, title, description } or null.
+  const [editing, setEditing] = useState(null);
   const aiStatus = useAiStatus();
   // AI rewrite: target is null (a new outcome) or the outcome being rewritten.
   const [aiOpen, setAiOpen] = useState(false);
@@ -66,7 +70,7 @@ export default function OutcomesPage() {
     if (!form.title.trim()) return;
     setSaving(true);
     try {
-      await fetch(`${SERVER_URL}/courses/${courseId}/outcomes`, {
+      const res = await fetch(`${SERVER_URL}/courses/${courseId}/outcomes`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -74,9 +78,17 @@ export default function OutcomesPage() {
           description: form.description,
         }),
       });
+      // Keep the form (and what the teacher typed) open when the save fails.
+      if (!res.ok) {
+        const payload = await res.json().catch(() => ({}));
+        showToast(payload?.message || tp("outcomes.saveFailed"), "error");
+        return;
+      }
       setForm({ title: "", description: "" });
       setCreating(false);
       loadData();
+    } catch {
+      showToast(tp("outcomes.saveFailed"), "error");
     } finally {
       setSaving(false);
     }
@@ -104,16 +116,54 @@ export default function OutcomesPage() {
     setAiJob(r.data);
   };
 
-  const removeOutcome = async (id) => {
-    await fetch(`${SERVER_URL}/courses/${courseId}/outcomes/${id}`, {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({}),
-    });
+  const saveEdit = async () => {
+    if (!editing?.title.trim()) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`${SERVER_URL}/courses/${courseId}/outcomes/${editing.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: editing.title.trim(), description: editing.description }),
+      });
+      if (!res.ok) {
+        const payload = await res.json().catch(() => ({}));
+        showToast(payload?.message || tp("outcomes.saveFailed"), "error");
+        return;
+      }
+      setEditing(null);
+      loadData();
+    } catch {
+      showToast(tp("outcomes.saveFailed"), "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const removeOutcome = async (outcome) => {
+    if (!window.confirm(tp("outcomes.confirmDelete", { name: [outcome.code, outcome.title].filter(Boolean).join(" ") }))) return;
+    try {
+      const res = await fetch(`${SERVER_URL}/courses/${courseId}/outcomes/${outcome.id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      if (!res.ok) {
+        const payload = await res.json().catch(() => ({}));
+        showToast(payload?.message || tp("outcomes.deleteFailed"), "error", 8000);
+        return;
+      }
+    } catch {
+      showToast(tp("outcomes.deleteFailed"), "error");
+      return;
+    }
     loadData();
   };
 
-  const masteryList = masteryData?.outcomes || [];
+  // The list comes from the mastery figures; if those didn't load, still list the outcomes
+  // themselves (with no data) so they don't look deleted.
+  const masteryList = Array.isArray(masteryData?.outcomes)
+    ? masteryData.outcomes
+    : (Array.isArray(outcomes) ? outcomes : []).map((o) => ({ ...o, status: null, currentMastery: null, baselineScore: null }));
 
   return (
     <div>
@@ -123,6 +173,17 @@ export default function OutcomesPage() {
           title={tp("outcomes.title")}
           description={tp("outcomes.description")}
           actions={isTeacher ? (
+            <div className="flex flex-wrap items-center gap-2">
+            {/* Write with AI sits next to New outcome so teachers find it without opening the form. */}
+            {aiStatus.allowed ? (
+              <button
+                type="button"
+                onClick={() => { setCreating(false); openAiRewrite(null); }}
+                className="flex items-center gap-1.5 text-xs font-semibold text-[var(--brand-secondary)] border border-teal-200 hover:bg-teal-50 rounded-lg px-3.5 py-2 transition-colors"
+              >
+                <Sparkles className="w-3.5 h-3.5" /> {tp("outcomes.writeWithAi")}
+              </button>
+            ) : <AiOffBadge status={aiStatus} />}
             <button
               onClick={() => setCreating((v) => !v)}
               aria-expanded={creating}
@@ -130,6 +191,7 @@ export default function OutcomesPage() {
             >
               <Plus className="w-3.5 h-3.5" /> {tp("outcomes.newOutcome")}
             </button>
+            </div>
           ) : null}
         />
 
@@ -275,12 +337,54 @@ export default function OutcomesPage() {
                         </button>
                       ) : null}
                       {isTeacher && (
-                        <button onClick={() => removeOutcome(m.id)} aria-label={tp("outcomes.deleteAria", { name: m.code || m.title })} className="text-slate-400 hover:text-rose-500 p-1">
+                        <button
+                          type="button"
+                          onClick={() => setEditing({ id: m.id, title: m.title || "", description: m.description || "" })}
+                          aria-label={tp("outcomes.editAria", { name: m.code || m.title })}
+                          title={tp("common.edit")}
+                          className="text-slate-400 hover:text-[var(--brand-secondary)] p-1"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                      )}
+                      {isTeacher && (
+                        <button onClick={() => removeOutcome(m)} aria-label={tp("outcomes.deleteAria", { name: m.code || m.title })} className="text-slate-400 hover:text-rose-500 p-1">
                           <Trash2 className="w-4 h-4" />
                         </button>
                       )}
                     </div>
                   </div>
+
+                  {editing?.id === m.id ? (
+                    <div className="space-y-2 border border-slate-200 rounded-lg p-3">
+                      <div>
+                        <label htmlFor={`edit-outcome-title-${m.id}`} className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">{tp("outcomes.statementLabel")}</label>
+                        <input
+                          id={`edit-outcome-title-${m.id}`}
+                          value={editing.title}
+                          onChange={(e) => setEditing((p) => ({ ...p, title: e.target.value }))}
+                          className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[var(--brand-secondary)]"
+                          autoFocus
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor={`edit-outcome-description-${m.id}`} className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">{tp("outcomes.descriptionLabel")}</label>
+                        <textarea
+                          id={`edit-outcome-description-${m.id}`}
+                          rows={2}
+                          value={editing.description}
+                          onChange={(e) => setEditing((p) => ({ ...p, description: e.target.value }))}
+                          className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[var(--brand-secondary)]"
+                        />
+                      </div>
+                      <div className="flex justify-end gap-2">
+                        <button type="button" onClick={() => setEditing(null)} className="text-xs font-semibold text-slate-500 px-3 py-2">{tp("common.cancel")}</button>
+                        <button type="button" onClick={saveEdit} disabled={saving || !editing.title.trim()} className="text-xs font-semibold text-white bg-[var(--brand-secondary)] disabled:opacity-50 rounded-lg px-4 py-2">
+                          {saving ? tp("common.saving") : tp("outcomes.save")}
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
 
                   <div className="space-y-1">
                     <MasterySummary outcome={m} isTeacher={isTeacher} />

@@ -7,14 +7,16 @@ import { ChevronRight, Plus, X } from "lucide-react"
 import DataContext from "@/context/DataContext"
 import ProfileCompletionBanner from "@/components/notifications/ProfileCompletionBanner"
 import CreateCourseModal from "@/components/teacher/CreateCourseModal"
+import JoinCodePanel from "@/components/teacher/JoinCodePanel"
 import { useLanguage } from "@/context/LanguageContext"
 import { fill } from "@/lib/fill"
 import Loader from "@/components/ui/Loader";
 
-function Modal({ title, onClose, children }) {
+// dirty: something has been typed, so a click outside doesn't close (and lose) it.
+function Modal({ title, onClose, dirty = false, children }) {
   const { t } = useLanguage()
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => { if (!dirty) onClose() }}>
       <div className="bg-white dark:bg-[#0f1318] border border-transparent dark:border-slate-700/50 rounded-2xl shadow-xl w-full max-w-sm mx-4 p-6" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-base font-semibold text-slate-800 dark:text-white">{title}</h3>
@@ -136,7 +138,11 @@ export default function TeacherDashboardPage() {
       </section>
 
       {studentModal && (
-        <Modal title={fill(t("teacher.dashboard.addStudentTo"), { course: courses.find(c => c.id === studentModal)?.title || "" })} onClose={() => setStudentModal(null)}>
+        <Modal title={fill(t("teacher.dashboard.addStudentTo"), { course: courses.find(c => c.id === studentModal)?.title || "" })} onClose={() => setStudentModal(null)} dirty={Boolean(studentEmail.trim())}>
+          <div className="mb-4">
+            <JoinCodePanel SERVER_URL={SERVER_URL} courseId={studentModal} isDraft={courses.find((c) => c.id === studentModal)?.lifecycle === "draft"} />
+          </div>
+          <p className="text-xs font-semibold text-slate-600 mb-1.5">{t("course.people.join.orEmail")}</p>
           <input aria-label={t("teacher.dashboard.studentEmail")}
             type="email"
             placeholder={t("teacher.dashboard.studentEmail")}
