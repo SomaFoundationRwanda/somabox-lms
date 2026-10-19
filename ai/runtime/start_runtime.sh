@@ -36,6 +36,14 @@ if [ ! -f "$MODEL_PATH" ]; then
     exit 1
 fi
 
+# The copied binary links its dylibs via an absolute rpath from the machine it was built on,
+# so point the loader at the local build output.
+LIB_DIR="$SCRIPT_DIR/build/llama.cpp/build/bin"
+if [ -d "$LIB_DIR" ]; then
+    export DYLD_LIBRARY_PATH="$LIB_DIR${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}"
+    export LD_LIBRARY_PATH="$LIB_DIR${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+fi
+
 echo "=== Starting llama.cpp server runtime ==="
 echo "Model: $MODEL_PATH"
 echo "Host: $HOST | Port: $PORT | Threads: $THREADS | Context: $CTX_SIZE"

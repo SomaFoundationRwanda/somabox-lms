@@ -34,9 +34,37 @@ module.exports = {
         NODE_ENV: 'development',
         PORT: 3001
       },
-      max_memory_restart: '1.5G',
+      max_memory_restart: '1536M',
       error_file: './logs/frontend-error.log',
       out_file: './logs/frontend-out.log',
+      time: true
+    },
+    {
+      // Offline AI model (llama.cpp server). Reads host/port/model from ai/config.yaml.
+      name: 'soma-x-ai-runtime',
+      cwd: './ai',
+      script: 'runtime/start_runtime.sh',
+      interpreter: 'bash',
+      instances: 1,
+      exec_mode: 'fork',
+      autorestart: true,
+      restart_delay: 5000,
+      error_file: './logs/ai-runtime-error.log',
+      out_file: './logs/ai-runtime-out.log',
+      time: true
+    },
+    {
+      // AI gateway in front of the model; the backend reaches it via AI_GATEWAY_URL.
+      name: 'soma-x-ai-gateway',
+      cwd: './ai/gateway',
+      script: 'index.js',
+      instances: 1,
+      exec_mode: 'fork',
+      env: { NODE_ENV: 'production' },
+      env_development: { NODE_ENV: 'development' },
+      restart_delay: 3000,
+      error_file: './logs/ai-gateway-error.log',
+      out_file: './logs/ai-gateway-out.log',
       time: true
     },
     {
