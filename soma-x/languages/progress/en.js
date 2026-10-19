@@ -288,8 +288,9 @@ export default {
   ai: {
     draftLabel: "AI draft — review before using",
     offPrefix: "AI help is off:",
+    offShort: "AI off",
     notAvailable: "not available for your account.",
-    modelDown: "The AI model isn't running on this box. You can still queue requests, but they will fail until it's started.",
+    modelDown: "The AI assistant is starting or switched off on this box. If the box was just turned on, wait a minute; otherwise ask the person who looks after the box to start it.",
     takesMinutes: " · this can take a few minutes",
     cancelling: "Cancelling…",
     hideThis: "Hide this",

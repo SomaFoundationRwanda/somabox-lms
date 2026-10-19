@@ -9,7 +9,7 @@ import { PageHeader, Section, List, DataTable, EmptyState } from "@/components/l
 import MasterySummary from "@/components/course/outcomes/MasterySummary";
 import useAiStatus from "@/lib/useAiStatus";
 import { startAiJob } from "@/lib/ai";
-import { AiStatusNote } from "@/components/ai/AiBits";
+import { AiStatusNote, AiOffBadge } from "@/components/ai/AiBits";
 import AiJobPanel from "@/components/ai/AiJobPanel";
 import { useProgressText } from "@/components/progress/text";
 import Loader from "@/components/ui/Loader";
@@ -169,6 +169,17 @@ export default function OutcomesPage() {
           title={tp("outcomes.title")}
           description={tp("outcomes.description")}
           actions={isTeacher ? (
+            <div className="flex flex-wrap items-center gap-2">
+            {/* Write with AI sits next to New outcome so teachers find it without opening the form. */}
+            {aiStatus.allowed ? (
+              <button
+                type="button"
+                onClick={() => { setCreating(false); openAiRewrite(null); }}
+                className="flex items-center gap-1.5 text-xs font-semibold text-[var(--brand-secondary)] border border-teal-200 hover:bg-teal-50 rounded-lg px-3.5 py-2 transition-colors"
+              >
+                <Sparkles className="w-3.5 h-3.5" /> {tp("outcomes.writeWithAi")}
+              </button>
+            ) : <AiOffBadge status={aiStatus} />}
             <button
               onClick={() => setCreating((v) => !v)}
               aria-expanded={creating}
@@ -176,6 +187,7 @@ export default function OutcomesPage() {
             >
               <Plus className="w-3.5 h-3.5" /> {tp("outcomes.newOutcome")}
             </button>
+            </div>
           ) : null}
         />
 

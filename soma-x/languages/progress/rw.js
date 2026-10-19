@@ -286,8 +286,9 @@ export default {
   ai: {
     draftLabel: "Inyandiko ya AI — yisuzume mbere yo kuyikoresha",
     offPrefix: "Ubufasha bwa AI ntibukora:",
+    offShort: "AI ntikora",
     notAvailable: "ntiburaboneka kuri konti yawe.",
-    modelDown: "Porogaramu ya AI ntiri gukora kuri iki gikoresho. Ushobora gukomeza kohereza ubusabe, ariko ntibuzakunda kugeza itangijwe.",
+    modelDown: "Umufasha wa AI uri gutangira cyangwa wazimye kuri iyi box. Niba box imaze gucanwa, tegereza umunota umwe; bitabaye ibyo, saba ushinzwe box kuwutangiza.",
     takesMinutes: " · bishobora gufata iminota mike",
     cancelling: "Birahagarikwa…",
     hideThis: "Hisha ibi",

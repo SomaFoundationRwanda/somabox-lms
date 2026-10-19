@@ -286,8 +286,9 @@ export default {
   ai: {
     draftLabel: "Brouillon IA — à vérifier avant usage",
     offPrefix: "L'aide IA est désactivée :",
+    offShort: "IA désactivée",
     notAvailable: "non disponible pour votre compte.",
-    modelDown: "Le modèle d'IA ne fonctionne pas sur ce boîtier. Vous pouvez toujours envoyer des demandes, mais elles échoueront tant qu'il n'est pas démarré.",
+    modelDown: "L'assistant IA démarre ou est arrêté sur ce boîtier. Si le boîtier vient d'être allumé, attendez une minute ; sinon, demandez à la personne qui s'occupe du boîtier de le démarrer.",
     takesMinutes: " · cela peut prendre quelques minutes",
     cancelling: "Annulation…",
     hideThis: "Masquer",

@@ -286,8 +286,9 @@ export default {
   ai: {
     draftLabel: "Rasimu ya AI — ikague kabla ya kuitumia",
     offPrefix: "Msaada wa AI umezimwa:",
+    offShort: "AI imezimwa",
     notAvailable: "haupatikani kwa akaunti yako.",
-    modelDown: "Modeli ya AI haifanyi kazi kwenye kifaa hiki. Bado unaweza kutuma maombi, lakini yatashindwa hadi ianzishwe.",
+    modelDown: "Msaidizi wa AI unaanza au umezimwa kwenye kisanduku hiki. Ikiwa kisanduku kimewashwa sasa hivi, subiri dakika moja; vinginevyo muombe anayesimamia kisanduku auwashe.",
     takesMinutes: " · hii inaweza kuchukua dakika chache",
     cancelling: "Inaghairi…",
     hideThis: "Ficha hiki",

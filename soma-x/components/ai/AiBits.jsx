@@ -40,6 +40,23 @@ export function AiStatusNote({ status, className = "" }) {
   return null;
 }
 
+/**
+ * Stands in for an AI button when AI is off for this user or school, so teachers can see the
+ * feature exists and why it's unavailable (the reason is in the tooltip and for screen readers).
+ * Renders nothing while the status loads or when AI is allowed.
+ */
+export function AiOffBadge({ status, className = "" }) {
+  const { tp } = useProgressText();
+  if (!status || status.loading || status.allowed) return null;
+  const reason = status.reason || tp("ai.notAvailable");
+  return (
+    <span className={`inline-flex items-center gap-1 text-[11px] font-semibold text-slate-400 ${className}`} title={reason}>
+      <Sparkles className="w-3 h-3" aria-hidden="true" />{tp("ai.offShort")}
+      <span className="sr-only">: {reason}</span>
+    </span>
+  );
+}
+
 /** A job's progress: label, bar, queue position, Cancel. Not a card: a plain block. */
 export function JobProgress({ job, label, onCancel, cancelling, onDismiss, className = "" }) {
   const { tp } = useProgressText();

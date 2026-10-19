@@ -286,8 +286,9 @@ export default {
   ai: {
     draftLabel: "Borrador de IA — revísalo antes de usarlo",
     offPrefix: "La ayuda de IA está desactivada:",
+    offShort: "IA desactivada",
     notAvailable: "no está disponible para tu cuenta.",
-    modelDown: "El modelo de IA no está funcionando en este equipo. Puedes seguir enviando solicitudes, pero fallarán hasta que se inicie.",
+    modelDown: "El asistente de IA se está iniciando o está apagado en esta caja. Si la caja se acaba de encender, espera un minuto; si no, pide a la persona que cuida la caja que lo inicie.",
     takesMinutes: " · puede tardar unos minutos",
     cancelling: "Cancelando…",
     hideThis: "Ocultar esto",
