@@ -557,6 +557,7 @@ export default {
     "notFound": "Jaribio halikupatikana.",
     "targetOutcomes": "Malengo yanayopimwa:",
     "practiceNotGraded": "Jaribio la mazoezi (halina alama)",
+    "missingOutcomeHint": "Bado hakuna lengo: hariri jaribio kwenye ukurasa wa Wiki na uchague lengo kwa kila swali.",
     "submittedScore": "Jaribio limewasilishwa. Alama: {n}",
     "attemptN": "Jaribio la {n}",
     "oneLeft": "Limebaki jaribio {n}",

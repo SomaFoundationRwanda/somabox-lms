@@ -157,7 +157,7 @@ export default function QuizDetailPage() {
               <span className="text-xs text-slate-400">{t("quiz.practiceNotGraded")}</span>
             ) : itemOutcomes.length === 0 ? (
               <span className="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full">
-                ⚠️ {t("modules.missingOutcome")}
+                ⚠️ {isTeacher ? t("quiz.missingOutcomeHint") : t("modules.missingOutcome")}
               </span>
             ) : (
               itemOutcomes.map((t) => (

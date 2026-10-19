@@ -557,6 +557,7 @@ export default {
     "notFound": "Quiz introuvable.",
     "targetOutcomes": "Objectifs évalués :",
     "practiceNotGraded": "Quiz d'entraînement (non noté)",
+    "missingOutcomeHint": "Pas encore d'objectif : modifiez le quiz sur la page Semaines et choisissez un objectif pour chaque question.",
     "submittedScore": "Quiz envoyé. Score : {n} points",
     "attemptN": "Tentative {n}",
     "oneLeft": "{n} tentative restante",

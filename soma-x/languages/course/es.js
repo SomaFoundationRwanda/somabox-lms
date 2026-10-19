@@ -557,6 +557,7 @@ export default {
     "notFound": "Cuestionario no encontrado.",
     "targetOutcomes": "Objetivos evaluados:",
     "practiceNotGraded": "Cuestionario de práctica (sin nota)",
+    "missingOutcomeHint": "Aún sin resultado: edita el cuestionario en la página Semanas y elige un resultado para cada pregunta.",
     "submittedScore": "Cuestionario enviado. Puntuación: {n} puntos",
     "attemptN": "Intento {n}",
     "oneLeft": "Queda {n} intento",

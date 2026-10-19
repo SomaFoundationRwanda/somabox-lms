@@ -134,6 +134,21 @@ test("an outcome that is the only tag of published graded work can't be deleted"
   assert.equal((await asTeacher("DELETE", `/courses/${courseId}/outcomes/${outcomeId}`)).status, 204);
 });
 
+test("a quiz stops assessing an outcome its questions no longer use", async () => {
+  const { courseId, week1, outcomeId } = await setupCourse("Quiz retag");
+  const second = (await asTeacher("POST", `/courses/${courseId}/outcomes`, { title: "Second" })).body.id;
+  const question = (outcome) => ({ prompt: "2 + 2?", options: ["4", "5"], correctOption: "4", outcomeId: outcome });
+  const quiz = await addItem(courseId, week1.id, { itemType: "quiz", title: "Check", questions: [question(outcomeId)] });
+  const tags = async () => (await asTeacher("GET", `/courses/${courseId}/item-outcomes`)).body
+    .filter((t) => t.item_type === "quiz" && Number(t.item_id) === Number(quiz.body.content_id))
+    .map((t) => Number(t.outcome_id));
+
+  assert.deepEqual(await tags(), [outcomeId]);
+  const res = await asTeacher("PATCH", `/courses/${courseId}/modules/${week1.id}/items/${quiz.body.id}/content`, { questions: [question(second)] });
+  assert.equal(res.status, 200);
+  assert.deepEqual(await tags(), [second]);
+});
+
 test("an outcome can be edited, but not to an empty statement", async () => {
   const { courseId, outcomeId } = await setupCourse("Outcome edit");
   const edited = await asTeacher("PATCH", `/courses/${courseId}/outcomes/${outcomeId}`, { title: "  Reads fluently  ", description: "Aloud" });

@@ -557,6 +557,7 @@ export default {
     "notFound": "Isuzuma ntiryabonetse.",
     "targetOutcomes": "Intego zisuzumwa:",
     "practiceNotGraded": "Isuzuma ry'imyitozo (nta manota)",
+    "missingOutcomeHint": "Nta ntego iragira: hindura isuzuma ku paji y'Ibyumweru maze uhitire buri kibazo intego.",
     "submittedScore": "Isuzuma ryoherejwe. Amanota: {n}",
     "attemptN": "Inshuro ya {n}",
     "oneLeft": "Hasigaye inshuro {n}",

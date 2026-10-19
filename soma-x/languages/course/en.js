@@ -557,6 +557,7 @@ export default {
     "notFound": "Quiz not found.",
     "targetOutcomes": "Outcomes assessed:",
     "practiceNotGraded": "Practice quiz (not graded)",
+    "missingOutcomeHint": "No outcome yet: edit the quiz on the Weeks page and choose an outcome for each question.",
     "submittedScore": "Quiz submitted. Score: {n} points",
     "attemptN": "Attempt {n}",
     "oneLeft": "{n} attempt left",

@@ -47,6 +47,7 @@ async function nextItemPosition(moduleId) {
 
 export async function replaceQuizQuestions(quizId, questions, courseId) {
   await baselineQuestionsChanged(courseId, quizId);
+  const before = await localDb.prepare("SELECT DISTINCT outcome_id FROM quiz_questions WHERE quiz_id = ? AND outcome_id IS NOT NULL").all(quizId);
   await localDb.prepare("DELETE FROM quiz_questions WHERE quiz_id = ?").run(quizId);
   for (const [idx, q] of questions.entries()) {
     const outcomeId = q?.outcomeId ? Number(q.outcomeId) : null;
@@ -73,6 +74,14 @@ export async function replaceQuizQuestions(quizId, questions, courseId) {
     SELECT DISTINCT ?, 'quiz', quiz_id, outcome_id FROM quiz_questions WHERE quiz_id = ? AND outcome_id IS NOT NULL
     ON CONFLICT (item_type, item_id, outcome_id) DO NOTHING
   `).run(courseId, quizId);
+  // ...and stops assessing the ones its questions no longer use. Only outcomes that came from
+  // the old questions are dropped; tags set on the quiz itself stay.
+  const now = new Set(questions.map((q) => Number(q?.outcomeId)).filter(Boolean));
+  for (const { outcome_id: outcomeId } of before) {
+    if (!now.has(Number(outcomeId))) {
+      await localDb.prepare("DELETE FROM item_outcomes WHERE item_type = 'quiz' AND item_id = ? AND outcome_id = ?").run(quizId, outcomeId);
+    }
+  }
 }
 
 async function setItemOutcomes(courseId, itemType, contentId, outcomeIds) {
