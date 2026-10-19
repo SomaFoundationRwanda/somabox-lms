@@ -273,6 +273,17 @@ export default {
         "settledBody": "Tu cuenta está lista. Tu docente te añadirá pronto a tu curso; no tienes que hacer nada. Mientras tanto, explora los materiales de la Biblioteca.",
         "tryPractice": "Probar temas de práctica",
         "myCourses": "Mis cursos",
+        "view": {
+          "label": "Mostrar mis cursos como",
+          "cards": "Tarjetas",
+          "byDate": "Por fecha"
+        },
+        "upcoming": {
+          "hint": "Lo que hay que entregar y lo que se abre en tus cursos en las próximas 4 semanas.",
+          "empty": "Nada que entregar en las próximas 4 semanas.",
+          "loadFailed": "No se pudo cargar lo que viene.",
+          "open": "Abrir"
+        },
         "viewAll": "Ver todo",
         "progress": "Progreso",
         "noGradedWork": "Aún no hay trabajos calificados",

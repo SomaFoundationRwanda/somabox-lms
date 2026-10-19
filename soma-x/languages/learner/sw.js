@@ -273,6 +273,17 @@ export default {
         "settledBody": "Akaunti yako iko tayari. Mwalimu wako atakuongeza kwenye kozi yako hivi karibuni — huhitaji kufanya chochote. Wakati huo, gundua vifaa vya kujifunzia kwenye Maktaba.",
         "tryPractice": "Jaribu mada za mazoezi",
         "myCourses": "Kozi zangu",
+        "view": {
+          "label": "Onyesha kozi zangu kama",
+          "cards": "Kadi",
+          "byDate": "Kwa tarehe"
+        },
+        "upcoming": {
+          "hint": "Kinachotakiwa kuwasilishwa na kinachofunguliwa katika kozi zako kwa wiki 4 zijazo.",
+          "empty": "Hakuna cha kuwasilisha katika wiki 4 zijazo.",
+          "loadFailed": "Imeshindwa kupakia yanayokuja.",
+          "open": "Fungua"
+        },
         "viewAll": "Tazama zote",
         "progress": "Maendeleo",
         "noGradedWork": "Bado hakuna kazi iliyopewa alama",

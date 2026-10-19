@@ -2,7 +2,7 @@
 import { useContext, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, BookOpen, Compass, GraduationCap, Layers, Shuffle, Sparkles, Users } from "lucide-react";
+import { ArrowRight, BookOpen, CalendarDays, Compass, GraduationCap, LayoutGrid, Layers, Shuffle, Sparkles, Users } from "lucide-react";
 import DataContext from "@/context/DataContext";
 import { Button } from "@/components/ui/button";
 import OnboardingTour, { TourLaunchButton } from "@/components/ui/OnboardingTour";
@@ -16,6 +16,10 @@ import { useLanguage } from "@/context/LanguageContext";
 import { fill } from "@/lib/fill";
 import { startRouteLoading } from "@/components/global/RouteLoader";
 import Loader from "@/components/ui/Loader";
+import UpcomingByDate from "@/components/learner/UpcomingByDate";
+
+// The learner's choice of "cards" or "date" for My courses, kept on this device.
+const VIEW_KEY = "somabox.learnerDashboard.view";
 
 const ScholarDashboard = () => {
     const { authenticated, role, SERVER_URL, isDark, user } = useContext(DataContext);
@@ -37,6 +41,14 @@ const ScholarDashboard = () => {
     const [loading, setLoading] = useState(false);
     const [joiningId, setJoiningId] = useState(null);
     const [joinError, setJoinError] = useState("");
+    const [coursesView, setCoursesView] = useState("cards");
+    useEffect(() => {
+        try { if (window.localStorage.getItem(VIEW_KEY) === "date") setCoursesView("date"); } catch { /* storage unavailable */ }
+    }, []);
+    const chooseView = (view) => {
+        setCoursesView(view);
+        try { window.localStorage.setItem(VIEW_KEY, view); } catch { /* storage unavailable */ }
+    };
 
     const loadDashboard = async () => {
         if (!SERVER_URL || !scholarEmail) return;
@@ -216,12 +228,34 @@ const ScholarDashboard = () => {
                                     <div className="bg-white rounded-[5px] p-3 sm:p-4">
                                         <div className="flex items-center justify-between mb-3">
                                             <p className="text-[13px] sm:text-[14px] font-bold text-slate-900">{t("learner.dashboard.myCourses")}</p>
-                                            <Link href="/manage/scholar-dashboard/courses"
-                                                className="text-[11px] font-semibold hover:underline underline-offset-2"
-                                                style={{ color: ACCENT }}>
-                                                {t("learner.dashboard.viewAll")}
-                                            </Link>
+                                            <div className="flex items-center gap-3">
+                                                <div role="group" aria-label={t("learner.dashboard.view.label")} className="inline-flex rounded-[5px] border border-slate-200 p-0.5">
+                                                    {[
+                                                        { id: "cards", icon: LayoutGrid, label: t("learner.dashboard.view.cards") },
+                                                        { id: "date", icon: CalendarDays, label: t("learner.dashboard.view.byDate") },
+                                                    ].map(({ id, icon: Icon, label }) => (
+                                                        <button
+                                                            key={id}
+                                                            type="button"
+                                                            onClick={() => chooseView(id)}
+                                                            aria-pressed={coursesView === id}
+                                                            className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-[4px] transition-colors ${coursesView === id ? "text-white" : "text-slate-600 hover:bg-slate-50"}`}
+                                                            style={coursesView === id ? { backgroundColor: ACCENT } : undefined}
+                                                        >
+                                                            <Icon className="w-3.5 h-3.5" aria-hidden="true" /> {label}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                                <Link href="/manage/scholar-dashboard/courses"
+                                                    className="text-[11px] font-semibold hover:underline underline-offset-2"
+                                                    style={{ color: ACCENT }}>
+                                                    {t("learner.dashboard.viewAll")}
+                                                </Link>
+                                            </div>
                                         </div>
+                                        {coursesView === "date" ? (
+                                            <UpcomingByDate SERVER_URL={SERVER_URL} />
+                                        ) : (
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                             {enrolledCourses.map((course) => (
                                                 <div key={course.id} className="rounded-[5px] border border-slate-200 overflow-hidden flex flex-col">
@@ -252,6 +286,7 @@ const ScholarDashboard = () => {
                                                 </div>
                                             ))}
                                         </div>
+                                        )}
                                     </div>
                                 ) : null}
 

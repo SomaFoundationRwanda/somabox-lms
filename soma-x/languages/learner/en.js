@@ -273,6 +273,17 @@ export default {
         "settledBody": "Your account is ready. Your teacher will add you to your course soon — you don't need to do anything. Meanwhile, explore the learning materials in the Library.",
         "tryPractice": "Try practice topics",
         "myCourses": "My courses",
+        "view": {
+          "label": "Show my courses as",
+          "cards": "Cards",
+          "byDate": "By date"
+        },
+        "upcoming": {
+          "hint": "What's due and what opens in your courses over the next 4 weeks.",
+          "empty": "Nothing due in the next 4 weeks.",
+          "loadFailed": "Couldn't load what's coming up.",
+          "open": "Open"
+        },
         "viewAll": "View all",
         "progress": "Progress",
         "noGradedWork": "No graded work yet",

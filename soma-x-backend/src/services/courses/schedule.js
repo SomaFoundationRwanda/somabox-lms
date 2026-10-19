@@ -157,7 +157,8 @@ export function courseEvents(tl, { isTeacher, from, to, types } = {}) {
     if (!isTeacher && !visible) continue;
     const url = ITEM_PATHS[item.item_type] ? `/course/${tl.course.id}/${ITEM_PATHS[item.item_type]}/${item.content_id}` : `/course/${tl.course.id}/files`;
     const common = {
-      ...base, itemType: item.item_type, moduleItemId: item.id, contentId: item.content_id,
+      // itemTitle: the bare title, for screens that build their own (translated) label.
+      ...base, itemType: item.item_type, itemTitle: item.title, moduleItemId: item.id, contentId: item.content_id,
       moduleId: m.id, moduleTitle: m.title, published: visible, url, canReschedule: !!isTeacher,
     };
     const label = TYPE_LABELS[item.item_type] || "Item";
