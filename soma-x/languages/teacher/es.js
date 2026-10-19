@@ -109,6 +109,7 @@ export default {
         "fix": "Corregir",
         "cantOpenTitle": "El curso aún no puede abrirse:",
         "cantOpenYet": "Este curso aún no puede abrirse.",
+        "publishWeeksToo": "Publicar también las semanas con contenido, para que los estudiantes las vean ({n})",
         "opened": "Curso abierto",
         "openFailed": "No se pudo abrir el curso. Revisa tu conexión e inténtalo de nuevo.",
         "inSettings": "Configuración del curso en Ajustes",

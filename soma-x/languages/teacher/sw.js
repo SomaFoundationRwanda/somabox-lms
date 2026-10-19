@@ -109,6 +109,7 @@ export default {
         "fix": "Rekebisha",
         "cantOpenTitle": "Kozi bado haiwezi kufunguliwa:",
         "cantOpenYet": "Kozi hii bado haiwezi kufunguliwa.",
+        "publishWeeksToo": "Chapisha pia wiki zenye maudhui, ili wanafunzi wazione ({n})",
         "opened": "Kozi imefunguliwa",
         "openFailed": "Imeshindwa kufungua kozi. Angalia muunganisho wako ujaribu tena.",
         "inSettings": "Maandalizi ya kozi katika Mipangilio",

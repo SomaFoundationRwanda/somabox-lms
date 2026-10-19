@@ -26,6 +26,8 @@ export default function SetupChecklist({ courseId, SERVER_URL, status, onChanged
   const { checklistLabel, blockingText, warningText } = useSetupText();
   const [opening, setOpening] = useState(false);
   const [openErrors, setOpenErrors] = useState([]);
+  // Opening doesn't publish anything by itself: offer to publish the hidden weeks with content.
+  const [publishWeeks, setPublishWeeks] = useState(true);
 
   if (!status || !Array.isArray(status.checklist)) return null;
 
@@ -33,6 +35,7 @@ export default function SetupChecklist({ courseId, SERVER_URL, status, onChanged
   const warnings = Array.isArray(status.warnings) ? status.warnings : [];
   const isDraft = !status.isOpened;
   const doneCount = checklist.filter((c) => c.done).length;
+  const hiddenWeeks = Array.isArray(status.hiddenWeekIds) ? status.hiddenWeekIds.length : 0;
 
   const openCourse = async () => {
     setOpening(true);
@@ -41,7 +44,7 @@ export default function SetupChecklist({ courseId, SERVER_URL, status, onChanged
       const res = await fetch(`${SERVER_URL}/courses/${courseId}/open-course`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ publishWeeks: hiddenWeeks > 0 && publishWeeks }),
       });
       const payload = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -148,6 +151,17 @@ export default function SetupChecklist({ courseId, SERVER_URL, status, onChanged
         ) : <span />}
         {isDraft && (
           <div className="flex flex-col items-end gap-1">
+            {hiddenWeeks > 0 && (
+              <label className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={publishWeeks}
+                  onChange={(e) => setPublishWeeks(e.target.checked)}
+                  className="accent-[var(--brand-secondary)]"
+                />
+                {fill(t("teacher.setup.publishWeeksToo"), { n: hiddenWeeks })}
+              </label>
+            )}
             <button
               type="button"
               onClick={openCourse}

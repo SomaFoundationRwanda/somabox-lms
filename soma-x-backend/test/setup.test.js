@@ -79,7 +79,13 @@ test("each blocker clears as it's fixed, then the course opens", async () => {
   assert.equal(ready.canOpen, true, JSON.stringify(ready.blocking));
   assert.ok(ready.warnings.some((w) => w.id === "unpublished_weeks"));
 
-  assert.equal((await asTeacher("POST", `/courses/${courseId}/open-course`, {})).status, 200);
+  assert.deepEqual(ready.hiddenWeekIds, [week.id]);
+
+  // Opening can publish the hidden weeks with content in the same step.
+  const opened = await asTeacher("POST", `/courses/${courseId}/open-course`, { publishWeeks: true });
+  assert.equal(opened.status, 200);
+  assert.equal(opened.body.publishedWeeks, 1);
+  assert.equal(Number((await db.prepare("SELECT published FROM modules WHERE id = ?").get(week.id)).published), 1);
   assert.equal((await asTeacher("POST", `/courses/${courseId}/baseline/reset`, {})).status, 400, "locked after opening");
   const skipped = await db.prepare("SELECT baseline_status, baseline_skip_reason, baseline_decided_by FROM courses WHERE id = ?").get(courseId);
   assert.deepEqual([skipped.baseline_status, skipped.baseline_skip_reason, skipped.baseline_decided_by], ["skipped", "Mid-term transfer cohort", USERS.teacher.email]);

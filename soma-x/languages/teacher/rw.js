@@ -109,6 +109,7 @@ export default {
         "fix": "Kosora",
         "cantOpenTitle": "Isomo ntirirashobora gufungurwa:",
         "cantOpenYet": "Iri somo ntirirashobora gufungurwa.",
+        "publishWeeksToo": "Tangaza n'ibyumweru bifite ibyigwa, kugira ngo abanyeshuri babibone ({n})",
         "opened": "Isomo ryafunguwe",
         "openFailed": "Ntibyashobotse gufungura isomo. Reba murandasi wongere ugerageze.",
         "inSettings": "Gutegura isomo mu igenamiterere",

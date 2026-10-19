@@ -138,7 +138,15 @@ router.post("/:id/open-course", async (req, res) => {
       });
     }
     await localDb.prepare("UPDATE courses SET lifecycle = 'open', updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(courseId);
-    return res.json({ message: "Course successfully opened!", course: await courseExists(courseId) });
+    // Optional: publish the weeks that have content, so learners see something once it's open.
+    let publishedWeeks = 0;
+    if (req.body?.publishWeeks === true && report.hiddenWeekIds.length > 0) {
+      for (const id of report.hiddenWeekIds) {
+        await localDb.prepare("UPDATE modules SET published = 1 WHERE id = ? AND course_id = ?").run(id, courseId);
+      }
+      publishedWeeks = report.hiddenWeekIds.length;
+    }
+    return res.json({ message: "Course successfully opened!", publishedWeeks, course: await courseExists(courseId) });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }

@@ -109,6 +109,7 @@ export default {
         "fix": "Fix",
         "cantOpenTitle": "The course can't open yet:",
         "cantOpenYet": "This course can't open yet.",
+        "publishWeeksToo": "Also publish the weeks that have content, so learners can see them ({n})",
         "opened": "Course opened",
         "openFailed": "Could not open the course. Check your connection and try again.",
         "inSettings": "Course setup in Settings",

@@ -219,5 +219,7 @@ export async function getSetupReport(courseId) {
       items: contentItems.length,
       unassignedItems: unassignedItems.length,
     },
+    // Weeks with content that learners can't see yet (open-course can publish them).
+    hiddenWeekIds: hiddenWeeks.map((m) => m.id),
   };
 }
