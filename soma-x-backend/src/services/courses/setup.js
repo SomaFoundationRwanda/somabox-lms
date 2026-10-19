@@ -152,7 +152,7 @@ export async function getSetupReport(courseId) {
   if (!tl.startDate) blocking.push({ id: "start_date", params: {}, message: "Set the course start date (the first day of Week 1)", href: `${base}/settings` });
   if (weeksWithContent.length === 0) blocking.push({ id: "content", params: {}, message: "Add at least one week with learning content", href: `${base}/modules` });
   if (unassignedItems.length > 0) {
-    blocking.push({ id: "unassigned", params: { n: unassignedItems.length }, message: `Move ${plural(unassignedItems.length, "item")} out of "Unassigned (fix me)" into a week`, href: `${base}/modules` });
+    blocking.push({ id: "unassigned", params: { n: unassignedItems.length }, message: `Move ${plural(unassignedItems.length, "item")} out of "Unassigned" into a week`, href: `${base}/modules` });
   }
   if (untagged.length > 0) {
     blocking.push({ id: "untagged", params: { n: untagged.length, ...titleParams(untagged) }, message: `Tag ${plural(untagged.length, "graded item")} with an outcome: ${titles(untagged)}`, href: `${base}/modules` });

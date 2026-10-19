@@ -81,7 +81,7 @@ export default {
       "review": "Revisar"
     },
     "nowBeat": "Ahora: {beat}",
-    "weeklyLoopActive": "Ciclo semanal activo",
+    "weeklyLoopActive": "En marcha semana a semana",
     "currentBeat": "Paso de esta semana",
     "loopTitles": {
       "noStartDate": "Define la fecha de inicio del curso para ubicar cada semana en el calendario",
@@ -120,7 +120,7 @@ export default {
     },
     "needsAttention": "Requiere atención",
     "allTagged": "Nada necesita tu atención por ahora.",
-    "outcomePulse": "Pulso de objetivos (frente al punto de partida)",
+    "outcomePulse": "Cómo van los estudiantes en cada resultado",
     "noOutcomeData": "Aún no hay datos de objetivos.",
     "noDataYet": "Aún sin datos",
     "baseline": "Punto de partida",

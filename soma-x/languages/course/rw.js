@@ -81,7 +81,7 @@ export default {
       "review": "Gusuzuma"
     },
     "nowBeat": "Ubu: {beat}",
-    "weeklyLoopActive": "Gahunda y'icyumweru irakora",
+    "weeklyLoopActive": "Rikomeje icyumweru ku cyumweru",
     "currentBeat": "Intambwe y'iki cyumweru",
     "loopTitles": {
       "noStartDate": "Shyiraho itariki isomo ritangiriraho kugira ngo buri cyumweru kijye ku ngengabihe",
@@ -120,7 +120,7 @@ export default {
     },
     "needsAttention": "Ibikeneye kwitabwaho",
     "allTagged": "Nta kintu gikeneye ko ukitaho ubu.",
-    "outcomePulse": "Uko intego zigerwaho (ugereranyije n'intangiriro)",
+    "outcomePulse": "Aho abanyeshuri bageze kuri buri ntego",
     "noOutcomeData": "Nta makuru y'intego arandikwa.",
     "noDataYet": "Nta makuru arahaba",
     "baseline": "Intangiriro",

@@ -34,7 +34,7 @@ export async function getUnassignedModule(courseId) {
   if (existing) return existing;
   await localDb.prepare(`
     INSERT INTO modules (course_id, title, description, position, published, kind, week_offset, day_offset)
-    VALUES (?, 'Unassigned (fix me)', 'Items that are not in a week yet. Move each one into the right module; the course can''t open while this module has items.', 9999, 0, 'unassigned', NULL, NULL)
+    VALUES (?, 'Unassigned', 'Items that are not in a week yet. Move each one into the right week; the course can''t open while this has items.', 9999, 0, 'unassigned', NULL, NULL)
     ON CONFLICT DO NOTHING
   `).run(courseId);
   return await localDb.prepare("SELECT * FROM modules WHERE course_id = ? AND kind = 'unassigned'").get(courseId);

@@ -81,7 +81,7 @@ export default {
       "review": "Revoir"
     },
     "nowBeat": "En ce moment : {beat}",
-    "weeklyLoopActive": "Cycle hebdomadaire actif",
+    "weeklyLoopActive": "Se déroule semaine par semaine",
     "currentBeat": "Étape de la semaine",
     "loopTitles": {
       "noStartDate": "Indiquez la date de début du cours pour placer chaque semaine dans le calendrier",
@@ -120,7 +120,7 @@ export default {
     },
     "needsAttention": "À traiter",
     "allTagged": "Rien ne demande votre attention pour le moment.",
-    "outcomePulse": "Suivi des objectifs (par rapport au départ)",
+    "outcomePulse": "Où en sont les élèves sur chaque objectif",
     "noOutcomeData": "Aucune donnée sur les objectifs pour l'instant.",
     "noDataYet": "Pas encore de données",
     "baseline": "Point de départ",

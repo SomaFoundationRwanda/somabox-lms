@@ -81,7 +81,7 @@ export default {
       "review": "Review"
     },
     "nowBeat": "Now: {beat}",
-    "weeklyLoopActive": "Weekly loop active",
+    "weeklyLoopActive": "Running week by week",
     "currentBeat": "This week's step",
     "loopTitles": {
       "noStartDate": "Set the course start date to place each week on the calendar",
@@ -120,7 +120,7 @@ export default {
     },
     "needsAttention": "Needs attention",
     "allTagged": "Nothing needs your attention right now.",
-    "outcomePulse": "Outcome pulse (vs baseline)",
+    "outcomePulse": "How learners are doing on each outcome",
     "noOutcomeData": "No outcome data logged yet.",
     "noDataYet": "No data yet",
     "baseline": "Baseline",

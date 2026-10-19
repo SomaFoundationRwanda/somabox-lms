@@ -81,7 +81,7 @@ export default {
       "review": "Kupitia"
     },
     "nowBeat": "Sasa: {beat}",
-    "weeklyLoopActive": "Mzunguko wa kila wiki unaendelea",
+    "weeklyLoopActive": "Inaendelea wiki kwa wiki",
     "currentBeat": "Hatua ya wiki hii",
     "loopTitles": {
       "noStartDate": "Weka tarehe ya kuanza kozi ili kila wiki iwekwe kwenye kalenda",
@@ -120,7 +120,7 @@ export default {
     },
     "needsAttention": "Inahitaji kushughulikiwa",
     "allTagged": "Hakuna kinachohitaji umakini wako kwa sasa.",
-    "outcomePulse": "Hali ya malengo (ikilinganishwa na mwanzo)",
+    "outcomePulse": "Wanafunzi wanavyoendelea kwa kila lengo",
     "noOutcomeData": "Hakuna data ya malengo bado.",
     "noDataYet": "Hakuna data bado",
     "baseline": "Kipimo cha awali",
