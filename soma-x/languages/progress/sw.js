@@ -287,6 +287,15 @@ export default {
     draftLabel: "Rasimu ya AI — ikague kabla ya kuitumia",
     offPrefix: "Msaada wa AI umezimwa:",
     offShort: "AI imezimwa",
+    errors: {
+      runtimeUnavailable: "Modeli ya AI haifanyi kazi kwenye kisanduku hiki. Muombe msimamizi wako aiwashe.",
+      busy: "Msaidizi wa AI una shughuli na maombi ya walimu wengine. Jaribu tena baada ya dakika chache.",
+      timeout: "Modeli ya AI imechukua muda mrefu kujibu. Jaribu tena, au omba kidogo kwa wakati mmoja.",
+      invalidOutput: "AI haikuweza kutoa jibu linalofaa safari hii. Jaribu tena au eleza kwa njia nyingine.",
+      unreachable: "Huduma ya AI haipatikani kwenye kisanduku hiki.",
+      interrupted: "Imekatizwa na kuwashwa upya. Ianzishe tena.",
+      generic: "Hitilafu imetokea wakati wa kutengeneza. Jaribu tena."
+    },
     notAvailable: "haupatikani kwa akaunti yako.",
     modelDown: "Msaidizi wa AI unaanza au umezimwa kwenye kisanduku hiki. Ikiwa kisanduku kimewashwa sasa hivi, subiri dakika moja; vinginevyo muombe anayesimamia kisanduku auwashe.",
     takesMinutes: " · hii inaweza kuchukua dakika chache",

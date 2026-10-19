@@ -9,7 +9,7 @@ import { startAiJob, useAiJob } from "@/lib/ai";
 import { AiDraftLabel, AiStatusNote, JobProgress } from "@/components/ai/AiBits";
 import { Section } from "@/components/layout";
 import { basedOn, fmtWhen } from "./bits";
-import { useProgressText } from "@/components/progress/text";
+import { useProgressText, aiErrorText } from "@/components/progress/text";
 
 // The latest AI class summary, and a button to write a new one. The model only ever sees
 // outcome codes and numbers, never learners' names.
@@ -30,7 +30,7 @@ export default function AiClassSummary({ summary, learners, onDone }) {
         showToast(tp("ai.summary.ready"), "success");
         onDone?.();
       } else if (j.status === "failed") {
-        setError(j.error || tp("ai.summary.failed"));
+        setError(j.error ? aiErrorText(tp, j.error) : tp("ai.summary.failed"));
       }
     },
   });

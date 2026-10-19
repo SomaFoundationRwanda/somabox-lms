@@ -287,6 +287,15 @@ export default {
     draftLabel: "Brouillon IA — à vérifier avant usage",
     offPrefix: "L'aide IA est désactivée :",
     offShort: "IA désactivée",
+    errors: {
+      runtimeUnavailable: "Le modèle IA ne tourne pas sur ce boîtier. Demandez à votre administrateur de le démarrer.",
+      busy: "L'assistant IA est occupé par les demandes d'autres enseignants. Réessayez dans quelques minutes.",
+      timeout: "Le modèle IA a mis trop de temps à répondre. Réessayez, ou demandez moins à la fois.",
+      invalidOutput: "L'IA n'a pas pu produire de réponse utilisable cette fois. Réessayez ou reformulez.",
+      unreachable: "Le service IA est injoignable sur ce boîtier.",
+      interrupted: "Interrompu par un redémarrage. Relancez-le.",
+      generic: "Un problème est survenu pendant la génération. Réessayez."
+    },
     notAvailable: "non disponible pour votre compte.",
     modelDown: "L'assistant IA démarre ou est arrêté sur ce boîtier. Si le boîtier vient d'être allumé, attendez une minute ; sinon, demandez à la personne qui s'occupe du boîtier de le démarrer.",
     takesMinutes: " · cela peut prendre quelques minutes",

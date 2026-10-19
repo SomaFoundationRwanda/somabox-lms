@@ -159,7 +159,11 @@ export default function OutcomesPage() {
     loadData();
   };
 
-  const masteryList = masteryData?.outcomes || [];
+  // The list comes from the mastery figures; if those didn't load, still list the outcomes
+  // themselves (with no data) so they don't look deleted.
+  const masteryList = Array.isArray(masteryData?.outcomes)
+    ? masteryData.outcomes
+    : (Array.isArray(outcomes) ? outcomes : []).map((o) => ({ ...o, status: null, currentMastery: null, baselineScore: null }));
 
   return (
     <div>

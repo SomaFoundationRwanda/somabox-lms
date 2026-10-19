@@ -287,6 +287,15 @@ export default {
     draftLabel: "Borrador de IA — revísalo antes de usarlo",
     offPrefix: "La ayuda de IA está desactivada:",
     offShort: "IA desactivada",
+    errors: {
+      runtimeUnavailable: "El modelo de IA no está funcionando en esta caja. Pide a tu administrador que lo inicie.",
+      busy: "El asistente de IA está ocupado con solicitudes de otros docentes. Inténtalo de nuevo en unos minutos.",
+      timeout: "El modelo de IA tardó demasiado en responder. Inténtalo de nuevo o pide menos a la vez.",
+      invalidOutput: "La IA no pudo dar una respuesta útil esta vez. Inténtalo de nuevo o reformula.",
+      unreachable: "No se puede acceder al servicio de IA en esta caja.",
+      interrupted: "Interrumpido por un reinicio. Vuelve a iniciarlo.",
+      generic: "Algo salió mal al generar. Inténtalo de nuevo."
+    },
     notAvailable: "no está disponible para tu cuenta.",
     modelDown: "El asistente de IA se está iniciando o está apagado en esta caja. Si la caja se acaba de encender, espera un minuto; si no, pide a la persona que cuida la caja que lo inicie.",
     takesMinutes: " · puede tardar unos minutos",

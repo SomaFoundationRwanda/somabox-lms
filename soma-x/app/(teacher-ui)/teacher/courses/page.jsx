@@ -22,10 +22,15 @@ export default function TeacherCoursesPage() {
   const load = async () => {
     if (!SERVER_URL || !teacherEmail) return
     setLoading(true)
-    const res = await fetch(`${SERVER_URL}/courses/mine`)
-    const data = await res.json()
-    if (res.ok) setCourses(Array.isArray(data) ? data : [])
-    setLoading(false)
+    try {
+      const res = await fetch(`${SERVER_URL}/courses/mine`)
+      const data = await res.json().catch(() => [])
+      if (res.ok) setCourses(Array.isArray(data) ? data : [])
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => { load() }, [SERVER_URL, teacherEmail]) // eslint-disable-line react-hooks/exhaustive-deps

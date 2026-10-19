@@ -287,6 +287,15 @@ export default {
     draftLabel: "Inyandiko ya AI — yisuzume mbere yo kuyikoresha",
     offPrefix: "Ubufasha bwa AI ntibukora:",
     offShort: "AI ntikora",
+    errors: {
+      runtimeUnavailable: "Porogaramu ya AI ntiri gukora kuri iyi box. Saba umuyobozi wayo kuyitangiza.",
+      busy: "Umufasha wa AI uhuze n'ibyo abandi barimu basabye. Ongera ugerageze mu minota mike.",
+      timeout: "AI yatinze cyane gusubiza. Ongera ugerageze, cyangwa usabe bike icyarimwe.",
+      invalidOutput: "AI ntiyashoboye gutanga igisubizo gikoreshwa ubu. Ongera ugerageze cyangwa uvuge mu bundi buryo.",
+      unreachable: "Serivisi ya AI ntigerwaho kuri iyi box.",
+      interrupted: "Byahagaritswe no kongera gutangiza. Ongera ubitangize.",
+      generic: "Habaye ikibazo mu gukora. Ongera ugerageze."
+    },
     notAvailable: "ntiburaboneka kuri konti yawe.",
     modelDown: "Umufasha wa AI uri gutangira cyangwa wazimye kuri iyi box. Niba box imaze gucanwa, tegereza umunota umwe; bitabaye ibyo, saba ushinzwe box kuwutangiza.",
     takesMinutes: " · bishobora gufata iminota mike",

@@ -289,6 +289,15 @@ export default {
     draftLabel: "AI draft — review before using",
     offPrefix: "AI help is off:",
     offShort: "AI off",
+    errors: {
+      runtimeUnavailable: "The AI model isn't running on this box. Ask your administrator to start it.",
+      busy: "The AI assistant is busy with other teachers' requests. Try again in a few minutes.",
+      timeout: "The AI model took too long to answer. Try again, or ask for less at once.",
+      invalidOutput: "The AI couldn't produce a usable answer this time. Try again or rephrase.",
+      unreachable: "The AI service can't be reached on this box.",
+      interrupted: "Interrupted by a restart. Start it again.",
+      generic: "Something went wrong while generating. Try again."
+    },
     notAvailable: "not available for your account.",
     modelDown: "The AI assistant is starting or switched off on this box. If the box was just turned on, wait a minute; otherwise ask the person who looks after the box to start it.",
     takesMinutes: " · this can take a few minutes",
