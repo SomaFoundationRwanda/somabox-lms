@@ -76,6 +76,25 @@ router.delete("/:id/outcomes/:outcomeId", async (req, res) => {
     const courseId = String(req.params.id || "").trim();
     if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
     if (!await requireTeacher(req, res, courseId)) return;
+    // Same rule as tagging: a published graded item must keep at least one outcome, so an
+    // outcome that is the only tag of one can't be deleted.
+    const soleTags = await localDb.prepare(`
+      SELECT io.item_type, io.item_id FROM item_outcomes io
+      WHERE io.course_id = ? AND io.outcome_id = ? AND io.item_type IN ('assignment', 'quiz')
+        AND NOT EXISTS (SELECT 1 FROM item_outcomes o2 WHERE o2.item_type = io.item_type AND o2.item_id = io.item_id AND o2.outcome_id <> io.outcome_id)
+    `).all(courseId, req.params.outcomeId);
+    const blocked = [];
+    for (const tag of soleTags) {
+      const item = await localDb.prepare(`SELECT title, published${tag.item_type === "quiz" ? ", kind" : ""} FROM ${CONTENT_TABLES[tag.item_type]} WHERE id = ?`).get(tag.item_id);
+      if (item && Number(item.published) === 1 && item.kind !== "practice") blocked.push(item.title);
+    }
+    if (blocked.length > 0) {
+      return res.status(422).json({
+        message: `This outcome is the only one on published work: ${blocked.map((t) => `"${t}"`).join(", ")}. Tag that work with another outcome, or unpublish it, before deleting this outcome.`,
+        code: "OUTCOME_IN_USE",
+        items: blocked,
+      });
+    }
     await localDb.prepare("DELETE FROM outcomes WHERE id = ? AND course_id = ?").run(req.params.outcomeId, courseId);
     return res.status(204).end();
   } catch (error) {

@@ -90,7 +90,7 @@ export default {
       "review": "Gusuzuma: gereranya uko intego zagezweho n'isuzuma ry'ibanze, uhindure icyumweru gitaha."
     },
     "needsAttention": "Ibikeneye kwitabwaho",
-    "allTagged": "Ibiri mu bice by'isomo byose bifite intego kandi biri ku gihe!",
+    "allTagged": "Nta kintu gikeneye ko ukitaho ubu.",
     "outcomePulse": "Uko intego zigerwaho (ugereranyije n'intangiriro)",
     "noOutcomeData": "Nta makuru y'intego arandikwa.",
     "noDataYet": "Nta makuru arahaba",

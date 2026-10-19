@@ -90,7 +90,7 @@ export default {
       "review": "Review: compare outcome mastery with the baseline and adjust next week."
     },
     "needsAttention": "Needs attention",
-    "allTagged": "All module items are tagged with outcomes and up to date!",
+    "allTagged": "Nothing needs your attention right now.",
     "outcomePulse": "Outcome pulse (vs baseline)",
     "noOutcomeData": "No outcome data logged yet.",
     "noDataYet": "No data yet",

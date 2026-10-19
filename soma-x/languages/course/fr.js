@@ -90,7 +90,7 @@ export default {
       "review": "Revoir : comparez la maîtrise des objectifs au point de départ et ajustez la semaine suivante."
     },
     "needsAttention": "À traiter",
-    "allTagged": "Tous les éléments des modules sont liés à des objectifs et à jour !",
+    "allTagged": "Rien ne demande votre attention pour le moment.",
     "outcomePulse": "Suivi des objectifs (par rapport au départ)",
     "noOutcomeData": "Aucune donnée sur les objectifs pour l'instant.",
     "noDataYet": "Pas encore de données",

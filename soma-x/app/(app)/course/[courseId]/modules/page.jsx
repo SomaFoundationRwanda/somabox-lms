@@ -68,6 +68,12 @@ export default function ModulesPage() {
     }
   }, [SERVER_URL, courseId, isTeacher]);
   useEffect(() => { loadAiSummary(); }, [loadAiSummary]);
+  // "#module-<id>" links (from the Home timeline) scroll to that week once the list has loaded.
+  useEffect(() => {
+    if (!modules?.length || typeof window === "undefined") return;
+    const id = window.location.hash.slice(1);
+    if (id.startsWith("module-")) document.getElementById(id)?.scrollIntoView({ block: "start" });
+  }, [modules]);
   // While jobs run, refresh every few seconds so the counts and buttons stay current.
   useEffect(() => {
     if (aiActiveJobs.length === 0) return undefined;

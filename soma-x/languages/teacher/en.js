@@ -87,6 +87,7 @@ export default {
         "description": "Description",
         "descriptionPlaceholder": "What is this course about?",
         "titleRequired": "Course title is required",
+        "gradeRequired": "Choose the class level for this course",
         "failed": "Failed to create course",
         "creating": "Creating...",
         "create": "Create Course",

@@ -90,7 +90,7 @@ export default {
       "review": "Revisar: compara el dominio de los objetivos con el punto de partida y ajusta la próxima semana."
     },
     "needsAttention": "Requiere atención",
-    "allTagged": "¡Todos los elementos de los módulos tienen objetivos y están al día!",
+    "allTagged": "Nada necesita tu atención por ahora.",
     "outcomePulse": "Pulso de objetivos (frente al punto de partida)",
     "noOutcomeData": "Aún no hay datos de objetivos.",
     "noDataYet": "Aún sin datos",

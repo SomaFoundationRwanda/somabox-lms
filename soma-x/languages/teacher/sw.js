@@ -87,6 +87,7 @@ export default {
         "description": "Maelezo",
         "descriptionPlaceholder": "Kozi hii inahusu nini?",
         "titleRequired": "Jina la kozi linahitajika",
+        "gradeRequired": "Chagua darasa/ngazi ya kozi hii",
         "failed": "Imeshindwa kuunda kozi",
         "creating": "Inaunda...",
         "create": "Unda kozi",

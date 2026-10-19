@@ -90,7 +90,7 @@ export default {
       "review": "Kupitia: linganisha umilisi wa malengo na kipimo cha awali, kisha rekebisha wiki ijayo."
     },
     "needsAttention": "Inahitaji kushughulikiwa",
-    "allTagged": "Vipengele vyote vya moduli vina malengo na viko sawa!",
+    "allTagged": "Hakuna kinachohitaji umakini wako kwa sasa.",
     "outcomePulse": "Hali ya malengo (ikilinganishwa na mwanzo)",
     "noOutcomeData": "Hakuna data ya malengo bado.",
     "noDataYet": "Hakuna data bado",

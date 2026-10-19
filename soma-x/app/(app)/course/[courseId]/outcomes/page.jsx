@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Plus, Trash2, Sparkles, TrendingUp, CheckCircle2 } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
+import { useToast } from "@/context/ToastContext";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
 import { PageHeader, Section, List, DataTable, EmptyState } from "@/components/layout";
 import MasterySummary from "@/components/course/outcomes/MasterySummary";
@@ -26,6 +27,7 @@ const STATUS_KEYS = { "Needs Reteach": "needsReteach", "On Track": "onTrack", "M
 export default function OutcomesPage() {
   const { SERVER_URL, courseId, userEmail, isTeacher } = useCourse();
   const { tp, tpn, tpOr } = useProgressText();
+  const { showToast } = useToast();
   const [outcomes, setOutcomes] = useState([]);
   const [masteryData, setMasteryData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -66,7 +68,7 @@ export default function OutcomesPage() {
     if (!form.title.trim()) return;
     setSaving(true);
     try {
-      await fetch(`${SERVER_URL}/courses/${courseId}/outcomes`, {
+      const res = await fetch(`${SERVER_URL}/courses/${courseId}/outcomes`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -74,9 +76,17 @@ export default function OutcomesPage() {
           description: form.description,
         }),
       });
+      // Keep the form (and what the teacher typed) open when the save fails.
+      if (!res.ok) {
+        const payload = await res.json().catch(() => ({}));
+        showToast(payload?.message || tp("outcomes.saveFailed"), "error");
+        return;
+      }
       setForm({ title: "", description: "" });
       setCreating(false);
       loadData();
+    } catch {
+      showToast(tp("outcomes.saveFailed"), "error");
     } finally {
       setSaving(false);
     }
@@ -104,12 +114,23 @@ export default function OutcomesPage() {
     setAiJob(r.data);
   };
 
-  const removeOutcome = async (id) => {
-    await fetch(`${SERVER_URL}/courses/${courseId}/outcomes/${id}`, {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({}),
-    });
+  const removeOutcome = async (outcome) => {
+    if (!window.confirm(tp("outcomes.confirmDelete", { name: [outcome.code, outcome.title].filter(Boolean).join(" ") }))) return;
+    try {
+      const res = await fetch(`${SERVER_URL}/courses/${courseId}/outcomes/${outcome.id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      if (!res.ok) {
+        const payload = await res.json().catch(() => ({}));
+        showToast(payload?.message || tp("outcomes.deleteFailed"), "error", 8000);
+        return;
+      }
+    } catch {
+      showToast(tp("outcomes.deleteFailed"), "error");
+      return;
+    }
     loadData();
   };
 
@@ -275,7 +296,7 @@ export default function OutcomesPage() {
                         </button>
                       ) : null}
                       {isTeacher && (
-                        <button onClick={() => removeOutcome(m.id)} aria-label={tp("outcomes.deleteAria", { name: m.code || m.title })} className="text-slate-400 hover:text-rose-500 p-1">
+                        <button onClick={() => removeOutcome(m)} aria-label={tp("outcomes.deleteAria", { name: m.code || m.title })} className="text-slate-400 hover:text-rose-500 p-1">
                           <Trash2 className="w-4 h-4" />
                         </button>
                       )}

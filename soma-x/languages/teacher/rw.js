@@ -87,6 +87,7 @@ export default {
         "description": "Ibisobanuro",
         "descriptionPlaceholder": "Iri somo rivuga ku ki?",
         "titleRequired": "Umutwe w'isomo urakenewe",
+        "gradeRequired": "Hitamo umwaka/icyiciro cy'iri somo",
         "failed": "Gukora isomo byanze",
         "creating": "Biri gukorwa...",
         "create": "Kora isomo",

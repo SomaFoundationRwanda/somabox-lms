@@ -127,7 +127,7 @@ export default function CourseHomePage() {
               <Clock className="w-3.5 h-3.5 text-slate-400" />
               {weekText}
             </span>
-            {isTeacher && (
+            {isTeacher && course?.lifecycle === "open" && beatInfo.startDate && (
               <span className="text-xs font-semibold text-[var(--brand-secondary)]">· {t("home.weeklyLoopActive")}</span>
             )}
           </div>
@@ -242,7 +242,7 @@ export default function CourseHomePage() {
                       <div className="pl-10 pr-3 pb-3 space-y-2">
                         <p className="text-xs text-slate-600 dark:text-slate-400">{m.description || t("home.defaultModuleDescription")}</p>
                         <Link
-                          href={`/course/${courseId}/modules`}
+                          href={`/course/${courseId}/modules#module-${m.id}`}
                           className="inline-flex items-center gap-1.5 text-xs font-bold text-[var(--brand-secondary)] hover:underline"
                         >
                           {t("home.openModuleItems")} &rarr;

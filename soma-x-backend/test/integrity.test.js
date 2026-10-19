@@ -118,6 +118,22 @@ test("graded items without an outcome are saved as drafts and can't be published
   assert.equal(practice.body.published, true, "practice quizzes don't need outcomes");
 });
 
+test("an outcome that is the only tag of published graded work can't be deleted", async () => {
+  const { courseId, week1, outcomeId } = await setupCourse("Outcome delete");
+  const tagged = await addItem(courseId, week1.id, { itemType: "assignment", title: "Essay", outcomeIds: [outcomeId] });
+  assert.equal(tagged.body.published, true);
+
+  const blocked = await asTeacher("DELETE", `/courses/${courseId}/outcomes/${outcomeId}`);
+  assert.equal(blocked.status, 422);
+  assert.equal(blocked.body.code, "OUTCOME_IN_USE");
+  assert.deepEqual(blocked.body.items, ["Essay"]);
+
+  // With a second outcome on the work, the first one can go.
+  const second = await asTeacher("POST", `/courses/${courseId}/outcomes`, { title: "Second" });
+  await asTeacher("POST", `/courses/${courseId}/item-outcomes`, { itemType: "assignment", itemId: tagged.body.content_id, outcomeIds: [outcomeId, second.body.id] });
+  assert.equal((await asTeacher("DELETE", `/courses/${courseId}/outcomes/${outcomeId}`)).status, 204);
+});
+
 test("outcome tags must come from the same course and the item must exist", async () => {
   const { courseId, week1 } = await setupCourse("Tags");
   const other = await setupCourse("Other tags");

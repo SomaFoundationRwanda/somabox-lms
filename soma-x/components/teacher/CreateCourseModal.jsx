@@ -30,6 +30,7 @@ export default function CreateCourseModal({ SERVER_URL, onClose, onCreated }) {
   const handleSubmit = async () => {
     const resolvedGrade = form.grade === "other" ? form.gradeOther.trim() : form.grade
     if (!form.title.trim()) { setError(t("teacher.createCourse.titleRequired")); return }
+    if (!resolvedGrade) { setError(t("teacher.createCourse.gradeRequired")); return }
     setError("")
     setLoading(true)
     try {
@@ -108,7 +109,7 @@ export default function CreateCourseModal({ SERVER_URL, onClose, onCreated }) {
           {error && <p className="text-xs text-red-500">{error}</p>}
           <button
             onClick={handleSubmit}
-            disabled={loading || !form.title.trim() || (!form.grade || (form.grade === "other" && !form.gradeOther.trim()))}
+            disabled={loading}
             className="w-full py-2.5 rounded-lg text-sm font-medium bg-[var(--brand-secondary)] text-white hover:bg-[var(--brand-secondary-dark)] transition-colors disabled:opacity-50"
           >
             {loading ? t("teacher.createCourse.creating") : t("teacher.createCourse.create")}

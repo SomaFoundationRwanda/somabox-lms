@@ -87,6 +87,7 @@ export default {
         "description": "Description",
         "descriptionPlaceholder": "De quoi parle ce cours ?",
         "titleRequired": "Le titre du cours est obligatoire",
+        "gradeRequired": "Choisissez le niveau de ce cours",
         "failed": "Impossible de créer le cours",
         "creating": "Création...",
         "create": "Créer le cours",

@@ -178,6 +178,7 @@ export default function ModuleCard({
   // One module: a full-width header bar and, under it, its items as rows in the same bordered box.
   return (
     <section
+      id={`module-${moduleRow.id}`}
       ref={dnd?.setNodeRef}
       style={dnd?.style}
       aria-label={`${weekLabel(moduleRow)}: ${moduleRow.title}`}
