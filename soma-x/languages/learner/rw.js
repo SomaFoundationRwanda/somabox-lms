@@ -274,6 +274,17 @@ export default {
         "settledBody": "Konti yawe iteguye. Umwarimu wawe azakongera mu isomo vuba — nta cyo usabwa gukora. Hagati aho, sura ibikoresho byo kwiga biri mu Isomero.",
         "tryPractice": "Gerageza imyitozo",
         "myCourses": "Amasomo yanjye",
+        "view": {
+          "label": "Erekana amasomo yanjye nka",
+          "cards": "Amakarita",
+          "byDate": "Ku matariki"
+        },
+        "upcoming": {
+          "hint": "Ibigomba gutangwa n'ibifungurwa mu masomo yawe mu byumweru 4 biri imbere.",
+          "empty": "Nta kigomba gutangwa mu byumweru 4 biri imbere.",
+          "loadFailed": "Ntibyakunze kwerekana ibiri imbere.",
+          "open": "Fungura"
+        },
         "viewAll": "Reba byose",
         "progress": "Aho ugeze",
         "noGradedWork": "Nta mukoro urahabwa amanota",

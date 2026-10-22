@@ -1,6 +1,6 @@
 // Cross-course calendars: "My calendar" for every user, and a school-wide calendar for admins.
 import express from "express";
-import { isDateString } from "@somabox/timeline";
+import { addDays, isDateString } from "@somabox/timeline";
 import { localDb } from "../helpers/db-manager.js";
 import { buildIcs } from "../helpers/ics.js";
 import { requireRole } from "../helpers/auth.js";
@@ -8,7 +8,13 @@ import { courseEvents, icsEvents, loadCourseTimeline, schoolToday } from "./cour
 
 const router = express.Router();
 
+// ?from=&to= (YYYY-MM-DD), or ?days=N for the next N days from the school's today.
 function range(query) {
+  const days = Number(query.days);
+  if (Number.isInteger(days) && days >= 0 && days <= 366 && !query.from && !query.to) {
+    const today = schoolToday();
+    return { from: today, to: addDays(today, days) };
+  }
   const from = query.from && isDateString(String(query.from)) ? String(query.from) : null;
   const to = query.to && isDateString(String(query.to)) ? String(query.to) : null;
   return { from, to };

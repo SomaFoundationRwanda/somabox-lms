@@ -273,6 +273,17 @@ export default {
         "settledBody": "Votre compte est prêt. Votre enseignant vous ajoutera bientôt à votre cours — vous n'avez rien à faire. En attendant, explorez les supports d'apprentissage de la bibliothèque.",
         "tryPractice": "Essayer des sujets d'entraînement",
         "myCourses": "Mes cours",
+        "view": {
+          "label": "Afficher mes cours en",
+          "cards": "Cartes",
+          "byDate": "Par date"
+        },
+        "upcoming": {
+          "hint": "Ce qui est à rendre et ce qui s'ouvre dans vos cours ces 4 prochaines semaines.",
+          "empty": "Rien à rendre dans les 4 prochaines semaines.",
+          "loadFailed": "Impossible de charger ce qui arrive.",
+          "open": "Ouvrir"
+        },
         "viewAll": "Tout voir",
         "progress": "Progression",
         "noGradedWork": "Pas encore de travail noté",
