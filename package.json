@@ -25,9 +25,12 @@
     "pm2:status": "pm2 status",
     "pm2:logs": "pm2 logs",
     "test": "npm test --workspaces --if-present && npm test --prefix ai/gateway",
-    "backup": "npm run backup --workspace=soma-x-backend --"
+    "backup": "npm run backup --workspace=soma-x-backend --",
+    "test:e2e": "playwright test -c e2e/playwright.config.mjs",
+    "test:e2e:ui": "playwright test -c e2e/playwright.config.mjs --ui"
   },
   "devDependencies": {
+    "@playwright/test": "^1.56.1",
     "concurrently": "^9.2.4",
     "pm2": "^5.4.3"
   }

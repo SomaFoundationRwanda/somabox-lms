@@ -29,3 +29,9 @@ service-account.json
 
 # Local backups (npm run backup)
 soma-x-backend/backups/
+
+# e2e (Playwright)
+.next-e2e/
+e2e/.auth/
+e2e/test-results/
+e2e/playwright-report/
