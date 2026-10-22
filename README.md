@@ -69,6 +69,25 @@ npm test
 Backend tests create and drop a throwaway `somabox_test_*` database, so your PostgreSQL user
 needs permission to create databases.
 
+### End-to-end tests
+The `e2e/` suite drives the real app in Chromium (Playwright): signing in, every admin page,
+building and running a course as a teacher, and everything a learner and a visitor can do.
+
+```bash
+npx playwright install chromium     # once
+npm run test:e2e                    # builds the frontend, then runs every spec (~4 min)
+E2E_SKIP_BUILD=1 npm run test:e2e   # reuse the last build when only the tests changed
+npm run test:e2e:ui                 # Playwright's UI mode, to watch or debug a test
+```
+
+Each run starts a fresh `somabox_e2e` database (dropped and recreated), the backend on :3100
+with a fake AI gateway (no model needed), and a production build of the frontend on :3101, so
+it never touches your dev database or a running dev server. Files the tests add to
+`soma-x-backend/local-content/` are removed at the end.
+
+Tests marked `test.fail(...)` document known bugs: they pass while the bug is there, and
+Playwright reports them as "expected to fail, but passed" once it's fixed, so the mark can go.
+
 ## Installing on a school box
 Production setup (Linux, pm2, LAN address, backups, cloud sync) is in
 [docs/ops-box-setup.md](docs/ops-box-setup.md) and

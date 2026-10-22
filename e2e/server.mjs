@@ -82,15 +82,17 @@ const frontend = spawn(next, ["start", "-p", String(FRONTEND_PORT)], { cwd: FRON
 
 // Tests name every folder and book they add to the box's content folders "e2e…" and remove them
 // again; this catches what a failed test left behind, so the developer's own box stays clean.
-// Course files live in folders named by course id, so those are swept by "wasn't there at start".
+// Course files and covers are named by course id or upload, so those are swept by "wasn't there
+// at start".
 const CONTENT = path.join(ROOT, "soma-x-backend/local-content");
-const COURSE_FILES = path.join(CONTENT, "course-files");
-const courseFilesAtStart = new Set(fs.existsSync(COURSE_FILES) ? fs.readdirSync(COURSE_FILES) : []);
+const BY_START = ["course-files", "course-covers"].map((dir) => path.join(CONTENT, dir));
+const atStart = new Map(BY_START.map((dir) => [dir, new Set(fs.existsSync(dir) ? fs.readdirSync(dir) : [])]));
 
 function sweepContent() {
-  if (fs.existsSync(COURSE_FILES)) {
-    for (const name of fs.readdirSync(COURSE_FILES)) {
-      if (!courseFilesAtStart.has(name)) fs.rmSync(path.join(COURSE_FILES, name), { recursive: true, force: true });
+  for (const dir of BY_START) {
+    if (!fs.existsSync(dir)) continue;
+    for (const name of fs.readdirSync(dir)) {
+      if (!atStart.get(dir).has(name)) fs.rmSync(path.join(dir, name), { recursive: true, force: true });
     }
   }
   for (const dir of ["custom-content", "library", "library/covers"]) {
