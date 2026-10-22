@@ -15,3 +15,8 @@ export const HOME = { admin: "/manage/admin", teacher: "/manage/teacher", schola
 export async function expectToast(page, text) {
   await expect(page.getByText(text, { exact: false }).first()).toBeVisible();
 }
+
+// The first-visit tour covers the page; mark it seen for tests that sign in fresh.
+export async function skipTour(page) {
+  await page.addInitScript(() => localStorage.setItem("somabox_tour_seen_v1", "1"));
+}

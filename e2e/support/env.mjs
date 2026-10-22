@@ -9,8 +9,9 @@ export const APP_URL = `http://localhost:${FRONTEND_PORT}`;
 
 export const PASSWORD = "e2e-password";
 
-// Seeded by server.mjs. The built-in admin@mail.com / admin (must change its password) is
-// left for the first-login test.
+// Seeded by server.mjs, with their profiles already complete so the first-time profile form
+// (tested in onboarding.spec) doesn't cover every page. The built-in admin@mail.com / admin
+// (must change its password) is left for the first-login test.
 export const USERS = {
   admin: { email: "admin@e2e.test", name: "Ada Admin", role: "admin" },
   teacher: { email: "teacher@e2e.test", name: "Tom Teacher", role: "teacher" },

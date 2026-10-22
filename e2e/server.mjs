@@ -62,7 +62,7 @@ await dbManager.initSchemas();
 const hash = await bcrypt.hash(PASSWORD, 4);
 for (const u of Object.values(USERS)) {
   await dbManager.localDb
-    .prepare("INSERT INTO users (email, full_name, password_hash, role) VALUES (?, ?, ?, ?)")
+    .prepare("INSERT INTO users (email, full_name, password_hash, role, gender, profile_completed_at) VALUES (?, ?, ?, ?, 'female', CURRENT_TIMESTAMP)")
     .run(u.email, u.name, hash, u.role);
 }
 
