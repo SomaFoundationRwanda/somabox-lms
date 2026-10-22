@@ -37,3 +37,14 @@ export async function tokenFor(role) {
 
 // A short unique suffix so names created by different tests never collide in the shared school.
 export const uid = () => Math.random().toString(36).slice(2, 7);
+
+// Multipart upload (the content manager, library and course files take one file field).
+export async function upload(method, path, { as, field = "file", file, fields = {} }) {
+  const form = new FormData();
+  for (const [k, v] of Object.entries(fields)) form.append(k, v);
+  form.append(field, new Blob([file.buffer], { type: file.mimeType }), file.name);
+  const res = await fetch(`${API_URL}${path}`, { method, headers: { Authorization: `Bearer ${await tokenFor(as)}` }, body: form });
+  const text = await res.text();
+  if (!res.ok) throw new Error(`${method} ${path} as ${as} -> ${res.status}: ${text.slice(0, 300)}`);
+  try { return JSON.parse(text); } catch { return text; }
+}
