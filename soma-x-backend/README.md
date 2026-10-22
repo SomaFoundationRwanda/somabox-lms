@@ -14,6 +14,7 @@ From the repository root (npm workspaces install both apps):
 ```bash
 npm install
 cp soma-x-backend/.env.example soma-x-backend/.env   # then fill in the values
+createdb -h localhost -U postgres somabox_lms        # once; name must match PGDATABASE
 npm run setup:db                                     # creates/updates tables
 ```
 
@@ -104,7 +105,7 @@ the service user).
 ## Running
 
 ```bash
-npm run dev     # development; needs nodemon (`npm install -g nodemon`)
+npm run dev     # development (auto-restarts on changes)
 npm start       # production via pm2 (or `npm run pm2:start` from the repo root)
 ```
 
