@@ -34,9 +34,9 @@ const ProfileCard = () => {
     const learnerCode = user?.learnerCode || "";
     const router = useRouter();
 
-    const dropdownBg = "#0f2d2b";
-    const itemHoverBg = "rgba(45,212,191,0.15)"; // #2dd4bf with opacity
-    const iconColor = "#2dd4bf";
+    const dropdownBg = "color-mix(in srgb, var(--brand-primary) 70%, black)";
+    const itemHoverBg = "color-mix(in srgb, var(--brand-secondary) 15%, transparent)";
+    const iconColor = "var(--color-teal-400)";
     const titleColor = "#ffffff";
     const borderColor = "rgba(255,255,255,0.1)";
 

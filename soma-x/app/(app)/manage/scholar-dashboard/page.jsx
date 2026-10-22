@@ -182,7 +182,7 @@ const ScholarDashboard = () => {
                             <div
                                 className="relative rounded-2xl overflow-hidden p-6 sm:p-8 border shadow-md"
                                 style={{
-                                    background: "linear-gradient(135deg, #071919 0%, #0d2b2b 45%, #152e2e 75%, #0a2020 100%)",
+                                    background: "linear-gradient(135deg, color-mix(in srgb, var(--brand-primary) 30%, black) 0%, color-mix(in srgb, var(--brand-primary) 65%, black) 45%, color-mix(in srgb, var(--brand-primary) 70%, black) 75%, color-mix(in srgb, var(--brand-primary) 45%, black) 100%)",
                                     borderColor: "rgba(255,255,255,0.12)"
                                 }}
                             >
@@ -191,7 +191,7 @@ const ScholarDashboard = () => {
                                     backgroundSize: "20px 20px"
                                 }} />
                                 <div className="absolute -top-16 -right-16 w-72 h-72 rounded-full blur-3xl pointer-events-none"
-                                    style={{ backgroundColor: "rgba(13,148,136,0.25)" }} />
+                                    style={{ backgroundColor: "color-mix(in srgb, var(--brand-secondary) 25%, transparent)" }} />
 
                                 <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
                                     <div className="space-y-3 max-w-2xl">

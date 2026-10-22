@@ -52,11 +52,11 @@ const AVATAR_GRADIENTS = [
     ["#2563eb", "#4f46e5"],
     ["#0d9488", "#059669"],
     ["#d97706", "#ea580c"],
-    ["#203A3A", "#0D9488"], // app's own teal accent, replacing the former red/rose entry
+    ["var(--brand-primary)", "var(--brand-secondary)"], // the school's own colours
 ];
 
 function getAvatarColors(name) {
-    if (!name) return AVATAR_GRADIENTS[2];
+    if (!name) return AVATAR_GRADIENTS[4];
     return AVATAR_GRADIENTS[name.charCodeAt(0) % AVATAR_GRADIENTS.length];
 }
 
@@ -246,7 +246,7 @@ export default function AccountPage() {
             {/* ── Cinematic hero header ── */}
             <div
                 className="relative overflow-hidden pl-12"
-                style={{ background: "linear-gradient(135deg, #071919 0%, #0d2b2b 40%, #152e2e 70%, #0a2020 100%)" }}
+                style={{ background: "linear-gradient(135deg, color-mix(in srgb, var(--brand-primary) 30%, black) 0%, color-mix(in srgb, var(--brand-primary) 65%, black) 40%, color-mix(in srgb, var(--brand-primary) 70%, black) 70%, color-mix(in srgb, var(--brand-primary) 45%, black) 100%)" }}
             >
                 {/* Dot-grid texture */}
                 <div className="absolute inset-0 opacity-40" style={{
@@ -255,7 +255,7 @@ export default function AccountPage() {
                 }} />
 
                 {/* Glowing blur orbs */}
-                <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full blur-3xl" style={{ background: "rgba(20,184,166,0.12)" }} />
+                <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full blur-3xl" style={{ background: "color-mix(in srgb, var(--brand-secondary) 12%, transparent)" }} />
                 <div className="absolute -bottom-16 left-1/3 w-64 h-64 rounded-full blur-3xl" style={{ background: "rgba(52,211,153,0.08)" }} />
                 <div className="absolute top-10 left-1/2 w-48 h-48 rounded-full blur-3xl" style={{ background: "rgba(99,102,241,0.08)" }} />
 

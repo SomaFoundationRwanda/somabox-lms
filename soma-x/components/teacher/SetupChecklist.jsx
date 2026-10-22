@@ -84,7 +84,7 @@ export default function SetupChecklist({ courseId, SERVER_URL, status, onChanged
               className="flex items-center gap-3 px-3 py-2.5 min-h-[44px] hover:bg-slate-50 transition-colors"
             >
               {item.done ? (
-                <CheckCircle2 className="w-4 h-4 text-[#0D9488] shrink-0" aria-hidden="true" />
+                <CheckCircle2 className="w-4 h-4 text-[var(--brand-secondary)] shrink-0" aria-hidden="true" />
               ) : (
                 <Circle className="w-4 h-4 text-slate-300 shrink-0" aria-hidden="true" />
               )}

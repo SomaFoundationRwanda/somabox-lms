@@ -172,7 +172,7 @@ export default function QuizDetailPage() {
         {submitted !== null ? (
           <div role="status" className="rounded-xl border border-teal-200 bg-teal-50 p-4 text-sm text-teal-900 space-y-1">
             <p className="font-bold flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-[#0D9488]" />
+              <CheckCircle2 className="w-5 h-5 text-[var(--brand-secondary)]" />
               {tf("quiz.submittedScore", { n: submitted.score })}{submitted.scorePct != null ? ` (${submitted.scorePct}%)` : ""}
             </p>
             <p className="text-xs">

@@ -369,7 +369,7 @@ const RichTextEditor = forwardRef(function RichTextEditor(
           color: #334155;
         }
         .ProseMirror a {
-          color: #0f766e;
+          color: var(--color-teal-700);
           text-decoration: underline;
         }
         .ProseMirror p.is-editor-empty:first-child::before {

@@ -276,7 +276,7 @@ export default function PageContent({ bodyJson, bodyHtml, body }) {
           color: #334155;
         }
         .page-content-wrapper .ProseMirror a {
-          color: #0f766e;
+          color: var(--color-teal-700);
           text-decoration: underline;
         }
         .page-content-wrapper .ProseMirror blockquote {

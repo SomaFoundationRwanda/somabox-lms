@@ -10,7 +10,7 @@ import { fill } from "@/lib/fill";
 // continuously recomputes the page canvas colors (see DataContext's
 // applyBrightness/computeCanvasVars) — text contrast is guaranteed
 // >=4.5:1 (WCAG AA) at every point, not just the two endpoints.
-export default function BrightnessSlider({ className = "", labelColor, trackAccent = "#0D9488" }) {
+export default function BrightnessSlider({ className = "", labelColor, trackAccent = "var(--brand-secondary)" }) {
   const { brightness, setBrightness, isDark } = useContext(DataContext);
   const { t } = useLanguage();
   const value = brightness ?? 100;

@@ -18,13 +18,8 @@
   --brand-secondary-dark: color-mix(in srgb, var(--brand-secondary) 85%, black);
   --color-bg-light-green: #242722;
   --color-bg-light-blue: #E6F1FA;
-  --color-dark-accent: #203b3b;
   --color-text-light: #ffffff;
 
-  --color-primary-500: #2E8282;
-  --color-primary-600: #1f6767;
-  --color-primary-700: #295656;
-  --color-accent-light-2: #E3F2F2;
   --font-sans: var(--font-poppins);
   --font-mono: var(--font-poppins);
   --radius: 0.625rem;
@@ -62,23 +57,40 @@
 }
 
 @theme {
-  /* The brand dark follows the school's primary colour. */
-  --color-accent-dark: var(--brand-primary, #203B3B);
-  --color-accent-light: #295656;
-  --color-accent-lighter:#2e8282;
-  --color-accent-light-3: #B8D9D9;
-  --color-primary: #2E8282;
-  --color-primary-100: #E3F2F2;
-  --color-primary-200: #B8D9D9;
-  --color-primary-300: #295656;
-  --color-primary-400: #44A4A4;
-  --color-primary-500: #2E8282;
-  --color-primary-600: #1f6767;
-  --color-primary-700: #295656;
-  --color-primary-900: #203B3B;
-  --color-accent-light-2: var(--color-accent-light-2);
-  --color-text-light: var(--color-text-light);
-  --color-dark-accent: var(--color-dark-accent);
+  /* Every accent colour follows the school's colours (--brand-primary / --brand-secondary),
+     so a school that sets its own sees them on every button, badge and highlight. With the
+     SOMABOX defaults these come out close to the old fixed teal shades. */
+  --color-primary-25: color-mix(in srgb, var(--brand-secondary) 4%, white);
+  --color-primary-100: color-mix(in srgb, var(--brand-secondary) 12%, white);
+  --color-primary-200: color-mix(in srgb, var(--brand-secondary) 28%, white);
+  --color-primary-400: color-mix(in srgb, var(--brand-secondary) 75%, white);
+  --color-primary-500: color-mix(in srgb, var(--brand-primary) 40%, var(--brand-secondary));
+  --color-primary-600: color-mix(in srgb, var(--brand-primary) 60%, var(--brand-secondary));
+  --color-primary-700: color-mix(in srgb, var(--brand-primary) 80%, var(--brand-secondary));
+  --color-primary-300: var(--color-primary-700);
+  --color-primary-900: var(--brand-primary);
+  --color-primary: var(--color-primary-500);
+  --color-accent-dark: var(--brand-primary);
+  --color-dark-accent: var(--brand-primary);
+  --color-accent-light: var(--color-primary-700);
+  --color-accent-lighter: var(--color-primary-500);
+  --color-accent-light-2: var(--color-primary-100);
+  --color-accent-light-3: var(--color-primary-200);
+  --color-text-light: #ffffff;
+
+  /* Tailwind's teal scale is the app's accent all over the pages (bg-teal-50, text-teal-700...).
+     It is rebuilt from the school's secondary colour; teal-600 is that colour exactly. */
+  --color-teal-50: color-mix(in srgb, var(--brand-secondary) 6%, white);
+  --color-teal-100: color-mix(in srgb, var(--brand-secondary) 14%, white);
+  --color-teal-200: color-mix(in srgb, var(--brand-secondary) 28%, white);
+  --color-teal-300: color-mix(in srgb, var(--brand-secondary) 48%, white);
+  --color-teal-400: color-mix(in srgb, var(--brand-secondary) 72%, white);
+  --color-teal-500: color-mix(in srgb, var(--brand-secondary) 88%, white);
+  --color-teal-600: var(--brand-secondary);
+  --color-teal-700: color-mix(in srgb, var(--brand-secondary) 82%, black);
+  --color-teal-800: color-mix(in srgb, var(--brand-secondary) 68%, black);
+  --color-teal-900: color-mix(in srgb, var(--brand-secondary) 55%, black);
+  --color-teal-950: color-mix(in srgb, var(--brand-secondary) 38%, black);
   --font-sans: var(--font-poppins);
   --font-mono: var(--font-poppins);
 }
@@ -482,7 +494,7 @@ html.dark .border-rose-100   { border-color: rgba(244,63,94,0.18) !important; }
 /* ── Interactive hover states ── */
 html.dark .hover\:bg-slate-100:hover  { background-color: rgba(255,255,255,0.06) !important; }
 html.dark .hover\:bg-slate-50:hover   { background-color: rgba(255,255,255,0.04) !important; }
-html.dark .hover\:bg-slate-900:hover  { background-color: rgba(13,148,136,0.12) !important; }
+html.dark .hover\:bg-slate-900:hover  { background-color: color-mix(in srgb, var(--brand-secondary) 12%, transparent) !important; }
 
 /* ── Status / badge surface colors ── */
 html.dark .bg-green-50      { background-color: rgba(52,211,153,0.10) !important; }
@@ -494,7 +506,7 @@ html.dark .bg-violet-50     { background-color: rgba(167,139,250,0.10) !importan
 html.dark .bg-orange-50     { background-color: rgba(251,146,60,0.10) !important; }
 html.dark .bg-red-50        { background-color: rgba(239,68,68,0.10) !important; }
 html.dark .bg-rose-50       { background-color: rgba(244,63,94,0.10) !important; }
-html.dark .bg-teal-50       { background-color: rgba(13,148,136,0.10) !important; }
+html.dark .bg-teal-50       { background-color: color-mix(in srgb, var(--brand-secondary) 10%, transparent) !important; }
 html.dark .bg-blue-50       { background-color: rgba(56,189,248,0.10) !important; }
 
 /* ── Status / badge text colors ── */
@@ -511,10 +523,10 @@ html.dark .text-sky-600      { color: #38BDF8 !important; }
 html.dark .text-violet-600   { color: #A78BFA !important; }
 html.dark .text-rose-600     { color: #FB7185 !important; }
 html.dark .text-red-500      { color: #F87171 !important; }
-html.dark .text-teal-600     { color: #0D9488 !important; }
-html.dark .text-teal-500     { color: #0D9488 !important; }
-html.dark .text-teal-300     { color: #5EEAD4 !important; }
-html.dark .text-accent-dark  { color: #5EEAD4 !important; }
+html.dark .text-teal-600     { color: var(--brand-secondary) !important; }
+html.dark .text-teal-500     { color: var(--brand-secondary) !important; }
+html.dark .text-teal-300     { color: var(--color-teal-300) !important; }
+html.dark .text-accent-dark  { color: var(--color-teal-300) !important; }
 html.dark .text-amber-500    { color: #FB923C !important; }
 html.dark .text-emerald-700  { color: #34D399 !important; }
 html.dark .text-emerald-400  { color: #34D399 !important; }
@@ -528,14 +540,14 @@ html.dark .border-amber-100  { border-color: rgba(251,146,60,0.20) !important; }
 html.dark .border-green-100  { border-color: rgba(52,211,153,0.20) !important; }
 html.dark .border-emerald-100 { border-color: rgba(52,211,153,0.20) !important; }
 html.dark .border-red-100    { border-color: rgba(239,68,68,0.20) !important; }
-html.dark .border-teal-100   { border-color: rgba(13,148,136,0.18) !important; }
+html.dark .border-teal-100   { border-color: color-mix(in srgb, var(--brand-secondary) 18%, transparent) !important; }
 html.dark .border-blue-100   { border-color: rgba(56,189,248,0.18) !important; }
 html.dark .border-blue-200   { border-color: rgba(56,189,248,0.20) !important; }
 html.dark .bg-blue-100       { background-color: rgba(56,189,248,0.10) !important; }
 html.dark .text-blue-600     { color: #60A5FA !important; }
 html.dark .text-blue-500     { color: #60A5FA !important; }
-html.dark .border-teal-500\/30  { border-color: rgba(20,184,166,0.30) !important; }
-html.dark .bg-teal-500\/10      { background-color: rgba(20,184,166,0.10) !important; }
+html.dark .border-teal-500\/30  { border-color: color-mix(in srgb, var(--color-teal-500) 30%, transparent) !important; }
+html.dark .bg-teal-500\/10      { background-color: color-mix(in srgb, var(--color-teal-500) 10%, transparent) !important; }
 html.dark .border-violet-500\/30 { border-color: rgba(139,92,246,0.30) !important; }
 html.dark .bg-violet-500\/10    { background-color: rgba(139,92,246,0.10) !important; }
 
@@ -606,8 +618,8 @@ html.dark input::placeholder,
 html.dark textarea::placeholder { color: #4A5567 !important; }
 html.dark input:focus,
 html.dark textarea:focus {
-  border-color: rgba(13,148,136,0.35) !important;
-  box-shadow: 0 0 0 3px rgba(13,148,136,0.08) !important;
+  border-color: color-mix(in srgb, var(--brand-secondary) 35%, transparent) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-secondary) 8%, transparent) !important;
   outline: none !important;
 }
 

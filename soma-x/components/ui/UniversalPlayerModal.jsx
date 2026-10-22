@@ -357,14 +357,14 @@ const UniversalPlayerModal = ({
                                         <div className="flex justify-center space-x-2 mt-4">
                                             <button
                                                 onClick={() => setPdfPage(Math.max(1, pdfPage - 1))}
-                                                className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                                                className="px-3 py-1 bg-[var(--brand-secondary)] text-white rounded hover:bg-[var(--brand-secondary-dark)] transition-colors"
                                             >
                                                 {t("shell.player.previous")}
                                             </button>
                                             <span className="px-3 py-1 bg-gray-200 rounded">{fill(t("shell.player.page"), { n: pdfPage })}</span>
                                             <button
                                                 onClick={() => setPdfPage(pdfPage + 1)}
-                                                className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                                                className="px-3 py-1 bg-[var(--brand-secondary)] text-white rounded hover:bg-[var(--brand-secondary-dark)] transition-colors"
                                             >
                                                 {t("shell.player.next")}
                                             </button>
