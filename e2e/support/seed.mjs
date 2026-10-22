@@ -31,7 +31,8 @@ export async function seedCourse({
   const outcome = await api("POST", `/courses/${id}/outcomes`, { as, body: { title: "Add fractions", description: "With unlike denominators" } });
 
   const modules = [];
-  for (let w = 1; w <= weeks; w++) modules.push(await api("POST", `/courses/${id}/modules`, { as, body: { title: `Week ${w}` } }));
+  const topics = ["Fractions basics", "Equivalent fractions", "Adding fractions", "Decimals", "Percentages"];
+  for (let w = 1; w <= weeks; w++) modules.push(await api("POST", `/courses/${id}/modules`, { as, body: { title: topics[w - 1] ?? `Topic ${w}` } }));
 
   const week1 = modules[0].id;
   const add = (body) => api("POST", `/courses/${id}/modules/${week1}/items`, { as, body: { outcomeIds: [outcome.id], ...body } });
@@ -55,4 +56,16 @@ export async function seedCourse({
   }
 
   return { id, title, outcome, modules, page, assignment, quiz, discussion };
+}
+
+/**
+ * Answers the seeded "Fractions check" quiz as `role`. right: [q1, q2] booleans (both right by
+ * default). Answers are the option text, keyed by question id, as the quiz page sends them.
+ */
+export async function takeQuiz(course, role, right = [true, true]) {
+  const quiz = await api("GET", `/courses/${course.id}/quizzes/${course.quiz.content_id}`, { as: role });
+  const questions = quiz.questions ?? quiz.quiz?.questions ?? [];
+  const picks = [["3/4", "2/6"], ["1/3", "1/4"]];
+  const answers = Object.fromEntries(questions.map((q, i) => [String(q.id), picks[i][right[i] ? 0 : 1]]));
+  return api("POST", `/courses/${course.id}/quizzes/${course.quiz.content_id}/submit`, { as: role, body: { answers } });
 }
