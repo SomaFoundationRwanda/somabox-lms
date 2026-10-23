@@ -146,6 +146,20 @@ router.post('/read-all', async (req, res) => {
 });
 
 /**
+ * DELETE /notifications/:id
+ * Dismisses one of the user's own notifications for good (the bell's Dismiss button)
+ */
+router.delete('/:id', async (req, res) => {
+    try {
+        await localDb.prepare(`DELETE FROM user_notifications WHERE id = ? AND LOWER(user_email) = LOWER(?)`).run(req.params.id, req.user.email);
+        res.json({ message: "Notification dismissed" });
+    } catch (err) {
+        console.error("DELETE /notifications/:id error:", err);
+        res.status(500).json({ message: "Failed to dismiss notification" });
+    }
+});
+
+/**
  * POST /notifications/send
  * Allows Admin users to broadcast notifications to students, teachers, admins, or specific users
  */

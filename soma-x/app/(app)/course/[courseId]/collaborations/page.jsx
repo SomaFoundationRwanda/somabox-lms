@@ -115,7 +115,7 @@ export default function CollaborationsPage() {
                     {c.memberCount != null ? (
                       <span className="text-xs text-slate-400">{c.memberCount > 0 ? tf(c.memberCount === 1 ? "collab.oneMember" : "collab.manyMembers", { n: c.memberCount }) : t("collab.everyone")}</span>
                     ) : null}
-                    {normalizeEq(c.created_by, userEmail) ? (
+                    {normalizeEq(c.created_by_teacher_email, userEmail) ? (
                       <button onClick={() => remove(c.id)} aria-label={tf("modules.deleteNamed", { title: c.title })} className="text-rose-500"><Trash2 className="w-3.5 h-3.5" /></button>
                     ) : null}
                   </div>

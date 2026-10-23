@@ -34,7 +34,6 @@ test.describe("course settings", () => {
   });
 
   test("moves a tab in the course menu, and learners see the new order", async ({ page }) => {
-    test.fail(true, "Known bug: Settings > Navigation shows the enabled tabs sorted by position, but Move up/down only reorders the array without changing position, so nothing moves and the saved order is unchanged.");
     const c = await seedCourse({ learners: ["learner2"] });
     const order = async () => {
       const nav = await api("GET", `/courses/${c.id}/nav`, { as: "learner2" });
@@ -49,39 +48,90 @@ test.describe("course settings", () => {
     await expect.poll(order, { timeout: 3_000 }).not.toEqual(before);
   });
 
-  test("a teacher can close or delete a course they've finished", async ({ page }) => {
-    test.fail(true, "Known gap: the backend can close, archive (PATCH lifecycle) and delete (DELETE /courses/:id) a course, but no page offers it.");
-    const c = await seedCourse({ learners: [] });
+  test("closing a course stops new work; reopening allows it again", async ({ page, browser }) => {
+    const c = await seedCourse({ learners: ["learner"] });
+    page.on("dialog", (d) => d.accept());
     await page.goto(`/course/${c.id}/settings`);
-    await expect(page.getByRole("button", { name: /close course|archive|delete course/i }).first()).toBeVisible({ timeout: 3_000 });
+    await expect(page.getByText(ct("settings.status.now.open"))).toBeVisible();
+    await page.getByRole("button", { name: ct("settings.status.action.closed") }).click();
+    await expect(page.getByText(ct("settings.status.now.closed"))).toBeVisible();
+
+    // Learners can still read the course, but can't hand in.
+    const learner = await asRole(browser, "learner");
+    await learner.page.goto(`/course/${c.id}/assignments/${c.assignment.content_id}`);
+    await learner.page.getByLabel(ct("assignment.responseLabel")).fill("Too late");
+    await learner.page.getByRole("button", { name: ct("assignment.submit") }).click();
+    await expect(learner.page.getByText(/This course has ended/).first()).toBeVisible();
+
+    await page.getByRole("button", { name: ct("settings.status.action.open") }).click();
+    await expect(page.getByText(ct("settings.status.now.open"))).toBeVisible();
+    await learner.page.reload();
+    await learner.page.getByLabel(ct("assignment.responseLabel")).fill("Back on time");
+    await learner.page.getByRole("button", { name: ct("assignment.submit") }).click();
+    await expect(learner.page.getByText(ct("assignment.submitted")).first()).toBeVisible();
+    await learner.close();
+  });
+
+  test("an archived course leaves learners' course lists", async ({ page }) => {
+    const c = await seedCourse({ title: `Archive me ${uid()}`, learners: ["learner2"] });
+    page.on("dialog", (d) => d.accept());
+    await page.goto(`/course/${c.id}/settings`);
+    await page.getByRole("button", { name: ct("settings.status.action.archived") }).click();
+    await expect(page.getByText(ct("settings.status.now.archived"))).toBeVisible();
+    expect(JSON.stringify(await api("GET", "/courses/mine", { as: "learner2" }))).not.toContain(c.title);
+    // Archived courses can come back as closed.
+    await expect(page.getByRole("button", { name: ct("settings.status.action.closed") })).toBeVisible();
+  });
+
+  test("a course without learners' work can be deleted; one with work can't", async ({ page }) => {
+    page.on("dialog", (d) => d.accept());
+    const empty = await seedCourse({ learners: [] });
+    await page.goto(`/course/${empty.id}/settings`);
+    await page.getByRole("button", { name: ct("settings.status.action.delete") }).click();
+    await page.waitForURL("**/teacher/courses");
+    const gone = await fetch(`http://localhost:3100/courses/${empty.id}`, { headers: { Authorization: `Bearer ${await tokenFor("teacher")}` } });
+    expect(gone.status).toBe(404);
+
+    const used = await seedCourse({ learners: ["learner"] });
+    await api("POST", `/courses/${used.id}/assignments/${used.assignment.content_id}/submit`, { as: "learner", body: { body: "My poster" } });
+    await page.goto(`/course/${used.id}/settings`);
+    await page.getByRole("button", { name: ct("settings.status.action.delete") }).click();
+    await expect(page.getByText(ct("settings.status.hasWork"))).toBeVisible();
   });
 });
+
+// Space picks the focused row up, ArrowDown moves it one place, Space drops it. Each step waits
+// for the drag animation, as a person would.
+async function dragOneDown(page) {
+  for (const key of ["Space", "ArrowDown", "Space"]) {
+    await page.keyboard.press(key);
+    await page.waitForTimeout(250);
+  }
+}
 
 test.describe("reordering with the keyboard", () => {
   test.use({ storageState: authFile("teacher") });
 
   test("moves a week and an item", async ({ page }) => {
-    test.fail(true, "Known bug (accessibility): Space or Enter on a drag handle never starts a keyboard drag (dnd-kit announces nothing), so weeks and items can only be reordered with a mouse or finger.");
     const c = await seedCourse({ learners: [], weeks: 3 });
     await page.goto(`/course/${c.id}/modules`);
     const weekTitles = async () => (await api("GET", `/courses/${c.id}/modules`, { as: "teacher" })).filter((m) => m.kind !== "unassigned").map((m) => m.title);
     const before = await weekTitles();
-    // The keyboard sensor moves the dragged card a few pixels per key press, so a tall week
-    // card needs many presses to pass the next one.
-    const handle = page.getByRole("button", { name: ct("modules.dragModule") }).first();
+    // The drag-and-drop list loads just after the page; wait for it before using the handles.
+    await expect(page.locator('[aria-roledescription="sortable"]').first()).toBeVisible();
+    const handle = page.getByRole("button", { name: ct("modules.dragModule"), exact: true }).first();
     await handle.focus();
-    await page.keyboard.press("Space");
-    for (let i = 0; i < 25; i++) await page.keyboard.press("ArrowDown");
-    await page.keyboard.press("Space");
+    await dragOneDown(page);
     await expect.poll(weekTitles, { timeout: 3_000 }).not.toEqual(before);
 
     const items = async () => JSON.stringify(await api("GET", `/courses/${c.id}/modules`, { as: "teacher" }));
     const itemsBefore = await items();
-    const itemHandle = page.getByRole("button", { name: "Drag to reorder the item" }).first();
+    // Each week's item list loads on its own too.
+    await page.reload();
+    await expect(page.locator("li[aria-roledescription=\"sortable\"]").first()).toBeVisible();
+    const itemHandle = page.getByRole("button", { name: "Drag to reorder the item", exact: true }).first();
     await itemHandle.focus();
-    await page.keyboard.press("Space");
-    for (let i = 0; i < 5; i++) await page.keyboard.press("ArrowDown");
-    await page.keyboard.press("Space");
+    await dragOneDown(page);
     await expect.poll(items).not.toBe(itemsBefore);
   });
 });
@@ -165,13 +215,19 @@ test.describe("roles", () => {
 
     const obs = await token(observer);
     expect((await fetch(`http://localhost:3100/courses/${c.id}/modules`, { headers: { Authorization: `Bearer ${obs}` } })).status).toBe(200);
+    const obsCtx = await browser.newContext();
+    const obsPage = await obsCtx.newPage();
+    await obsPage.addInitScript((tok) => { localStorage.setItem("st", tok); localStorage.setItem("somabox_tour_seen_v1", "1"); }, obs);
+    await obsPage.goto(`/course/${c.id}/assignments/${c.assignment.content_id}`);
+    await expect(obsPage.getByText(ct("assignment.observerNote"))).toBeVisible();
+    await expect(obsPage.getByRole("button", { name: ct("assignment.submit") })).toHaveCount(0);
+    await obsCtx.close();
     // An observer can't grade.
     const obsGrade = await fetch(`http://localhost:3100/courses/${c.id}/assignments/${c.assignment.content_id}/grade/${USERS.learner.email}`, { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${obs}` }, body: JSON.stringify({ grade: 1 }) });
     expect(obsGrade.status).toBeGreaterThanOrEqual(400);
   });
 
   test("an observer can't hand in work", async () => {
-    test.fail(true, "Known bug: assignment submit only checks enrolment; observers count as learners, so they can hand in work that can never be graded.");
     const c = await seedCourse({ learners: [] });
     const observer = `observer-${uid()}@e2e.test`;
     await api("POST", "/users", { as: "admin", body: { email: observer, password: PASSWORD, role: "scholar", fullName: "Obi Observer" } });
@@ -184,7 +240,6 @@ test.describe("roles", () => {
 
 test.describe("joining", () => {
   test("a learner joins with a code from My courses", async ({ browser }) => {
-    test.fail(true, "Known bug: Join a course on My courses posts the code to /courses/<code>/enroll (a course id), so teacher join codes are 'Course not found'; only Discover uses /courses/join-by-code.");
     const c = await seedCourse({ learners: [] });
     const { code } = await api("POST", `/courses/${c.id}/join-code`, { as: "teacher", body: { action: "on" } });
     const learner = await asRole(browser, "learner2");

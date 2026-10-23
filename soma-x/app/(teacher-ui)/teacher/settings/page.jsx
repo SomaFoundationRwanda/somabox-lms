@@ -1,5 +1,5 @@
 "use client"
-import { useContext, useMemo, useState } from "react"
+import { useContext, useMemo } from "react"
 import DataContext from "@/context/DataContext"
 import BrightnessSlider from "@/components/ui/BrightnessSlider"
 import { useLanguage } from "@/context/LanguageContext"
@@ -28,21 +28,6 @@ function Row({ label, description, children }) {
   )
 }
 
-function Toggle({ enabled, onChange, label }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={enabled}
-      aria-label={label}
-      onClick={() => onChange(!enabled)}
-      className={`relative w-10 h-6 rounded-full transition-colors ${enabled ? "bg-[var(--brand-secondary)]" : "bg-slate-200 dark:bg-slate-700"}`}
-    >
-      <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all ${enabled ? "left-5" : "left-1"}`} />
-    </button>
-  )
-}
-
 export default function TeacherSettingsPage() {
   const { logout, user } = useContext(DataContext)
   const { t, lang, setLang } = useLanguage()
@@ -53,10 +38,6 @@ export default function TeacherSettingsPage() {
     if (typeof window === "undefined") return ""
     return user?.fullName || ""
   }, [user])
-
-  const [emailNotifications, setEmailNotifications] = useState(true)
-  const [assignmentAlerts, setAssignmentAlerts] = useState(true)
-  const [studentJoinAlerts, setStudentJoinAlerts] = useState(false)
 
   return (
     <div className="max-w-2xl">
@@ -89,18 +70,6 @@ export default function TeacherSettingsPage() {
               <option key={code} value={code}>{name}</option>
             ))}
           </select>
-        </Row>
-      </Section>
-
-      <Section title={t("teacher.settings.notifications")}>
-        <Row label={t("teacher.settings.emailNotifications")} description={t("teacher.settings.emailNotificationsHelp")}>
-          <Toggle enabled={emailNotifications} onChange={setEmailNotifications} label={t("teacher.settings.emailNotifications")} />
-        </Row>
-        <Row label={t("teacher.settings.assignmentAlerts")} description={t("teacher.settings.assignmentAlertsHelp")}>
-          <Toggle enabled={assignmentAlerts} onChange={setAssignmentAlerts} label={t("teacher.settings.assignmentAlerts")} />
-        </Row>
-        <Row label={t("teacher.settings.joinAlerts")} description={t("teacher.settings.joinAlertsHelp")}>
-          <Toggle enabled={studentJoinAlerts} onChange={setStudentJoinAlerts} label={t("teacher.settings.joinAlerts")} />
         </Row>
       </Section>
 

@@ -10,6 +10,7 @@ import {
   isTeacherRole,
   requireTeacher,
   requireEnrolled,
+  requireParticipant,
   requireNavVisible,
   courseExists,
   linkDiscussionAssignment,
@@ -745,7 +746,7 @@ router.post("/:id/discussions/:discussionId/replies", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
     if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
-    const auth = await requireEnrolled(req, res, courseId);
+    const auth = await requireParticipant(req, res, courseId);
     if (!auth) return;
 
     const body = String(req.body.body || "").trim();

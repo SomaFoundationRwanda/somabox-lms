@@ -92,7 +92,6 @@ test.describe("courses and course home", () => {
   });
 
   test("course home doesn't show learners the teacher's weekly-loop guidance", async ({ page }) => {
-    test.fail(true, "Known bug: the course home shows learners the teacher's beat help (e.g. \"Collect: follow learners' progress...\") and the class outcome panel; it doesn't check the role.");
     const c = await seedCourse({ learners: ["learner"] });
     await page.goto(`/course/${c.id}/home`);
     await expect(page.getByRole("region", { name: /Week 1/ })).toBeVisible();
@@ -231,7 +230,6 @@ test.describe("account", () => {
   });
 
   test("a wrong current password shows an error and keeps them signed in", async ({ page }) => {
-    test.fail(true, "Known bug: PATCH /users/profile/password answers 401 for a wrong current password, and the app treats every 401 as an expired session, so the learner is signed out.");
     await page.goto("/account");
     await page.getByRole("button", { name: lt("account.tabSecurity") }).click();
     await page.getByLabel(lt("account.currentPassword"), { exact: true }).fill("wrong-password");

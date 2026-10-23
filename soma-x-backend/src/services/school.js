@@ -5,7 +5,7 @@ import { initialsOf } from '../db/migrations/0020_school_identity.js';
 export { initialsOf };
 
 export const DEFAULT_PRIMARY = '#203A3A';
-export const DEFAULT_SECONDARY = '#0D9488';
+export const DEFAULT_SECONDARY = '#0F766E';
 
 export async function getSchool() {
     await localDb.prepare('INSERT INTO unit_branding (id) VALUES (1) ON CONFLICT (id) DO NOTHING').run();

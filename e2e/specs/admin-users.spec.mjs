@@ -54,7 +54,6 @@ test("adds a learner, who gets a learner code and can sign in", async ({ page, b
 });
 
 test("after adding a learner, Done is reachable on a 1280x720 screen", async ({ page }) => {
-  test.fail(true, "Known bug: the add-user modal has no max height or scrolling, so on a 720px-tall screen its top (close button) and bottom (Done) are off-screen after a learner is created.");
   await page.goto("/manage/admin");
   await page.getByRole("button", { name: "Add", exact: true }).click();
   await page.getByRole("button", { name: t("role.scholar"), exact: true }).click();
@@ -129,17 +128,16 @@ test("deactivates and reactivates a user", async ({ page }) => {
   await expect(row(table, email)).toContainText(u("active"));
 });
 
-test("deletes a user after typing their name to confirm", async ({ page }) => {
-  const { email, name } = await makeUser();
+test("deletes a user after typing their name or email to confirm", async ({ page }) => {
+  const { email } = await makeUser();
   const table = await openUsers(page, email);
   await row(table, email).getByRole("button", { name: u("userActions") }).click();
   await page.getByRole("menuitem", { name: u("deleteUser") }).or(page.getByRole("button", { name: u("deleteUser") })).first().click();
   const confirmBtn = page.getByRole("button", { name: u("deletePermanently") });
   await expect(confirmBtn).toBeDisabled();
-  // The box says "name or email", but only the full name is accepted when the user has one.
-  await page.getByLabel(u("typeToConfirm")).fill(email);
+  await page.getByLabel(u("typeToConfirm")).fill("someone else");
   await expect(confirmBtn).toBeDisabled();
-  await page.getByLabel(u("typeToConfirm")).fill(name);
+  await page.getByLabel(u("typeToConfirm")).fill(email.toUpperCase());
   await confirmBtn.click();
   await expect(page.getByText(u("deleted")).first()).toBeVisible();
   await expect(row(table, email)).toHaveCount(0);

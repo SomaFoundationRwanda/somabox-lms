@@ -25,7 +25,7 @@ const itemDaysOf = (item) => ({ release_day: item.release_day, due_day: item.due
 export default function AssignmentDetailPage() {
   const { courseId, assignmentId } = useParams();
   useItemOpened("assignment", assignmentId, courseId);
-  const { SERVER_URL, userEmail, isTeacher } = useCourse();
+  const { SERVER_URL, userEmail, isTeacher, isObserver } = useCourse();
   const { t, tf, weekLabel, fmtDay, fmtDate, fmtDateTime } = useCourseText();
   const formatDate = (d) => fmtDay(d);
   const [assignment, setAssignment] = useState(null);
@@ -484,6 +484,9 @@ export default function AssignmentDetailPage() {
                   </Section>
                 ) : null}
 
+                {isObserver ? (
+                  <p className="text-sm text-slate-500 dark:text-slate-400">{t("assignment.observerNote")}</p>
+                ) : (
                 <Section divided title={t("assignment.yourSubmission")}>
                   <div className="space-y-4">
                     <dl className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-slate-600 dark:text-slate-400">
@@ -569,6 +572,7 @@ export default function AssignmentDetailPage() {
                     </button>
                   </div>
                 </Section>
+                )}
               </>
             )}
           </>

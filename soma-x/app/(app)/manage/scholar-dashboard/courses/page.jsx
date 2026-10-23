@@ -10,10 +10,13 @@ import HeaderSection from "@/components/ui/HeaderSection";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/context/LanguageContext";
 import Loader from "@/components/ui/Loader";
+import { useRouter } from "next/navigation";
+import { startRouteLoading } from "@/components/global/RouteLoader";
 
 export default function ScholarCoursesPage() {
   const { SERVER_URL, user } = useContext(DataContext);
   const { t } = useLanguage();
+  const router = useRouter();
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
@@ -38,16 +41,18 @@ export default function ScholarCoursesPage() {
     setJoinError("");
     setJoinLoading(true);
     try {
-      const res = await fetch(`${SERVER_URL}/courses/${courseCode.trim()}/enroll`, {
+      // The code the teacher gives out (People > Join code), as on Discover courses.
+      const res = await fetch(`${SERVER_URL}/courses/join-by-code`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ code: courseCode }),
       });
-      const data = await res.json();
-      if (!res.ok) { setJoinError(data.message || t("learner.discover.joinFailed")); return; }
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { setJoinError((data.code && t(`learner.discover.code.errors.${data.code}`)) || data.message || t("learner.discover.joinFailed")); return; }
       setCourseCode("");
       setJoining(false);
-      load();
+      startRouteLoading();
+      router.push(`/course/${data.courseId}/home`);
     } catch {
       setJoinError(t("shell.common.somethingWrong"));
     } finally {
@@ -67,10 +72,10 @@ export default function ScholarCoursesPage() {
 
         {joining ? (
           <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-3">
-            <input aria-label={t("learner.courses.codeLabel")}
+            <input aria-label={t("learner.discover.code.title")}
               value={courseCode}
               onChange={(e) => setCourseCode(e.target.value)}
-              placeholder={t("learner.courses.codeLabel")}
+              placeholder={t("learner.discover.code.placeholder")}
               className="flex-1 text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-accent-dark"
             />
             <button onClick={handleJoin} disabled={joinLoading} className="text-xs font-semibold text-white bg-accent-dark rounded-lg px-3 py-2 disabled:opacity-50">

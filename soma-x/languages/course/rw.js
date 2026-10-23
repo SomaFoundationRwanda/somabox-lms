@@ -121,6 +121,7 @@ export default {
     "needsAttention": "Ibikeneye kwitabwaho",
     "allTagged": "Nta kintu gikeneye ko ukitaho ubu.",
     "outcomePulse": "Aho abanyeshuri bageze kuri buri ntego",
+    "outcomePulseMine": "Uko uhagaze kuri buri ntego",
     "noOutcomeData": "Nta makuru y'intego arandikwa.",
     "noDataYet": "Nta makuru arahaba",
     "baseline": "Intangiriro",
@@ -525,6 +526,7 @@ export default {
     "rubric": "Ibipimo by'amanota",
     "rubricHelp": "Umukoro wawe uhabwa amanota hakurikijwe ibi bipimo, bigahinduka amanota kuri {n}.",
     "yourSubmission": "Ibyo watanze",
+    "observerNote": "Urakurikirana iri somo gusa: ushobora gusoma umukoro ariko ntushobora kuwutanga.",
     "opens": "Bifungurwa",
     "due": "Ntarengwa",
     "closes": "Bifungwa",
@@ -548,6 +550,7 @@ export default {
   },
   "quiz": {
     "noAttemptsLeft": "Wakoresheje inshuro zose wemerewe kuri iri suzuma.",
+    "observerNote": "Urakurikirana iri somo gusa: ushobora gusoma ikizamini ariko ntushobora kugikora.",
     "closed": "Iri suzuma ryarafunzwe.",
     "notOpenYet": "Iri suzuma ntirarafungurwa.",
     "submitFailed": "Ntibyakunze kohereza isuzuma.",
@@ -772,7 +775,36 @@ export default {
     "hideNamed": "Hisha {name} abanyeshuri",
     "show": "Erekana abanyeshuri",
     "showNamed": "Erekana {name} abanyeshuri",
-    "saveNav": "Bika ibice bigaragara"
+    "saveNav": "Bika ibice bigaragara",
+    "status": {
+      "title": "Uko isomo rihagaze",
+      "now": {
+        "draft": "Iri somo riracyategurwa. Rifungure muri Gutegura isomo niryuzura.",
+        "open": "Rirafunguye: abanyeshuri barabona isomo kandi bashobora gutanga imikoro.",
+        "closed": "Ryafunzwe: abanyeshuri bashobora gusoma isomo no kubona amanota yabo, ariko ntibashobora gutanga imikoro cyangwa gukora ibizamini.",
+        "archived": "Ryabitswe: abanyeshuri ntibakibona iri somo ku rutonde rwabo. Amanota n'ibisubizo birabikwa."
+      },
+      "action": {
+        "open": "Ongera ufungure isomo",
+        "closed": "Funga isomo",
+        "archived": "Bika isomo",
+        "delete": "Siba isomo"
+      },
+      "confirm": {
+        "open": "Ongera ufungure iri somo? Abanyeshuri bazongera gutanga imikoro.",
+        "closed": "Funga iri somo? Abanyeshuri bazashobora kurisoma no kubona amanota yabo, ariko ntibazatanga imikoro.",
+        "archived": "Bika iri somo? Rizava ku rutonde rw'abanyeshuri. Amanota n'ibisubizo birabikwa.",
+        "delete": "Gusiba \"{title}\" burundu? Ntibishobora gusubizwa inyuma."
+      },
+      "done": {
+        "open": "Isomo ryongeye gufungurwa",
+        "closed": "Isomo ryafunzwe",
+        "archived": "Isomo ryabitswe"
+      },
+      "deleted": "Isomo ryasibwe",
+      "hasWork": "Abanyeshuri batanze imikoro muri iri somo, ntirishobora gusibwa. Ahubwo ribike: rivaho ku rutonde rwabo kandi ibisubizo byabo birabikwa.",
+      "failed": "Ntibyakunze guhindura uko isomo rihagaze."
+    }
   },
   "calendar": {
     "loadFailed": "Ntibyakunze gufungura kalendari",

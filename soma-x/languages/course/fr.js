@@ -121,6 +121,7 @@ export default {
     "needsAttention": "À traiter",
     "allTagged": "Rien ne demande votre attention pour le moment.",
     "outcomePulse": "Où en sont les élèves sur chaque objectif",
+    "outcomePulseMine": "Où vous en êtes pour chaque objectif",
     "noOutcomeData": "Aucune donnée sur les objectifs pour l'instant.",
     "noDataYet": "Pas encore de données",
     "baseline": "Point de départ",
@@ -525,6 +526,7 @@ export default {
     "rubric": "Grille d'évaluation",
     "rubricHelp": "Votre travail est noté selon ces critères puis converti en note sur {n}.",
     "yourSubmission": "Votre rendu",
+    "observerNote": "Vous observez ce cours : vous pouvez lire le devoir, mais pas rendre de travail.",
     "opens": "Ouverture",
     "due": "À rendre",
     "closes": "Clôture",
@@ -548,6 +550,7 @@ export default {
   },
   "quiz": {
     "noAttemptsLeft": "Vous avez utilisé toutes vos tentatives pour ce quiz.",
+    "observerNote": "Vous observez ce cours : vous pouvez lire le quiz, mais pas y répondre.",
     "closed": "Ce quiz est fermé.",
     "notOpenYet": "Ce quiz n'est pas encore ouvert.",
     "submitFailed": "Impossible d'envoyer le quiz.",
@@ -772,7 +775,36 @@ export default {
     "hideNamed": "Masquer {name} aux élèves",
     "show": "Afficher aux élèves",
     "showNamed": "Afficher {name} aux élèves",
-    "saveNav": "Enregistrer la navigation"
+    "saveNav": "Enregistrer la navigation",
+    "status": {
+      "title": "Statut du cours",
+      "now": {
+        "draft": "Ce cours est un brouillon. Ouvrez-le depuis la configuration du cours quand il est prêt.",
+        "open": "Ouvert : les élèves voient le cours et peuvent rendre leurs travaux.",
+        "closed": "Fermé : les élèves peuvent encore lire le cours et voir leurs notes, mais ne peuvent plus rendre de travail ni faire de quiz.",
+        "archived": "Archivé : les élèves ne voient plus ce cours dans leur liste. Les notes et résultats sont conservés."
+      },
+      "action": {
+        "open": "Rouvrir le cours",
+        "closed": "Fermer le cours",
+        "archived": "Archiver le cours",
+        "delete": "Supprimer le cours"
+      },
+      "confirm": {
+        "open": "Rouvrir ce cours ? Les élèves pourront de nouveau rendre leurs travaux.",
+        "closed": "Fermer ce cours ? Les élèves pourront encore le lire et voir leurs notes, mais plus rendre de travail.",
+        "archived": "Archiver ce cours ? Il disparaît de la liste des élèves. Les notes et résultats sont conservés.",
+        "delete": "Supprimer « {title} » définitivement ? Impossible d'annuler."
+      },
+      "done": {
+        "open": "Cours rouvert",
+        "closed": "Cours fermé",
+        "archived": "Cours archivé"
+      },
+      "deleted": "Cours supprimé",
+      "hasWork": "Des élèves ont rendu des travaux dans ce cours : il ne peut pas être supprimé. Archivez-le plutôt : il quitte leur liste et leurs résultats sont conservés.",
+      "failed": "Impossible de changer le statut du cours."
+    }
   },
   "calendar": {
     "loadFailed": "Impossible de charger le calendrier",

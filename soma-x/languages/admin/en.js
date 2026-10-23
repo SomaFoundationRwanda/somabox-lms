@@ -294,6 +294,10 @@ export default {
                 "label": "Outcome results",
                 "help": "How each learner is doing on each outcome. Used for school and district reports."
             },
+            "attendance": {
+                "label": "Attendance",
+                "help": "Who was present, late, absent or excused at each class register."
+            },
             "events": {
                 "label": "Usage events",
                 "help": "Which pages and tools are opened, so the team can see what helps. No written work."

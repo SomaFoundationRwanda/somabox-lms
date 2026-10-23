@@ -61,6 +61,12 @@ export default function Users() {
     const [viewProfileUser, setViewProfileUser] = useState(null);
     const [deleteModalUser, setDeleteModalUser] = useState(null);
     const [typedConfirmName, setTypedConfirmName] = useState("");
+    // As the box says: the user's full name or their email (email in any case).
+    const typedConfirm = typedConfirmName.trim();
+    const deleteConfirmed = !!deleteModalUser && !!typedConfirm && (
+        typedConfirm === String(deleteModalUser.full_name || "").trim()
+        || typedConfirm.toLowerCase() === String(deleteModalUser.email || "").trim().toLowerCase()
+    );
     const [resetPassUser, setResetPassUser] = useState(null);
     const [newPassword, setNewPassword] = useState("");
     const [bulkRoleModal, setBulkRoleModal] = useState(false);
@@ -752,7 +758,7 @@ export default function Users() {
                                 {t("admin.common.cancel")}
                             </button>
                             <button
-                                disabled={typedConfirmName.trim() !== (deleteModalUser.full_name || deleteModalUser.email).trim()}
+                                disabled={!deleteConfirmed}
                                 onClick={handleConfirmDelete}
                                 className="px-5 h-9 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-40 text-white text-xs font-extrabold shadow-md transition-colors"
                             >

@@ -294,6 +294,10 @@ export default {
                 "label": "Resultados por objetivo",
                 "help": "Cómo va cada estudiante en cada resultado. Se usa en informes de la escuela y del distrito."
             },
+            "attendance": {
+                "label": "Asistencia",
+                "help": "Quién estuvo presente, llegó tarde, faltó o tuvo excusa en cada lista de clase."
+            },
             "events": {
                 "label": "Eventos de uso",
                 "help": "Qué páginas y herramientas se abren, para ver qué ayuda. Sin trabajos escritos."

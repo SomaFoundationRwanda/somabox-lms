@@ -317,7 +317,6 @@ export default {
     "courses": {
         "subtitle": "Amasomo wiyandikishijemo.",
         "joinCourse": "Injira mu isomo",
-        "codeLabel": "Kode y'isomo y'imibare 6",
         "join": "Injira",
         "empty": "Ntabwo uriyandikisha mu isomo na rimwe. Saba umwarimu wawe kode y'isomo."
     }

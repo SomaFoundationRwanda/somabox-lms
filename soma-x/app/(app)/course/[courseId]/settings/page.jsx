@@ -15,6 +15,7 @@ import CourseSetupWizard from "@/components/teacher/CourseSetupWizard";
 import GradeSelect from "@/components/teacher/GradeSelect";
 import Explainer from "@/components/help/Explainer";
 import ShareCourseSection from "@/components/course/ShareCourseSection";
+import CourseStatusSection from "@/components/course/CourseStatusSection";
 
 // Settings > Course setup (teachers): the setup checklist, the Week 0 baseline and the guided wizard.
 function CourseSetupSection({ SERVER_URL, courseId, course, userEmail, onCourseChanged }) {
@@ -378,8 +379,10 @@ export default function CourseSettingsPage() {
     const idx = list.findIndex((i) => i.navKey === navKey);
     const target = idx + direction;
     if (target < 0 || target >= list.length) return;
+    // The lists are shown sorted by position, so the two items swap positions (not just places).
     const reordered = [...list];
-    [reordered[idx], reordered[target]] = [reordered[target], reordered[idx]];
+    reordered[idx] = { ...list[target], position: list[idx].position };
+    reordered[target] = { ...list[idx], position: list[target].position };
     return reordered;
   };
 
@@ -509,6 +512,7 @@ export default function CourseSettingsPage() {
             <button onClick={saveDetails} disabled={saving} className="text-xs font-semibold text-white bg-[var(--brand-primary)] rounded-lg px-4 py-2 disabled:opacity-50">
               {saving ? t("common.saving") : t("editors.saveChanges")}
             </button>
+            {isTeacher ? <CourseStatusSection SERVER_URL={SERVER_URL} courseId={courseId} course={course} refresh={refresh} /> : null}
           </div>
         ) : (
           <div className="space-y-6">

@@ -294,6 +294,10 @@ export default {
                 "label": "Ibyavuye ku ntego",
                 "help": "Uko buri munyeshuri yitwara kuri buri ntego. Bikoreshwa muri raporo z'ishuri n'akarere."
             },
+            "attendance": {
+                "label": "Ubwitabire",
+                "help": "Uwari uhari, uwakererewe, utari uhari cyangwa wasabye uruhushya kuri buri rutonde rw'ishuri."
+            },
             "events": {
                 "label": "Ibikorwa by'imikoreshereze",
                 "help": "Paji n'ibikoresho bifungurwa, kugira ngo itsinda rimenye ibifasha. Nta nyandiko z'abanyeshuri."

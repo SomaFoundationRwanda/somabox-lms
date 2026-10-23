@@ -130,9 +130,12 @@ export default function CourseHomePage() {
         {/* 1. NOW: a flat header band, not a card */}
         <section aria-labelledby="now-title" className="border-l-4 border-[var(--brand-secondary)] pl-4 py-1 space-y-3">
           <div className="flex flex-wrap items-center gap-2">
-            <span className={`text-xs font-bold uppercase px-3 py-1 rounded-full ${BEAT_COLORS[currentBeat] || BEAT_COLORS.prepare}`}>
-              {tf("home.nowBeat", { beat: beatName })}
-            </span>
+            {/* The weekly beat (prepare, release, collect...) is the teacher's routine. */}
+            {isTeacher && (
+              <span className={`text-xs font-bold uppercase px-3 py-1 rounded-full ${BEAT_COLORS[currentBeat] || BEAT_COLORS.prepare}`}>
+                {tf("home.nowBeat", { beat: beatName })}
+              </span>
+            )}
             <span className="text-xs font-semibold text-slate-500 flex items-center gap-1">
               <Clock className="w-3.5 h-3.5 text-slate-400" />
               {weekText}
@@ -144,9 +147,11 @@ export default function CourseHomePage() {
 
           <div>
             <h2 id="now-title" className="text-lg font-bold text-slate-900 dark:text-white">{loopText("loopTitles", beatInfo.beatKey, beatInfo.beatParams, beatInfo.beatTitle) || t("home.currentBeat")}</h2>
-            <p className="text-sm text-slate-500 mt-1 max-w-2xl">
-              {["prepare", "release", "collect", "grade", "review"].includes(currentBeat) ? t(`home.beatHelp.${currentBeat}`) : null}
-            </p>
+            {isTeacher && (
+              <p className="text-sm text-slate-500 mt-1 max-w-2xl">
+                {["prepare", "release", "collect", "grade", "review"].includes(currentBeat) ? t(`home.beatHelp.${currentBeat}`) : null}
+              </p>
+            )}
           </div>
 
           {beatInfo.primaryAction && (
@@ -159,7 +164,8 @@ export default function CourseHomePage() {
           )}
         </section>
 
-        {/* 2. NEEDS ATTENTION */}
+        {/* 2. NEEDS ATTENTION (teachers: setup and grading to do) */}
+        {isTeacher && (
         <Section
           title={<span className="flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-amber-500" /> {t("home.needsAttention")}</span>}
         >
@@ -185,10 +191,11 @@ export default function CourseHomePage() {
             </List>
           )}
         </Section>
+        )}
 
         {/* 3. OUTCOME PULSE (small tiles are allowed here) */}
         <Section
-          title={<span className="flex items-center gap-2"><Target className="w-4 h-4 text-[var(--brand-secondary)]" /> {t("home.outcomePulse")}</span>}
+          title={<span className="flex items-center gap-2"><Target className="w-4 h-4 text-[var(--brand-secondary)]" /> {isTeacher ? t("home.outcomePulse") : t("home.outcomePulseMine")}</span>}
           actions={
             <Link href={`/course/${courseId}/outcomes`} className="text-xs font-semibold text-[var(--brand-secondary)] hover:underline">
               {t("common.viewAll")} &rarr;

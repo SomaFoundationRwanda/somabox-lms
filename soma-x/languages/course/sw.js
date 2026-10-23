@@ -121,6 +121,7 @@ export default {
     "needsAttention": "Inahitaji kushughulikiwa",
     "allTagged": "Hakuna kinachohitaji umakini wako kwa sasa.",
     "outcomePulse": "Wanafunzi wanavyoendelea kwa kila lengo",
+    "outcomePulseMine": "Unavyoendelea katika kila tokeo",
     "noOutcomeData": "Hakuna data ya malengo bado.",
     "noDataYet": "Hakuna data bado",
     "baseline": "Kipimo cha awali",
@@ -525,6 +526,7 @@ export default {
     "rubric": "Rubriki",
     "rubricHelp": "Kazi yako inapimwa kwa vigezo hivi na kugeuzwa kuwa alama kati ya {n}.",
     "yourSubmission": "Kazi yako",
+    "observerNote": "Unafuatilia kozi hii, kwa hiyo unaweza kusoma kazi lakini huwezi kuwasilisha.",
     "opens": "Inafunguliwa",
     "due": "Mwisho",
     "closes": "Inafungwa",
@@ -548,6 +550,7 @@ export default {
   },
   "quiz": {
     "noAttemptsLeft": "Umetumia majaribio yako yote kwa jaribio hili.",
+    "observerNote": "Unafuatilia kozi hii, kwa hiyo unaweza kusoma jaribio lakini huwezi kulifanya.",
     "closed": "Jaribio hili limefungwa.",
     "notOpenYet": "Jaribio hili bado halijafunguliwa.",
     "submitFailed": "Imeshindwa kuwasilisha jaribio.",
@@ -772,7 +775,36 @@ export default {
     "hideNamed": "Ficha {name} kwa wanafunzi",
     "show": "Onyesha wanafunzi",
     "showNamed": "Onyesha {name} kwa wanafunzi",
-    "saveNav": "Hifadhi urambazaji"
+    "saveNav": "Hifadhi urambazaji",
+    "status": {
+      "title": "Hali ya kozi",
+      "now": {
+        "draft": "Kozi hii ni rasimu. Ifungue kutoka kwenye maandalizi ya kozi ikiwa tayari.",
+        "open": "Wazi: wanafunzi wanaiona kozi na wanaweza kuwasilisha kazi.",
+        "closed": "Imefungwa: wanafunzi bado wanaweza kusoma kozi na kuona alama zao, lakini hawawezi kuwasilisha kazi wala kufanya majaribio.",
+        "archived": "Imehifadhiwa: wanafunzi hawaioni tena kozi hii kwenye orodha yao. Alama na matokeo yanabaki."
+      },
+      "action": {
+        "open": "Fungua kozi tena",
+        "closed": "Funga kozi",
+        "archived": "Hifadhi kozi",
+        "delete": "Futa kozi"
+      },
+      "confirm": {
+        "open": "Kufungua kozi hii tena? Wanafunzi wataweza kuwasilisha kazi tena.",
+        "closed": "Kufunga kozi hii? Wanafunzi bado wataweza kuisoma na kuona alama zao, lakini si kuwasilisha kazi.",
+        "archived": "Kuhifadhi kozi hii? Itaondoka kwenye orodha ya wanafunzi. Alama na matokeo yanabaki.",
+        "delete": "Kufuta \"{title}\" kabisa? Haiwezi kurudishwa."
+      },
+      "done": {
+        "open": "Kozi imefunguliwa tena",
+        "closed": "Kozi imefungwa",
+        "archived": "Kozi imehifadhiwa"
+      },
+      "deleted": "Kozi imefutwa",
+      "hasWork": "Wanafunzi wamewasilisha kazi katika kozi hii, kwa hiyo haiwezi kufutwa. Ihifadhi badala yake: inaondoka kwenye orodha zao na matokeo yao yanabaki.",
+      "failed": "Imeshindikana kubadilisha hali ya kozi."
+    }
   },
   "calendar": {
     "loadFailed": "Imeshindwa kupakia kalenda",

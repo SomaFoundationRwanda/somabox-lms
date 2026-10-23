@@ -10,7 +10,7 @@ test.use({ storageState: authFile("admin") });
 test.describe.configure({ mode: "serial" });
 
 const s = (key) => t(`school.settings.${key}`);
-const DEFAULTS = { name: "SOMABOX Partner School", code: "SPS", primaryColor: "#203A3A", secondaryColor: "#0D9488", province: "", district: "", isRural: null, guestPreview: { enabled: true, seconds: 40, items: 5 } };
+const DEFAULTS = { name: "SOMABOX Partner School", code: "SPS", primaryColor: "#203A3A", secondaryColor: "#0F766E", province: "", district: "", isRural: null, guestPreview: { enabled: true, seconds: 40, items: 5 } };
 
 test.afterAll(async () => {
   await api("PUT", "/school", { as: "admin", body: DEFAULTS });
@@ -120,6 +120,8 @@ test("custom colours reach buttons, badges and highlights on every page", async 
   await page.reload();
   await page.getByRole("button", { name: s("resetColours") }).click();
   await expect(page.locator("#school-primary-hex")).toHaveValue(/#203A3A/i);
+  // The SOMABOX colours themselves are readable with white text.
+  await expect(page.getByText(s("lowContrast"))).toHaveCount(0);
 });
 
 test("visitor previews can be limited or switched off", async ({ page }) => {

@@ -49,6 +49,8 @@ export function CourseProvider({ courseId, children }) {
   }, [refresh]);
 
   const isTeacher = course?.myRole === "teacher" || course?.myRole === "ta";
+  // Observers can look at everything a learner sees but can't hand in work or reply.
+  const isObserver = course?.myRole === "observer";
 
   const value = {
     courseId,
@@ -59,6 +61,7 @@ export function CourseProvider({ courseId, children }) {
     userEmail,
     SERVER_URL,
     isTeacher,
+    isObserver,
     refresh,
   };
 

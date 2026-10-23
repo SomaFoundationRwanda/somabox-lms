@@ -6,6 +6,7 @@ import {
   isTeacherRole,
   requireTeacher,
   requireEnrolled,
+  requireParticipant,
   requireNavVisible,
   courseExists,
   scheduleSpacedReview,
@@ -173,7 +174,7 @@ router.post("/:id/assignments/:assignmentId/submit", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
     if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
-    const auth = await requireEnrolled(req, res, courseId);
+    const auth = await requireParticipant(req, res, courseId);
     if (!auth) return;
 
     const assignment = await localDb.prepare("SELECT * FROM assignments WHERE id = ? AND course_id = ?").get(req.params.assignmentId, courseId);
@@ -483,7 +484,7 @@ router.post("/:id/quizzes/:quizId/submit", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
     if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
-    const auth = await requireEnrolled(req, res, courseId);
+    const auth = await requireParticipant(req, res, courseId);
     if (!auth) return;
 
     const quiz = await localDb.prepare("SELECT * FROM quizzes WHERE id = ? AND course_id = ?").get(req.params.quizId, courseId);

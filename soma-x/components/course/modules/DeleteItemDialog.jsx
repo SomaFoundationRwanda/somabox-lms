@@ -10,11 +10,11 @@ export default function DeleteItemDialog({ open, onClose, item, onRemove, onDele
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl mx-4 animate-in fade-in slide-in-from-bottom-2 duration-200">
+      <div role="dialog" aria-modal="true" aria-labelledby="delete-item-title" className="bg-white rounded-2xl w-full max-w-sm shadow-2xl mx-4 animate-in fade-in slide-in-from-bottom-2 duration-200">
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
           <div className="flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 text-amber-500" />
-            <h2 className="text-sm font-bold text-slate-900">{t("modules.deleteDialog.title")}</h2>
+            <h2 id="delete-item-title" className="text-sm font-bold text-slate-900">{t("modules.deleteDialog.title")}</h2>
           </div>
           <button aria-label={t("common.close")} onClick={onClose} className="p-1 rounded-lg hover:bg-slate-100 text-slate-400">
             <X className="w-4 h-4" />

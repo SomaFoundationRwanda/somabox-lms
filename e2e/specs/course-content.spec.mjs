@@ -121,7 +121,6 @@ test("collaborations: a shared link reaches the chosen members only", async ({ b
 });
 
 test("collaborations: the teacher who shared a link can delete it", async ({ browser }) => {
-  test.fail(true, "Known bug: the page shows Delete only when c.created_by matches, but the API returns created_by_teacher_email, so the button never appears.");
   await api("POST", `/courses/${c.id}/collaborations`, { as: "teacher", body: { title: "Old board", url: "https://example.org/old" } });
   const teacher = await asRole(browser, "teacher");
   await teacher.page.goto(`/course/${c.id}/collaborations`);

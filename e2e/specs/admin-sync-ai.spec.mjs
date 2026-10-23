@@ -47,7 +47,6 @@ test.describe("sync", () => {
   });
 
   test("attendance can be kept on the box", async ({ page }) => {
-    test.fail(true, "Known gap: the backend syncs attendance (scope.attendance, on by default) but the Sync page has no toggle for it.");
     await page.goto("/manage/admin/sync");
     await expect(page.getByRole("checkbox", { name: /attendance/i })).toBeVisible({ timeout: 3_000 });
   });
@@ -110,6 +109,10 @@ test.describe("AI assistant", () => {
   test("usage lists who called the model", async ({ page }) => {
     await page.goto("/manage/admin/ai");
     const table = page.getByRole("table", { name: ai("callsCaption") });
-    await expect.poll(async () => { await page.reload(); return table.getByRole("row").filter({ hasText: /teacher@e2e\.test|Tom Teacher/ }).count(); }, { timeout: 30_000 }).toBeGreaterThan(0);
+    // Usage is read when the page loads; jobs from the tests above may still be finishing.
+    await expect(async () => {
+      await page.reload();
+      await expect(table.getByRole("row").filter({ hasText: /teacher@e2e\.test|Tom Teacher/ }).first()).toBeVisible({ timeout: 5_000 });
+    }).toPass({ timeout: 30_000 });
   });
 });

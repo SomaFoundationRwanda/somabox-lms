@@ -39,6 +39,7 @@ const POLICY = {
   "POST /notifications": "admin",
   "PATCH /notifications/:id/read": "any",
   "POST /notifications/read-all": "any",
+  "DELETE /notifications/:id": "any",
   "POST /notifications/send": "admin",
 
   "GET /sol/spaced/pending": "any",
@@ -375,6 +376,13 @@ test("notifications are scoped to their owner and links stay inside the app", as
 
   const outsiderList = await ctx.api("GET", `/notifications?userEmail=${encodeURIComponent(USERS.student.email)}`, { token: ctx.tokens.outsider });
   assert.ok(outsiderList.body.notifications.every((n) => n.user_email === USERS.outsider.email));
+
+  // Only the owner can dismiss it, and then it's gone.
+  await ctx.api("DELETE", `/notifications/${note.id}`, { token: ctx.tokens.outsider });
+  assert.ok(await ctx.db.prepare("SELECT 1 FROM user_notifications WHERE id = ?").get(note.id));
+  const dismissed = await ctx.api("DELETE", `/notifications/${note.id}`, { token: ctx.tokens.student });
+  assert.equal(dismissed.status, 200);
+  assert.equal(await ctx.db.prepare("SELECT 1 FROM user_notifications WHERE id = ?").get(note.id), undefined);
 });
 
 test("scholars only see their own analytics; teachers only learners they teach", async () => {

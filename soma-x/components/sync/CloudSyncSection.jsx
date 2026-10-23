@@ -15,7 +15,7 @@ import Loader from "@/components/ui/Loader";
 
 // Run statuses, scope toggles and people options are translated under admin.cloud.
 const RUN_STATUSES = ["ok", "failed", "not_configured", "nothing_to_send"];
-const SCOPE_TOGGLES = ["courses", "enrollments", "grades", "outcomeResults", "events"];
+const SCOPE_TOGGLES = ["courses", "enrollments", "grades", "outcomeResults", "attendance", "events"];
 const PEOPLE_OPTIONS = ["none", "pseudonymous", "full"];
 
 // Intl locales for the UI language ("rw" falls back to English where Intl lacks Kinyarwanda).

@@ -294,6 +294,10 @@ export default {
                 "label": "Matokeo ya malengo",
                 "help": "Jinsi kila mwanafunzi anavyofanya kwa kila lengo. Hutumika kwa ripoti za shule na wilaya."
             },
+            "attendance": {
+                "label": "Mahudhurio",
+                "help": "Nani alikuwepo, alichelewa, hakuwepo au alikuwa na ruhusa katika kila orodha ya darasa."
+            },
             "events": {
                 "label": "Matukio ya matumizi",
                 "help": "Kurasa na zana zinazofunguliwa, ili timu ione kinachosaidia. Hakuna kazi zilizoandikwa."

@@ -121,6 +121,7 @@ export default {
     "needsAttention": "Requiere atención",
     "allTagged": "Nada necesita tu atención por ahora.",
     "outcomePulse": "Cómo van los estudiantes en cada resultado",
+    "outcomePulseMine": "Cómo vas en cada resultado de aprendizaje",
     "noOutcomeData": "Aún no hay datos de objetivos.",
     "noDataYet": "Aún sin datos",
     "baseline": "Punto de partida",
@@ -525,6 +526,7 @@ export default {
     "rubric": "Rúbrica",
     "rubricHelp": "Tu trabajo se puntúa con estos criterios y se convierte en una nota sobre {n}.",
     "yourSubmission": "Tu entrega",
+    "observerNote": "Estás observando este curso: puedes leer la tarea, pero no entregar trabajos.",
     "opens": "Abre",
     "due": "Entrega",
     "closes": "Cierra",
@@ -548,6 +550,7 @@ export default {
   },
   "quiz": {
     "noAttemptsLeft": "Has usado todos tus intentos en este cuestionario.",
+    "observerNote": "Estás observando este curso: puedes leer el cuestionario, pero no responderlo.",
     "closed": "Este cuestionario está cerrado.",
     "notOpenYet": "Este cuestionario aún no está abierto.",
     "submitFailed": "No se pudo enviar el cuestionario.",
@@ -772,7 +775,36 @@ export default {
     "hideNamed": "Ocultar {name} a los estudiantes",
     "show": "Mostrar a los estudiantes",
     "showNamed": "Mostrar {name} a los estudiantes",
-    "saveNav": "Guardar navegación"
+    "saveNav": "Guardar navegación",
+    "status": {
+      "title": "Estado del curso",
+      "now": {
+        "draft": "Este curso es un borrador. Ábrelo desde la configuración del curso cuando esté listo.",
+        "open": "Abierto: los estudiantes ven el curso y pueden entregar trabajos.",
+        "closed": "Cerrado: los estudiantes aún pueden leer el curso y ver sus notas, pero no pueden entregar trabajos ni hacer cuestionarios.",
+        "archived": "Archivado: los estudiantes ya no ven este curso en su lista. Las notas y resultados se conservan."
+      },
+      "action": {
+        "open": "Reabrir curso",
+        "closed": "Cerrar curso",
+        "archived": "Archivar curso",
+        "delete": "Eliminar curso"
+      },
+      "confirm": {
+        "open": "¿Reabrir este curso? Los estudiantes podrán volver a entregar trabajos.",
+        "closed": "¿Cerrar este curso? Los estudiantes aún podrán leerlo y ver sus notas, pero no entregar trabajos.",
+        "archived": "¿Archivar este curso? Desaparece de la lista de los estudiantes. Las notas y resultados se conservan.",
+        "delete": "¿Eliminar «{title}» para siempre? No se puede deshacer."
+      },
+      "done": {
+        "open": "Curso reabierto",
+        "closed": "Curso cerrado",
+        "archived": "Curso archivado"
+      },
+      "deleted": "Curso eliminado",
+      "hasWork": "Hay trabajos de estudiantes en este curso, así que no se puede eliminar. Archívalo: sale de sus listas y sus resultados se conservan.",
+      "failed": "No se pudo cambiar el estado del curso."
+    }
   },
   "calendar": {
     "loadFailed": "No se pudo cargar el calendario",

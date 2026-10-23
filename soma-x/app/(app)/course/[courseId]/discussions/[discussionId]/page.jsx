@@ -12,7 +12,7 @@ import Loader from "@/components/ui/Loader";
 export default function DiscussionThreadPage() {
   const { courseId, discussionId } = useParams();
   useItemOpened("discussion", discussionId, courseId);
-  const { SERVER_URL, userEmail, isTeacher } = useCourse();
+  const { SERVER_URL, userEmail, isTeacher, isObserver } = useCourse();
   const { t, tf } = useCourseText();
   const [discussion, setDiscussion] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -125,10 +125,10 @@ export default function DiscussionThreadPage() {
             </List>
           )}
 
-          <div className="mt-3 flex items-center gap-2">
+          {isObserver ? null : <div className="mt-3 flex items-center gap-2">
             <input value={reply} onChange={(e) => setReply(e.target.value)} placeholder={t("discussions.replyPlaceholder")} aria-label={t("discussions.replyPlaceholder")} className="flex-1 min-w-0 text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[var(--brand-primary)]" />
             <button onClick={postReply} className="text-xs font-semibold text-white bg-[var(--brand-primary)] rounded-lg px-3 py-2">{t("discussions.reply")}</button>
-          </div>
+          </div>}
         </Section>
       </div>
     </div>

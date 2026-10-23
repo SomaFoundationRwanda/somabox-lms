@@ -49,6 +49,26 @@ export async function requireTeacher(req, res, courseId) {
   return { email, enrollment };
 }
 
+// For handing in work, taking quizzes and replying: enrolled, but not an observer (observers only
+// look; work they handed in could never be graded).
+export async function requireParticipant(req, res, courseId) {
+  const auth = await requireEnrolled(req, res, courseId);
+  if (!auth) return null;
+  if (auth.enrollment.role === "observer") {
+    res.status(403).json({ message: "Observers can view this course but can't hand in work or reply", code: "OBSERVER" });
+    return null;
+  }
+  // A closed (or archived) course can still be read, but learners can't hand in anything new.
+  if (!isTeacherRole(auth.enrollment.role)) {
+    const course = await localDb.prepare("SELECT lifecycle FROM courses WHERE id = ?").get(courseId);
+    if (course?.lifecycle === "closed" || course?.lifecycle === "archived") {
+      res.status(409).json({ message: "This course has ended, so work can't be handed in any more", code: "COURSE_CLOSED" });
+      return null;
+    }
+  }
+  return auth;
+}
+
 export async function requireEnrolled(req, res, courseId) {
   if (!req.user) {
     res.status(401).json({ message: "Please log in to continue" });

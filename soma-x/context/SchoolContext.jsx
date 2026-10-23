@@ -8,7 +8,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 export const DEFAULT_PRIMARY = "#203A3A";
-export const DEFAULT_SECONDARY = "#0D9488";
+export const DEFAULT_SECONDARY = "#0F766E";
 const HEX = /^#[0-9a-f]{6}$/i;
 const CACHE_KEY = "schoolPublic";
 

@@ -571,7 +571,8 @@ router.patch('/profile/password', async (req, res) => {
 
         const isMatch = await bcrypt.compare(currentPassword, user.password_hash);
         if (!isMatch) {
-            return res.status(401).json({ message: 'Current password is incorrect' });
+            // 400, not 401: the app treats any 401 as an expired session and signs the person out.
+            return res.status(400).json({ message: 'Current password is incorrect' });
         }
 
         const passwordHash = await hashPassword(newPassword);

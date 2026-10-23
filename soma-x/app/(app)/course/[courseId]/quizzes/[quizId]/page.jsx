@@ -27,7 +27,7 @@ function getOptionId(opt, idx) {
 export default function QuizDetailPage() {
   const { courseId, quizId } = useParams();
   useItemOpened("quiz", quizId, courseId);
-  const { SERVER_URL, userEmail, isTeacher } = useCourse();
+  const { SERVER_URL, userEmail, isTeacher, isObserver } = useCourse();
   const { t, tf, weekLabel, fmtDate, fmtDateTime } = useCourseText();
   const [quiz, setQuiz] = useState(null);
   const [modules, setModules] = useState([]);
@@ -287,7 +287,10 @@ export default function QuizDetailPage() {
           ))}
           </ol>
 
-          {!isTeacher && (
+          {isObserver && (
+            <p className="pt-4 text-sm text-slate-500 dark:text-slate-400">{t("quiz.observerNote")}</p>
+          )}
+          {!isTeacher && !isObserver && (
             <div className="pt-4 flex flex-col items-end gap-2">
               <span className="text-xs font-semibold text-slate-500">
                 {attemptsAllowed == null

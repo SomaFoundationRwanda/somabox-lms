@@ -316,7 +316,6 @@ export default {
     "courses": {
         "subtitle": "Los cursos en los que estás inscrito.",
         "joinCourse": "Unirse a un curso",
-        "codeLabel": "Código de curso de 6 dígitos",
         "join": "Unirse",
         "empty": "Aún no estás inscrito en ningún curso. Pide a tu docente un código de curso."
     }

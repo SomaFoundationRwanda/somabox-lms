@@ -109,12 +109,11 @@ test.describe("teacher pages", () => {
     await page.waitForURL("**/teacher/dashboard");
   });
 
-  test("settings: the email notifications switch is remembered", async ({ page }) => {
-    test.fail(true, "Known gap: the Email notifications switch on teacher Settings is local state only (never saved, and the box sends no email), so it resets on reload.");
+  test("settings offers no switches that do nothing", async ({ page }) => {
     await page.goto("/teacher/settings");
-    await page.getByRole("switch", { name: "Email notifications" }).click();
-    await page.reload();
-    await expect(page.getByRole("switch", { name: "Email notifications" })).not.toBeChecked({ timeout: 3_000 });
+    await expect(page.getByRole("heading", { name: t("teacher.settings.title") })).toBeVisible();
+    // The box sends no email and has no per-teacher alert settings, so none are offered.
+    await expect(page.getByRole("switch")).toHaveCount(0);
   });
 
   test("settings shows the account and changes the language", async ({ page }) => {

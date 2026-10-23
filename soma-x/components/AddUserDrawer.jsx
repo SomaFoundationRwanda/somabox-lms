@@ -140,7 +140,8 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
                         onClick={handleClose}
                     />
 
-                    <div className="relative z-10 bg-white rounded-[8px] border border-slate-100 shadow-2xl w-full max-w-md">
+                    {/* Never taller than the screen: after a learner is added, the code and Done must stay reachable. */}
+                    <div role="dialog" aria-modal="true" aria-labelledby="add-user-title" className="relative z-10 bg-white rounded-[8px] border border-slate-100 shadow-2xl w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto">
 
                         {/* ── Header ── */}
                         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
@@ -149,7 +150,7 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
                                     <UserPlus className="w-3.5 h-3.5 text-slate-600" />
                                 </div>
                                 <div>
-                                    <h2 className="text-[14px] font-black text-slate-900 leading-tight">
+                                    <h2 id="add-user-title" className="text-[14px] font-black text-slate-900 leading-tight">
                                         {user ? t("admin.addUser.editTitle") : t("admin.addUser.addTitle")}
                                     </h2>
                                 </div>

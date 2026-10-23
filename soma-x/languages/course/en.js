@@ -121,6 +121,7 @@ export default {
     "needsAttention": "Needs attention",
     "allTagged": "Nothing needs your attention right now.",
     "outcomePulse": "How learners are doing on each outcome",
+    "outcomePulseMine": "How you're doing on each outcome",
     "noOutcomeData": "No outcome data logged yet.",
     "noDataYet": "No data yet",
     "baseline": "Baseline",
@@ -525,6 +526,7 @@ export default {
     "rubric": "Rubric",
     "rubricHelp": "Your work is scored on these criteria and turned into a grade out of {n}.",
     "yourSubmission": "Your submission",
+    "observerNote": "You're observing this course, so you can read the assignment but not hand in work.",
     "opens": "Opens",
     "due": "Due",
     "closes": "Closes",
@@ -548,6 +550,7 @@ export default {
   },
   "quiz": {
     "noAttemptsLeft": "You have used all your attempts for this quiz.",
+    "observerNote": "You're observing this course, so you can read the quiz but not take it.",
     "closed": "This quiz is closed.",
     "notOpenYet": "This quiz is not open yet.",
     "submitFailed": "Couldn't submit the quiz.",
@@ -772,7 +775,36 @@ export default {
     "hideNamed": "Hide {name} from learners",
     "show": "Show to learners",
     "showNamed": "Show {name} to learners",
-    "saveNav": "Save navigation"
+    "saveNav": "Save navigation",
+    "status": {
+      "title": "Course status",
+      "now": {
+        "draft": "This course is a draft. Open it from Course setup when it's ready.",
+        "open": "Open: learners can see the course and hand in work.",
+        "closed": "Closed: learners can still read the course and see their grades, but can't hand in work or take quizzes.",
+        "archived": "Archived: learners no longer see this course in their list. Grades and results are kept."
+      },
+      "action": {
+        "open": "Reopen course",
+        "closed": "Close course",
+        "archived": "Archive course",
+        "delete": "Delete course"
+      },
+      "confirm": {
+        "open": "Reopen this course? Learners can hand in work again.",
+        "closed": "Close this course? Learners can still read it and see their grades, but can't hand in work.",
+        "archived": "Archive this course? It disappears from learners' course lists. Grades and results are kept.",
+        "delete": "Delete \"{title}\" for good? This can't be undone."
+      },
+      "done": {
+        "open": "Course reopened",
+        "closed": "Course closed",
+        "archived": "Course archived"
+      },
+      "deleted": "Course deleted",
+      "hasWork": "Learners have handed in work in this course, so it can't be deleted. Archive it instead: it leaves their course lists and their results are kept.",
+      "failed": "Couldn't change the course status."
+    }
   },
   "calendar": {
     "loadFailed": "Couldn't load the calendar",

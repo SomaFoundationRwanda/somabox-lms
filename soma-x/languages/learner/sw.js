@@ -316,7 +316,6 @@ export default {
     "courses": {
         "subtitle": "Kozi ulizojiandikisha.",
         "joinCourse": "Jiunge na kozi",
-        "codeLabel": "Msimbo wa kozi wa tarakimu 6",
         "join": "Jiunge",
         "empty": "Bado hujajiandikisha kwenye kozi yoyote. Muulize mwalimu wako msimbo wa kozi."
     }

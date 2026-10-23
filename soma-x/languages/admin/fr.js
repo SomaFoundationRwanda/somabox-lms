@@ -294,6 +294,10 @@ export default {
                 "label": "Résultats par objectif",
                 "help": "Le niveau de chaque élève pour chaque objectif. Utilisé pour les rapports de l'école et du district."
             },
+            "attendance": {
+                "label": "Présences",
+                "help": "Qui était présent, en retard, absent ou excusé à chaque appel."
+            },
             "events": {
                 "label": "Événements d'utilisation",
                 "help": "Les pages et outils ouverts, pour voir ce qui aide. Aucun travail écrit."

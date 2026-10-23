@@ -79,7 +79,6 @@ test.describe("the bell", () => {
   });
 
   test("a dismissed notification stays gone after a reload", async ({ page }) => {
-    test.fail(true, "Known bug: Dismiss calls DELETE /notifications/:id, which the backend doesn't have (404, swallowed), so the notification comes back on reload.");
     const title = `Dismiss me ${uid()}`;
     await api("POST", "/notifications/send", { as: "admin", body: { targetRole: "specific", targetEmail: USERS.learner2.email, title, message: "Bye." } });
     await page.goto("/manage/scholar-dashboard");
