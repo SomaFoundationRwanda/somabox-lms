@@ -8,6 +8,7 @@ import {
 import DataContext from "@/context/DataContext";
 import { LANGUAGE_NAMES } from "@/components/global/LanguageSwitcher";
 import { useLanguage } from "@/context/LanguageContext";
+import { shownEmail } from "@/lib/session";
 
 function getInitials(name, email) {
     if (name?.trim()) return name.trim().split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
@@ -82,7 +83,7 @@ export default function UserProfileModal({ user, isOpen, onClose, onEdit, onSend
 
                             <p className="text-xs text-slate-500 font-medium truncate flex items-center gap-1.5">
                                 <Mail size={13} className="text-teal-400 shrink-0" />
-                                {user.email}
+                                {shownEmail(user)}
                             </p>
                             {user.learner_code && (
                                 <p className="text-xs text-slate-600 dark:text-slate-300 font-medium mt-1">

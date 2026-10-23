@@ -12,6 +12,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { downloadFile } from "@/lib/download";
 import { fill } from "@/lib/fill";
 import Loader from "@/components/ui/Loader";
+import { isInternalEmail } from "@/lib/session";
 
 // "Download my data": everything the box holds about the signed-in person, as a JSON file.
 function DownloadMyData({ SERVER_URL }) {
@@ -229,7 +230,7 @@ export default function AccountPage() {
                                     <p className="text-[26px] md:text-[30px] font-black text-white tracking-tight leading-tight mb-1">
                                         {profileView.fullName || "—"}
                                     </p>
-                                    <p className="text-[13px] text-white/40 mb-4">{profileView.email}</p>
+                                    <p className="text-[13px] text-white/40 mb-4">{isInternalEmail(profileView.email) ? "" : profileView.email}</p>
                                     {profileView.learnerCode && (
                                         <p className="mb-4 text-[13px] text-white/80">
                                             {t("school.learnerCode")}:{" "}

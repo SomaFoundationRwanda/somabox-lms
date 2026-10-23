@@ -41,6 +41,16 @@ export function clearSession() {
     }
 }
 
+/** Learners created without an email get an internal address (…@learner.invalid): never shown. */
+export function isInternalEmail(email) {
+    return String(email || "").toLowerCase().endsWith("@learner.invalid");
+}
+
+/** The email to show for an account: its learner code instead of an internal address. */
+export function shownEmail(user) {
+    return isInternalEmail(user?.email) ? (user?.learner_code || user?.learnerCode || "") : (user?.email || "");
+}
+
 // Where each person manages their own account (and changes a temporary password): teachers in
 // Teacher Settings, everyone else on the Account page.
 export function accountPage(role) {

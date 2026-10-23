@@ -5,10 +5,12 @@ import { api, uid, createUser } from "../support/api.mjs";
 import { USERS, authFile } from "../support/env.mjs";
 import { t } from "../support/i18n.mjs";
 import { mondayThisWeek, seedCourse } from "../support/seed.mjs";
+import { login } from "../support/ui.mjs";
 
 test.use({ storageState: authFile("teacher") });
 
 const ct = (key, vars) => t(`course.${key}`, vars);
+const lt = (key) => t(`teacher.learners.${key}`);
 const pt = (key, vars) => t(`progress.${key}`, vars);
 
 test.describe("outcomes", () => {
@@ -172,6 +174,76 @@ test.describe("people", () => {
     await page.getByLabel(ct("people.role"), { exact: true }).selectOption("ta");
     await page.getByRole("button", { name: ct("common.add"), exact: true }).click();
     await expect(page.getByText("Only teacher accounts can teach or assist in a course").first()).toBeVisible();
+  });
+
+  test("creates accounts for new learners; the class sheet shows their codes and temporary passwords once", async ({ page, browser }) => {
+    const course = await seedCourse({ learners: [] });
+    const names = [`Ama ${uid()}`, `Bosco ${uid()}`];
+    await page.goto(`/course/${course.id}/people`);
+    await page.getByRole("button", { name: ct("people.addLearners") }).click();
+    const dialog = page.getByRole("dialog");
+    await dialog.getByRole("button", { name: lt("tabNew") }).click();
+    await dialog.getByLabel(lt("namesLabel")).fill(names.join("\n"));
+    await dialog.getByLabel(lt("gradeLabel")).selectOption("Primary 4");
+    await dialog.getByRole("button", { name: lt("create").replace("{count}", "2") }).click();
+
+    const sheet = dialog.getByRole("table", { name: lt("sheetCaption") });
+    await expect(sheet.getByRole("row")).toHaveCount(3);
+    await expect(dialog.getByText(lt("shownOnce"))).toBeVisible();
+    const cells = await sheet.getByRole("row").nth(1).getByRole("cell").allTextContents();
+    expect(cells[0]).toBe(names[0]);
+    const [code, temporary] = [cells[1].trim(), cells[2].trim()];
+    await dialog.getByRole("button", { name: lt("done") }).click();
+    await expect(page.getByRole("table", { name: ct("people.members") }).getByRole("row").filter({ hasText: names[1] })).toBeVisible();
+
+    const fresh = await browser.newContext();
+    const learner = await fresh.newPage();
+    await login(learner, code, temporary);
+    await learner.waitForURL("**/account");
+    await fresh.close();
+  });
+
+  test("a name that already has an account is caught and the existing learner is added", async ({ page }) => {
+    const course = await seedCourse({ learners: [] });
+    await page.goto(`/course/${course.id}/people`);
+    await page.getByRole("button", { name: ct("people.addLearners") }).click();
+    const dialog = page.getByRole("dialog");
+    await dialog.getByRole("button", { name: lt("tabNew") }).click();
+    await dialog.getByLabel(lt("namesLabel")).fill(USERS.learner.name);
+    await dialog.getByLabel(lt("gradeLabel")).selectOption("Primary 5");
+    await dialog.getByRole("button", { name: lt("create").replace("{count}", "1") }).click();
+    await expect(dialog.getByText(lt("maybeDuplicates"))).toBeVisible();
+    await dialog.getByRole("button", { name: lt("addExisting") }).click();
+    await expect(dialog.getByText(USERS.learner.name)).toBeVisible();
+    await dialog.getByRole("button", { name: lt("done") }).click();
+    const people = await api("GET", `/courses/${course.id}/people`, { as: "teacher" });
+    expect(people.filter((p) => p.fullName === USERS.learner.name)).toHaveLength(1);
+    expect(people.find((p) => p.fullName === USERS.learner.name).email).toBe(USERS.learner.email);
+  });
+
+  test("finds a learner by name and adds them; resets a learner's password", async ({ page, browser }) => {
+    const course = await seedCourse({ learners: [] });
+    await page.goto(`/course/${course.id}/people`);
+    await page.getByRole("button", { name: ct("people.addLearners") }).click();
+    const dialog = page.getByRole("dialog");
+    await dialog.getByLabel(lt("searchLabel")).fill(USERS.learner2.name.split(" ")[0]);
+    await dialog.getByRole("button", { name: lt("addNamed").replace("{name}", USERS.learner2.name) }).click();
+    await expect(dialog.getByText(lt("alreadyInCourse")).first()).toBeVisible();
+    await dialog.getByRole("button", { name: t("teacher.common.close") }).click();
+
+    // A learner made by the teacher, so the reset doesn't touch a shared test account.
+    const made = (await api("POST", `/courses/${course.id}/learners`, { as: "teacher", body: { names: [`Reset ${uid()}`], grade: "Primary 3" } })).created[0];
+    await page.reload();
+    page.once("dialog", (d) => d.accept());
+    await page.getByRole("button", { name: lt("resetNamed").replace("{name}", made.fullName) }).click();
+    const sheet = page.getByRole("table", { name: lt("sheetCaption") });
+    const temporary = (await sheet.getByRole("row").nth(1).getByRole("cell").nth(2).textContent()).trim();
+    expect(temporary).not.toBe(made.temporaryPassword);
+    const fresh = await browser.newContext();
+    const learner = await fresh.newPage();
+    await login(learner, made.learnerCode, temporary);
+    await learner.waitForURL("**/account");
+    await fresh.close();
   });
 
   test("a join code lets a learner join by themselves, until it's turned off", async ({ page, browser }) => {

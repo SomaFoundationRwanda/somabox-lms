@@ -20,26 +20,11 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useToast } from '@/context/ToastContext';
 import LanguageSwitcher from '@/components/global/LanguageSwitcher';
 import { fill } from '@/lib/fill';
+import { GRADE_LEVELS } from '@/lib/grades';
 
 // Nobody is asked where they live: one box serves one school, and the box places everyone at the
 // school's location (province, district, rural/urban), set by the admin on the School page.
 
-const GRADE_LEVELS = [
-    { value: "Primary 1", key: "p1" },
-    { value: "Primary 2", key: "p2" },
-    { value: "Primary 3", key: "p3" },
-    { value: "Primary 4", key: "p4" },
-    { value: "Primary 5", key: "p5" },
-    { value: "Primary 6", key: "p6" },
-    { value: "Senior 1", key: "s1" },
-    { value: "Senior 2", key: "s2" },
-    { value: "Senior 3", key: "s3" },
-    { value: "Senior 4", key: "s4" },
-    { value: "Senior 5", key: "s5" },
-    { value: "Senior 6", key: "s6" },
-    { value: "University / Higher Ed", key: "university" },
-    { value: "Self-Paced Learner", key: "selfPaced" }
-];
 
 // What each role is asked, step by step. Learners: who they are, then their class and language.
 // Teachers: only what's theirs to answer (the admin set their name and email), on one step.

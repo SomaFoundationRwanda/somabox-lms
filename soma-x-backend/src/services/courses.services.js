@@ -4,6 +4,7 @@ import express from "express";
 import courseRoutes from "./courses/course.routes.js";
 import navRoutes from "./courses/nav.routes.js";
 import peopleRoutes from "./courses/people.routes.js";
+import learnerRoutes from "./courses/learners.routes.js";
 import moduleRoutes from "./courses/modules.routes.js";
 import assessmentRoutes from "./courses/assessments.routes.js";
 import gradeRoutes from "./courses/grades.routes.js";
@@ -24,6 +25,7 @@ for (const domain of [
   courseRoutes,
   navRoutes,
   peopleRoutes,
+  learnerRoutes,
   moduleRoutes,
   assessmentRoutes,
   gradeRoutes,

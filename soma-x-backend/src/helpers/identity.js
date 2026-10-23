@@ -2,6 +2,12 @@
 // an email change must be carried into every one of them, or the person's history is orphaned.
 import { localDb } from './db-manager.js';
 
+// Learners created without an email (by their teacher) get an internal address from their
+// learner code, because people are still identified by email across the database. ".invalid"
+// can never be a real address (RFC 2606). It's never shown or sent anywhere.
+export const LEARNER_EMAIL_DOMAIN = 'learner.invalid';
+export const isInternalEmail = (email) => String(email || '').toLowerCase().endsWith(`@${LEARNER_EMAIL_DOMAIN}`);
+
 // Columns that hold a person's email without "email" in their name.
 const ACTOR_COLUMNS = ['changed_by', 'graded_by', 'granted_by', 'requested_by', 'created_by', 'decided_by', 'baseline_decided_by', 'added_by', 'updated_by'];
 

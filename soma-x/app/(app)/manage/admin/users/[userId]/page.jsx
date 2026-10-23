@@ -17,6 +17,7 @@ import { fill } from "@/lib/fill";
 import { LANGUAGE_NAMES } from "@/components/global/LanguageSwitcher";
 import { startRouteLoading } from "@/components/global/RouteLoader";
 import Loader from "@/components/ui/Loader";
+import { shownEmail } from "@/lib/session";
 
 function getInitials(name, email) {
     if (name?.trim()) return name.trim().split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
@@ -212,7 +213,7 @@ export default function UserProfilePage() {
                         description={
                             <span className="inline-flex items-center gap-1.5 break-all">
                                 <Mail className="w-3.5 h-3.5 text-teal-500 shrink-0" />
-                                {user.email}
+                                {shownEmail(user)}
                             </span>
                         }
                         meta={

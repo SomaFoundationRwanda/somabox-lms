@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { startRouteLoading } from "@/components/global/RouteLoader";
 import Loader from "@/components/ui/Loader";
+import { shownEmail } from "@/lib/session";
 
 function getInitials(name, email) {
     if (name?.trim()) return name.trim().split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
@@ -345,7 +346,7 @@ export default function Users() {
                             <p className={`text-[12px] font-bold truncate leading-tight group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors ${isInactive ? "line-through text-slate-500" : ""}`} style={{ color: isInactive ? textMuted : textPrimary }}>
                                 {user.full_name || <em>{t("admin.users.noName")}</em>}
                             </p>
-                            <p className="text-[11px] truncate mt-0.5" style={{ color: textSecondary }}>{user.email}</p>
+                            <p className="text-[11px] truncate mt-0.5" style={{ color: textSecondary }}>{shownEmail(user)}</p>
                             {user.learner_code && (
                                 <p className="text-[11px] font-mono font-bold truncate mt-0.5" style={{ color: textPrimary }}>
                                     <span className="sr-only">{t("school.learnerCode")}: </span>{user.learner_code}
@@ -739,7 +740,7 @@ export default function Users() {
                         </div>
 
                         <div className="bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 rounded-xl p-3.5 text-xs text-rose-800 dark:text-rose-200 leading-relaxed">
-                            <strong>{t("admin.users.warning")}</strong> {t("admin.users.warnBefore")} <strong>({deleteModalUser.email})</strong> {t("admin.users.warnAfter")}
+                            <strong>{t("admin.users.warning")}</strong> {t("admin.users.warnBefore")} <strong>({shownEmail(deleteModalUser)})</strong> {t("admin.users.warnAfter")}
                         </div>
 
                         <div className="space-y-1.5">
@@ -789,7 +790,7 @@ export default function Users() {
                         </div>
 
                         <p className="text-xs text-slate-500">
-                            {t("admin.users.settingFor")} <span className="font-bold text-slate-800 dark:text-white">{resetPassUser.email}</span>.
+                            {t("admin.users.settingFor")} <span className="font-bold text-slate-800 dark:text-white">{shownEmail(resetPassUser)}</span>.
                         </p>
 
                         <form onSubmit={handleResetPasswordSubmit} className="space-y-4">

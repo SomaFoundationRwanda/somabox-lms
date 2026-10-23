@@ -3,6 +3,7 @@
 // claimed by whoever signed up with that email first.
 import express from "express";
 import { localDb, serverDb } from "../../helpers/db-manager.js";
+import { isInternalEmail } from "../../helpers/identity.js";
 import {
   normalizeEmail,
   requireTeacher,
@@ -49,10 +50,18 @@ router.get("/:id/people", async (req, res) => {
     // Learners see who is in the class, but not everyone's email address.
     const staff = isTeacherRole(auth.enrollment.role) || auth.enrollment.adminView;
 
-    const rows = await localDb.prepare("SELECT * FROM enrollments WHERE course_id = ? ORDER BY role ASC, joined_at ASC").all(courseId);
+    const rows = await localDb.prepare(`
+      SELECT e.*, u.learner_code, u.role AS account_role FROM enrollments e
+      LEFT JOIN users u ON LOWER(u.email) = LOWER(e.user_email)
+      WHERE e.course_id = ? ORDER BY e.role ASC, e.joined_at ASC
+    `).all(courseId);
     const people = await Promise.all(rows.map(async (row) => ({
       id: row.id,
-      email: staff || String(row.user_email).toLowerCase() === auth.email.toLowerCase() ? row.user_email : null,
+      // Learners without an email have an internal address: never shown.
+      email: (staff || String(row.user_email).toLowerCase() === auth.email.toLowerCase()) && !isInternalEmail(row.user_email) ? row.user_email : null,
+      learnerCode: staff ? row.learner_code || null : null,
+      // Teachers may give a learner (a learner account) a new temporary password.
+      canResetPassword: staff && !auth.enrollment.adminView && row.role === "student" && row.account_role === "scholar",
       fullName: await userFullName(row.user_email),
       role: row.role,
       status: row.status,
@@ -72,14 +81,25 @@ router.post("/:id/people", async (req, res) => {
     const auth = await requireTeacher(req, res, courseId);
     if (!auth) return;
 
-    const email = normalizeEmail(req.body.email);
     const role = ["teacher", "ta", "student", "observer"].includes(req.body.role) ? req.body.role : "student";
-    if (!email) return res.status(400).json({ message: "email is required" });
-
-    const existingUser = await serverDb.prepare("SELECT * FROM users WHERE LOWER(email) = LOWER(?)").get(email);
-    if (!existingUser) {
-      return res.status(404).json({ message: "There's no account with this email. Ask the school's admin to create it first.", code: "NO_ACCOUNT" });
+    // Someone with an account, by email, learner code, or id (from the learner search).
+    let existingUser = null;
+    if (req.body.userId !== undefined) {
+      existingUser = await serverDb.prepare("SELECT * FROM users WHERE id = ?").get(Number(req.body.userId) || 0);
+    } else if (req.body.learnerCode) {
+      existingUser = await serverDb.prepare("SELECT * FROM users WHERE UPPER(learner_code) = UPPER(?)").get(String(req.body.learnerCode).trim());
+    } else {
+      const given = normalizeEmail(req.body.email);
+      if (!given) return res.status(400).json({ message: "email is required" });
+      existingUser = await serverDb.prepare("SELECT * FROM users WHERE LOWER(email) = LOWER(?)").get(given);
     }
+    if (!existingUser) {
+      const message = req.body.email !== undefined
+        ? "There's no account with this email. Ask the school's admin to create it first."
+        : "There's no learner with this code";
+      return res.status(404).json({ message, code: "NO_ACCOUNT" });
+    }
+    const email = normalizeEmail(existingUser.email);
     const current = await getEnrollment(courseId, email);
     const problem = await staffChangeProblem(auth, courseId, current, role, existingUser);
     if (problem) return res.status(problem.status).json({ message: problem.message });
