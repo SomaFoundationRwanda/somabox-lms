@@ -11,7 +11,7 @@ if [ ! -f "$CONFIG_FILE" ]; then
 fi
 
 # Extract values from ai/config.yaml using node inline. Write plain strings: console.log of a
-# number is colorized when FORCE_COLOR is set (e.g. under concurrently/npm run dev).
+# number is colorized when FORCE_COLOR is set (e.g. under concurrently/pnpm dev).
 HOST=$(node -e "const fs = require('fs'), yaml = require('$AI_DIR/gateway/node_modules/js-yaml'); const c = yaml.load(fs.readFileSync('$CONFIG_FILE')); process.stdout.write(String(c.runtime.host || '127.0.0.1'));" 2>/dev/null || echo "127.0.0.1")
 PORT=$(node -e "const fs = require('fs'), yaml = require('$AI_DIR/gateway/node_modules/js-yaml'); const c = yaml.load(fs.readFileSync('$CONFIG_FILE')); process.stdout.write(String(c.runtime.port || 8080));" 2>/dev/null || echo "8080")
 THREADS=$(node -e "const fs = require('fs'), yaml = require('$AI_DIR/gateway/node_modules/js-yaml'); const c = yaml.load(fs.readFileSync('$CONFIG_FILE')); process.stdout.write(String(c.runtime.threads || 6));" 2>/dev/null || echo "6")

@@ -1,0 +1,22 @@
+# One install for the whole repository: `pnpm install` at the root.
+packages:
+  - shared/*
+  - soma-x
+  - soma-x-backend
+  - ai/gateway
+
+# pnpm runs dependencies' install scripts only when listed here. These build or fetch the
+# native code the apps need.
+onlyBuiltDependencies:
+  - "@tailwindcss/oxide"
+  - bcrypt
+  - better-sqlite3
+  - sharp
+
+# Install scripts that only print messages or check versions; not needed.
+ignoredBuiltDependencies:
+  - "@firebase/util"
+  - core-js
+  - es5-ext
+  - protobufjs
+  - unrs-resolver

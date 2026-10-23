@@ -9,16 +9,16 @@ PostgreSQL database and syncs selected data to the cloud.
 
 ## Setup
 
-From the repository root (npm workspaces install both apps):
+From the repository root (one pnpm workspace installs both apps):
 
 ```bash
-npm install
+pnpm install
 cp soma-x-backend/.env.example soma-x-backend/.env   # then fill in the values
 createdb -h localhost -U postgres somabox_lms        # once; name must match PGDATABASE
-npm run setup:db                                     # creates/updates tables
+pnpm setup:db                                        # creates/updates tables
 ```
 
-On startup (and with `npm run setup`) the server applies the legacy baseline schema in
+On startup (and with `pnpm run setup`) the server applies the legacy baseline schema in
 `initSchemas()` (`src/helpers/db-manager.js`), then every pending migration in
 `src/db/migrations/`. **All schema changes go in a new migration file**
 (`NNNN_description.js` exporting `async up(client)`); never edit a shipped migration or add
@@ -105,14 +105,14 @@ the service user).
 ## Running
 
 ```bash
-npm run dev     # development (auto-restarts on changes)
-npm start       # production via pm2 (or `npm run pm2:start` from the repo root)
+pnpm run dev    # development (auto-restarts on changes)
+pnpm start      # production via pm2 (or `pnpm pm2:start` from the repo root)
 ```
 
 ## Tests
 
 ```bash
-npm test
+pnpm test
 ```
 
 Tests use Node's built-in test runner. Each run creates a throwaway PostgreSQL

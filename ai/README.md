@@ -31,7 +31,7 @@ Place the required GGUF model file in `ai/models/`.
 ### Step 2: Install Runtime & Gateway Dependencies
 ```bash
 ./ai/runtime/install_runtime.sh
-cd ai/gateway && npm install && cd ../..
+pnpm install        # at the repo root; the gateway is part of the pnpm workspace
 ```
 
 ### Step 3: Start Services
@@ -41,7 +41,7 @@ cd ai/gateway && npm install && cd ../..
    ```
 2. **Start Gateway Service** (HTTP Gateway on port 5000):
    ```bash
-   cd ai/gateway && npm start
+   pnpm ai:gateway
    ```
 
 ---
@@ -77,7 +77,7 @@ To swap to a different GGUF model:
   ```
 * **Gateway Unit Tests** (no model needed; uses a fake llama runtime):
   ```bash
-  cd ai/gateway && npm test
+  pnpm --filter ai-gateway test
   ```
 * **Export Teacher Feedback**:
   ```bash

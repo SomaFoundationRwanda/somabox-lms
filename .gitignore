@@ -27,7 +27,7 @@ Thumbs.db
 service-account.json
 *service-account*.json
 
-# Local backups (npm run backup)
+# Local backups (pnpm backup)
 soma-x-backend/backups/
 
 # e2e (Playwright)
@@ -35,3 +35,6 @@ soma-x-backend/backups/
 e2e/.auth/
 e2e/test-results/
 e2e/playwright-report/
+
+# pnpm only (see README): an npm lockfile here would be a mistake
+package-lock.json

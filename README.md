@@ -13,15 +13,19 @@ Offline-first learning platform that runs on a school box. This repository holds
 ## Local development
 
 ### Prerequisites
-- Node.js 22 (18+ works)
+- Node.js 22 (20+ works; `.nvmrc` says 22)
+- pnpm 10, through Corepack (comes with Node): run `corepack enable` once
 - PostgreSQL 14+ running on `localhost:5432`
 
 ### 1. Install dependencies
-From the repository root (npm workspaces install the frontend, backend and shared code together):
+From the repository root (one pnpm workspace: frontend, backend, AI gateway and shared code):
 
 ```bash
-npm install
+pnpm install
 ```
+
+Use pnpm only; there is no npm lockfile. `pnpm-lock.yaml` records every platform's native
+packages, so the same lockfile installs on Windows, macOS and Linux.
 
 ### 2. Create the env files
 ```bash
@@ -37,14 +41,14 @@ is set; see [soma-x-backend/README.md](soma-x-backend/README.md).
 ### 3. Create the database and tables
 ```bash
 createdb -h localhost -U postgres somabox_lms
-npm run setup:db
+pnpm setup:db
 ```
 
 `setup:db` creates the tables and runs every migration. The backend also does this on startup.
 
 ### 4. Run
 ```bash
-npm run dev:app      # backend + frontend
+pnpm dev:app      # backend + frontend
 ```
 
 - Frontend: http://localhost:3001
@@ -57,13 +61,12 @@ Only needed when working on the teacher AI features. Full details in [ai/README.
 ```bash
 ./ai/scripts/download_model.sh       # GGUF model into ai/models/ (several GB)
 ./ai/runtime/install_runtime.sh
-npm install --prefix ai/gateway
-npm run dev                          # backend + frontend + AI runtime + AI gateway
+pnpm dev                             # backend + frontend + AI runtime + AI gateway
 ```
 
 ## Tests
 ```bash
-npm test
+pnpm test           # every package's tests
 ```
 
 Backend tests create and drop a throwaway `somabox_test_*` database, so your PostgreSQL user
@@ -74,10 +77,10 @@ The `e2e/` suite drives the real app in Chromium (Playwright): signing in, every
 building and running a course as a teacher, and everything a learner and a visitor can do.
 
 ```bash
-npx playwright install chromium     # once
-npm run test:e2e                    # builds the frontend, then runs every spec (~4 min)
-E2E_SKIP_BUILD=1 npm run test:e2e   # reuse the last build when only the tests changed
-npm run test:e2e:ui                 # Playwright's UI mode, to watch or debug a test
+pnpm exec playwright install chromium   # once
+pnpm test:e2e                           # builds the frontend, then runs every spec (~4 min)
+E2E_SKIP_BUILD=1 pnpm test:e2e          # reuse the last build when only the tests changed
+pnpm test:e2e:ui                        # Playwright's UI mode, to watch or debug a test
 ```
 
 Each run starts a fresh `somabox_e2e` database (dropped and recreated), the backend on :3100

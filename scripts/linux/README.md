@@ -22,7 +22,7 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now somabox-device-info.service
 cat /etc/somabox/device.json          # check it
 ```
-Then restart the LMS backend (`npm run pm2:restart`). The admin **Sync** page shows "This box"
+Then restart the LMS backend (`pnpm pm2:restart`). The admin **Sync** page shows "This box"
 with the serial number and MAC addresses.
 
 ### Run it by hand

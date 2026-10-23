@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 import { APP_URL } from "./support/env.mjs";
 
-// Run with `npm run test:e2e` from the repository root. One worker: every spec shares one
+// Run with `pnpm test:e2e` from the repository root. One worker: every spec shares one
 // database (the school), and specs build their own courses so they don't trip over each other.
 export default defineConfig({
   testDir: "./specs",

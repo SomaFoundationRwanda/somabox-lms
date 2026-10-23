@@ -7,13 +7,13 @@ Full local setup (dependencies, database, env files) is in the [root README](../
 In short, from the repository root:
 
 ```bash
-npm install
+pnpm install
 cp soma-x/.env.example soma-x/.env    # NEXT_PUBLIC_SERVER_URL=http://localhost:3000
-npm run dev:app                       # backend on :3000, frontend on :3001
+pnpm dev:app                          # backend on :3000, frontend on :3001
 ```
 
 To run only the frontend (the backend must already be running):
 
 ```bash
-npm run dev --workspace=soma-x
+pnpm --filter soma-x run dev
 ```
