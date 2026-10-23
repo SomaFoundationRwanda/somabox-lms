@@ -222,7 +222,7 @@ export default {
         "ruralBadge": "Rural learner",
         "lessons": "Lessons",
         "classes": "Classes",
-        "defaultPassword": "This account is still using a default password. Set a new password to continue.",
+        "defaultPassword": "You were given a temporary password. Choose your own to continue.",
         "tabProfile": "Profile",
         "tabSecurity": "Security",
         "personalTitle": "Personal information",

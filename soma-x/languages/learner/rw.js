@@ -223,7 +223,7 @@ export default {
         "ruralBadge": "Umunyeshuri wo mu cyaro",
         "lessons": "Amasomo",
         "classes": "Amashuri",
-        "defaultPassword": "Iyi konti iracyakoresha ijambo ry'ibanga risanzwe. Shyiraho irishya kugira ngo ukomeze.",
+        "defaultPassword": "Wahawe ijambo ry'ibanga ry'agateganyo. Hitamo iryawe kugira ngo ukomeze.",
         "tabProfile": "Umwirondoro",
         "tabSecurity": "Umutekano",
         "personalTitle": "Amakuru yawe bwite",

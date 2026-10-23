@@ -1,9 +1,11 @@
 "use client"
-import { useContext, useMemo } from "react"
+import { useContext, useMemo, useState } from "react"
 import DataContext from "@/context/DataContext"
 import BrightnessSlider from "@/components/ui/BrightnessSlider"
 import { useLanguage } from "@/context/LanguageContext"
 import { LANGUAGE_NAMES } from "@/components/global/LanguageSwitcher"
+import ChangePasswordForm from "@/components/account/ChangePasswordForm"
+import { useToast } from "@/context/ToastContext"
 
 function Section({ title, children }) {
   return (
@@ -29,8 +31,25 @@ function Row({ label, description, children }) {
 }
 
 export default function TeacherSettingsPage() {
-  const { logout, user } = useContext(DataContext)
+  const { logout, user, SERVER_URL } = useContext(DataContext)
   const { t, lang, setLang } = useLanguage()
+  const { showToast } = useToast()
+  const [passwordStatus, setPasswordStatus] = useState({ type: "", message: "" })
+  const [signingOutOthers, setSigningOutOthers] = useState(false)
+  const mustChangePassword = !!user?.mustChangePassword
+
+  const signOutOthers = async () => {
+    setSigningOutOthers(true)
+    try {
+      const res = await fetch(`${SERVER_URL}/auth/logout-others`, { method: "POST" })
+      if (!res.ok) throw new Error()
+      showToast(t("teacher.settings.signedOutOthers"), "success")
+    } catch {
+      showToast(t("teacher.common.somethingWrong"), "error")
+    } finally {
+      setSigningOutOthers(false)
+    }
+  }
 
   const teacherEmail = user?.email || "";
 
@@ -43,6 +62,12 @@ export default function TeacherSettingsPage() {
     <div className="max-w-2xl">
       <h1 className="text-xl font-semibold text-slate-800 dark:text-white mb-6">{t("teacher.settings.title")}</h1>
 
+      {mustChangePassword && (
+        <p role="alert" className="mb-6 px-4 py-3 rounded-xl border text-sm font-medium bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-500/10 dark:border-amber-500/30 dark:text-amber-200">
+          {t("teacher.settings.mustChange")}
+        </p>
+      )}
+
       <Section title={t("teacher.settings.account")}>
         <Row label={t("teacher.settings.name")} description={t("teacher.settings.nameHelp")}>
           <span className="text-sm text-slate-500 dark:text-slate-400">{teacherName || "—"}</span>
@@ -53,6 +78,30 @@ export default function TeacherSettingsPage() {
         <Row label={t("teacher.settings.role")}>
           <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[var(--brand-secondary)]/10 text-[var(--brand-secondary)]">{t("teacher.settings.teacherRole")}</span>
         </Row>
+      </Section>
+
+      <Section title={t("teacher.settings.security")}>
+        <div className="px-5 py-4">
+          <p className="text-sm font-medium text-slate-700 dark:text-slate-200">{t("learner.account.changePassword")}</p>
+          <p className="text-xs text-slate-600 dark:text-slate-500 mt-0.5 mb-4">{t("teacher.settings.passwordHelp")}</p>
+          {passwordStatus.message && (
+            <p role="status" className={`mb-4 text-sm font-medium ${passwordStatus.type === "success" ? "text-emerald-700 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
+              {passwordStatus.message}
+            </p>
+          )}
+          <ChangePasswordForm onStatus={setPasswordStatus} accent="var(--brand-primary)" darkAware />
+        </div>
+        {!mustChangePassword && (
+          <Row label={t("teacher.settings.signOutOthers")} description={t("teacher.settings.signOutOthersHelp")}>
+            <button
+              onClick={signOutOthers}
+              disabled={signingOutOthers}
+              className="text-sm px-4 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
+            >
+              {t("teacher.settings.signOutOthersButton")}
+            </button>
+          </Row>
+        )}
       </Section>
 
       <Section title={t("teacher.settings.display")}>

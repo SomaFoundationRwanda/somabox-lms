@@ -41,6 +41,13 @@ export function clearSession() {
     }
 }
 
+// Where each person manages their own account (and changes a temporary password): teachers in
+// Teacher Settings, everyone else on the Account page.
+export function accountPage(role) {
+    return role === "teacher" ? "/teacher/settings" : "/account";
+}
+const ACCOUNT_PAGES = ["/account", "/teacher/settings"];
+
 let installed = false;
 // window.fetch before the wrapper, for requests that must not get the wrapper's bearer token or
 // its "401 ends the session" handling (media probes, media-session renewals).
@@ -92,8 +99,8 @@ export function installAuthFetch(serverUrl) {
             if (window.location.pathname !== "/") window.location.href = loginUrlWithNext();
         } else if (response.status === 403) {
             response.clone().json().then((body) => {
-                if (body?.code === "PASSWORD_CHANGE_REQUIRED" && window.location.pathname !== "/account") {
-                    window.location.href = "/account";
+                if (body?.code === "PASSWORD_CHANGE_REQUIRED" && !ACCOUNT_PAGES.includes(window.location.pathname)) {
+                    window.location.href = window.location.pathname.startsWith("/teacher") ? "/teacher/settings" : "/account";
                 }
             }).catch(() => {});
         }

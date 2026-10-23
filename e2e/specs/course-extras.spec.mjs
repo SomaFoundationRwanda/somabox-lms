@@ -2,7 +2,7 @@
 // the keyboard, practice and open-ended quizzes, late and closed work, assistant and observer
 // roles, joining from My courses, and the admin's view of one user.
 import { test, expect } from "@playwright/test";
-import { api, tokenFor, uid } from "../support/api.mjs";
+import { api, tokenFor, uid, createUser } from "../support/api.mjs";
 import { PASSWORD, USERS, authFile } from "../support/env.mjs";
 import { t } from "../support/i18n.mjs";
 import { mondayThisWeek, seedCourse } from "../support/seed.mjs";
@@ -203,8 +203,8 @@ test.describe("roles", () => {
     const c = await seedCourse({ learners: ["learner"] });
     const ta = `ta-${uid()}@e2e.test`;
     const observer = `observer-${uid()}@e2e.test`;
-    await api("POST", "/users", { as: "admin", body: { email: ta, password: PASSWORD, role: "teacher", fullName: "Tia Assistant" } });
-    await api("POST", "/users", { as: "admin", body: { email: observer, password: PASSWORD, role: "scholar", fullName: "Obi Observer" } });
+    await createUser({ email: ta, role: "teacher", fullName: "Tia Assistant" });
+    await createUser({ email: observer, role: "scholar", fullName: "Obi Observer" });
     await api("POST", `/courses/${c.id}/people`, { as: "teacher", body: { email: ta, role: "ta" } });
     await api("POST", `/courses/${c.id}/people`, { as: "teacher", body: { email: observer, role: "observer" } });
     const token = async (email) => (await (await fetch("http://localhost:3100/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password: PASSWORD }) })).json()).token;
@@ -230,7 +230,7 @@ test.describe("roles", () => {
   test("an observer can't hand in work", async () => {
     const c = await seedCourse({ learners: [] });
     const observer = `observer-${uid()}@e2e.test`;
-    await api("POST", "/users", { as: "admin", body: { email: observer, password: PASSWORD, role: "scholar", fullName: "Obi Observer" } });
+    await createUser({ email: observer, role: "scholar", fullName: "Obi Observer" });
     await api("POST", `/courses/${c.id}/people`, { as: "teacher", body: { email: observer, role: "observer" } });
     const obs = (await (await fetch("http://localhost:3100/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: observer, password: PASSWORD }) })).json()).token;
     const submit = await fetch(`http://localhost:3100/courses/${c.id}/assignments/${c.assignment.content_id}/submit`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${obs}` }, body: JSON.stringify({ body: "x" }) });

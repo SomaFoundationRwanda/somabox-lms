@@ -222,7 +222,7 @@ export default {
         "ruralBadge": "Élève en zone rurale",
         "lessons": "Leçons",
         "classes": "Classes",
-        "defaultPassword": "Ce compte utilise encore un mot de passe par défaut. Choisissez un nouveau mot de passe pour continuer.",
+        "defaultPassword": "On vous a donné un mot de passe temporaire. Choisissez le vôtre pour continuer.",
         "tabProfile": "Profil",
         "tabSecurity": "Sécurité",
         "personalTitle": "Informations personnelles",

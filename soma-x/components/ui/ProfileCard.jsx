@@ -17,6 +17,7 @@ import {
     DropdownMenuTrigger,
 } from "./dropdown-menu";
 import { startRouteLoading } from "@/components/global/RouteLoader";
+import { accountPage } from "@/lib/session";
 import Loader from "@/components/ui/Loader";
 
 const ProfileCard = () => {
@@ -111,7 +112,7 @@ const ProfileCard = () => {
                 </DropdownMenuItem>
                 
                 <DropdownMenuItem 
-                    onClick={() => { startRouteLoading(); router.push('/account'); }}
+                    onClick={() => { startRouteLoading(); router.push(accountPage(user?.role)); }}
                     className="cursor-pointer gap-2.5 rounded-[5px] px-2.5 py-2 transition-colors"
                     onMouseEnter={e => e.currentTarget.style.backgroundColor = itemHoverBg}
                     onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}

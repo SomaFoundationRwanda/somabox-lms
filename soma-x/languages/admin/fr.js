@@ -570,6 +570,8 @@ export default {
         "rural": "Situé en zone rurale / isolée (suivi de l'équité)",
         "newPassword": "Nouveau mot de passe",
         "password": "Mot de passe",
+        "tempPassword": "Mot de passe temporaire",
+        "tempPasswordHint": "La personne choisira son propre mot de passe à sa première connexion.",
         "keepCurrentParen": "(laisser vide pour garder l'actuel)",
         "keepCurrent": "Laisser vide pour garder l'actuel",
         "hidePassword": "Masquer le mot de passe",

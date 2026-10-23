@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import Link from "next/link";
 import { AuthDivider, AuthError, AuthField, AuthFormHeader, AuthLayout, AuthPasswordField, AuthSubmit } from "@/components/auth/AuthPage";
 import { useToast } from "@/context/ToastContext";
-import { renewMediaSession, safeNext, setSessionToken, takeNext } from "@/lib/session";
+import { accountPage, renewMediaSession, safeNext, setSessionToken, takeNext } from "@/lib/session";
 import { startRouteLoading } from "@/components/global/RouteLoader";
 
 const AuthComp = () => {
@@ -66,7 +66,7 @@ const AuthComp = () => {
             if (data.user?.must_change_password) {
                 showToast(t('shell.login.mustChangePassword'), 'info');
                 startRouteLoading();
-                setTimeout(() => { window.location.href = '/account'; }, 600);
+                setTimeout(() => { window.location.href = accountPage(userRole); }, 600);
                 return;
             }
 
@@ -75,7 +75,7 @@ const AuthComp = () => {
             startRouteLoading();
             setTimeout(() => {
                 if (safeNext(next)) window.location.href = safeNext(next);
-                else if (userRole === 'teacher') window.location.href = '/manage/teacher';
+                else if (userRole === 'teacher') window.location.href = '/teacher/dashboard';
                 else if (userRole === 'admin') window.location.href = '/manage/admin';
                 else window.location.href = '/manage/scholar-dashboard';
             }, 600);

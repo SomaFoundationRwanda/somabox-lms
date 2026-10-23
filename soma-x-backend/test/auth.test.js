@@ -18,6 +18,7 @@ const POLICY = {
   "GET /auth/me": "any",
   "GET /auth/verify-auth": "any",
   "POST /auth/logout": "any",
+  "POST /auth/logout-others": "any",
   "POST /auth/media-session": "any",
   "GET /analytics/branding": "public",
   "GET /ai/health": "any",
@@ -312,9 +313,11 @@ test("user records never include password hashes", async () => {
 
 test("role changes and deactivation apply to existing sessions immediately", async () => {
   const email = "promote.me@test.local";
-  const created = await ctx.api("POST", "/users", { token: ctx.tokens.admin, body: { email, password: PASSWORD, role: "scholar" } });
+  const created = await ctx.api("POST", "/users", { token: ctx.tokens.admin, body: { email, password: "temporary1", role: "scholar" } });
   assert.equal(created.status, 201);
   const user = await ctx.db.prepare("SELECT id FROM users WHERE email = ?").get(email);
+  const first = await ctx.login(email, "temporary1");
+  await ctx.api("PATCH", "/users/profile/password", { token: first, body: { currentPassword: "temporary1", newPassword: PASSWORD } });
   const token = await ctx.login(email);
 
   // Promotion revokes sessions so the user logs in again with the new role.
@@ -392,6 +395,30 @@ test("a shared-device session ends after 30 idle minutes; a normal one doesn't",
   assert.equal((await ctx.api("GET", "/auth/me", { token: normal })).status, 200);
   const row = await ctx.db.prepare("SELECT expires_at, created_at FROM sessions WHERE shared_device = 1 ORDER BY id DESC LIMIT 1").get();
   assert.ok(new Date(row.expires_at) - new Date(row.created_at) <= 12 * 60 * 60 * 1000 + 5000, "shared sessions last 12 hours at most");
+});
+
+test("an admin-created account must change its temporary password; its profile is the person's own", async () => {
+  const email = "new.teacher@test.local";
+  const created = await ctx.api("POST", "/users", {
+    token: ctx.tokens.admin,
+    body: { email, password: "temporary1", role: "teacher", fullName: "New Teacher", gender: "male", disabilityStatus: "visual" },
+  });
+  assert.equal(created.status, 201);
+  const login = await ctx.api("POST", "/auth/login", { body: { email, password: "temporary1" } });
+  assert.equal(login.body.user.must_change_password, true);
+  assert.equal((await ctx.api("GET", "/courses/mine", { token: login.body.token })).body.code, "PASSWORD_CHANGE_REQUIRED");
+  const profile = await ctx.api("GET", "/users/profile/view", { token: login.body.token });
+  assert.equal(profile.body.isProfileComplete, false, "the teacher answers their own profile");
+  assert.notEqual(profile.body.disability_status, "visual", "the admin can't answer for them");
+});
+
+test("signing out everywhere else keeps only this session", async () => {
+  const email = USERS.otherTeacher.email;
+  const here = await ctx.login(email);
+  const elsewhere = await ctx.login(email);
+  assert.equal((await ctx.api("POST", "/auth/logout-others", { token: here })).status, 200);
+  assert.equal((await ctx.api("GET", "/auth/me", { token: elsewhere })).status, 401);
+  assert.equal((await ctx.api("GET", "/auth/me", { token: here })).status, 200);
 });
 
 test("admins cannot lock themselves out", async () => {

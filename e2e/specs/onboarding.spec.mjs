@@ -1,7 +1,7 @@
 // First-visit experiences: the required profile form for new learners and teachers, and the
 // learner's welcome tour.
 import { test, expect } from "@playwright/test";
-import { api, uid } from "../support/api.mjs";
+import { api, createUser, uid } from "../support/api.mjs";
 import { PASSWORD, USERS } from "../support/env.mjs";
 import { t } from "../support/i18n.mjs";
 import { HOME, login, skipTour } from "../support/ui.mjs";
@@ -10,7 +10,7 @@ const p = (key) => t(`learner.profileSetup.${key}`);
 
 async function newUser(role) {
   const email = `fresh-${role}-${uid()}@e2e.test`;
-  await api("POST", "/users", { as: "admin", body: { email, password: PASSWORD, role, fullName: `Fresh ${role}` } });
+  await createUser({ email, role, fullName: `Fresh ${role}` });
   return email;
 }
 
@@ -43,17 +43,36 @@ test.describe("profile form", () => {
     await expect(page.getByRole("dialog").filter({ hasText: p("title") })).toBeHidden();
   });
 
-  test("a new teacher fills in the same form, without a class", async ({ page }) => {
-    const email = await newUser("teacher");
-    await login(page, email, PASSWORD);
-    await page.waitForURL(`**${HOME.teacher}`);
-    const dialog = page.getByRole("dialog").filter({ hasText: p("title") });
+  test("a new teacher changes the temporary password in Teacher Settings, then answers only their own questions", async ({ page }) => {
+    const email = `fresh-teacher-${uid()}@e2e.test`;
+    await api("POST", "/users", { as: "admin", body: { email, password: "temporary-pass", role: "teacher", fullName: "Fresh Teacher" } });
+    await login(page, email, "temporary-pass");
+    await page.waitForURL("**/teacher/settings");
+    await expect(page.getByText(t("teacher.settings.mustChange"))).toBeVisible();
+    // Other teacher pages send them back here until it's done.
+    await page.goto("/teacher/courses");
+    await page.waitForURL("**/teacher/settings");
+
+    await page.getByLabel(t("learner.account.currentPassword"), { exact: true }).fill("temporary-pass");
+    await page.getByLabel(t("learner.account.newPassword"), { exact: true }).fill(PASSWORD);
+    await page.getByLabel(t("learner.account.confirmPassword"), { exact: true }).fill(PASSWORD);
+    await page.getByRole("button", { name: t("learner.account.changePassword") }).click();
+    await expect(page.getByText(t("learner.account.pwUpdated"))).toBeVisible();
+
+    // The teacher's own profile form: no name, phone or class, one step.
+    const dialog = page.getByRole("dialog").filter({ hasText: t("teacher.profileSetup.title") });
     await expect(dialog).toBeVisible();
+    await expect(dialog.getByLabel(p("fullName"))).toHaveCount(0);
+    await expect(dialog.getByLabel(p("grade"))).toHaveCount(0);
+    await expect(dialog.getByRole("button", { name: p("finish") })).toBeDisabled();
     await dialog.getByRole("button", { name: p("male"), exact: true }).click();
     await dialog.getByLabel(p("accessibility")).selectOption("none");
-    await dialog.getByRole("button", { name: p("continue") }).click();
     await dialog.getByRole("button", { name: p("finish") }).click();
     await expect(dialog).toBeHidden({ timeout: 15_000 });
+
+    await page.goto(HOME.teacher);
+    await expect(page).toHaveURL(new RegExp(HOME.teacher));
+    expect((await api("GET", "/users/profile/view", { token: await loginToken(email) })).isProfileComplete).toBe(true);
   });
 
   test("admins are never asked", async ({ page }) => {

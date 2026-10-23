@@ -1,7 +1,7 @@
 // Admin user management: adding people, editing them, roles, passwords, deactivating,
 // deleting, bulk actions, search and filters, and a user's details page.
 import { test, expect } from "@playwright/test";
-import { api, uid } from "../support/api.mjs";
+import { api, uid, createUser } from "../support/api.mjs";
 import { PASSWORD, authFile } from "../support/env.mjs";
 import { t } from "../support/i18n.mjs";
 import { login } from "../support/ui.mjs";
@@ -13,7 +13,7 @@ const a = (key) => t(`admin.addUser.${key}`);
 
 async function makeUser(role = "scholar", name = `Pat ${uid()}`) {
   const email = `${name.toLowerCase().replace(/\W+/g, "-")}@e2e.test`;
-  await api("POST", "/users", { as: "admin", body: { email, password: PASSWORD, role, fullName: name } });
+  await createUser({ email, role, fullName: name });
   return { email, name };
 }
 
@@ -26,7 +26,7 @@ async function openUsers(page, search) {
 
 const row = (table, text) => table.getByRole("row").filter({ hasText: text });
 
-test("adds a learner, who gets a learner code and can sign in", async ({ page, browser }) => {
+test("adds a learner, who gets a learner code and must choose their own password", async ({ page, browser }) => {
   const name = `Ama ${uid()}`;
   const email = `${name.toLowerCase().replace(/\W+/g, "-")}@e2e.test`;
   await page.goto("/manage/admin");
@@ -49,7 +49,8 @@ test("adds a learner, who gets a learner code and can sign in", async ({ page, b
   const fresh = await browser.newContext();
   const p2 = await fresh.newPage();
   await login(p2, learnerCode, PASSWORD);
-  await p2.waitForURL("**/manage/scholar-dashboard");
+  await p2.waitForURL("**/account");
+  await expect(p2.getByText(t("learner.account.defaultPassword")).first()).toBeVisible();
   await fresh.close();
 });
 

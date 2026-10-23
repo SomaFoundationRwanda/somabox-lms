@@ -11,6 +11,14 @@ export default {
         "brightness": "Luminosité",
         "logout": "Déconnexion"
     },
+    "profileSetup": {
+        "badge": "Bienvenue",
+        "title": "Configurez votre profil d'enseignant",
+        "subtitle": "Deux questions rapides pour les rapports de l'école, et votre langue. Vous seul y répondez.",
+        "stepAbout": "À propos de vous",
+        "aboutTitle": "À propos de vous",
+        "aboutHelp": "Utilisé pour les rapports de l'école et pour adapter SOMABOX à vos besoins."
+    },
     "settings": {
         "title": "Paramètres",
         "account": "Compte",
@@ -28,7 +36,14 @@ export default {
         "accountActions": "Actions du compte",
         "signOut": "Se déconnecter",
         "signOutHelp": "Quitter votre compte",
-        "signOutButton": "Se déconnecter"
+        "signOutButton": "Se déconnecter",
+        "security": "Sécurité",
+        "mustChange": "Choisissez votre propre mot de passe avant de continuer : celui qu'on vous a donné est temporaire.",
+        "passwordHelp": "Au moins 6 caractères. Le changer vous déconnecte de vos autres appareils.",
+        "signOutOthers": "Se déconnecter des autres appareils",
+        "signOutOthersHelp": "Met fin à toutes les autres sessions, par exemple sur un ordinateur de l'école ou un téléphone utilisé.",
+        "signOutOthersButton": "Déconnecter les autres",
+        "signedOutOthers": "Déconnecté de tous les autres appareils"
     },
     "common": {
         "close": "Fermer",

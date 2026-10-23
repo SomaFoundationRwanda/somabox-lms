@@ -570,6 +570,8 @@ export default {
         "rural": "Located in Rural / Remote Region (M&E Equity Tracking)",
         "newPassword": "New Password",
         "password": "Password",
+        "tempPassword": "Temporary password",
+        "tempPasswordHint": "They'll choose their own password the first time they sign in.",
         "keepCurrentParen": "(leave blank to keep current)",
         "keepCurrent": "Leave blank to keep current",
         "hidePassword": "Hide password",

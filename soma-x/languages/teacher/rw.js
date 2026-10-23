@@ -11,6 +11,14 @@ export default {
         "brightness": "Urumuri",
         "logout": "Sohoka"
     },
+    "profileSetup": {
+        "badge": "Murakaza neza",
+        "title": "Tunganya umwirondoro wawe wa mwarimu",
+        "subtitle": "Ibibazo bibiri byihuse ishuri rikoresha muri raporo, n'ururimi rwawe. Ni wowe wenyine ubisubiza.",
+        "stepAbout": "Ibikwerekeye",
+        "aboutTitle": "Ibikwerekeye",
+        "aboutHelp": "Bikoreshwa muri raporo z'ishuri no gutuma SOMABOX ikubera nziza."
+    },
     "settings": {
         "title": "Igenamiterere",
         "account": "Konti",
@@ -28,7 +36,14 @@ export default {
         "accountActions": "Ibikorwa bya konti",
         "signOut": "Sohoka",
         "signOutHelp": "Sohoka muri konti yawe",
-        "signOutButton": "Sohoka"
+        "signOutButton": "Sohoka",
+        "security": "Umutekano",
+        "mustChange": "Hitamo ijambo ry'ibanga ryawe mbere yo gukomeza: iryo wahawe ni iry'agateganyo.",
+        "passwordHelp": "Nibura inyuguti 6. Kurihindura bigusohora ku bindi bikoresho byawe.",
+        "signOutOthers": "Sohoka ku bindi bikoresho",
+        "signOutOthersHelp": "Bihagarika ibindi byinjiriro byose, nko kuri mudasobwa y'ishuri cyangwa telefoni wakoresheje.",
+        "signOutOthersButton": "Sohora ibindi",
+        "signedOutOthers": "Wasohowe ku bindi bikoresho byose"
     },
     "common": {
         "close": "Funga",

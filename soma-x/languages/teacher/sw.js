@@ -11,6 +11,14 @@ export default {
         "brightness": "Mwangaza",
         "logout": "Toka"
     },
+    "profileSetup": {
+        "badge": "Karibu",
+        "title": "Weka wasifu wako wa mwalimu",
+        "subtitle": "Maswali mawili mafupi ambayo shule huripoti, na lugha yako. Wewe pekee ndiye unayeyajibu.",
+        "stepAbout": "Kuhusu wewe",
+        "aboutTitle": "Kuhusu wewe",
+        "aboutHelp": "Hutumika kwa ripoti za shule na kufanya SOMABOX ikufae."
+    },
     "settings": {
         "title": "Mipangilio",
         "account": "Akaunti",
@@ -28,7 +36,14 @@ export default {
         "accountActions": "Vitendo vya akaunti",
         "signOut": "Toka",
         "signOutHelp": "Ondoka kwenye akaunti yako",
-        "signOutButton": "Toka"
+        "signOutButton": "Toka",
+        "security": "Usalama",
+        "mustChange": "Chagua nenosiri lako mwenyewe kabla ya kuendelea: ulilopewa ni la muda.",
+        "passwordHelp": "Angalau herufi 6. Kulibadilisha kunakuondoa kwenye vifaa vyako vingine.",
+        "signOutOthers": "Ondoka kwenye vifaa vingine",
+        "signOutOthersHelp": "Humaliza vipindi vingine vyote, kwa mfano kwenye kompyuta ya shule au simu uliyotumia.",
+        "signOutOthersButton": "Ondoa vingine",
+        "signedOutOthers": "Umeondolewa kwenye vifaa vingine vyote"
     },
     "common": {
         "close": "Funga",

@@ -222,7 +222,7 @@ export default {
         "ruralBadge": "Mwanafunzi wa kijijini",
         "lessons": "Masomo",
         "classes": "Madarasa",
-        "defaultPassword": "Akaunti hii bado inatumia nenosiri la awali. Weka nenosiri jipya ili kuendelea.",
+        "defaultPassword": "Ulipewa nenosiri la muda. Chagua lako mwenyewe ili kuendelea.",
         "tabProfile": "Wasifu",
         "tabSecurity": "Usalama",
         "personalTitle": "Taarifa binafsi",

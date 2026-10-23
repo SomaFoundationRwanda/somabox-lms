@@ -570,6 +570,8 @@ export default {
         "rural": "Atuye mu cyaro / ahitaruye (ikurikirana ry'uburinganire)",
         "newPassword": "Ijambo ry'ibanga rishya",
         "password": "Ijambo ry'ibanga",
+        "tempPassword": "Ijambo ry'ibanga ry'agateganyo",
+        "tempPasswordHint": "Azahitamo ijambo ry'ibanga rye ubwa mbere yinjira.",
         "keepCurrentParen": "(bireke ubusa ugumane irisanzwe)",
         "keepCurrent": "Bireke ubusa ugumane irisanzwe",
         "hidePassword": "Hisha ijambo ry'ibanga",

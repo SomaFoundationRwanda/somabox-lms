@@ -11,6 +11,14 @@ export default {
         "brightness": "Brightness",
         "logout": "Logout"
     },
+    "profileSetup": {
+        "badge": "Welcome",
+        "title": "Set up your teacher profile",
+        "subtitle": "Two quick questions the school reports on, and your language. Only you answer them.",
+        "stepAbout": "About you",
+        "aboutTitle": "About you",
+        "aboutHelp": "Used for the school's reports and to make SOMABOX work for you."
+    },
     "settings": {
         "title": "Settings",
         "account": "Account",
@@ -28,7 +36,14 @@ export default {
         "accountActions": "Account Actions",
         "signOut": "Sign out",
         "signOutHelp": "Log out of your account",
-        "signOutButton": "Sign Out"
+        "signOutButton": "Sign Out",
+        "security": "Security",
+        "mustChange": "Choose your own password before you continue: the one you were given is temporary.",
+        "passwordHelp": "At least 6 characters. Changing it signs you out on your other devices.",
+        "signOutOthers": "Sign out on other devices",
+        "signOutOthersHelp": "Ends every other session, e.g. on a school computer or a phone you used.",
+        "signOutOthersButton": "Sign out others",
+        "signedOutOthers": "Signed out on all other devices"
     },
     "common": {
         "close": "Close",

@@ -1,7 +1,7 @@
 import express from 'express';
 import bcrypt from "bcrypt";
 import { serverDb } from '../helpers/db-manager.js';
-import { createSession, revokeSession } from '../helpers/auth.js';
+import { createSession, revokeSession, revokeUserSessions } from '../helpers/auth.js';
 import { setMediaCookie, clearMediaCookie } from '../helpers/media.js';
 import { assignLearnerCode, applySchoolToLearner } from './school.js';
 import { loginRetryAfter, recordLoginFailure, clearLoginFailures } from '../helpers/login-throttle.js';
@@ -157,6 +157,17 @@ router.post('/logout', async (req, res) => {
         return res.json({ message: 'Logged out' });
     } catch (error) {
         console.error('Logout error:', error);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
+// Signs this person out everywhere else (a phone left signed in at school, a shared tablet).
+router.post('/logout-others', async (req, res) => {
+    try {
+        await revokeUserSessions(req.user.id, req.sessionToken);
+        return res.json({ message: 'Signed out on all other devices' });
+    } catch (error) {
+        console.error('Logout-others error:', error);
         return res.status(500).json({ message: 'Internal server error' });
     }
 });

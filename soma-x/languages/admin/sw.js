@@ -570,6 +570,8 @@ export default {
         "rural": "Yuko eneo la vijijini / mbali (ufuatiliaji wa usawa)",
         "newPassword": "Nenosiri jipya",
         "password": "Nenosiri",
+        "tempPassword": "Nenosiri la muda",
+        "tempPasswordHint": "Atachagua nenosiri lake mwenyewe mara ya kwanza atakapoingia.",
         "keepCurrentParen": "(acha wazi kubaki na lililopo)",
         "keepCurrent": "Acha wazi kubaki na lililopo",
         "hidePassword": "Ficha nenosiri",

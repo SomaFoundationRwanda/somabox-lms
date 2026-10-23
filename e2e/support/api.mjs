@@ -35,6 +35,22 @@ export async function tokenFor(role) {
   return tokens[role];
 }
 
+// An account made as an admin makes it, then made ready to use: the admin's temporary password
+// is changed to `password`, as the person does at first sign-in (tested in onboarding.spec).
+export async function createUser({ password = PASSWORD, ...body }) {
+  const temporary = `${password}-temporary`;
+  const created = await api("POST", "/users", { as: "admin", body: { ...body, password: temporary } });
+  const res = await fetch(`${API_URL}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: body.email, password: temporary }),
+  });
+  const { token } = await res.json();
+  await api("PATCH", "/users/profile/password", { token, body: { currentPassword: temporary, newPassword: password } });
+  await api("POST", "/auth/logout", { token });
+  return created;
+}
+
 // A short unique suffix so names created by different tests never collide in the shared school.
 export const uid = () => Math.random().toString(36).slice(2, 7);
 

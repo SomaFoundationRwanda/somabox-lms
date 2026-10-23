@@ -292,9 +292,11 @@ router.get('/profile/view', async (req, res) => {
 });
 
 // Admin-created accounts. Self-registration goes through POST /auth/register (scholars only).
+// The admin gives a temporary password, which the person must change at first sign-in. Their
+// gender and accessibility needs are theirs to answer, in their own first-visit profile form.
 router.post('/', requireAdmin, async (req, res) => {
   try {
-    const { email, password, fullName, phone, schoolName, gradeLevel, preferredLanguage, gender, regionProvince, regionDistrict, isRural, disabilityStatus, accessibilityProfile } = req.body;
+    const { email, password, fullName, gradeLevel, preferredLanguage } = req.body;
     const normalizedEmail = String(email || '').trim().toLowerCase();
     const role = String(req.body.role || '').trim().toLowerCase();
 
@@ -314,31 +316,10 @@ router.post('/', requireAdmin, async (req, res) => {
     }
 
     const password_hash = await hashPassword(password);
-    const accessibility_profile = accessibilityProfile ? (typeof accessibilityProfile === 'object' ? JSON.stringify(accessibilityProfile) : String(accessibilityProfile)) : '{}';
-
-    const insert = serverDb.prepare(`
-      INSERT INTO users (
-        email, password_hash, role, full_name, phone, school_name, grade_level, preferred_language,
-        gender, region_province, region_district, is_rural, disability_status, accessibility_profile
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    await insert.run(
-      normalizedEmail,
-      password_hash,
-      role,
-      fullName || '',
-      phone || null,
-      schoolName || null,
-      gradeLevel || null,
-      preferredLanguage || null,
-      gender || 'prefer_not_to_say',
-      regionProvince || 'Not Specified',
-      regionDistrict || 'Not Specified',
-      isRural ? 1 : 0,
-      disabilityStatus || 'none',
-      accessibility_profile
-    );
+    await serverDb.prepare(`
+      INSERT INTO users (email, password_hash, role, full_name, grade_level, preferred_language, must_change_password)
+      VALUES (?, ?, ?, ?, ?, ?, 1)
+    `).run(normalizedEmail, password_hash, role, String(fullName || '').trim(), gradeLevel || null, preferredLanguage || null);
 
     // Learners get the school's details and a learner code straight away.
     let learnerCode = null;

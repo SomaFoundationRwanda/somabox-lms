@@ -38,9 +38,27 @@ const GRADE_LEVELS = [
     { value: "Senior 5", key: "s5" },
     { value: "Senior 6", key: "s6" },
     { value: "University / Higher Ed", key: "university" },
-    { value: "Teacher / Educator", key: "teacher" },
     { value: "Self-Paced Learner", key: "selfPaced" }
 ];
+
+// What each role is asked, step by step. Learners: who they are, then their class and language.
+// Teachers: only what's theirs to answer (the admin set their name and email), on one step.
+// The `fields` name the blocks rendered by FIELD below; `required` gate the step's button.
+const VARIANTS = {
+    scholar: {
+        text: "learner.profileSetup",
+        steps: [
+            { key: "personal", icon: User, title: "personalTitle", help: "personalHelp", label: "stepPersonal", fields: ["fullName", "phone", "gender", "disability"], required: ["fullName", "gender", "disability"] },
+            { key: "academic", icon: GraduationCap, title: "academicTitle", help: "academicHelp", label: "stepAcademic", fields: ["school", "grade", "language"], required: ["grade"] },
+        ],
+    },
+    teacher: {
+        text: "teacher.profileSetup",
+        steps: [
+            { key: "about", icon: User, title: "aboutTitle", help: "aboutHelp", label: "stepAbout", fields: ["gender", "disability", "language"], required: ["gender", "disability"] },
+        ],
+    },
+};
 
 export default function MandatoryProfileSetupModal() {
     const { authenticated, role, user, refreshUser } = useContext(DataContext);
@@ -90,7 +108,9 @@ export default function MandatoryProfileSetupModal() {
     const currentRole = role || 'scholar';
 
     useEffect(() => {
-        if (!authenticated || !userEmail) {
+        // A temporary password is changed first (the server allows nothing else until then).
+        if (!authenticated || !userEmail || user?.mustChangePassword) {
+            setIsOpen(false);
             setCheckingStatus(false);
             return;
         }
@@ -125,41 +145,39 @@ export default function MandatoryProfileSetupModal() {
         };
 
         checkProfileCompleteness();
-    }, [authenticated, userEmail, currentRole, SERVER_URL]);
+    }, [authenticated, userEmail, currentRole, SERVER_URL, user?.mustChangePassword]);
 
+    const variant = VARIANTS[currentRole] || VARIANTS.scholar;
+    // Text that differs per variant (title, step names); the field labels are shared.
+    const vt = (key) => t(`${variant.text}.${key}`);
+    const answers = { fullName: fullName.trim(), gender, disability: disabilityStatus, grade: gradeLevel };
+    const missing = (n) => variant.steps[n - 1].required.filter((field) => !answers[field]);
     // Live per-step validity — drives the disabled/aria-disabled state on
     // Continue directly, independent of whether the user has attempted to
     // submit yet, so the requirement is always accurately represented.
-    const isStep1Valid = fullName.trim() !== '' && !!gender && !!disabilityStatus;
-    const isStep2Valid = currentRole !== 'scholar' || !!gradeLevel;
+    const isStepValid = (n) => missing(n).length === 0;
 
-    const STEP_LABELS = { 1: t("learner.profileSetup.stepPersonal"), 2: t("learner.profileSetup.stepAcademic") };
-    const LAST_STEP = 2;
+    const STEP_LABELS = Object.fromEntries(variant.steps.map((st, i) => [i + 1, vt(st.label)]));
+    const LAST_STEP = variant.steps.length;
+    const current = variant.steps[step - 1];
     // "GS Kigali · Gasabo, Kigali City" (the place only when the school has set it).
     const schoolPlace = [school?.district, school?.province].filter(Boolean).join(", ");
 
-    // Handle step 1 validation
-    const validateStep1 = () => {
-        const errs = {};
-        if (!fullName.trim()) errs.fullName = t("learner.profileSetup.errName");
-        if (!gender) errs.gender = t("learner.profileSetup.errGender");
-        if (!disabilityStatus) errs.disability = t("school.onboarding.errDisability");
-        setErrors(errs);
-        return Object.keys(errs).length === 0;
+    const ERROR_TEXT = {
+        fullName: () => t("learner.profileSetup.errName"),
+        gender: () => t("learner.profileSetup.errGender"),
+        disability: () => t("school.onboarding.errDisability"),
+        grade: () => t("learner.profileSetup.errGrade"),
     };
-
-    // Handle step 2 validation
-    const validateStep2 = () => {
-        const errs = {};
-        if (currentRole === 'scholar' && !gradeLevel) {
-            errs.gradeLevel = t("learner.profileSetup.errGrade");
-        }
+    const ERROR_KEY = { fullName: "fullName", gender: "gender", disability: "disability", grade: "gradeLevel" };
+    const validateStep = (n) => {
+        const errs = Object.fromEntries(missing(n).map((field) => [ERROR_KEY[field], ERROR_TEXT[field]()]));
         setErrors(errs);
         return Object.keys(errs).length === 0;
     };
 
     const handleNext = () => {
-        const valid = step === 1 ? validateStep1() : true;
+        const valid = validateStep(step);
         if (!valid) {
             // Continue is only reachable here via keyboard activation racing the
             // disabled state, or a stale click — announce why it didn't move so
@@ -191,9 +209,11 @@ export default function MandatoryProfileSetupModal() {
         }
     }, [step, isOpen, isCompletedSuccess]);
 
+    const asked = new Set(variant.steps.flatMap((st) => st.fields));
+
     const handleFinalSubmit = async (e) => {
         e.preventDefault();
-        if (!validateStep2()) return;
+        if (!validateStep(LAST_STEP)) return;
 
         setLoading(true);
         setErrors({});
@@ -203,11 +223,11 @@ export default function MandatoryProfileSetupModal() {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    fullName: fullName.trim(),
-                    phone: phone.trim(),
+                    ...(asked.has("fullName") ? { fullName: fullName.trim() } : {}),
+                    ...(asked.has("phone") ? { phone: phone.trim() } : {}),
+                    ...(asked.has("grade") ? { gradeLevel } : {}),
                     gender,
                     disabilityStatus,
-                    gradeLevel,
                     preferredLanguage,
                     completeProfile: true
                 })
@@ -239,6 +259,197 @@ export default function MandatoryProfileSetupModal() {
         }
     };
 
+    // The blocks a step can show (see VARIANTS).
+    const FIELD = {
+        fullName: () => (
+            <>
+            {/* Full Name */}
+            <div>
+                <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1.5">
+                    {t("learner.profileSetup.fullName")} <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                    <input aria-label={t("learner.profileSetup.fullName")}
+                        type="text"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        placeholder={t("learner.profileSetup.namePlaceholder")}
+                        className={`w-full h-11 px-3.5 rounded-xl border ${
+                            errors.fullName
+                                ? "border-rose-500 bg-rose-50/30 dark:bg-rose-950/20"
+                                : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/60"
+                        } text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all`}
+                    />
+                </div>
+                {errors.fullName && (
+                    <p className="text-[11px] font-bold text-rose-500 mt-1">{errors.fullName}</p>
+                )}
+            </div>
+            </>
+        ),
+        phone: () => (
+            <>
+            {/* Phone Number */}
+            <div>
+                <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1.5">
+                    {t("learner.profileSetup.phone")} <span className="text-slate-600 normal-case font-medium">{t("learner.profileSetup.optional")}</span>
+                </label>
+                <div className="relative">
+                    <input aria-label={`${t("learner.profileSetup.phone")} ${t("learner.profileSetup.optional")}`}
+                        type="tel"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        placeholder="+250 788 123 456"
+                        className="w-full h-11 px-3.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/60 text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all"
+                    />
+                </div>
+            </div>
+            </>
+        ),
+        gender: () => (
+            <>
+            {/* Gender Identity */}
+            <div>
+                <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1.5">
+                    {t("learner.profileSetup.gender")} <span className="text-rose-500">*</span>
+                </label>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-2.5">
+                    {t("learner.profileSetup.genderHelp")}
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                    {[
+                        { value: "male", label: t("learner.profileSetup.male") },
+                        { value: "female", label: t("learner.profileSetup.female") },
+                        { value: "other", label: t("learner.profileSetup.otherGender") }
+                    ].map((opt) => (
+                        <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => setGender(opt.value)}
+                            className={`py-3 px-3 rounded-xl border text-xs font-extrabold transition-all flex items-center justify-center gap-2 ${
+                                gender === opt.value
+                                    ? "border-teal-600 bg-teal-50 dark:bg-teal-950/50 text-teal-800 dark:text-teal-200 shadow-sm ring-2 ring-teal-500/20"
+                                    : "border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/40 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                            }`}
+                        >
+                            {gender === opt.value && <CheckCircle2 className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />}
+                            {opt.label}
+                        </button>
+                    ))}
+                </div>
+                {errors.gender && (
+                    <p className="text-[11px] font-bold text-rose-500 mt-1.5">{errors.gender}</p>
+                )}
+            </div>
+            </>
+        ),
+        disability: () => (
+            <>
+            {/* Inclusion & Disability Support */}
+            <div>
+                <label htmlFor="onboarding-disability" className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1.5">
+                    {t("learner.profileSetup.accessibility")} <span className="text-rose-500">*</span>
+                </label>
+                <select id="onboarding-disability"
+                    aria-invalid={!!errors.disability}
+                    value={disabilityStatus}
+                    onChange={(e) => setDisabilityStatus(e.target.value)}
+                    className="w-full h-11 px-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/60 text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all"
+                >
+                    <option value="" disabled>{t("learner.profileSetup.chooseOne")}</option>
+                    <option value="none">{t("learner.profileSetup.disNone")}</option>
+                    <option value="visual">{t("learner.profileSetup.disVisual")}</option>
+                    <option value="hearing">{t("learner.profileSetup.disHearing")}</option>
+                    <option value="mobility">{t("learner.profileSetup.disMobility")}</option>
+                    <option value="cognitive">{t("learner.profileSetup.disCognitive")}</option>
+                    <option value="other">{t("learner.profileSetup.disOther")}</option>
+                </select>
+                {errors.disability && (
+                    <p className="text-[11px] font-bold text-rose-500 mt-1">{errors.disability}</p>
+                )}
+            </div>
+            </>
+        ),
+        school: () => (
+            <>
+            {/* School and its place: set by the school, shown read-only (nobody is asked). */}
+            {school?.name && (
+                <div className="flex items-start gap-2 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80 text-sm">
+                    <Building2 className="w-4 h-4 mt-0.5 text-teal-600 dark:text-teal-400 shrink-0" aria-hidden="true" />
+                    <div className="min-w-0">
+                        <p className="font-semibold text-slate-700 dark:text-slate-200">
+                            {t("school.onboarding.schoolLabel")}{" "}
+                            <span className="font-extrabold text-slate-900 dark:text-white">{school.name}</span>
+                            {schoolPlace ? <span className="text-slate-700 dark:text-slate-200"> · {schoolPlace}</span> : null}
+                        </p>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{t("school.onboarding.setBySchool")}</p>
+                    </div>
+                </div>
+            )}
+            </>
+        ),
+        grade: () => (
+            <>
+            {/* Grade / Study Level */}
+            <div>
+                <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1.5">
+                    {t("learner.profileSetup.grade")} {currentRole === 'scholar' && <span className="text-rose-500">*</span>}
+                </label>
+                <select aria-label={t("learner.profileSetup.grade")}
+                    value={gradeLevel}
+                    onChange={(e) => setGradeLevel(e.target.value)}
+                    className={`w-full h-11 px-3 rounded-xl border ${
+                        errors.gradeLevel
+                            ? "border-rose-500 bg-rose-50/30 dark:bg-rose-950/20"
+                            : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/60"
+                    } text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all`}
+                >
+                    <option value="">{t("learner.profileSetup.selectLevel")}</option>
+                    {GRADE_LEVELS.map((g) => (
+                        <option key={g.value} value={g.value}>{t(`learner.profileSetup.grades.${g.key}`)}</option>
+                    ))}
+                </select>
+                {errors.gradeLevel && (
+                    <p className="text-[11px] font-bold text-rose-500 mt-1">{errors.gradeLevel}</p>
+                )}
+            </div>
+            </>
+        ),
+        language: () => (
+            <>
+            {/* Preferred Interface Language */}
+            <div>
+                <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1.5">
+                    {t("learner.profileSetup.preferredLanguage")}
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {[
+                        { code: "en", name: "English" },
+                        { code: "rw", name: "Ikinyarwanda" },
+                        { code: "fr", name: "Français" },
+                        { code: "sw", name: "Kiswahili" },
+                        { code: "es", name: "Español" }
+                    ].map((l) => (
+                        <button
+                            key={l.code}
+                            type="button"
+                            onClick={() => setPreferredLanguage(l.code)}
+                            className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                                preferredLanguage === l.code
+                                    ? "border-teal-600 bg-teal-50 dark:bg-teal-950/50 text-teal-800 dark:text-teal-200 ring-2 ring-teal-500/20"
+                                    : "border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/40 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                            }`}
+                        >
+                            <Globe className="w-3.5 h-3.5 opacity-70" />
+                            {l.name}
+                        </button>
+                    ))}
+                </div>
+            </div>
+            </>
+        ),
+    };
+
     if (!isOpen || checkingStatus) return null;
 
     return (
@@ -260,13 +471,13 @@ export default function MandatoryProfileSetupModal() {
                         <div className="space-y-1.5">
                             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-teal-200 text-xs font-bold tracking-wide uppercase">
                                 <Sparkles className="w-3.5 h-3.5 text-teal-300" />
-                                {t("learner.profileSetup.badge")}
+                                {vt("badge")}
                             </div>
                             <h2 id="onboarding-modal-title" className="text-xl sm:text-2xl font-black tracking-tight text-white">
-                                {t("learner.profileSetup.title")}
+                                {vt("title")}
                             </h2>
                             <p className="text-white/80 text-xs sm:text-sm font-medium">
-                                {t("learner.profileSetup.subtitle")}
+                                {vt("subtitle")}
                             </p>
                         </div>
                         <div className="flex flex-col items-end gap-2 shrink-0">
@@ -277,13 +488,10 @@ export default function MandatoryProfileSetupModal() {
                         </div>
                     </div>
 
-                    {/* Step Progress Tracker */}
+                    {/* Step Progress Tracker (only when there's more than one step) */}
+                    {LAST_STEP > 1 && (
                     <div className="mt-6 pt-4 border-t border-white/15 flex items-center justify-between gap-2">
-                        {[
-                            { num: 1, label: STEP_LABELS[1], icon: User },
-                            { num: 2, label: STEP_LABELS[2], icon: GraduationCap }
-                        ].map((item, idx) => {
-                            const IconComponent = item.icon;
+                        {variant.steps.map((st, i) => ({ num: i + 1, label: STEP_LABELS[i + 1] })).map((item, idx) => {
                             const isActive = step === item.num;
                             const isDone = step > item.num || isCompletedSuccess;
 
@@ -313,6 +521,7 @@ export default function MandatoryProfileSetupModal() {
                             );
                         })}
                     </div>
+                    )}
                 </div>
 
                 {/* Form Body Content */}
@@ -337,201 +546,18 @@ export default function MandatoryProfileSetupModal() {
                         </div>
                     ) : (
                         <div>
-                            {/* STEP 1: Personal Details */}
-                            {step === 1 && (
-                                <div className="space-y-5 animate-in fade-in-50 duration-200">
-                                    <div className="border-b border-slate-200 dark:border-slate-800 pb-3">
-                                        <h3 ref={stepHeadingRef} tabIndex={-1} className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]">
-                                            <User className="w-4 h-4 text-teal-600 dark:text-teal-400" />
-                                            {t("learner.profileSetup.personalTitle")}
-                                        </h3>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                                            {t("learner.profileSetup.personalHelp")}
-                                        </p>
-                                    </div>
-
-                                    {/* Full Name */}
-                                    <div>
-                                        <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1.5">
-                                            {t("learner.profileSetup.fullName")} <span className="text-rose-500">*</span>
-                                        </label>
-                                        <div className="relative">
-                                            <input aria-label={t("learner.profileSetup.fullName")}
-                                                type="text"
-                                                value={fullName}
-                                                onChange={(e) => setFullName(e.target.value)}
-                                                placeholder={t("learner.profileSetup.namePlaceholder")}
-                                                className={`w-full h-11 px-3.5 rounded-xl border ${
-                                                    errors.fullName
-                                                        ? "border-rose-500 bg-rose-50/30 dark:bg-rose-950/20"
-                                                        : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/60"
-                                                } text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all`}
-                                            />
-                                        </div>
-                                        {errors.fullName && (
-                                            <p className="text-[11px] font-bold text-rose-500 mt-1">{errors.fullName}</p>
-                                        )}
-                                    </div>
-
-                                    {/* Phone Number */}
-                                    <div>
-                                        <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1.5">
-                                            {t("learner.profileSetup.phone")} <span className="text-slate-600 normal-case font-medium">{t("learner.profileSetup.optional")}</span>
-                                        </label>
-                                        <div className="relative">
-                                            <input aria-label={`${t("learner.profileSetup.phone")} ${t("learner.profileSetup.optional")}`}
-                                                type="tel"
-                                                value={phone}
-                                                onChange={(e) => setPhone(e.target.value)}
-                                                placeholder="+250 788 123 456"
-                                                className="w-full h-11 px-3.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/60 text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    {/* Gender Identity */}
-                                    <div>
-                                        <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1.5">
-                                            {t("learner.profileSetup.gender")} <span className="text-rose-500">*</span>
-                                        </label>
-                                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-2.5">
-                                            {t("learner.profileSetup.genderHelp")}
-                                        </p>
-                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                                            {[
-                                                { value: "male", label: t("learner.profileSetup.male") },
-                                                { value: "female", label: t("learner.profileSetup.female") },
-                                                { value: "other", label: t("learner.profileSetup.otherGender") }
-                                            ].map((opt) => (
-                                                <button
-                                                    key={opt.value}
-                                                    type="button"
-                                                    onClick={() => setGender(opt.value)}
-                                                    className={`py-3 px-3 rounded-xl border text-xs font-extrabold transition-all flex items-center justify-center gap-2 ${
-                                                        gender === opt.value
-                                                            ? "border-teal-600 bg-teal-50 dark:bg-teal-950/50 text-teal-800 dark:text-teal-200 shadow-sm ring-2 ring-teal-500/20"
-                                                            : "border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/40 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-                                                    }`}
-                                                >
-                                                    {gender === opt.value && <CheckCircle2 className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />}
-                                                    {opt.label}
-                                                </button>
-                                            ))}
-                                        </div>
-                                        {errors.gender && (
-                                            <p className="text-[11px] font-bold text-rose-500 mt-1.5">{errors.gender}</p>
-                                        )}
-                                    </div>
-
-                                    {/* Inclusion & Disability Support */}
-                                    <div>
-                                        <label htmlFor="onboarding-disability" className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1.5">
-                                            {t("learner.profileSetup.accessibility")} <span className="text-rose-500">*</span>
-                                        </label>
-                                        <select id="onboarding-disability"
-                                            aria-invalid={!!errors.disability}
-                                            value={disabilityStatus}
-                                            onChange={(e) => setDisabilityStatus(e.target.value)}
-                                            className="w-full h-11 px-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/60 text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all"
-                                        >
-                                            <option value="" disabled>{t("learner.profileSetup.chooseOne")}</option>
-                                            <option value="none">{t("learner.profileSetup.disNone")}</option>
-                                            <option value="visual">{t("learner.profileSetup.disVisual")}</option>
-                                            <option value="hearing">{t("learner.profileSetup.disHearing")}</option>
-                                            <option value="mobility">{t("learner.profileSetup.disMobility")}</option>
-                                            <option value="cognitive">{t("learner.profileSetup.disCognitive")}</option>
-                                            <option value="other">{t("learner.profileSetup.disOther")}</option>
-                                        </select>
-                                        {errors.disability && (
-                                            <p className="text-[11px] font-bold text-rose-500 mt-1">{errors.disability}</p>
-                                        )}
-                                    </div>
+                            <div className="space-y-5 animate-in fade-in-50 duration-200">
+                                <div className="border-b border-slate-200 dark:border-slate-800 pb-3">
+                                    <h3 ref={stepHeadingRef} tabIndex={-1} className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]">
+                                        <current.icon className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                                        {vt(current.title)}
+                                    </h3>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                        {vt(current.help)}
+                                    </p>
                                 </div>
-                            )}
-
-                            {/* STEP 2: Academic & Learning Profile */}
-                            {step === 2 && (
-                                <div className="space-y-5 animate-in fade-in-50 duration-200">
-                                    <div className="border-b border-slate-200 dark:border-slate-800 pb-3">
-                                        <h3 ref={stepHeadingRef} tabIndex={-1} className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]">
-                                            <GraduationCap className="w-4 h-4 text-teal-600 dark:text-teal-400" />
-                                            {t("learner.profileSetup.academicTitle")}
-                                        </h3>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                                            {t("learner.profileSetup.academicHelp")}
-                                        </p>
-                                    </div>
-
-                                    {/* School and its place: set by the school, shown read-only (nobody is asked). */}
-                                    {school?.name && (
-                                        <div className="flex items-start gap-2 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80 text-sm">
-                                            <Building2 className="w-4 h-4 mt-0.5 text-teal-600 dark:text-teal-400 shrink-0" aria-hidden="true" />
-                                            <div className="min-w-0">
-                                                <p className="font-semibold text-slate-700 dark:text-slate-200">
-                                                    {t("school.onboarding.schoolLabel")}{" "}
-                                                    <span className="font-extrabold text-slate-900 dark:text-white">{school.name}</span>
-                                                    {schoolPlace ? <span className="text-slate-700 dark:text-slate-200"> · {schoolPlace}</span> : null}
-                                                </p>
-                                                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{t("school.onboarding.setBySchool")}</p>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Grade / Study Level */}
-                                    <div>
-                                        <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1.5">
-                                            {t("learner.profileSetup.grade")} {currentRole === 'scholar' && <span className="text-rose-500">*</span>}
-                                        </label>
-                                        <select aria-label={t("learner.profileSetup.grade")}
-                                            value={gradeLevel}
-                                            onChange={(e) => setGradeLevel(e.target.value)}
-                                            className={`w-full h-11 px-3 rounded-xl border ${
-                                                errors.gradeLevel
-                                                    ? "border-rose-500 bg-rose-50/30 dark:bg-rose-950/20"
-                                                    : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/60"
-                                            } text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all`}
-                                        >
-                                            <option value="">{t("learner.profileSetup.selectLevel")}</option>
-                                            {GRADE_LEVELS.map((g) => (
-                                                <option key={g.value} value={g.value}>{t(`learner.profileSetup.grades.${g.key}`)}</option>
-                                            ))}
-                                        </select>
-                                        {errors.gradeLevel && (
-                                            <p className="text-[11px] font-bold text-rose-500 mt-1">{errors.gradeLevel}</p>
-                                        )}
-                                    </div>
-
-                                    {/* Preferred Interface Language */}
-                                    <div>
-                                        <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1.5">
-                                            {t("learner.profileSetup.preferredLanguage")}
-                                        </label>
-                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                            {[
-                                                { code: "en", name: "English" },
-                                                { code: "rw", name: "Ikinyarwanda" },
-                                                { code: "fr", name: "Français" },
-                                                { code: "sw", name: "Kiswahili" },
-                                                { code: "es", name: "Español" }
-                                            ].map((l) => (
-                                                <button
-                                                    key={l.code}
-                                                    type="button"
-                                                    onClick={() => setPreferredLanguage(l.code)}
-                                                    className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                                                        preferredLanguage === l.code
-                                                            ? "border-teal-600 bg-teal-50 dark:bg-teal-950/50 text-teal-800 dark:text-teal-200 ring-2 ring-teal-500/20"
-                                                            : "border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/40 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-                                                    }`}
-                                                >
-                                                    <Globe className="w-3.5 h-3.5 opacity-70" />
-                                                    {l.name}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
+                                {current.fields.map((field) => <React.Fragment key={field}>{FIELD[field]()}</React.Fragment>)}
+                            </div>
                         </div>
                     )}
                 </div>
@@ -562,8 +588,8 @@ export default function MandatoryProfileSetupModal() {
                                 <button
                                     type="button"
                                     onClick={handleNext}
-                                    disabled={!isStep1Valid}
-                                    aria-disabled={!isStep1Valid}
+                                    disabled={!isStepValid(step)}
+                                    aria-disabled={!isStepValid(step)}
                                     className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-accent-dark hover:bg-teal-800 text-white text-xs font-black shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-accent-dark"
                                 >
                                     {t("learner.profileSetup.continue")}
@@ -573,8 +599,8 @@ export default function MandatoryProfileSetupModal() {
                                 <button
                                     type="button"
                                     onClick={handleFinalSubmit}
-                                    disabled={loading || !isStep2Valid}
-                                    aria-disabled={loading || !isStep2Valid}
+                                    disabled={loading || !isStepValid(LAST_STEP)}
+                                    aria-disabled={loading || !isStepValid(LAST_STEP)}
                                     className="inline-flex items-center gap-2 px-7 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-teal-800 hover:from-teal-500 hover:to-teal-700 text-white text-xs font-black shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {loading ? (

@@ -7,7 +7,7 @@ import { GuestBanner, GuestHeader, GuestNav } from "@/components/guest/GuestShel
 import DataContext from "@/context/DataContext";
 import { useToast } from "@/context/ToastContext";
 import { useLanguage } from "@/context/LanguageContext";
-import { loginUrlWithNext } from "@/lib/session";
+import { accountPage, loginUrlWithNext } from "@/lib/session";
 import { startSubmissionQueue } from "@/lib/submissionQueue";
 import { useContext, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
@@ -47,13 +47,15 @@ export default function AppLayout({ children }) {
     }
   }, [guest, explore, router]);
 
-  // Accounts flagged by the server (e.g. the default admin) must change their password
-  // first. The backend enforces this too; this just avoids a screen full of errors.
+  // Accounts with a temporary password (made or reset by an admin) must change it first. The
+  // backend enforces this too; this just avoids a screen full of errors. Teachers manage their
+  // account in Teacher Settings, so they're sent there from /account too.
   useEffect(() => {
     if (authLoading || !authenticated) return;
-    if (user?.mustChangePassword && pathname !== "/account") {
+    const target = accountPage(user?.role);
+    if ((user?.mustChangePassword || pathname === "/account") && pathname !== target) {
       startRouteLoading();
-      router.replace("/account");
+      router.replace(target);
     }
   }, [authLoading, authenticated, user, pathname, router]);
 

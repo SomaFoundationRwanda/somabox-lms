@@ -1,7 +1,7 @@
 // A teacher looks after an existing course: outcomes, weeks and items, settings (dates,
 // timeline shift, visibility, navigation), and people (adding, removing, join codes).
 import { test, expect } from "@playwright/test";
-import { api, uid } from "../support/api.mjs";
+import { api, uid, createUser } from "../support/api.mjs";
 import { USERS, authFile } from "../support/env.mjs";
 import { t } from "../support/i18n.mjs";
 import { mondayThisWeek, seedCourse } from "../support/seed.mjs";
@@ -178,7 +178,7 @@ test.describe("people", () => {
     page.once("dialog", (d) => d.accept());
     await panel.getByRole("button", { name: ct("people.join.turnOff") }).click();
     const email = `late-${uid()}@e2e.test`;
-    await api("POST", "/users", { as: "admin", body: { email, password: "e2e-password", role: "scholar", fullName: "Late Learner" } });
+    await createUser({ email, role: "scholar", fullName: "Late Learner" });
     const res = await fetch("http://localhost:3100/courses/join-by-code", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${(await (await fetch("http://localhost:3100/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password: "e2e-password" }) })).json()).token}` },

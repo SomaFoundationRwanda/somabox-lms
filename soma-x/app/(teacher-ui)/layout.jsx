@@ -40,11 +40,12 @@ export default function TeacherUILayout({ children }) {
   // Teacher pages need a teacher or admin session (the API enforces this too).
   useEffect(() => {
     if (authLoading) return
-    if (!allowed || user?.mustChangePassword) startRouteLoading()
+    const changingPassword = user?.mustChangePassword && pathname !== "/teacher/settings"
+    if (!allowed || changingPassword) startRouteLoading()
     if (!authenticated) router.replace("/")
-    else if (user?.mustChangePassword) router.replace("/account")
     else if (!allowed) router.replace("/manage/auth")
-  }, [authLoading, authenticated, allowed, user, router])
+    else if (changingPassword) router.replace("/teacher/settings")
+  }, [authLoading, authenticated, allowed, user, router, pathname])
 
   // Same collapse mechanism and localStorage key as the scholar/admin shell
   // (Nav.jsx) — kept in sync so the preference carries over between shells.

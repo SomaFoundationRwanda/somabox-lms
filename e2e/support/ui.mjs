@@ -10,7 +10,7 @@ export async function login(page, email, password) {
 }
 
 // Where each role lands after signing in.
-export const HOME = { admin: "/manage/admin", teacher: "/manage/teacher", scholar: "/manage/scholar-dashboard" };
+export const HOME = { admin: "/manage/admin", teacher: "/teacher/dashboard", scholar: "/manage/scholar-dashboard" };
 
 export async function expectToast(page, text) {
   await expect(page.getByText(text, { exact: false }).first()).toBeVisible();

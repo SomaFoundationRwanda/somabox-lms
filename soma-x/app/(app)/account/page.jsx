@@ -3,8 +3,9 @@
 import { useContext, useEffect, useState } from "react";
 import {
     BookOpen, CheckCircle2, GraduationCap,
-    Download, Hash, KeyRound, Lock, Mail, MapPin, Pencil, Save, School, ShieldAlert, User, X
+    Download, Hash, KeyRound, Mail, MapPin, Pencil, Save, School, ShieldAlert, User, X
 } from "lucide-react";
+import ChangePasswordForm from "@/components/account/ChangePasswordForm";
 import DataContext from "@/context/DataContext";
 import { useToast } from "@/context/ToastContext";
 import { useLanguage } from "@/context/LanguageContext";
@@ -65,38 +66,8 @@ function getInitials(name) {
     return name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
 }
 
-function PasswordField({ id, label, placeholder, value, onChange }) {
-    const { t } = useLanguage();
-    const [show, setShow] = useState(false);
-    return (
-        <div className="space-y-1.5">
-            <label htmlFor={id} className="text-[11px] font-semibold text-slate-500">{label}</label>
-            <div className="relative">
-                <Lock size={13} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-600 pointer-events-none" />
-                <input
-                    id={id}
-                    type={show ? "text" : "password"}
-                    placeholder={placeholder}
-                    value={value}
-                    onChange={e => onChange(e.target.value)}
-                    className="w-full h-10 pl-9 pr-14 rounded-xl border border-slate-200 bg-white text-[13px] text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-slate-300 transition-colors"
-                    required
-                    autoComplete="off"
-                />
-                <button
-                    type="button"
-                    onClick={() => setShow(v => !v)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-slate-600 hover:text-slate-600"
-                >
-                    {show ? t("learner.account.hide") : t("learner.account.show")}
-                </button>
-            </div>
-        </div>
-    );
-}
-
 export default function AccountPage() {
-    const { authenticated, SERVER_URL, isDark, user, refreshUser } = useContext(DataContext);
+    const { authenticated, SERVER_URL, isDark, user } = useContext(DataContext);
     const ACCENT = isDark ? "var(--brand-secondary)" : "var(--brand-primary)";
     const pageBg = isDark ? "#080B0F" : "#F0F2F5";
     const heroFade = isDark ? "#080B0F" : "#F0F2F5";
@@ -106,7 +77,6 @@ export default function AccountPage() {
     const currentEmail = user?.email || "";
     const currentRole = user?.role || "";
     const [loadingProfile, setLoadingProfile] = useState(true);
-    const [savingPassword,  setSavingPassword]  = useState(false);
     const [savingDemographics, setSavingDemographics] = useState(false);
     const [editDemographics, setEditDemographics] = useState(false);
     const [activeTab, setActiveTab] = useState("profile");
@@ -119,9 +89,6 @@ export default function AccountPage() {
     const [status, setStatus] = useState({ type: "", message: "" });
 
     const [profileView, setProfileView] = useState({ email: "", fullName: "" });
-    const [passwordForm, setPasswordForm] = useState({
-        currentPassword: "", newPassword: "", confirmPassword: "",
-    });
     // Location isn't edited here: everyone on the box is placed at the school's location
     // (set by the admin on the School page), shown read-only below.
     const [demoForm, setDemoForm] = useState({
@@ -197,38 +164,6 @@ export default function AccountPage() {
             setStatus({ type: "error", message: err.message });
         } finally {
             setSavingDemographics(false);
-        }
-    };
-
-    const handlePasswordSave = async (e) => {
-        e.preventDefault();
-        const { currentPassword, newPassword, confirmPassword } = passwordForm;
-        if (!currentPassword || !newPassword || !confirmPassword) {
-            setStatus({ type: "error", message: t("learner.account.pwAllRequired") }); return;
-        }
-        if (newPassword.length < 6) {
-            setStatus({ type: "error", message: t("learner.account.pwTooShort") }); return;
-        }
-        if (newPassword !== confirmPassword) {
-            setStatus({ type: "error", message: t("learner.account.pwMismatch") }); return;
-        }
-        try {
-            setSavingPassword(true);
-            setStatus({ type: "", message: "" });
-            const res  = await fetch(`${SERVER_URL}/users/profile/password`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ currentPassword, newPassword }),
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.message || t("learner.account.pwFailed"));
-            setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
-            setStatus({ type: "success", message: t("learner.account.pwUpdated") });
-            if (mustChangePassword) await refreshUser();
-        } catch (err) {
-            setStatus({ type: "error", message: err.message });
-        } finally {
-            setSavingPassword(false);
         }
     };
 
@@ -532,7 +467,7 @@ export default function AccountPage() {
                 {/* ── Security tab ── */}
                 {activeTab === "security" && (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
-                        <form onSubmit={handlePasswordSave} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                             <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2.5">
                                 <div className="w-7 h-7 rounded-lg bg-teal-50 flex items-center justify-center">
                                     <KeyRound size={13} className="text-teal-500" />
@@ -542,38 +477,10 @@ export default function AccountPage() {
                                     <p className="text-[10px] text-slate-600">{t("learner.account.minChars")}</p>
                                 </div>
                             </div>
-                            <div className="p-5 space-y-4">
-                                <PasswordField
-                                    id="current-password"
-                                    label={t("learner.account.currentPassword")}
-                                    placeholder={t("learner.account.currentPasswordPh")}
-                                    value={passwordForm.currentPassword}
-                                    onChange={v => setPasswordForm(p => ({ ...p, currentPassword: v }))}
-                                />
-                                <PasswordField
-                                    id="new-password"
-                                    label={t("learner.account.newPassword")}
-                                    placeholder={t("learner.account.newPasswordPh")}
-                                    value={passwordForm.newPassword}
-                                    onChange={v => setPasswordForm(p => ({ ...p, newPassword: v }))}
-                                />
-                                <PasswordField
-                                    id="confirm-password"
-                                    label={t("learner.account.confirmPassword")}
-                                    placeholder={t("learner.account.confirmPasswordPh")}
-                                    value={passwordForm.confirmPassword}
-                                    onChange={v => setPasswordForm(p => ({ ...p, confirmPassword: v }))}
-                                />
-                                <button
-                                    type="submit"
-                                    disabled={savingPassword}
-                                    className="w-full h-10 rounded-xl text-[13px] font-bold text-white transition-opacity disabled:opacity-50 mt-1"
-                                    style={{ backgroundColor: ACCENT }}
-                                >
-                                    {savingPassword ? t("learner.account.updating") : t("learner.account.changePassword")}
-                                </button>
+                            <div className="p-5">
+                                <ChangePasswordForm onStatus={setStatus} accent={ACCENT} />
                             </div>
-                        </form>
+                        </div>
 
                         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
                             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-600 mb-3">{t("learner.account.tips")}</p>

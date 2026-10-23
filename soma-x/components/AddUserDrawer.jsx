@@ -39,9 +39,8 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
     const [createdCode, setCreatedCode]     = useState("");
     const { t }                             = useLanguage();
 
-    const [gender, setGender]               = useState("prefer_not_to_say");
-    // No location fields: the server places everyone at the school's location (School page).
-    const [disabilityStatus, setDisabilityStatus] = useState("none");
+    // No gender, accessibility or location here: people answer their own profile at first
+    // sign-in, and the server places everyone at the school's location (School page).
 
     /* Populate form when editing an existing user */
     useEffect(() => {
@@ -49,15 +48,11 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
             setEmail(user.email || "");
             setFullName(user.full_name || "");
             setSelectedRole(user.role || "teacher");
-            setGender(user.gender || "prefer_not_to_say");
-            setDisabilityStatus(user.disability_status || "none");
             setPassword("");
         } else {
             setEmail("");
             setFullName("");
             setSelectedRole("teacher");
-            setGender("prefer_not_to_say");
-            setDisabilityStatus("none");
             setPassword("");
         }
         setError(null);
@@ -97,8 +92,6 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
             if (!restrictToLoginInfo) {
                 body.fullName = fullName;
                 body.role = selectedRole;
-                body.gender = gender;
-                body.disabilityStatus = disabilityStatus;
             }
             if (password) body.password = password;
 
@@ -233,51 +226,6 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
                                     </div>
                                 )}
 
-                                {/* ── Demographic & Inclusivity Fields ── */}
-                                {!restrictToLoginInfo && (
-                                    <div className="space-y-3 pt-2 border-t border-slate-100">
-                                        <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider block">
-                                            {t("admin.addUser.demographics")}
-                                        </label>
-
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <div>
-                                                <label className="text-[10px] font-bold text-slate-500 block mb-1">{t("admin.addUser.gender")}</label>
-                                                <select aria-label={t("admin.addUser.gender")}
-                                                    value={gender}
-                                                    onChange={(e) => setGender(e.target.value)}
-                                                    disabled={loading}
-                                                    className="w-full h-9 px-2 rounded-[5px] border border-slate-200 bg-slate-50 text-xs text-slate-800 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]"
-                                                >
-                                                    <option value="prefer_not_to_say">{t("admin.addUser.preferNot")}</option>
-                                                    <option value="female">{t("admin.user.genders.female")}</option>
-                                                    <option value="male">{t("admin.user.genders.male")}</option>
-                                                    <option value="non_binary">{t("admin.user.genders.non_binary")}</option>
-                                                </select>
-                                            </div>
-
-                                            <div>
-                                                <label className="text-[10px] font-bold text-slate-500 block mb-1">{t("admin.addUser.disability")}</label>
-                                                <select aria-label={t("admin.addUser.disability")}
-                                                    value={disabilityStatus}
-                                                    onChange={(e) => setDisabilityStatus(e.target.value)}
-                                                    disabled={loading}
-                                                    className="w-full h-9 px-2 rounded-[5px] border border-slate-200 bg-slate-50 text-xs text-slate-800 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]"
-                                                >
-                                                    <option value="none">{t("admin.user.none")}</option>
-                                                    <option value="visual">{t("admin.addUser.visual")}</option>
-                                                    <option value="hearing">{t("admin.addUser.hearing")}</option>
-                                                    <option value="mobility">{t("admin.addUser.mobility")}</option>
-                                                    <option value="cognitive">{t("admin.addUser.cognitive")}</option>
-                                                    <option value="other">{t("admin.user.genders.other")}</option>
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        <p className="text-[11px] text-slate-500 pt-1">{t("school.users.locationNote")}</p>
-                                    </div>
-                                )}
-
                                 {/* ── Email ── */}
                                 <div>
                                     <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest block mb-2">
@@ -296,7 +244,7 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
                                 {/* ── Password ── */}
                                 <div>
                                     <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest block mb-2">
-                                        {user ? t("admin.addUser.newPassword") : t("admin.addUser.password")}
+                                        {user ? t("admin.addUser.newPassword") : t("admin.addUser.tempPassword")}
                                         {user && <span className="normal-case font-medium text-slate-600 ml-1">{t("admin.addUser.keepCurrentParen")}</span>}
                                     </label>
                                     <div className="relative">
@@ -323,6 +271,7 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
                                             }
                                         </button>
                                     </div>
+                                    <p className="text-[11px] text-slate-500 mt-1.5">{t("admin.addUser.tempPasswordHint")}</p>
                                 </div>
 
                                 {/* ── Feedback ── */}

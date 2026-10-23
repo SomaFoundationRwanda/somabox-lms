@@ -222,7 +222,7 @@ export default {
         "ruralBadge": "Estudiante de zona rural",
         "lessons": "Lecciones",
         "classes": "Clases",
-        "defaultPassword": "Esta cuenta aún usa una contraseña predeterminada. Crea una nueva para continuar.",
+        "defaultPassword": "Te dieron una contraseña temporal. Elige la tuya para continuar.",
         "tabProfile": "Perfil",
         "tabSecurity": "Seguridad",
         "personalTitle": "Datos personales",

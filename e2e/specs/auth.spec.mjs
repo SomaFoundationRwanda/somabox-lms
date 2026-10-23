@@ -1,7 +1,7 @@
 // Signing in and out, signing up, learner codes, deactivated accounts, the limit on failed
 // sign-ins, shared devices, and a set-up box refusing setup again (setup itself: auth.setup.mjs).
 import { test, expect } from "@playwright/test";
-import { api, uid } from "../support/api.mjs";
+import { api, uid, createUser } from "../support/api.mjs";
 import { API_URL, PASSWORD, USERS } from "../support/env.mjs";
 import { t } from "../support/i18n.mjs";
 import { HOME, login, skipTour } from "../support/ui.mjs";
@@ -34,7 +34,7 @@ test.describe("sign in", () => {
 
   test("a learner can sign in with their learner code instead of an email", async ({ page }) => {
     const email = `coded-${uid()}@e2e.test`;
-    const { user } = await api("POST", "/users", { as: "admin", body: { email, password: PASSWORD, role: "scholar", fullName: "Coded Learner" } });
+    const { user } = await createUser({ email, role: "scholar", fullName: "Coded Learner" });
     expect(user.learner_code).toMatch(/^[A-Z]+-\d{4}$/);
     await login(page, user.learner_code.toLowerCase(), PASSWORD);
     await page.waitForURL(`**${HOME.scholar}`);
@@ -42,7 +42,7 @@ test.describe("sign in", () => {
 
   test("a deactivated account can't sign in", async ({ page }) => {
     const email = `gone-${uid()}@e2e.test`;
-    await api("POST", "/users", { as: "admin", body: { email, password: PASSWORD, role: "scholar", fullName: "Gone Learner" } });
+    await createUser({ email, role: "scholar", fullName: "Gone Learner" });
     const { users } = await api("GET", `/users?search=${encodeURIComponent(email)}`, { as: "admin" });
     await api("PATCH", `/users/${users[0].id}/status`, { as: "admin", body: { isActive: false } });
     await login(page, email, PASSWORD);
@@ -55,7 +55,7 @@ test.describe("sign in", () => {
 
   test("after four wrong passwords in a minute the account waits, even with the right one", async ({ page }) => {
     const email = `guessed-${uid()}@e2e.test`;
-    await api("POST", "/users", { as: "admin", body: { email, password: PASSWORD, role: "scholar", fullName: "Guessed Learner" } });
+    await createUser({ email, role: "scholar", fullName: "Guessed Learner" });
     for (let i = 0; i < 4; i++) {
       const res = await fetch(`${API_URL}/auth/login`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password: `guess-${i}` }) });
       expect(res.status).toBe(401);

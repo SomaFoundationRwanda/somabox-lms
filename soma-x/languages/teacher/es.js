@@ -11,6 +11,14 @@ export default {
         "brightness": "Brillo",
         "logout": "Cerrar sesión"
     },
+    "profileSetup": {
+        "badge": "Bienvenida",
+        "title": "Configura tu perfil de docente",
+        "subtitle": "Dos preguntas rápidas para los informes de la escuela, y tu idioma. Solo tú las respondes.",
+        "stepAbout": "Sobre ti",
+        "aboutTitle": "Sobre ti",
+        "aboutHelp": "Se usa en los informes de la escuela y para adaptar SOMABOX a ti."
+    },
     "settings": {
         "title": "Ajustes",
         "account": "Cuenta",
@@ -28,7 +36,14 @@ export default {
         "accountActions": "Acciones de la cuenta",
         "signOut": "Cerrar sesión",
         "signOutHelp": "Sal de tu cuenta",
-        "signOutButton": "Cerrar sesión"
+        "signOutButton": "Cerrar sesión",
+        "security": "Seguridad",
+        "mustChange": "Elige tu propia contraseña antes de continuar: la que te dieron es temporal.",
+        "passwordHelp": "Al menos 6 caracteres. Cambiarla cierra tu sesión en tus otros dispositivos.",
+        "signOutOthers": "Cerrar sesión en otros dispositivos",
+        "signOutOthersHelp": "Termina todas las demás sesiones, por ejemplo en un ordenador de la escuela o un teléfono que usaste.",
+        "signOutOthersButton": "Cerrar las demás",
+        "signedOutOthers": "Sesión cerrada en todos los demás dispositivos"
     },
     "common": {
         "close": "Cerrar",

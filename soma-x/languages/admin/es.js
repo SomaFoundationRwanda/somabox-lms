@@ -570,6 +570,8 @@ export default {
         "rural": "Vive en zona rural / remota (seguimiento de equidad)",
         "newPassword": "Nueva contraseña",
         "password": "Contraseña",
+        "tempPassword": "Contraseña temporal",
+        "tempPasswordHint": "Elegirá su propia contraseña la primera vez que inicie sesión.",
         "keepCurrentParen": "(déjalo vacío para mantener la actual)",
         "keepCurrent": "Déjalo vacío para mantener la actual",
         "hidePassword": "Ocultar contraseña",

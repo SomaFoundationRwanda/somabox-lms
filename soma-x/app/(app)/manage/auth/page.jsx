@@ -12,7 +12,7 @@ export default function AuthRedirect() {
             window.location.replace("/");
             return;
         }
-        if (role === "teacher") window.location.replace("/manage/teacher");
+        if (role === "teacher") window.location.replace("/teacher/dashboard");
         else if (role === "admin") window.location.replace("/manage/admin");
         else window.location.replace("/manage/scholar-dashboard");
     }, [authLoading, authenticated, role]);
