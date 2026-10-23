@@ -69,27 +69,27 @@ export async function requireParticipant(req, res, courseId) {
   return auth;
 }
 
+/**
+ * Anyone who may read the course: its active members, and admins. An admin who isn't a member
+ * reads it as an observer (enrollment.adminView): they see everything, change nothing, hand in
+ * nothing. Teacher-only routes use requireTeacher, which admins don't pass on that basis.
+ */
 export async function requireEnrolled(req, res, courseId) {
   if (!req.user) {
     res.status(401).json({ message: "Please log in to continue" });
     return null;
   }
   const email = req.user.email;
-  let enrollment = await getEnrollment(courseId, email);
-  if (!enrollment) {
-    res.status(403).json({ message: "Not enrolled in this course" });
-    return null;
-  }
-  if (enrollment.status === "invited") {
-    await localDb.prepare("UPDATE enrollments SET status = 'active', joined_at = CURRENT_TIMESTAMP WHERE id = ?").run(enrollment.id);
-    enrollment.status = "active";
-  }
-  if (enrollment.status !== "active") {
+  const enrollment = await getEnrollment(courseId, email);
+  if (!enrollment || enrollment.status !== "active") {
+    if (req.user.role === "admin") {
+      return { email, enrollment: { course_id: courseId, user_email: email, role: "observer", status: "active", adminView: true } };
+    }
     res.status(403).json({ message: "Not enrolled in this course" });
     return null;
   }
   // Learners can't see a course while it's still being set up.
-  if (!isTeacherRole(enrollment.role)) {
+  if (!isTeacherRole(enrollment.role) && req.user.role !== "admin") {
     const course = await localDb.prepare("SELECT lifecycle FROM courses WHERE id = ?").get(courseId);
     if (course?.lifecycle === "draft") {
       res.status(403).json({ message: "This course hasn't opened yet", code: "COURSE_NOT_OPEN" });

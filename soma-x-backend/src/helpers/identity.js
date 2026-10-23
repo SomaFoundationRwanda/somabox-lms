@@ -38,3 +38,22 @@ export async function releaseEmail(email) {
         await localDb.prepare(`DELETE FROM ${table} WHERE LOWER(${column}) = LOWER(?)`).run(email);
     }
 }
+
+/**
+ * Courses that would have no active teacher left without these people (emails): those where
+ * every active teacher with an active account is one of them. [{ id, title }]
+ */
+export async function coursesOnlyTaughtBy(emails) {
+    const list = emails.map((e) => String(e).toLowerCase());
+    if (!list.length) return [];
+    const marks = list.map(() => '?').join(', ');
+    return localDb.prepare(`
+        SELECT c.id, c.title FROM courses c
+        WHERE EXISTS (SELECT 1 FROM enrollments e WHERE e.course_id = c.id AND e.role = 'teacher' AND e.status = 'active' AND LOWER(e.user_email) IN (${marks}))
+          AND NOT EXISTS (
+            SELECT 1 FROM enrollments e JOIN users u ON LOWER(u.email) = LOWER(e.user_email) AND u.is_active = 1
+            WHERE e.course_id = c.id AND e.role = 'teacher' AND e.status = 'active' AND LOWER(e.user_email) NOT IN (${marks})
+          )
+        ORDER BY c.title
+    `).all(...list, ...list);
+}

@@ -51,6 +51,8 @@ export function CourseProvider({ courseId, children }) {
   const isTeacher = course?.myRole === "teacher" || course?.myRole === "ta";
   // Observers can look at everything a learner sees but can't hand in work or reply.
   const isObserver = course?.myRole === "observer";
+  // An admin reading a course they aren't in: an observer, plus a note that says so.
+  const adminView = !!course?.adminView;
 
   const value = {
     courseId,
@@ -62,6 +64,7 @@ export function CourseProvider({ courseId, children }) {
     SERVER_URL,
     isTeacher,
     isObserver,
+    adminView,
     refresh,
   };
 

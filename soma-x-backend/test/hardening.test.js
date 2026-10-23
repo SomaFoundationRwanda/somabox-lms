@@ -32,24 +32,23 @@ async function course(opts) {
   return { courseId, o, week };
 }
 
-test("a course code alone opens only public, open courses; invites can't be faked or revived", async () => {
+test("a course code alone opens only public, open courses; removed places can't be revived", async () => {
   const c = await course();
   // Private by default: the outsider can't walk in with the code.
   const denied = await asOutsider("POST", `/courses/${c.courseId}/enroll`);
   assert.equal(denied.status, 403);
   assert.match(denied.body.message, /private/);
-  assert.equal((await asOutsider("POST", `/courses/${c.courseId}/accept-invite`)).status, 404, "no invitation, nothing to accept");
 
-  // Invited: the code (or accept-invite) works.
-  await asTeacher("POST", `/courses/${c.courseId}/people`, { email: "newbie@test.local" });
-  await db.prepare("UPDATE enrollments SET status = 'invited' WHERE course_id = ? AND user_email = ?").run(c.courseId, USERS.outsider.email).catch(() => {});
-  await db.prepare("INSERT INTO enrollments (course_id, user_email, role, status) VALUES (?, ?, 'student', 'invited')").run(c.courseId, USERS.outsider.email);
-  assert.equal((await asOutsider("POST", `/courses/${c.courseId}/enroll`)).status, 201);
+  // Added by the teacher: in straight away. Emails without an account can't be added.
+  assert.equal((await asTeacher("POST", `/courses/${c.courseId}/people`, { email: USERS.outsider.email })).status, 201);
+  assert.equal((await asOutsider("POST", `/courses/${c.courseId}/enroll`)).status, 200, "already in");
+  const nobody = await asTeacher("POST", `/courses/${c.courseId}/people`, { email: "newbie@test.local" });
+  assert.equal(nobody.status, 404);
+  assert.equal(nobody.body.code, "NO_ACCOUNT");
 
   // Switched off by the teacher: can't switch themselves back on.
   await db.prepare("UPDATE enrollments SET status = 'inactive' WHERE course_id = ? AND user_email = ?").run(c.courseId, USERS.outsider.email);
   assert.equal((await asOutsider("POST", `/courses/${c.courseId}/enroll`)).status, 403);
-  assert.equal((await asOutsider("POST", `/courses/${c.courseId}/accept-invite`)).status, 404);
 
   // Public and open: the code works for anyone.
   const pub = await course();
@@ -69,6 +68,8 @@ test("only the course teacher manages staff, teachers need teacher accounts, and
   // A learner account can't be made a course teacher.
   const learnerTeacher = await asTeacher("POST", `/courses/${c.courseId}/people`, { email: USERS.outsider.email, role: "teacher" });
   assert.equal(learnerTeacher.status, 400);
+  // ...nor an assistant: assistants see the whole class's marks.
+  assert.equal((await asTeacher("POST", `/courses/${c.courseId}/people`, { email: USERS.outsider.email, role: "ta" })).status, 400);
   // The last teacher can't be removed or demoted.
   const me = (await people()).find((p) => p.email === USERS.teacher.email);
   assert.equal((await asTeacher("DELETE", `/courses/${c.courseId}/people/${me.id}`)).status, 409);
@@ -78,6 +79,48 @@ test("only the course teacher manages staff, teachers need teacher accounts, and
   const seen = (await asStudent("GET", `/courses/${c.courseId}/people`)).body;
   assert.ok(seen.every((p) => p.email === null || p.email === USERS.student.email));
   assert.ok(seen.some((p) => p.email === USERS.student.email));
+});
+
+test("admins read any course without being in it, but can't change it or hand in work", async () => {
+  const c = await course({ lifecycle: "draft" });
+  const view = await asAdmin("GET", `/courses/${c.courseId}`);
+  assert.equal(view.status, 200, "even a draft");
+  assert.equal(view.body.myRole, "observer");
+  assert.equal(view.body.adminView, true);
+  const people = await asAdmin("GET", `/courses/${c.courseId}/people`);
+  assert.ok(people.body.some((p) => p.email === USERS.teacher.email), "admins see emails");
+  assert.equal((await asAdmin("POST", `/courses/${c.courseId}/outcomes`, { title: "Nope" })).status, 403);
+  assert.equal((await asAdmin("POST", `/courses/${c.courseId}/people`, { email: USERS.outsider.email })).status, 403);
+  assert.equal(await db.prepare("SELECT 1 FROM enrollments WHERE course_id = ? AND user_email = ?").get(c.courseId, USERS.admin.email), undefined, "nothing recorded");
+});
+
+test("an admin gives a course another teacher; a course's only teacher can't be deleted or made a learner", async () => {
+  const hash = await bcrypt.hash(PASSWORD, 4);
+  await db.prepare("INSERT INTO users (email, full_name, password_hash, role) VALUES ('solo@test.local', 'Solo', ?, 'teacher'), ('next@test.local', 'Next', ?, 'teacher')").run(hash, hash);
+  const solo = await db.prepare("SELECT id FROM users WHERE email = 'solo@test.local'").get();
+  const courseId = "SOLO01";
+  await db.prepare("INSERT INTO courses (id, title, created_by_teacher_email, lifecycle) VALUES (?, 'Solo course', 'solo@test.local', 'open')").run(courseId);
+  await db.prepare("INSERT INTO enrollments (course_id, user_email, role, status) VALUES (?, 'solo@test.local', 'teacher', 'active')").run(courseId);
+
+  const del = await asAdmin("DELETE", `/users/${solo.id}`);
+  assert.equal(del.status, 409);
+  assert.equal(del.body.code, "SOLE_TEACHER");
+  assert.deepEqual(del.body.courses.map((c) => c.id), [courseId]);
+  assert.equal((await asAdmin("PATCH", `/users/${solo.id}`, { role: "scholar" })).status, 409);
+  assert.equal((await asAdmin("POST", "/users/bulk-action", { userIds: [solo.id], action: "bulk_delete" })).status, 409);
+  // Deactivating is allowed, and says which courses now have no teacher.
+  const off = await asAdmin("PATCH", `/users/${solo.id}/status`, { isActive: false });
+  assert.deepEqual(off.body.coursesWithoutTeacher.map((c) => c.id), [courseId]);
+  const listed = (await asAdmin("GET", "/courses/all")).body.find((c) => c.id === courseId);
+  assert.equal(listed.teachers, null, "a deactivated teacher doesn't count");
+
+  assert.equal((await asAdmin("PUT", `/courses/${courseId}/teacher`, { email: USERS.student.email })).status, 400, "not a learner");
+  assert.equal((await asAdmin("PUT", `/courses/${courseId}/teacher`, { email: "ghost@test.local" })).status, 404);
+  assert.equal((await call("teacher")("PUT", `/courses/${courseId}/teacher`, { email: "next@test.local" })).status, 403, "admins only");
+  const moved = await asAdmin("PUT", `/courses/${courseId}/teacher`, { email: "next@test.local", removeOthers: true });
+  assert.equal(moved.status, 200);
+  assert.deepEqual(moved.body.teachers, ["next@test.local"]);
+  assert.equal((await asAdmin("DELETE", `/users/${solo.id}`)).status, 200, "now the account can go");
 });
 
 test("deleting an account releases its places; a re-registered email inherits nothing", async () => {
@@ -210,7 +253,7 @@ test("an enrolled learner never succeeds on a teacher-only course route", async 
     "GET /courses/:id/calendar", "GET /courses/:id/calendar.ics", "GET /courses/:id/timeline", "GET /courses/:id/home-loop",
     "GET /courses/:id/baseline", "GET /courses/:id/my-progress", "GET /courses/:id/files", "GET /courses/:id/collaborations",
     "POST /courses/:id/collaborations", "POST /courses/:id/discussions", "POST /courses/:id/modules/:moduleId/items/:itemId/progress",
-    "GET /courses/:id/setup-status", "POST /courses/:id/enroll", "POST /courses/:id/accept-invite", "POST /courses/:id/join",
+    "GET /courses/:id/setup-status", "POST /courses/:id/enroll", "POST /courses/:id/join",
     "GET /courses/:id/rubrics", "GET /courses/:id/activity", "GET /courses/:id/module-items/sequence",
     "GET /courses/:id/module-items/sequence-position", "POST /courses/:id/module-items/:moduleItemId/progress",
     "GET /courses/:id/attendance/me",

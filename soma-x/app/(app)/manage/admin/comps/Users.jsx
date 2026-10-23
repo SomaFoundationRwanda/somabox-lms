@@ -161,6 +161,11 @@ export default function Users() {
             if (!res.ok) throw new Error(data.message || t("admin.users.statusFailed"));
 
             showToast(fill(t(newStatus ? "admin.users.reactivated" : "admin.users.deactivated"), { name: user.full_name || user.email }), "success");
+            // A teacher's courses can be left with no teacher: say which, so the admin gives them one.
+            const stranded = data.coursesWithoutTeacher || [];
+            if (stranded.length) {
+                showToast(fill(t("admin.users.coursesWithoutTeacher"), { courses: stranded.map((c) => c.title).join(", ") }), "warning", 12000);
+            }
             fetchUsers();
         } catch (err) {
             showToast(err.message, "error");

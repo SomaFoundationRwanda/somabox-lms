@@ -7,9 +7,12 @@ import { CourseProvider, useCourse } from "@/context/CourseContext";
 import CourseSidebar, { CourseMenuButton } from "@/components/course/CourseSidebar";
 import { useCourseOpened } from "@/lib/usage";
 import Loader from "@/components/ui/Loader";
+import Link from "next/link";
+import { useLanguage } from "@/context/LanguageContext";
 
 function CourseShell({ children }) {
-  const { loading, error, course, courseId } = useCourse();
+  const { loading, error, course, courseId, adminView } = useCourse();
+  const { t } = useLanguage();
   const { role } = useContext(DataContext);
   const pathname = usePathname() || "";
   useCourseOpened(courseId, !!course);
@@ -44,6 +47,12 @@ function CourseShell({ children }) {
       <CourseSidebar />
       <div className="flex-1 min-w-0">
         <CourseMenuButton />
+        {adminView && (
+          <p role="note" className="mx-4 sm:mx-6 mt-4 px-4 py-2.5 rounded-lg border text-sm bg-sky-50 border-sky-200 text-sky-900 dark:bg-sky-500/10 dark:border-sky-500/30 dark:text-sky-100">
+            {t("admin.courses.adminViewNote")}{" "}
+            <Link href="/manage/admin" className="font-semibold underline underline-offset-2">{t("admin.courses.adminViewLink")}</Link>
+          </p>
+        )}
         {children}
       </div>
     </div>

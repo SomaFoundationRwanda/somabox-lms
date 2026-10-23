@@ -6,6 +6,7 @@ import crypto from "crypto";
 import fs from "fs";
 import path from "path";
 import { localDb, seedDefaultNavItems } from "../../helpers/db-manager.js";
+import { logAdminAuditAction } from "../users.service.js";
 import { config } from "../../config/index.js";
 import {
   normalizeEmail,
@@ -97,12 +98,54 @@ router.get("/all", async (req, res) => {
              c.created_by_teacher_email,
              (SELECT COUNT(*) FROM enrollments e WHERE e.course_id = c.id AND e.role = 'student' AND e.status = 'active') AS learners,
              (SELECT string_agg(e.user_email, ', ' ORDER BY e.user_email) FROM enrollments e
+               JOIN users u ON LOWER(u.email) = LOWER(e.user_email) AND u.is_active = 1
                WHERE e.course_id = c.id AND e.role = 'teacher' AND e.status = 'active') AS teachers
       FROM courses c ORDER BY c.created_at DESC
     `).all();
     return res.json(rows.map((r) => ({ ...r, learners: Number(r.learners) || 0 })));
   } catch (error) {
     console.error("Error listing all courses:", error);
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+/**
+ * Admins: makes a teacher account a course's teacher, e.g. when its teacher left the school.
+ * { email, removeOthers? } — removeOthers takes the course's other teachers off it (assistants,
+ * learners and their work stay).
+ */
+router.put("/:id/teacher", async (req, res) => {
+  try {
+    if (req.user.role !== "admin") return res.status(403).json({ message: "You do not have permission to do this" });
+    const courseId = String(req.params.id || "").trim();
+    const course = await courseExists(courseId);
+    if (!course) return res.status(404).json({ message: "Course not found" });
+    const email = normalizeEmail(req.body.email);
+    const account = email ? await localDb.prepare("SELECT role, is_active FROM users WHERE LOWER(email) = ?").get(email) : null;
+    if (!account) return res.status(404).json({ message: "There's no account with this email", code: "NO_ACCOUNT" });
+    if (!["teacher", "admin"].includes(account.role)) return res.status(400).json({ message: "Only teacher accounts can teach a course" });
+    if (Number(account.is_active) === 0) return res.status(400).json({ message: "This account is deactivated. Reactivate it first." });
+
+    const removeOthers = req.body.removeOthers === true;
+    await localDb.transaction(async () => {
+      await localDb.prepare(`
+        INSERT INTO enrollments (course_id, user_email, role, status) VALUES (?, ?, 'teacher', 'active')
+        ON CONFLICT (course_id, user_email) DO UPDATE SET role = 'teacher', status = 'active'
+      `).run(courseId, email);
+      if (removeOthers) {
+        await localDb.prepare("DELETE FROM enrollments WHERE course_id = ? AND role = 'teacher' AND LOWER(user_email) <> ?").run(courseId, email);
+      }
+    })();
+    await logAdminAuditAction({
+      adminEmail: req.user.email,
+      action: "ASSIGN_COURSE_TEACHER",
+      targetUserEmail: email,
+      details: `${removeOthers ? "Made" : "Added"} ${email} teacher of course ${courseId} (${course.title})`,
+    });
+    const teachers = await localDb.prepare("SELECT user_email FROM enrollments WHERE course_id = ? AND role = 'teacher' AND status = 'active' ORDER BY user_email").all(courseId);
+    return res.json({ courseId, teachers: teachers.map((t) => t.user_email) });
+  } catch (error) {
+    console.error("Error assigning a course teacher:", error);
     return res.status(500).json({ message: error.message });
   }
 });
@@ -273,6 +316,8 @@ router.get("/:id", async (req, res) => {
       coverImageUrl: course.cover_image ? `/course-covers/${course.cover_image}` : null,
       studentCount,
       myRole: auth.enrollment.role,
+      // An admin reading a course they aren't in (read-only).
+      adminView: !!auth.enrollment.adminView,
     });
   } catch (error) {
     console.error("Error fetching course:", error);

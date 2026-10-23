@@ -1,5 +1,5 @@
 import express from 'express';
-import { renameEmailEverywhere, releaseEmail } from '../helpers/identity.js';
+import { renameEmailEverywhere, releaseEmail, coursesOnlyTaughtBy } from '../helpers/identity.js';
 import { assignLearnerCode, applySchoolToUser, getSchool } from './school.js';
 import bcrypt from "bcrypt";
 
@@ -371,6 +371,11 @@ router.patch('/:id', requireAdmin, async (req, res) => {
         if (password && String(password).length < 6) {
             return res.status(400).json({ message: 'Password must be at least 6 characters' });
         }
+        if (role === 'scholar') {
+            const target = await serverDb.prepare('SELECT email FROM users WHERE id = ?').get(userId);
+            const stranded = target ? await coursesOnlyTaughtBy([target.email]) : [];
+            if (stranded.length) return res.status(409).json({ message: strandedMessage(stranded, 'Making this person a learner'), code: 'SOLE_TEACHER', courses: stranded });
+        }
 
         if (
             email === undefined &&
@@ -572,6 +577,10 @@ router.patch('/profile/password', async (req, res) => {
  * PATCH /users/:id/status
  * Soft deactivate or reactivate user account
  */
+const strandedMessage = (courses, what) =>
+    `${what} would leave ${courses.length === 1 ? 'a course' : `${courses.length} courses`} with no teacher (${courses.map((c) => c.title).join(', ')}). ` +
+    'Give each course another teacher first (Courses: Change teacher), or deactivate the account instead.';
+
 router.patch('/:id/status', requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
@@ -602,7 +611,9 @@ router.patch('/:id/status', requireAdmin, async (req, res) => {
 
         res.json({
             message: `User ${newStatus === 1 ? 'reactivated' : 'deactivated'} successfully`,
-            is_active: newStatus
+            is_active: newStatus,
+            // Courses with no active teacher now: the admin gives them one (Courses: Change teacher).
+            coursesWithoutTeacher: newStatus === 0 ? await coursesOnlyTaughtBy([user.email]) : [],
         });
     } catch (error) {
         console.error('Error updating user status:', error);
@@ -683,12 +694,20 @@ router.post('/bulk-action', requireAdmin, async (req, res) => {
             if (!newRole || !['admin', 'teacher', 'scholar'].includes(newRole.toLowerCase())) {
                 return res.status(400).json({ message: 'Valid newRole is required' });
             }
+            if (newRole.toLowerCase() === 'scholar') {
+                const emails = (await serverDb.prepare(`SELECT email FROM users WHERE id IN (${placeholders})`).all(...userIds)).map((u) => u.email);
+                const stranded = await coursesOnlyTaughtBy(emails);
+                if (stranded.length) return res.status(409).json({ message: strandedMessage(stranded, 'Making these people learners'), code: 'SOLE_TEACHER', courses: stranded });
+            }
             const stmt = serverDb.prepare(`UPDATE users SET role = ? WHERE id IN (${placeholders})`);
             const info = await stmt.run(newRole.toLowerCase(), ...userIds);
             affected = info.changes;
             for (const userId of userIds) await revokeUserSessions(userId);
             await logAdminAuditAction({ adminEmail, action: 'BULK_ROLE_CHANGE', details: `Changed role to ${newRole} for ${affected} users` });
         } else if (action === 'bulk_delete') {
+            const emails = (await serverDb.prepare(`SELECT email FROM users WHERE id IN (${placeholders})`).all(...userIds)).map((u) => u.email);
+            const stranded = await coursesOnlyTaughtBy(emails);
+            if (stranded.length) return res.status(409).json({ message: strandedMessage(stranded, 'Deleting these accounts'), code: 'SOLE_TEACHER', courses: stranded });
             const info = await serverDb.transaction(async () => {
                 const doomed = await serverDb.prepare(`SELECT email FROM users WHERE id IN (${placeholders})`).all(...userIds);
                 for (const u of doomed) await releaseEmail(u.email);
@@ -718,6 +737,10 @@ router.delete('/:id', requireAdmin, async (req, res) => {
         const user = await serverDb.prepare('SELECT id, email FROM users WHERE id = ?').get(id);
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
+        }
+        const stranded = await coursesOnlyTaughtBy([user.email]);
+        if (stranded.length) {
+            return res.status(409).json({ message: strandedMessage(stranded, 'Deleting this account'), code: 'SOLE_TEACHER', courses: stranded });
         }
 
         await serverDb.transaction(async () => {

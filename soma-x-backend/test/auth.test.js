@@ -116,10 +116,10 @@ const POLICY = {
   "GET /courses/mine": "any",
   "GET /courses/public": "public", // catalogue guests may browse
   "GET /courses/all": "admin",
+  "PUT /courses/:id/teacher": "admin",
   "POST /courses/:id/join": "any",
   "POST /courses/join-by-code": "any",
   "POST /courses/:id/enroll": "any",
-  "POST /courses/:id/accept-invite": "any",
 
   "GET /calendar/me": "any",
   "GET /calendar/me.ics": "any",

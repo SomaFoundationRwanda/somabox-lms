@@ -160,6 +160,20 @@ test.describe("people", () => {
     await expect(members.getByRole("row").filter({ hasText: USERS.learner2.email })).toHaveCount(0);
   });
 
+  test("only people with an account can be added, and learners can't be assistants", async ({ page }) => {
+    const course = await seedCourse({ learners: [] });
+    await page.goto(`/course/${course.id}/people`);
+    await page.getByRole("button", { name: ct("people.add") }).click();
+    await page.getByLabel(ct("people.email")).fill(`nobody-${uid()}@e2e.test`);
+    await page.getByRole("button", { name: ct("common.add"), exact: true }).click();
+    await expect(page.getByText("There's no account with this email").first()).toBeVisible();
+
+    await page.getByLabel(ct("people.email")).fill(USERS.learner2.email);
+    await page.getByLabel(ct("people.role"), { exact: true }).selectOption("ta");
+    await page.getByRole("button", { name: ct("common.add"), exact: true }).click();
+    await expect(page.getByText("Only teacher accounts can teach or assist in a course").first()).toBeVisible();
+  });
+
   test("a join code lets a learner join by themselves, until it's turned off", async ({ page, browser }) => {
     const course = await seedCourse({ learners: [] });
     await page.goto(`/course/${course.id}/people`);
