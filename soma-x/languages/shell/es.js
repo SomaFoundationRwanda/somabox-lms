@@ -143,8 +143,8 @@ export default {
         "viewAll": "Ver todas las tareas"
     },
     "profileBanner": {
-        "title": "Completa la información de tu perfil",
-        "body": "Indica tu género, provincia y distrito para que SomaBox se adapte a tu aprendizaje.",
+        "title": "Completa tu perfil",
+        "body": "Responde las pocas preguntas sobre ti (género y necesidades de accesibilidad) para que SOMABOX se adapte a tu aprendizaje.",
         "dismiss": "Cerrar el aviso"
     },
     "broadcast": {

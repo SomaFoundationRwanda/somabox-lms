@@ -214,7 +214,10 @@ test.describe("account", () => {
   test("edits their profile details", async ({ page }) => {
     await page.goto("/account");
     await page.getByRole("button", { name: lt("account.edit") }).click();
-    await page.getByLabel(/gender/i).first().selectOption("male");
+    // Male, female or other: everyone answers (there's no "prefer not to say").
+    const gender = page.getByLabel(/gender/i).first();
+    expect(await gender.locator("option:not([disabled])").evaluateAll((os) => os.map((o) => o.value))).toEqual(["male", "female", "other"]);
+    await gender.selectOption("male");
     await page.getByRole("button", { name: lt("account.save"), exact: true }).click();
     await expect(page.getByText(lt("account.savedToast")).or(page.getByText(lt("account.saved"))).first()).toBeVisible();
     await page.reload();

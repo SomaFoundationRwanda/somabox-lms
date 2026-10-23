@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { localDb, serverDb } from '../helpers/db-manager.js';
 import { requireRole } from '../helpers/auth.js';
+import { profileComplete } from './users.service.js';
 
 const router = Router();
 const requireAdmin = requireRole('admin');
@@ -39,36 +40,22 @@ router.get('/', async (req, res) => {
     const userEmail = req.user.email;
 
     try {
-        // 1. Check if user's profile is incomplete in serverDb
-        const user = await serverDb.prepare(`
-            SELECT gender, region_province, region_district, is_rural
-            FROM users WHERE LOWER(email) = LOWER(?)
-        `).get(userEmail);
-
-        let isProfileIncomplete = false;
-        if (user) {
-            const hasGender = user.gender && user.gender !== 'prefer_not_to_say';
-            const hasProvince = !!(user.region_province && user.region_province.trim());
-            const hasDistrict = !!(user.region_district && user.region_district.trim());
-            
-            if (!hasGender || !hasProvince || !hasDistrict) {
-                isProfileIncomplete = true;
-
-                // Check if an unread profile_reminder already exists
-                const existingReminder = await localDb.prepare(`
-                    SELECT id FROM user_notifications
-                    WHERE LOWER(user_email) = LOWER(?) AND type = 'profile_reminder' AND is_read = 0
-                `).get(userEmail);
-
-                if (!existingReminder) {
-                    await createNotification({
-                        userEmail,
-                        title: "Complete Your Profile",
-                        message: "Please fill in your gender, province, and district information to complete your SomaBox profile.",
-                        type: "profile_reminder",
-                        link: "/account",
-                    });
-                }
+        // 1. A reminder while their first-visit profile isn't finished (the same rule as the profile form).
+        const user = await serverDb.prepare('SELECT role, gender, profile_completed_at FROM users WHERE LOWER(email) = LOWER(?)').get(userEmail);
+        const isProfileIncomplete = !!user && !profileComplete(user);
+        if (isProfileIncomplete) {
+            const existingReminder = await localDb.prepare(`
+                SELECT id FROM user_notifications
+                WHERE LOWER(user_email) = LOWER(?) AND type = 'profile_reminder' AND is_read = 0
+            `).get(userEmail);
+            if (!existingReminder) {
+                await createNotification({
+                    userEmail,
+                    title: "Finish your profile",
+                    message: "Answer the few questions about you (gender and accessibility needs) to finish your SOMABOX profile.",
+                    type: "profile_reminder",
+                    link: user.role === 'teacher' ? "/teacher/settings" : "/account",
+                });
             }
         }
 

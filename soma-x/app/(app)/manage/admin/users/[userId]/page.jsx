@@ -33,7 +33,7 @@ function formatDate(raw, lang) {
     try { return d.toLocaleDateString(lang === "rw" ? ["rw", "en-RW", "en"] : lang, opts); } catch { return d.toLocaleDateString("en", opts); }
 }
 
-const GENDERS = ["male", "female", "other", "non_binary"];
+const GENDERS = ["male", "female", "other"];
 
 export default function UserProfilePage() {
     const params = useParams();
@@ -256,7 +256,7 @@ export default function UserProfilePage() {
                         <dl className="divide-y divide-slate-100 dark:divide-slate-800">
                             <Field label={t("admin.user.phone")} icon={Phone}>{user.phone || notSpecified}</Field>
                             <Field label={t("admin.user.gender")} className="capitalize">
-                                {user.gender && user.gender !== "prefer_not_to_say" ? (GENDERS.includes(user.gender) ? t(`admin.user.genders.${user.gender}`) : user.gender.replace("_", " ")) : notSpecified}
+                                {user.gender ? (GENDERS.includes(user.gender) ? t(`admin.user.genders.${user.gender}`) : user.gender.replace("_", " ")) : notSpecified}
                             </Field>
                             <Field label={t("admin.user.preferredLanguage")} icon={Globe2}>
                                 {user.preferred_language ? (LANGUAGE_NAMES[user.preferred_language] || user.preferred_language.toUpperCase()) : LANGUAGE_NAMES.en}

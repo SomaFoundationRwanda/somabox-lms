@@ -143,8 +143,8 @@ export default {
         "viewAll": "Voir tous les devoirs"
     },
     "profileBanner": {
-        "title": "Complétez les informations de votre profil",
-        "body": "Indiquez votre genre, votre province et votre district pour que SomaBox s'adapte à votre apprentissage.",
+        "title": "Terminez votre profil",
+        "body": "Répondez aux quelques questions vous concernant (genre et besoins d'accessibilité) pour que SOMABOX s'adapte à votre apprentissage.",
         "dismiss": "Masquer le bandeau"
     },
     "broadcast": {

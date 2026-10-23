@@ -112,7 +112,7 @@ export default function MandatoryProfileSetupModal() {
                 // Populate existing data
                 if (data.full_name) setFullName(data.full_name);
                 if (data.phone) setPhone(data.phone);
-                if (data.gender && data.gender !== 'prefer_not_to_say') setGender(data.gender);
+                if (['male', 'female', 'other'].includes(data.gender)) setGender(data.gender);
                 if (data.school) setSchool(data.school);
                 // Only reuse this once it was actually answered (older accounts hold defaults).
                 if (data.isProfileComplete && data.disability_status) setDisabilityStatus(data.disability_status);

@@ -207,9 +207,7 @@ export default {
         "genders": {
             "male": "Gabo",
             "female": "Gore",
-            "other": "Ikindi",
-            "non_binary": "Ntabwo ndi gabo cyangwa gore",
-            "prefer_not_to_say": "Sinifuza kubivuga"
+            "other": "Ikindi"
         },
         "access": {
             "none": "Nta na kimwe",

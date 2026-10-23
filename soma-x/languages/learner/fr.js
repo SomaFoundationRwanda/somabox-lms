@@ -206,9 +206,7 @@ export default {
         "genders": {
             "male": "Masculin",
             "female": "Féminin",
-            "other": "Autre",
-            "non_binary": "Non binaire",
-            "prefer_not_to_say": "Préfère ne pas répondre"
+            "other": "Autre"
         },
         "access": {
             "none": "Aucun",

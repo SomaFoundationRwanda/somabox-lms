@@ -23,6 +23,16 @@ export const hashPassword = async (password) => {
 /**
  * Helper to log admin audit action
  */
+export const GENDERS = ['male', 'female', 'other'];
+
+/**
+ * Whether someone has finished their first-visit profile: every required answer given by them
+ * (see /profile/update, which records when). Admins aren't asked.
+ */
+export function profileComplete(user) {
+    return user.role === 'admin' || (Boolean(user.profile_completed_at) && GENDERS.includes(user.gender));
+}
+
 export async function logAdminAuditAction({ adminEmail, action, targetUserId = null, targetUserEmail = null, details = null }) {
     try {
         if (!adminEmail) return;
@@ -272,11 +282,7 @@ router.get('/profile/view', async (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        const hasGender = Boolean(user.gender && user.gender !== 'prefer_not_to_say' && user.gender.trim() !== '');
-
-        // Complete only once every required answer was given explicitly (see /profile/update).
-        // Admins aren't asked.
-        const isProfileComplete = user.role === 'admin' || (Boolean(user.profile_completed_at) && hasGender);
+        const isProfileComplete = profileComplete(user);
 
         const school = await getSchool();
         return res.json({
@@ -407,7 +413,10 @@ router.patch('/:id', requireAdmin, async (req, res) => {
         if (schoolName !== undefined) { updates.push('school_name = ?'); params.push(schoolName || null); }
         if (gradeLevel !== undefined) { updates.push('grade_level = ?'); params.push(gradeLevel || null); }
         if (preferredLanguage !== undefined) { updates.push('preferred_language = ?'); params.push(preferredLanguage || null); }
-        if (gender !== undefined) { updates.push('gender = ?'); params.push(gender); }
+        if (gender !== undefined) {
+            if (!GENDERS.includes(gender)) return res.status(400).json({ message: 'Gender must be male, female or other' });
+            updates.push('gender = ?'); params.push(gender);
+        }
         if (regionProvince !== undefined) { updates.push('region_province = ?'); params.push(regionProvince); }
         if (regionDistrict !== undefined) { updates.push('region_district = ?'); params.push(regionDistrict); }
         if (isRural !== undefined) { updates.push('is_rural = ?'); params.push(isRural); }
@@ -460,6 +469,7 @@ router.patch('/:id', requireAdmin, async (req, res) => {
 });
 
 const DISABILITY_ANSWERS = ['none', 'visual', 'hearing', 'mobility', 'cognitive', 'other'];
+// Everyone answers their gender (there's no "prefer not to say"); the school reports on it.
 
 router.patch('/profile/update', async (req, res) => {
     try {
@@ -503,7 +513,7 @@ router.patch('/profile/update', async (req, res) => {
         if (req.body.completeProfile) {
             const missing = [];
             // Location (province, district, rural/urban) is the school's, set by the admin; nobody is asked.
-            if (!gender || gender === 'prefer_not_to_say') missing.push('gender');
+            if (!GENDERS.includes(gender)) missing.push('gender');
             if (!DISABILITY_ANSWERS.includes(disabilityStatus)) missing.push('accessibility needs');
             if (req.user.role === 'scholar' && !gradeLevel) missing.push('grade');
             if (missing.length) return res.status(400).json({ message: `Please answer: ${missing.join(', ')}`, missing });

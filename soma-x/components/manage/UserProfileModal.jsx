@@ -24,7 +24,7 @@ function formatDate(raw, lang) {
     try { return d.toLocaleDateString(lang === "rw" ? ["rw", "en-RW", "en"] : lang, opts); } catch { return d.toLocaleDateString("en", opts); }
 }
 
-const GENDERS = ["male", "female", "other", "non_binary"];
+const GENDERS = ["male", "female", "other"];
 
 export default function UserProfileModal({ user, isOpen, onClose, onEdit, onSendNotif }) {
     const { isDark } = useContext(DataContext);
@@ -118,7 +118,7 @@ export default function UserProfileModal({ user, isOpen, onClose, onEdit, onSend
                                 <div>
                                     <span className="text-[10px] font-bold text-slate-600 uppercase block">{t("admin.user.gender")}</span>
                                     <span className="font-semibold capitalize text-slate-900 dark:text-white mt-0.5 block">
-                                        {user.gender && user.gender !== "prefer_not_to_say" ? (GENDERS.includes(user.gender) ? t(`admin.user.genders.${user.gender}`) : user.gender.replace("_", " ")) : t("admin.user.notSpecified")}
+                                        {user.gender ? (GENDERS.includes(user.gender) ? t(`admin.user.genders.${user.gender}`) : user.gender.replace("_", " ")) : t("admin.user.notSpecified")}
                                     </span>
                                 </div>
 

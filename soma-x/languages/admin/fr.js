@@ -437,8 +437,7 @@ export default {
         "genders": {
             "male": "Masculin",
             "female": "Féminin",
-            "other": "Autre",
-            "non_binary": "Non binaire"
+            "other": "Autre"
         },
         "preferredLanguage": "Langue préférée",
         "academic": "Scolarité et lieu",
@@ -571,7 +570,6 @@ export default {
         "editTitle": "Modifier l'utilisateur",
         "addTitle": "Ajouter un utilisateur",
         "gender": "Genre",
-        "preferNot": "Préfère ne pas répondre",
         "disability": "Accessibilité / handicap",
         "visual": "Déficience visuelle",
         "hearing": "Déficience auditive",

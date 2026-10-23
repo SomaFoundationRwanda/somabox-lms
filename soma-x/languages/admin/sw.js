@@ -437,8 +437,7 @@ export default {
         "genders": {
             "male": "Mwanamume",
             "female": "Mwanamke",
-            "other": "Nyingine",
-            "non_binary": "Si mwanamume wala mwanamke"
+            "other": "Nyingine"
         },
         "preferredLanguage": "Lugha anayopendelea",
         "academic": "Masomo na mahali",
@@ -571,7 +570,6 @@ export default {
         "editTitle": "Hariri mtumiaji",
         "addTitle": "Ongeza mtumiaji",
         "gender": "Jinsia",
-        "preferNot": "Napendelea kutosema",
         "disability": "Ufikiaji / ulemavu",
         "visual": "Ulemavu wa kuona",
         "hearing": "Ulemavu wa kusikia",

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import DataContext from '@/context/DataContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { fetchNotifications } from '@/lib/notification-service';
+import { accountPage } from '@/lib/session';
 
 export default function ProfileCompletionBanner() {
     const { authenticated, user } = useContext(DataContext);
@@ -45,7 +46,7 @@ export default function ProfileCompletionBanner() {
 
                 <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
                     <Link
-                        href="/account"
+                        href={accountPage(user?.role)}
                         className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-md transition-all"
                     >
                         {t("shell.notifications.completeProfile")}

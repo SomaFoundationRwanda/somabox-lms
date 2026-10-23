@@ -143,8 +143,8 @@ export default {
         "viewAll": "View all assignments"
     },
     "profileBanner": {
-        "title": "Complete your profile information",
-        "body": "Please update your gender, province and district so SomaBox can fit your learning.",
+        "title": "Finish your profile",
+        "body": "Answer the few questions about you (gender and accessibility needs) so SOMABOX can fit your learning.",
         "dismiss": "Dismiss banner"
     },
     "broadcast": {

@@ -144,8 +144,8 @@ export default {
         "viewAll": "Reba inshingano zose"
     },
     "profileBanner": {
-        "title": "Uzuza umwirondoro wawe",
-        "body": "Shyiramo igitsina, intara n'akarere byawe kugira ngo SomaBox ihuze n'uko wiga.",
+        "title": "Rangiza umwirondoro wawe",
+        "body": "Subiza ibibazo bike bikwerekeye (igitsina n'ibyo ukeneye ku bufasha) kugira ngo SOMABOX ihuze n'imyigire yawe.",
         "dismiss": "Funga iri tangazo"
     },
     "broadcast": {

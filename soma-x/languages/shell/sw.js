@@ -143,8 +143,8 @@ export default {
         "viewAll": "Angalia kazi zote"
     },
     "profileBanner": {
-        "title": "Kamilisha taarifa za wasifu wako",
-        "body": "Tafadhali weka jinsia, mkoa na wilaya yako ili SomaBox iendane na masomo yako.",
+        "title": "Kamilisha wasifu wako",
+        "body": "Jibu maswali machache kukuhusu (jinsia na mahitaji ya ufikiaji) ili SOMABOX ifae masomo yako.",
         "dismiss": "Ondoa tangazo"
     },
     "broadcast": {

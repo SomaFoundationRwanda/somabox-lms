@@ -206,9 +206,7 @@ export default {
         "genders": {
             "male": "Mwanaume",
             "female": "Mwanamke",
-            "other": "Nyingine",
-            "non_binary": "Si mwanaume wala mwanamke",
-            "prefer_not_to_say": "Sipendi kusema"
+            "other": "Nyingine"
         },
         "access": {
             "none": "Hakuna",

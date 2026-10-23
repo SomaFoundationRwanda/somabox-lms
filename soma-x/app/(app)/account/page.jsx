@@ -93,7 +93,7 @@ export default function AccountPage() {
     // Location isn't edited here: everyone on the box is placed at the school's location
     // (set by the admin on the School page), shown read-only below.
     const [demoForm, setDemoForm] = useState({
-        gender: "prefer_not_to_say",
+        gender: "",
         disabilityStatus: "none"
     });
 
@@ -112,14 +112,14 @@ export default function AccountPage() {
                     fullName: data.full_name || "",
                     learnerCode: data.learner_code || "",
                     schoolName: data.school?.name || data.school_name || "",
-                    gender: data.gender || "prefer_not_to_say",
+                    gender: data.gender || "",
                     province: data.school?.province || data.region_province || "Not Specified",
                     district: data.school?.district || data.region_district || "Not Specified",
                     isRural: data.school?.isRural != null ? data.school.isRural === true : data.is_rural === 1,
                     disability: data.disability_status || "none"
                 });
                 setDemoForm({
-                    gender: data.gender || "prefer_not_to_say",
+                    gender: data.gender || "",
                     disabilityStatus: data.disability_status || "none"
                 });
             } catch (err) {
@@ -173,7 +173,7 @@ export default function AccountPage() {
     const roleLabel  = currentRole ? (t(`role.${currentRole}`) || currentRole.charAt(0).toUpperCase() + currentRole.slice(1)) : "";
     // Stored placeholders and codes, shown in the UI language.
     const placeName  = (v) => (!v || v === "Not Specified" ? t("learner.account.notSpecified") : v);
-    const genderName = (g) => t(`learner.account.genders.${g || "prefer_not_to_say"}`) || String(g).replace("_", " ");
+    const genderName = (g) => (g ? t(`learner.account.genders.${g}`) || String(g) : t("learner.account.notSpecified"));
     const accessName = (d) => t(`learner.account.access.${d || "none"}`) || String(d);
 
     return (
@@ -365,10 +365,10 @@ export default function AccountPage() {
                                             onChange={e => setDemoForm({ ...demoForm, gender: e.target.value })}
                                             className="w-full h-10 px-3 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 bg-white outline-none focus:border-accent-dark"
                                         >
+                                            <option value="" disabled>{t("learner.profileSetup.chooseOne")}</option>
                                             <option value="male">{t("learner.account.genders.male")}</option>
                                             <option value="female">{t("learner.account.genders.female")}</option>
-                                            <option value="non_binary">{t("learner.account.genders.non_binary")}</option>
-                                            <option value="prefer_not_to_say">{t("learner.account.genders.prefer_not_to_say")}</option>
+                                            <option value="other">{t("learner.account.genders.other")}</option>
                                         </select>
                                     </div>
 

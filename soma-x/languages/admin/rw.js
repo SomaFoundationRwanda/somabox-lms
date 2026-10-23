@@ -437,8 +437,7 @@ export default {
         "genders": {
             "male": "Gabo",
             "female": "Gore",
-            "other": "Ikindi",
-            "non_binary": "Ntabwo ari gabo cyangwa gore"
+            "other": "Ikindi"
         },
         "preferredLanguage": "Ururimi akunda",
         "academic": "Amashuri n'aho atuye",
@@ -571,7 +570,6 @@ export default {
         "editTitle": "Hindura umukoresha",
         "addTitle": "Ongeraho umukoresha",
         "gender": "Igitsina",
-        "preferNot": "Nahisemo kutabivuga",
         "disability": "Ubumuga / ibyo akeneye byihariye",
         "visual": "Ubumuga bwo kutabona",
         "hearing": "Ubumuga bwo kutumva",

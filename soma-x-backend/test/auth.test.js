@@ -421,6 +421,17 @@ test("signing out everywhere else keeps only this session", async () => {
   assert.equal((await ctx.api("GET", "/auth/me", { token: here })).status, 200);
 });
 
+test("gender is male, female or other: 'prefer not to say' isn't an answer, and the reminder follows the profile form", async () => {
+  const token = ctx.tokens.outsider;
+  const finish = (gender) => ctx.api("PATCH", "/users/profile/update", { token, body: { gender, disabilityStatus: "none", gradeLevel: "Primary 4", completeProfile: true } });
+  for (const gender of ["prefer_not_to_say", "non_binary", ""]) assert.equal((await finish(gender)).status, 400, gender);
+  const before = await ctx.api("GET", "/notifications", { token });
+  assert.equal(before.body.isProfileIncomplete, true);
+  assert.equal((await finish("other")).status, 200);
+  assert.equal((await ctx.api("GET", "/users/profile/view", { token })).body.isProfileComplete, true);
+  assert.equal((await ctx.api("GET", "/notifications", { token })).body.isProfileIncomplete, false);
+});
+
 test("admins cannot lock themselves out", async () => {
   const me = await ctx.db.prepare("SELECT id FROM users WHERE email = ?").get(USERS.admin.email);
   const token = ctx.tokens.admin;
