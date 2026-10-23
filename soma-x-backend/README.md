@@ -13,7 +13,7 @@ From the repository root (one pnpm workspace installs both apps):
 
 ```bash
 pnpm install
-cp soma-x-backend/.env.example soma-x-backend/.env   # then fill in the values
+cp .env.example .env                                 # one .env for every app; fill it in
 createdb -h localhost -U postgres somabox_lms        # once; name must match PGDATABASE
 pnpm setup:db                                        # creates/updates tables
 ```
@@ -42,7 +42,7 @@ the **Sync** admin page (default: anonymous IDs only, no names, emails, or writt
 The cloud keeps what it receives indefinitely (school decision, 2026-10-08); the receiver must
 not expire records. The box's own usage-log retention setting only applies on the box.
 
-Pick a destination in `.env` (with neither, records wait on the box until one is set):
+Pick a destination in the root `.env` (with neither, records wait on the box until one is set):
 
 ```bash
 # Option 1: any HTTPS endpoint that accepts POST { boxId, records } (idempotent per record syncId)
@@ -61,7 +61,7 @@ Full box installation, including this step: [docs/ops-box-setup.md](../docs/ops-
 serves the cloud content catalogue. Each box has its own key:
 
 1. On the VPS: `npm run device:create -- --name "GS Kigali box 1"`. It prints the key once.
-2. On the box, in `.env`:
+2. On the box, in the root `.env`:
    ```bash
    CLOUD_URL=https://cloud.somaglobaltalent.org
    SYNC_URL=https://cloud.somaglobaltalent.org/api/v1/box-sync

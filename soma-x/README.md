@@ -8,7 +8,7 @@ In short, from the repository root:
 
 ```bash
 pnpm install
-cp soma-x/.env.example soma-x/.env    # NEXT_PUBLIC_SERVER_URL=http://localhost:3000
+cp .env.example .env                  # one .env for every app (see the root README)
 pnpm dev                              # backend on :3000, frontend on :3001
 ```
 
@@ -17,3 +17,7 @@ To run only the frontend (the backend must already be running):
 ```bash
 pnpm --filter soma-x run dev
 ```
+
+The backend address the frontend calls is built in at build time from the root `.env`
+(`PUBLIC_BACKEND_URL`, or `http://localhost:<BACKEND_PORT>`), in `next.config.mjs`. Only public
+values reach the browser; the rest of the `.env` stays on the server.

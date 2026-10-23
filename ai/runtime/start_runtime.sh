@@ -13,7 +13,8 @@ fi
 # Extract values from ai/config.yaml using node inline. Write plain strings: console.log of a
 # number is colorized when FORCE_COLOR is set (e.g. under concurrently/pnpm dev).
 HOST=$(node -e "const fs = require('fs'), yaml = require('$AI_DIR/gateway/node_modules/js-yaml'); const c = yaml.load(fs.readFileSync('$CONFIG_FILE')); process.stdout.write(String(c.runtime.host || '127.0.0.1'));" 2>/dev/null || echo "127.0.0.1")
-PORT=$(node -e "const fs = require('fs'), yaml = require('$AI_DIR/gateway/node_modules/js-yaml'); const c = yaml.load(fs.readFileSync('$CONFIG_FILE')); process.stdout.write(String(c.runtime.port || 8080));" 2>/dev/null || echo "8080")
+# AI_RUNTIME_PORT (the repo's .env) wins over config.yaml.
+PORT=${AI_RUNTIME_PORT:-$(node -e "const fs = require('fs'), yaml = require('$AI_DIR/gateway/node_modules/js-yaml'); const c = yaml.load(fs.readFileSync('$CONFIG_FILE')); process.stdout.write(String(c.runtime.port || 8080));" 2>/dev/null || echo "8080")}
 THREADS=$(node -e "const fs = require('fs'), yaml = require('$AI_DIR/gateway/node_modules/js-yaml'); const c = yaml.load(fs.readFileSync('$CONFIG_FILE')); process.stdout.write(String(c.runtime.threads || 6));" 2>/dev/null || echo "6")
 CTX_SIZE=$(node -e "const fs = require('fs'), yaml = require('$AI_DIR/gateway/node_modules/js-yaml'); const c = yaml.load(fs.readFileSync('$CONFIG_FILE')); process.stdout.write(String(c.runtime.context_size || 4096));" 2>/dev/null || echo "4096")
 MODEL_FILE=$(node -e "const fs = require('fs'), yaml = require('$AI_DIR/gateway/node_modules/js-yaml'); const c = yaml.load(fs.readFileSync('$CONFIG_FILE')); process.stdout.write(String(c.model.file));" 2>/dev/null || echo "qwen2.5-7b-instruct-q4_k_m.gguf")

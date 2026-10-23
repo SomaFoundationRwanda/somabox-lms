@@ -27,16 +27,25 @@ pnpm install
 Use pnpm only; there is no npm lockfile. `pnpm-lock.yaml` records every platform's native
 packages, so the same lockfile installs on Windows, macOS and Linux.
 
-### 2. Create the env files
+### 2. Create the .env
+Every app (backend, frontend, AI) reads one `.env` at the repository root:
+
 ```bash
-cp soma-x-backend/.env.example soma-x-backend/.env
-cp soma-x/.env.example soma-x/.env
+cp .env.example .env
 ```
 
-The defaults work locally: the backend connects to `postgres:postgres@localhost:5432/somabox_lms`
-and the frontend calls `http://localhost:3000`. Change `PGUSER` / `PGPASSWORD` in
-`soma-x-backend/.env` if your PostgreSQL login differs. Cloud sync stays off until `SYNC_URL`
-is set; see [soma-x-backend/README.md](soma-x-backend/README.md).
+The defaults work locally: backend on :3000, frontend on :3001 (which calls the backend), and
+the database at `postgres:postgres@localhost:5432/somabox_lms`. Change the `PG*` settings if
+your PostgreSQL login differs, and any `*_PORT` if something else uses that port. Cloud sync
+stays off until `SYNC_URL` is set; see [soma-x-backend/README.md](soma-x-backend/README.md).
+
+Every setting is checked when anything starts (`shared/config`); a wrong value or a port that's
+already taken stops it with a message naming the setting. A `.env.local` beside `.env`
+overrides it on one machine.
+
+**Had per-app `.env` files before?** (`soma-x-backend/.env`, `soma-x/.env`) Run
+`pnpm env:migrate` once: it moves their settings into the root `.env` and renames the old
+files to `.env.migrated`.
 
 ### 3. Create the database and tables
 ```bash

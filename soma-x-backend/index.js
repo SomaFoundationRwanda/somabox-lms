@@ -26,7 +26,7 @@ app.listen(config.port)
   .on('listening', () => console.log(`Server running on port ${config.port}`))
   .on('error', err => {
       if (err.code === 'EADDRINUSE') {
-          console.error(`Port ${config.port} is already in use`);
+          console.error(`Port ${config.port} is already in use. Pick another with BACKEND_PORT in the repo's .env (or PORT in soma-x-backend/.env).`);
           process.exit(1);
       } else {
           throw err;

@@ -38,3 +38,6 @@ e2e/playwright-report/
 
 # pnpm only (see README): an npm lockfile here would be a mistake
 package-lock.json
+
+# Old per-app settings, kept by `pnpm env:migrate` until checked
+*.env.migrated

@@ -2,8 +2,8 @@
 // fake AI gateway, so no model is needed) on :3100, and a production build of the frontend on
 // :3101. Playwright starts this as its webServer and stops it at the end of the run.
 //
-// Runs from e2e/ so the backend's dotenv finds no .env: the developer's sync settings, cloud keys
-// and database never reach the tests.
+// Reads no .env file (SOMABOX_ENV_FILE=none, for every process it starts): the developer's sync
+// settings, cloud keys and database never reach the tests.
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import { createRequire } from "node:module";
@@ -42,6 +42,8 @@ function run(cmd, args, opts) {
 await adminQuery(`DROP DATABASE IF EXISTS ${dbName} WITH (FORCE)`);
 await adminQuery(`CREATE DATABASE ${dbName}`);
 
+process.env.SOMABOX_ENV_FILE = "none";
+
 const auth = password ? `${encodeURIComponent(user)}:${encodeURIComponent(password)}` : encodeURIComponent(user);
 process.env.DATABASE_URL = `postgresql://${auth}@${host}:${port}/${dbName}`;
 process.env.PORT = String(BACKEND_PORT);
@@ -72,7 +74,8 @@ startExploreIndexer();
 await new Promise((resolve) => createApp({ logRequests: false }).listen(BACKEND_PORT, resolve));
 console.log(`[e2e] backend on :${BACKEND_PORT} (database ${dbName}, fake AI gateway ${gateway.url})`);
 
-const env = { ...process.env, NEXT_DIST_DIR: DIST_DIR, NEXT_PUBLIC_SERVER_URL: `http://localhost:${BACKEND_PORT}` };
+// soma-x/next.config.mjs builds this address into the frontend.
+const env = { ...process.env, NEXT_DIST_DIR: DIST_DIR, BACKEND_PORT: String(BACKEND_PORT), FRONTEND_PORT: String(FRONTEND_PORT), PUBLIC_BACKEND_URL: `http://localhost:${BACKEND_PORT}` };
 const next = path.join(FRONTEND, "node_modules/.bin/next");
 // E2E_SKIP_BUILD=1 reuses the last build (fine when only tests changed, not the frontend).
 if (!(process.env.E2E_SKIP_BUILD && fs.existsSync(path.join(FRONTEND, DIST_DIR, "BUILD_ID")))) {

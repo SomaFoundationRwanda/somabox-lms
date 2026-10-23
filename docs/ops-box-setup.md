@@ -64,21 +64,19 @@ pnpm install --frozen-lockfile   # backend, frontend, AI gateway and pm2, exactl
 
 ## 5. Configure
 
-**Backend:** `cp soma-x-backend/.env.example soma-x-backend/.env`, then set:
+Everything is set in one file, `.env` at the repository root: `cp .env.example .env`, then set:
 
 | Setting | Value |
 |---|---|
 | `PGUSER` / `PGPASSWORD` / `PGDATABASE` | `somabox` / your password / `somabox_lms` |
 | `SCHOOL_TIMEZONE` | `Africa/Kigali` |
 | `BACKUP_DIR` | a different disk, ideally a USB drive (see `docs/ops-backup-restore.md`) |
+| `PUBLIC_BACKEND_URL` | the address learners' devices use to reach the box's backend, e.g. its LAN address `http://10.0.0.1:3000` |
+| `BACKEND_PORT`, `FRONTEND_PORT` | only if 3000 / 3001 are taken on this box |
 | `CLOUD_URL`, `SYNC_URL`, `SYNC_TOKEN` | set in step 8 |
 
-**Frontend:** create `soma-x/.env.local` with the address learners' devices use to reach the
-box's backend, for example its LAN address:
-
-```bash
-NEXT_PUBLIC_SERVER_URL=http://10.0.0.1:3000
-```
+Every setting is checked at start-up; a wrong value stops the backend, the build or pm2 with a
+message naming it.
 
 This is fixed when the frontend is built, so rebuild after changing it.
 
@@ -117,7 +115,7 @@ More detail is in `scripts/linux/README.md`.
    ```bash
    cd ~/soma-x-server && npm run device:create -- --name "GS Kigali box 1" --location "Kigali, Gasabo"
    ```
-2. **On the box**, in `soma-x-backend/.env`:
+2. **On the box**, in the root `.env`:
    ```bash
    CLOUD_URL=https://cloud.somaglobaltalent.org
    SYNC_URL=https://cloud.somaglobaltalent.org/api/v1/box-sync
@@ -174,9 +172,9 @@ pnpm exec pm2 restart all                       # migrations apply on start
 
 | Symptom | Check |
 |---|---|
-| Sync page: "not set up" | `SYNC_URL` / `SYNC_TOKEN` missing in `soma-x-backend/.env`; restart the backend |
+| Sync page: "not set up" | `SYNC_URL` / `SYNC_TOKEN` missing in the root `.env`; restart the backend |
 | "Couldn't reach the cloud" while the cable is in | The router or laptop has no internet, or it's off. Run `curl -I https://cloud.somaglobaltalent.org` on the box |
 | "Cloud answered 401" | Wrong key; register again or rotate the key on the VPS. 403 means the box was revoked |
 | Content list says the cloud is unreachable | `CLOUD_URL`, and the same internet checks |
 | Wrong dates in reports | `timedatectl` (step 1) |
-| Learners can't open the site | `NEXT_PUBLIC_SERVER_URL` must be the box's LAN address; rebuild after changing it |
+| Learners can't open the site | `PUBLIC_BACKEND_URL` in `.env` must be the box's LAN address; `pnpm build` after changing it |

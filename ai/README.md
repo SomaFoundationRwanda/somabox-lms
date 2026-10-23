@@ -5,7 +5,7 @@ This directory contains the complete, isolated offline AI Assistant system for *
 ## Directory Structure
 ```
 ai/
-├── config.yaml          # Model file, ports, concurrency, max tokens configuration
+├── config.yaml          # Model file, concurrency, max tokens (ports: the repo's .env wins)
 ├── models/              # Local GGUF model files (.gitignore ignored)
 ├── data/                # SQLite feedback database (.gitignore ignored)
 ├── prompts/             # Chat mode templates (lesson_plan, quiz, explain, adapt, rubric)
@@ -43,6 +43,13 @@ pnpm install        # at the repo root; the gateway is part of the pnpm workspac
    ```bash
    pnpm ai:gateway
    ```
+
+---
+
+**Ports:** `AI_GATEWAY_PORT` (default 5000) and `AI_RUNTIME_PORT` (default 8080) in the repo's root
+`.env` win over the ports in `config.yaml`; the backend reaches the gateway on `AI_GATEWAY_PORT`.
+`pnpm dev:all` and pm2 pass them to both processes. On a Mac, port 5000 is taken by AirPlay, so
+set `AI_GATEWAY_PORT` to something else there.
 
 ---
 

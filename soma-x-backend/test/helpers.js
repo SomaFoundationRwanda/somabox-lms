@@ -30,7 +30,7 @@ export async function startTestServer() {
   await admin.query(`CREATE DATABASE ${dbName}`);
   await admin.end();
 
-  // Must be set before db-manager is imported; dotenv does not override existing vars.
+  // Must be set before db-manager is imported. Under node --test no .env file is read..
   const auth = password ? `${encodeURIComponent(user)}:${encodeURIComponent(password)}` : encodeURIComponent(user);
   process.env.DATABASE_URL = `postgresql://${auth}@${host}:${port}/${dbName}`;
   process.env.PGMAXCONNECTIONS = "5";

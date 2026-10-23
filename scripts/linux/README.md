@@ -39,5 +39,5 @@ sudo ./somabox-device-info.sh          # writes /etc/somabox/device.json
 can see itself (hostname, MAC addresses, machine id), with no serial number.
 
 **Settings:**
-- `DEVICE_INFO_PATH` (backend `.env`): where the backend reads the file. The default is
+- `DEVICE_INFO_PATH` (the root `.env`): where the backend reads the file. The default is
   `/etc/somabox/device.json`.

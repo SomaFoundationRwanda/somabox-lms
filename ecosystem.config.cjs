@@ -1,3 +1,9 @@
+// Settings come from the repository's single .env (see .env.example), checked by
+// @somabox/config; pm2 refuses to start with a clear message if one is wrong.
+const { readConfig } = require('@somabox/config');
+const { ports } = readConfig();
+const port = (name) => String(ports[name]);
+
 module.exports = {
   apps: [
     {
@@ -8,11 +14,13 @@ module.exports = {
       exec_mode: 'fork',
       env: {
         NODE_ENV: 'production',
-        PORT: 3000
+        PORT: port('BACKEND_PORT'),
+        AI_GATEWAY_PORT: port('AI_GATEWAY_PORT')
       },
       env_development: {
         NODE_ENV: 'development',
-        PORT: 3000
+        PORT: port('BACKEND_PORT'),
+        AI_GATEWAY_PORT: port('AI_GATEWAY_PORT')
       },
       max_memory_restart: '1G',
       error_file: './logs/backend-error.log',
@@ -23,16 +31,16 @@ module.exports = {
       name: 'soma-x-frontend',
       cwd: './soma-x',
       script: 'node_modules/next/dist/bin/next',
-      args: 'start -p 3001',
+      args: `start -p ${port('FRONTEND_PORT')}`,
       instances: 1,
       exec_mode: 'fork',
       env: {
         NODE_ENV: 'production',
-        PORT: 3001
+        PORT: port('FRONTEND_PORT')
       },
       env_development: {
         NODE_ENV: 'development',
-        PORT: 3001
+        PORT: port('FRONTEND_PORT')
       },
       max_memory_restart: '1536M',
       error_file: './logs/frontend-error.log',
@@ -40,11 +48,12 @@ module.exports = {
       time: true
     },
     {
-      // Offline AI model (llama.cpp server). Reads host/port/model from ai/config.yaml.
+      // Offline AI model (llama.cpp server). Reads host/model from ai/config.yaml; port from .env.
       name: 'soma-x-ai-runtime',
       cwd: './ai',
       script: 'runtime/start_runtime.sh',
       interpreter: 'bash',
+      env: { AI_RUNTIME_PORT: port('AI_RUNTIME_PORT') },
       instances: 1,
       exec_mode: 'fork',
       autorestart: true,
@@ -54,14 +63,14 @@ module.exports = {
       time: true
     },
     {
-      // AI gateway in front of the model; the backend reaches it via AI_GATEWAY_URL.
+      // AI gateway in front of the model; the backend reaches it on AI_GATEWAY_PORT.
       name: 'soma-x-ai-gateway',
       cwd: './ai/gateway',
       script: 'index.js',
       instances: 1,
       exec_mode: 'fork',
-      env: { NODE_ENV: 'production' },
-      env_development: { NODE_ENV: 'development' },
+      env: { NODE_ENV: 'production', AI_GATEWAY_PORT: port('AI_GATEWAY_PORT'), AI_RUNTIME_PORT: port('AI_RUNTIME_PORT') },
+      env_development: { NODE_ENV: 'development', AI_GATEWAY_PORT: port('AI_GATEWAY_PORT'), AI_RUNTIME_PORT: port('AI_RUNTIME_PORT') },
       restart_delay: 3000,
       error_file: './logs/ai-gateway-error.log',
       out_file: './logs/ai-gateway-out.log',

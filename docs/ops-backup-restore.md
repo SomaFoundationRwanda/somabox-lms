@@ -16,7 +16,7 @@ It comes with the box image and is reinstalled with it.
 ## Nightly backups
 - The pm2 config (`ecosystem.config.cjs`) runs `soma-x-backup` at 02:30 every night and keeps the
   newest 14 backups. pm2 also runs it once when it starts.
-- **Set `BACKUP_DIR`** in `soma-x-backend/.env` to a disk other than the one the database lives on,
+- **Set `BACKUP_DIR`** in the root `.env` to a disk other than the one the database lives on,
   ideally a USB drive that can be taken away. Otherwise a failed disk loses the database and its
   backups together.
 - Check that backups are being made: `pm2 logs soma-x-backup`, or list `$BACKUP_DIR`.
@@ -29,7 +29,7 @@ pnpm backup --out /media/usb/somabox-backups --keep 14
 
 ## Replacing a broken box
 1. Install the new box from the standard image: PostgreSQL, the repo, shipped content and
-   `.env`. Use the same `.env` as the old box if you have it; it holds the database settings and
+   the root `.env`. Use the same `.env` as the old box if you have it; it holds the database settings and
    the sync key path.
 2. Create an **empty** database (for example `createdb somabox_lms`). Don't start the server
    yet, because starting it would create tables.
