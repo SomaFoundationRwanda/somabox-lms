@@ -48,7 +48,7 @@ pnpm setup:db
 
 ### 4. Run
 ```bash
-pnpm dev:app      # backend + frontend
+pnpm dev          # backend + frontend
 ```
 
 - Frontend: http://localhost:3001
@@ -61,7 +61,7 @@ Only needed when working on the teacher AI features. Full details in [ai/README.
 ```bash
 ./ai/scripts/download_model.sh       # GGUF model into ai/models/ (several GB)
 ./ai/runtime/install_runtime.sh
-pnpm dev                             # backend + frontend + AI runtime + AI gateway
+pnpm dev:all                         # backend + frontend + AI runtime + AI gateway
 ```
 
 ## Tests

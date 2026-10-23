@@ -9,7 +9,7 @@ In short, from the repository root:
 ```bash
 pnpm install
 cp soma-x/.env.example soma-x/.env    # NEXT_PUBLIC_SERVER_URL=http://localhost:3000
-pnpm dev:app                          # backend on :3000, frontend on :3001
+pnpm dev                              # backend on :3000, frontend on :3001
 ```
 
 To run only the frontend (the backend must already be running):
