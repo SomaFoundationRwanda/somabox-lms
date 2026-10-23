@@ -13,6 +13,9 @@ export default {
     },
     "login": {
         "invalidCredentials": "Identifiants incorrects. Veuillez réessayer.",
+        "tooManyAttempts": "Trop de tentatives. Attendez une minute et réessayez.",
+        "sharedDevice": "Cet appareil est partagé",
+        "sharedDeviceHelp": "Vous serez déconnecté à la fermeture du navigateur, ou après 30 minutes d'inactivité.",
         "mustChangePassword": "Veuillez choisir un nouveau mot de passe avant de continuer.",
         "welcomeToast": "Bon retour, {name} ! Connexion réussie.",
         "userFallback": "Utilisateur",

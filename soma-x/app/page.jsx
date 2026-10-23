@@ -5,6 +5,7 @@ import { Compass, Eye, EyeOff, Loader2 } from "lucide-react";
 import LanguageSwitcher from "@/components/global/LanguageSwitcher";
 import { fill } from "@/lib/fill";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import Link from "next/link";
 import { AuthPanelLogo } from "@/components/global/SchoolLogo";
 import { useToast } from "@/context/ToastContext";
@@ -18,6 +19,7 @@ const AuthComp = () => {
     const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL;
 
     const [formData, setFormData] = useState({ email: '', password: '' });
+    const [sharedDevice, setSharedDevice] = useState(false);
     const [loginError, setLoginError] = useState('');
     const [loading, setLoading] = useState(false);
     // Where a guest was going when they were asked to sign in (?next=, or remembered).
@@ -39,16 +41,18 @@ const AuthComp = () => {
             const response = await fetch(`${SERVER_URL}/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: formData.email.trim(), password: formData.password }),
+                body: JSON.stringify({ email: formData.email.trim(), password: formData.password, sharedDevice }),
             });
             const data = await response.json();
             if (!response.ok) {
-                const msg = data.message || t('shell.login.invalidCredentials');
+                const msg = response.status === 429
+                    ? t('shell.login.tooManyAttempts')
+                    : data.message || t('shell.login.invalidCredentials');
                 throw new Error(msg);
             }
 
             const userRole = String(data.user?.role || 'scholar').toLowerCase();
-            setSessionToken(data.token);
+            setSessionToken(data.token, { sharedDevice: data.sharedDevice === true });
             // The login response set the media cookie (this request used credentials:
             // "include"); renew it once more so videos and books work straight away.
             await renewMediaSession(SERVER_URL);
@@ -185,6 +189,20 @@ const AuthComp = () => {
                                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                             </button>
                         </div>
+                    </div>
+
+                    {/* Shared device: the sign-in ends when the browser closes */}
+                    <div className="flex items-start gap-2.5">
+                        <Checkbox
+                            id="auth-shared-device"
+                            checked={sharedDevice}
+                            onCheckedChange={(v) => setSharedDevice(v === true)}
+                            className="mt-0.5"
+                        />
+                        <label htmlFor="auth-shared-device" className="text-[13px] text-slate-700 leading-snug cursor-pointer">
+                            <span className="font-bold text-slate-800">{t("shell.login.sharedDevice")}</span>
+                            <span className="block text-slate-600">{t("shell.login.sharedDeviceHelp")}</span>
+                        </label>
                     </div>
 
                     {/* Inline error */}

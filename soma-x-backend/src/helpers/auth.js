@@ -1,9 +1,12 @@
 import crypto from 'crypto';
 import { serverDb } from './db-manager.js';
 
-// Sessions end after 7 days, or after 12 hours without any request (shared school devices).
+// Sessions end after 7 days, or after 12 hours without any request. One started on a shared
+// device (a family phone, a classroom tablet) ends after 12 hours, or 30 minutes without any request.
 const SESSION_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const SESSION_IDLE_MS = 12 * 60 * 60 * 1000;
+const SHARED_SESSION_MAX_AGE_MS = 12 * 60 * 60 * 1000;
+const SHARED_SESSION_IDLE_MS = 30 * 60 * 1000;
 // Avoid a write on every request: refresh last_seen_at at most once a minute.
 const LAST_SEEN_RESOLUTION_MS = 60 * 1000;
 
@@ -17,12 +20,13 @@ function readBearerToken(req) {
     return match ? match[1].trim() : null;
 }
 
-export async function createSession(userId, userAgent) {
+export async function createSession(userId, userAgent, { sharedDevice = false } = {}) {
     const token = crypto.randomBytes(32).toString('base64url');
+    const maxAge = sharedDevice ? SHARED_SESSION_MAX_AGE_MS : SESSION_MAX_AGE_MS;
     await serverDb.prepare(`
-        INSERT INTO sessions (token_hash, user_id, expires_at, user_agent)
-        VALUES (?, ?, ?, ?)
-    `).run(hashToken(token), userId, new Date(Date.now() + SESSION_MAX_AGE_MS).toISOString(), userAgent || null);
+        INSERT INTO sessions (token_hash, user_id, expires_at, user_agent, shared_device)
+        VALUES (?, ?, ?, ?, ?)
+    `).run(hashToken(token), userId, new Date(Date.now() + maxAge).toISOString(), userAgent || null, sharedDevice ? 1 : 0);
     return token;
 }
 
@@ -50,7 +54,7 @@ export async function authenticate(req, res, next) {
     if (!token) return next();
     try {
         const row = await serverDb.prepare(`
-            SELECT s.id AS session_id, s.last_seen_at, s.expires_at,
+            SELECT s.id AS session_id, s.last_seen_at, s.expires_at, s.shared_device,
                    u.id, u.email, u.full_name, u.role, u.is_active, u.must_change_password
             FROM sessions s
             JOIN users u ON u.id = s.user_id
@@ -60,7 +64,7 @@ export async function authenticate(req, res, next) {
 
         const now = Date.now();
         const lastSeen = new Date(row.last_seen_at).getTime();
-        if (new Date(row.expires_at).getTime() <= now || now - lastSeen > SESSION_IDLE_MS || Number(row.is_active) === 0) {
+        if (new Date(row.expires_at).getTime() <= now || now - lastSeen > (Number(row.shared_device) === 1 ? SHARED_SESSION_IDLE_MS : SESSION_IDLE_MS) || Number(row.is_active) === 0) {
             return next();
         }
         if (now - lastSeen > LAST_SEEN_RESOLUTION_MS) {
@@ -73,6 +77,7 @@ export async function authenticate(req, res, next) {
             fullName: row.full_name,
             role: row.role,
             mustChangePassword: Number(row.must_change_password) === 1,
+            sharedDevice: Number(row.shared_device) === 1,
         };
         req.sessionToken = token;
         next();

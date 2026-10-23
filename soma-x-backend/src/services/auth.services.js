@@ -4,8 +4,11 @@ import { serverDb } from '../helpers/db-manager.js';
 import { createSession, revokeSession } from '../helpers/auth.js';
 import { setMediaCookie, clearMediaCookie } from '../helpers/media.js';
 import { assignLearnerCode, applySchoolToLearner } from './school.js';
+import { loginRetryAfter, recordLoginFailure, clearLoginFailures } from '../helpers/login-throttle.js';
 
 const router = express.Router();
+
+const NO_ACCOUNT_HASH = bcrypt.hashSync('no account has this password', 12);
 
 router.post('/login', async (req, res) => {
     try {
@@ -17,28 +20,38 @@ router.post('/login', async (req, res) => {
             return res.status(400).json({ message: 'Email (or learner code) and password required' });
         }
         
+        const retryAfter = loginRetryAfter(email, req.ip);
+        if (retryAfter) {
+            res.set('Retry-After', String(retryAfter));
+            return res.status(429).json({ message: 'Too many attempts. Wait a minute and try again.', code: 'TOO_MANY_ATTEMPTS', retryAfter });
+        }
+
         const row = email.includes('@')
             ? await serverDb.prepare('SELECT * FROM users WHERE LOWER(email) = LOWER(?)').get(email)
             : await serverDb.prepare('SELECT * FROM users WHERE UPPER(learner_code) = UPPER(?)').get(email);
-        
-        if (!row) {
+
+        // Compare against a stand-in hash when there's no such account, so the answer takes
+        // as long either way and doesn't tell whether the account exists.
+        const match = await bcrypt.compare(String(password), row?.password_hash || NO_ACCOUNT_HASH);
+        if (!row || !match) {
+            recordLoginFailure(email, req.ip);
             return res.status(401).json({ message: 'Invalid email, learner code, or password' });
         }
+        clearLoginFailures(email);
 
-        if (row.is_active === 0) {
+        // Only someone who knows the password learns that the account is deactivated.
+        if (Number(row.is_active) === 0) {
             return res.status(403).json({ message: 'Your account has been deactivated. Please contact an administrator.' });
         }
-        
-        const match = await bcrypt.compare(password, row.password_hash);
-        if (!match) {
-            return res.status(401).json({ message: 'Invalid email, learner code, or password' });
-        }
 
-        const token = await createSession(row.id, req.headers['user-agent']);
-        await setMediaCookie(res, row.id);
+        // On a shared device (a family phone, a classroom tablet) the session ends sooner.
+        const sharedDevice = req.body.sharedDevice === true;
+        const token = await createSession(row.id, req.headers['user-agent'], { sharedDevice });
+        await setMediaCookie(res, row.id, { sharedDevice });
 
         return res.json({
             message: 'Login successful',
+            sharedDevice,
             token,
             user: {
                 id: row.id,
@@ -155,7 +168,7 @@ router.post('/media-session', async (req, res) => {
         clearMediaCookie(res);
         return res.status(401).json({ message: 'Please log in to continue' });
     }
-    await setMediaCookie(res, req.user.id);
+    await setMediaCookie(res, req.user.id, { sharedDevice: req.user.sharedDevice });
     return res.json({ ok: true });
 });
 

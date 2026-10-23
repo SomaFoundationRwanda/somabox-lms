@@ -13,6 +13,9 @@ export default {
     },
     "login": {
         "invalidCredentials": "Datos de acceso incorrectos. Inténtalo de nuevo.",
+        "tooManyAttempts": "Demasiados intentos. Espera un minuto e inténtalo de nuevo.",
+        "sharedDevice": "Este es un dispositivo compartido",
+        "sharedDeviceHelp": "Se cerrará tu sesión al cerrar el navegador o tras 30 minutos sin uso.",
         "mustChangePassword": "Crea una contraseña nueva antes de continuar.",
         "welcomeToast": "¡Bienvenido de nuevo, {name}! Has iniciado sesión.",
         "userFallback": "Usuario",

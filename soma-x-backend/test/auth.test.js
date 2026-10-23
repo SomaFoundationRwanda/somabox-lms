@@ -328,6 +328,68 @@ test("role changes and deactivation apply to existing sessions immediately", asy
   assert.equal((await ctx.api("PATCH", `/users/${user.id}/status`, { token: ctx.tokens.admin, body: { isActive: false } })).status, 200);
   assert.equal((await ctx.api("GET", "/auth/me", { token: token2 })).status, 401);
   assert.equal((await ctx.api("POST", "/auth/login", { body: { email, password: PASSWORD } })).status, 403);
+  // Without the password, a deactivated account looks like any wrong sign-in.
+  const guess = await ctx.api("POST", "/auth/login", { body: { email, password: "not-the-password" } });
+  assert.equal(guess.status, 401);
+  assert.equal(guess.body.message, "Invalid email, learner code, or password");
+});
+
+test("four failed sign-ins a minute per account, then 429 even with the right password", async () => {
+  const { resetLoginThrottle } = await import("../src/helpers/login-throttle.js");
+  resetLoginThrottle();
+  const email = USERS.otherTeacher.email;
+  for (let i = 0; i < 4; i++) {
+    assert.equal((await ctx.api("POST", "/auth/login", { body: { email, password: "wrong" } })).status, 401);
+  }
+  const blocked = await ctx.api("POST", "/auth/login", { body: { email: email.toUpperCase(), password: PASSWORD } });
+  assert.equal(blocked.status, 429);
+  assert.equal(blocked.body.code, "TOO_MANY_ATTEMPTS");
+  assert.ok(blocked.body.retryAfter > 0 && blocked.body.retryAfter <= 60);
+  // An unknown account gives the same answers, and other accounts aren't affected.
+  for (let i = 0; i < 4; i++) {
+    assert.equal((await ctx.api("POST", "/auth/login", { body: { email: "nobody@test.local", password: "wrong" } })).status, 401);
+  }
+  assert.equal((await ctx.api("POST", "/auth/login", { body: { email: "nobody@test.local", password: "wrong" } })).status, 429);
+  await ctx.login(USERS.student.email);
+  resetLoginThrottle();
+  await ctx.login(email);
+});
+
+test("one device address is limited across accounts, and a correct sign-in clears the account", async () => {
+  const { resetLoginThrottle, loginRetryAfter, recordLoginFailure } = await import("../src/helpers/login-throttle.js");
+  resetLoginThrottle();
+  const now = Date.now();
+  for (let i = 0; i < 20; i++) recordLoginFailure(`person${i}@x`, "10.0.0.9", now);
+  assert.ok(loginRetryAfter("someone.new@x", "10.0.0.9", now) > 0);
+  assert.equal(loginRetryAfter("someone.new@x", "10.0.0.10", now), 0);
+  assert.equal(loginRetryAfter("someone.new@x", "10.0.0.9", now + 60 * 1000), 0, "the window is one minute");
+  resetLoginThrottle();
+
+  const email = USERS.otherTeacher.email;
+  for (let i = 0; i < 3; i++) await ctx.api("POST", "/auth/login", { body: { email, password: "wrong" } });
+  await ctx.login(email);
+  for (let i = 0; i < 3; i++) await ctx.api("POST", "/auth/login", { body: { email, password: "wrong" } });
+  await ctx.login(email);
+  resetLoginThrottle();
+});
+
+test("a shared-device session ends after 30 idle minutes; a normal one doesn't", async () => {
+  const shared = await ctx.api("POST", "/auth/login", { body: { email: USERS.otherTeacher.email, password: PASSWORD, sharedDevice: true } });
+  assert.equal(shared.status, 200);
+  assert.equal(shared.body.sharedDevice, true);
+  // Its media cookie is dropped when the browser closes too.
+  const cookieOf = async (sharedDevice) => (await fetch(`${ctx.baseUrl}/auth/login`, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: USERS.otherTeacher.email, password: PASSWORD, sharedDevice }),
+  })).headers.get("set-cookie") || "";
+  assert.doesNotMatch(await cookieOf(true), /Max-Age/i);
+  assert.match(await cookieOf(false), /Max-Age/i);
+  const normal = await ctx.login(USERS.otherTeacher.email);
+  await ctx.db.prepare("UPDATE sessions SET last_seen_at = NOW() - INTERVAL '31 minutes' WHERE user_id = (SELECT id FROM users WHERE email = ?)").run(USERS.otherTeacher.email);
+  assert.equal((await ctx.api("GET", "/auth/me", { token: shared.body.token })).status, 401);
+  assert.equal((await ctx.api("GET", "/auth/me", { token: normal })).status, 200);
+  const row = await ctx.db.prepare("SELECT expires_at, created_at FROM sessions WHERE shared_device = 1 ORDER BY id DESC LIMIT 1").get();
+  assert.ok(new Date(row.expires_at) - new Date(row.created_at) <= 12 * 60 * 60 * 1000 + 5000, "shared sessions last 12 hours at most");
 });
 
 test("admins cannot lock themselves out", async () => {

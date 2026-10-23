@@ -1,8 +1,8 @@
-// Signing in and out, signing up, learner codes, deactivated accounts and the forced password
-// change on the default admin's first login.
+// Signing in and out, signing up, learner codes, deactivated accounts, the limit on failed
+// sign-ins, shared devices, and the forced password change on the default admin's first login.
 import { test, expect } from "@playwright/test";
 import { api, uid } from "../support/api.mjs";
-import { PASSWORD, USERS } from "../support/env.mjs";
+import { API_URL, PASSWORD, USERS } from "../support/env.mjs";
 import { t } from "../support/i18n.mjs";
 import { HOME, login, skipTour } from "../support/ui.mjs";
 
@@ -47,6 +47,36 @@ test.describe("sign in", () => {
     await api("PATCH", `/users/${users[0].id}/status`, { as: "admin", body: { isActive: false } });
     await login(page, email, PASSWORD);
     await expect(page.getByText("Your account has been deactivated").first()).toBeVisible();
+    // Without the right password it's an ordinary failed sign-in: no hint the account exists.
+    await login(page, email, "not-the-password");
+    await expect(page.getByText("Invalid email, learner code, or password").first()).toBeVisible();
+    await expect(page.getByText("Your account has been deactivated")).toHaveCount(0);
+  });
+
+  test("after four wrong passwords in a minute the account waits, even with the right one", async ({ page }) => {
+    const email = `guessed-${uid()}@e2e.test`;
+    await api("POST", "/users", { as: "admin", body: { email, password: PASSWORD, role: "scholar", fullName: "Guessed Learner" } });
+    for (let i = 0; i < 4; i++) {
+      const res = await fetch(`${API_URL}/auth/login`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password: `guess-${i}` }) });
+      expect(res.status).toBe(401);
+    }
+    await login(page, email, PASSWORD);
+    await expect(page.getByText(t("shell.login.tooManyAttempts")).first()).toBeVisible();
+    await expect(page).toHaveURL(/\/$/);
+  });
+
+  test("on a shared device the sign-in is kept only until the browser closes", async ({ page }) => {
+    await page.goto("/");
+    await page.getByLabel(t("school.login.label")).fill(USERS.learner2.email);
+    await page.getByLabel(t("shell.login.password"), { exact: true }).fill(PASSWORD);
+    await page.getByRole("checkbox", { name: new RegExp(t("shell.login.sharedDevice")) }).check();
+    await page.getByRole("button", { name: t("auth.authLogin"), exact: true }).click();
+    await page.waitForURL(`**${HOME.scholar}`);
+    expect(await page.evaluate(() => localStorage.getItem("st"))).toBeNull();
+    expect(await page.evaluate(() => sessionStorage.getItem("st"))).toBeTruthy();
+    // A reload in the same tab stays signed in.
+    await page.reload();
+    await expect(page).toHaveURL(new RegExp(HOME.scholar));
   });
 });
 

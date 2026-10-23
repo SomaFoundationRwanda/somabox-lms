@@ -10,16 +10,22 @@ const LEGACY_KEYS = ["al", "un", "gh", "mcp"];
 
 export function getSessionToken() {
     try {
-        return localStorage.getItem(TOKEN_KEY);
+        return sessionStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_KEY);
     } catch {
         return null;
     }
 }
 
-export function setSessionToken(token) {
+/**
+ * Keeps the token for the next visit, or, on a shared device, only until the browser closes
+ * (sessionStorage: tabs opened from the app keep it, the next person to open the browser doesn't).
+ */
+export function setSessionToken(token, { sharedDevice = false } = {}) {
     try {
         LEGACY_KEYS.forEach((key) => localStorage.removeItem(key));
-        localStorage.setItem(TOKEN_KEY, token);
+        localStorage.removeItem(TOKEN_KEY);
+        sessionStorage.removeItem(TOKEN_KEY);
+        (sharedDevice ? sessionStorage : localStorage).setItem(TOKEN_KEY, token);
     } catch {
         // storage unavailable (private mode); the user will need to log in again
     }
@@ -28,6 +34,7 @@ export function setSessionToken(token) {
 export function clearSession() {
     try {
         localStorage.removeItem(TOKEN_KEY);
+        sessionStorage.removeItem(TOKEN_KEY);
         LEGACY_KEYS.forEach((key) => localStorage.removeItem(key));
     } catch {
         // ignore

@@ -13,6 +13,9 @@ export default {
     },
     "login": {
         "invalidCredentials": "Invalid credentials. Please try again.",
+        "tooManyAttempts": "Too many attempts. Wait a minute and try again.",
+        "sharedDevice": "This is a shared device",
+        "sharedDeviceHelp": "You'll be signed out when the browser closes, or after 30 minutes without use.",
         "mustChangePassword": "Please set a new password before continuing.",
         "welcomeToast": "Welcome back, {name}! Login successful.",
         "userFallback": "User",

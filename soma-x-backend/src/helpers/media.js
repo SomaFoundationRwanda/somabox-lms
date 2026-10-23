@@ -74,9 +74,10 @@ export function cookieValue(req, name) {
 }
 
 // Same host on another port is the same site, so SameSite=Lax cookies reach the API from the app.
-export async function setMediaCookie(res, userId) {
+// On a shared device the cookie is dropped when the browser closes (the token inside still expires).
+export async function setMediaCookie(res, userId, { sharedDevice = false } = {}) {
     res.cookie(MEDIA_COOKIE, await mediaToken(userId), {
-        httpOnly: true, sameSite: 'lax', path: '/', maxAge: MEDIA_TTL_MS,
+        httpOnly: true, sameSite: 'lax', path: '/', ...(sharedDevice ? {} : { maxAge: MEDIA_TTL_MS }),
         secure: process.env.MEDIA_COOKIE_SECURE === 'true',
     });
 }

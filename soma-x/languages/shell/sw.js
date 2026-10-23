@@ -13,6 +13,9 @@ export default {
     },
     "login": {
         "invalidCredentials": "Taarifa za kuingia si sahihi. Tafadhali jaribu tena.",
+        "tooManyAttempts": "Majaribio mengi mno. Subiri dakika moja kisha ujaribu tena.",
+        "sharedDevice": "Hiki ni kifaa cha pamoja",
+        "sharedDeviceHelp": "Utaondolewa unapofunga kivinjari, au baada ya dakika 30 bila kutumia.",
         "mustChangePassword": "Tafadhali weka nenosiri jipya kabla ya kuendelea.",
         "welcomeToast": "Karibu tena, {name}! Umeingia.",
         "userFallback": "Mtumiaji",

@@ -14,6 +14,9 @@ export default {
     },
     "login": {
         "invalidCredentials": "Imeli cyangwa ijambo ry'ibanga si byo. Ongera ugerageze.",
+        "tooManyAttempts": "Mwagerageje inshuro nyinshi. Tegereza umunota umwe wongere ugerageze.",
+        "sharedDevice": "Iki gikoresho gikoreshwa na benshi",
+        "sharedDeviceHelp": "Uzasohorwa nufunga mushakisha, cyangwa nyuma y'iminota 30 udakoresha.",
         "mustChangePassword": "Banza ushyireho ijambo ry'ibanga rishya mbere yo gukomeza.",
         "welcomeToast": "Murakaza neza, {name}! Winjiye neza.",
         "userFallback": "Umukoresha",
