@@ -63,7 +63,9 @@ pnpm dev          # backend + frontend
 
 - Frontend: http://localhost:3001
 - Backend: http://localhost:3000
-- First login: `admin@mail.com` / `admin` (you are asked to set a new password)
+- First run: the backend prints a one-time **setup code** in its output. Open the frontend: it
+  goes to the setup page, where the code, the school's name and your admin account set up the box.
+  Lost it, or locked out as admin? `pnpm setup:code` prints a new code (recovery, once admins exist).
 
 ### 5. AI assistant (optional)
 Only needed when working on the teacher AI features. Full details in [ai/README.md](ai/README.md).

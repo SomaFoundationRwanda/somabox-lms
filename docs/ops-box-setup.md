@@ -128,7 +128,11 @@ with it can send data as this box.
 
 ## 9. First sign-in and school setup
 
-1. Sign in as `admin@mail.com` / `admin`. You must set a new password immediately.
+1. Read the one-time **setup code** the backend printed when it started (`pnpm pm2:logs`, or
+   run `pnpm setup:code` on the box for a new one). Open SOMABOX in a browser: it shows the
+   setup page. Enter the code, the school's name, and the admin's name, email and password.
+   Nobody else on the network can do this without the code. If the admin is ever locked out,
+   `pnpm setup:code` on the box gives a recovery code for the same page.
 2. Open the **School** page and fill in the name, short code, province, district and
    rural/urban. Every sync sends these, so the cloud can report per school and district.
 3. Open the **Sync** page:

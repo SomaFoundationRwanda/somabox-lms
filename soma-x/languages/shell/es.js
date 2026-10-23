@@ -29,6 +29,28 @@ export default {
         "noAccount": "¿No tienes cuenta?",
         "signUp": "Regístrate"
     },
+    "setup": {
+        "title": "Configurar SOMABOX",
+        "subtitle": "Configuración única de esta caja",
+        "formTitle": "Configurar esta caja",
+        "formSubtitle": "Pon nombre a la escuela y crea su primera cuenta de administrador.",
+        "recoverTitle": "Recuperar el acceso de administrador",
+        "recoverSubtitle": "Pon una contraseña nueva a un administrador o añade otro.",
+        "code": "Código de configuración",
+        "codeHint": "Aparece en la pantalla de la caja o en sus registros al arrancar. En la caja, ejecuta pnpm setup:code para obtener uno nuevo.",
+        "schoolName": "Nombre de la escuela",
+        "schoolNameHint": "Podrás añadir la ubicación, el logotipo y los colores más tarde en la página Escuela.",
+        "adminName": "Nombre completo del administrador",
+        "adminEmail": "Correo del administrador",
+        "recoverEmailHint": "El correo de un administrador le pone una contraseña nueva; un correo nuevo añade un administrador.",
+        "password": "Contraseña (8 caracteres o más)",
+        "passwordTooShort": "La contraseña debe tener al menos 8 caracteres",
+        "badCode": "Ese código es incorrecto o ha caducado. Ejecuta pnpm setup:code en la caja para obtener uno nuevo.",
+        "submit": "Configurar la caja",
+        "recoverSubmit": "Recuperar el acceso",
+        "doneTitle": "Esta caja ya está configurada",
+        "doneText": "Inicia sesión con tu cuenta. Un administrador que no pueda entrar puede obtener un código de recuperación ejecutando pnpm setup:code en la caja."
+    },
     "signup": {
         "strengthShort": "Demasiado corta (mínimo 6 caracteres)",
         "strengthFair": "Regular (añade números o símbolos)",

@@ -1,5 +1,5 @@
 // Signing in and out, signing up, learner codes, deactivated accounts, the limit on failed
-// sign-ins, shared devices, and the forced password change on the default admin's first login.
+// sign-ins, shared devices, and a set-up box refusing setup again (setup itself: auth.setup.mjs).
 import { test, expect } from "@playwright/test";
 import { api, uid } from "../support/api.mjs";
 import { API_URL, PASSWORD, USERS } from "../support/env.mjs";
@@ -142,27 +142,17 @@ test.describe("sign up", () => {
   });
 });
 
-test.describe("default admin", () => {
-  test("must set a new password on first login, then reaches the admin portal", async ({ page }) => {
-    await login(page, "admin@mail.com", "admin");
-    await page.waitForURL("**/account");
-    await expect(page.getByText(t("learner.account.defaultPassword")).first()).toBeVisible();
-
-    await page.getByLabel(t("learner.account.currentPassword"), { exact: true }).fill("admin");
-    await page.getByLabel(t("learner.account.newPassword"), { exact: true }).fill("short");
-    await page.getByLabel(t("learner.account.confirmPassword"), { exact: true }).fill("short");
-    await page.getByRole("button", { name: t("learner.account.changePassword") }).click();
-    await expect(page.getByText(t("learner.account.pwTooShort")).first()).toBeVisible();
-
-    await page.getByLabel(t("learner.account.newPassword"), { exact: true }).fill("brand-new-pass");
-    await page.getByLabel(t("learner.account.confirmPassword"), { exact: true }).fill("brand-new-pass");
-    await page.getByRole("button", { name: t("learner.account.changePassword") }).click();
-    await expect(page.getByText(t("learner.account.pwUpdated")).first()).toBeVisible();
-
-    await page.goto(HOME.admin);
-    await expect(page.getByRole("heading", { name: t("adminTitle") })).toBeVisible();
-    // The old password no longer works.
-    const res = await fetch(`http://localhost:3100/auth/login`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: "admin@mail.com", password: "admin" }) });
-    expect(res.status).toBe(401);
+test.describe("box setup", () => {
+  test("a set-up box shows the login page, and setup refuses a second admin", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByLabel(t("school.login.label"))).toBeVisible();
+    await expect(page).toHaveURL(/\/$/);
+    const res = await fetch(`${API_URL}/setup`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: "E2E1-SETUP", fullName: "Intruder", email: `intruder-${uid()}@e2e.test`, password: "intruder-pass", schoolName: "Taken" }),
+    });
+    expect(res.status).toBe(409);
+    const old = await fetch(`${API_URL}/auth/login`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: "admin@mail.com", password: "admin" }) });
+    expect(old.status).toBe(401);
   });
 });

@@ -29,6 +29,28 @@ export default {
         "noAccount": "Don't have an account?",
         "signUp": "Sign Up"
     },
+    "setup": {
+        "title": "Set up SOMABOX",
+        "subtitle": "One-time setup for this box",
+        "formTitle": "Set up this box",
+        "formSubtitle": "Name the school and create its first admin account.",
+        "recoverTitle": "Recover admin access",
+        "recoverSubtitle": "Set a new password for an admin, or add another admin.",
+        "code": "Setup code",
+        "codeHint": "Shown on the box's screen or in its logs when it starts. On the box, run pnpm setup:code for a new one.",
+        "schoolName": "School name",
+        "schoolNameHint": "You can add the location, logo and colours later on the School page.",
+        "adminName": "Admin's full name",
+        "adminEmail": "Admin's email",
+        "recoverEmailHint": "An admin's email sets a new password for them; a new email adds an admin.",
+        "password": "Password (8+ characters)",
+        "passwordTooShort": "The password must be at least 8 characters",
+        "badCode": "That setup code is wrong or has expired. Run pnpm setup:code on the box for a new one.",
+        "submit": "Set up the box",
+        "recoverSubmit": "Recover access",
+        "doneTitle": "This box is already set up",
+        "doneText": "Sign in with your account. An admin who can't sign in can get a recovery code by running pnpm setup:code on the box."
+    },
     "signup": {
         "strengthShort": "Too short (6+ characters needed)",
         "strengthFair": "Fair (add numbers or symbols)",

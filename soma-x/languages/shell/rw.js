@@ -30,6 +30,28 @@ export default {
         "noAccount": "Nta konti ufite?",
         "signUp": "Iyandikishe"
     },
+    "setup": {
+        "title": "Gutunganya SOMABOX",
+        "subtitle": "Igutunganya rikorwa rimwe gusa kuri iyi box",
+        "formTitle": "Tunganya iyi box",
+        "formSubtitle": "Andika izina ry'ishuri kandi ukore konti ya mbere y'umuyobozi.",
+        "recoverTitle": "Garura uburenganzira bw'umuyobozi",
+        "recoverSubtitle": "Shyiriraho umuyobozi ijambo ry'ibanga rishya, cyangwa wongereho undi muyobozi.",
+        "code": "Kode yo gutunganya",
+        "codeHint": "Igaragara kuri ecran ya box cyangwa mu nyandiko zayo iyo itangiye. Kuri box, koresha pnpm setup:code ubone indi nshya.",
+        "schoolName": "Izina ry'ishuri",
+        "schoolNameHint": "Aho riherereye, ikirango n'amabara wabyongeraho nyuma ku rupapuro rw'Ishuri.",
+        "adminName": "Amazina yose y'umuyobozi",
+        "adminEmail": "Imeyili y'umuyobozi",
+        "recoverEmailHint": "Imeyili y'umuyobozi usanzwe imuha ijambo ry'ibanga rishya; imeyili nshya yongeraho umuyobozi.",
+        "password": "Ijambo ry'ibanga (inyuguti 8 cyangwa zirenga)",
+        "passwordTooShort": "Ijambo ry'ibanga rigomba kugira nibura inyuguti 8",
+        "badCode": "Iyo kode si yo cyangwa yararangiye. Koresha pnpm setup:code kuri box ubone indi nshya.",
+        "submit": "Tunganya box",
+        "recoverSubmit": "Garura uburenganzira",
+        "doneTitle": "Iyi box yaratunganyijwe",
+        "doneText": "Injira ukoresheje konti yawe. Umuyobozi udashobora kwinjira yabona kode yo kugarura akoresheje pnpm setup:code kuri box."
+    },
     "signup": {
         "strengthShort": "Ni rigufi cyane (nibura inyuguti 6)",
         "strengthFair": "Riringaniye (ongeramo imibare cyangwa ibimenyetso)",

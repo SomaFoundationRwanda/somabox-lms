@@ -29,6 +29,28 @@ export default {
         "noAccount": "Huna akaunti?",
         "signUp": "Jisajili"
     },
+    "setup": {
+        "title": "Sanidi SOMABOX",
+        "subtitle": "Usanidi wa mara moja wa kisanduku hiki",
+        "formTitle": "Sanidi kisanduku hiki",
+        "formSubtitle": "Andika jina la shule na uunde akaunti ya kwanza ya msimamizi.",
+        "recoverTitle": "Rejesha ufikiaji wa msimamizi",
+        "recoverSubtitle": "Weka nenosiri jipya kwa msimamizi, au ongeza msimamizi mwingine.",
+        "code": "Msimbo wa usanidi",
+        "codeHint": "Huonyeshwa kwenye skrini ya kisanduku au kwenye kumbukumbu zake kinapowashwa. Kwenye kisanduku, endesha pnpm setup:code kupata mpya.",
+        "schoolName": "Jina la shule",
+        "schoolNameHint": "Unaweza kuongeza mahali, nembo na rangi baadaye kwenye ukurasa wa Shule.",
+        "adminName": "Jina kamili la msimamizi",
+        "adminEmail": "Barua pepe ya msimamizi",
+        "recoverEmailHint": "Barua pepe ya msimamizi aliyepo humpa nenosiri jipya; barua pepe mpya huongeza msimamizi.",
+        "password": "Nenosiri (herufi 8 au zaidi)",
+        "passwordTooShort": "Nenosiri lazima liwe na angalau herufi 8",
+        "badCode": "Msimbo huo si sahihi au umeisha muda. Endesha pnpm setup:code kwenye kisanduku kupata mpya.",
+        "submit": "Sanidi kisanduku",
+        "recoverSubmit": "Rejesha ufikiaji",
+        "doneTitle": "Kisanduku hiki tayari kimesanidiwa",
+        "doneText": "Ingia kwa akaunti yako. Msimamizi asiyeweza kuingia anaweza kupata msimbo wa kurejesha kwa kuendesha pnpm setup:code kwenye kisanduku."
+    },
     "signup": {
         "strengthShort": "Fupi mno (angalau herufi 6)",
         "strengthFair": "Wastani (ongeza namba au alama)",

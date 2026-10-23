@@ -10,7 +10,8 @@
     "backup": "node src/scripts/backup.js backup",
     "restore": "node src/scripts/backup.js restore",
     "backup:verify": "node src/scripts/backup.js verify",
-    "start": "pm2 start index.js --name soma-x-backend"
+    "start": "pm2 start index.js --name soma-x-backend",
+    "setup:code": "node src/scripts/setup-code.js"
   },
   "keywords": [],
   "author": "",

@@ -30,9 +30,15 @@ Every API route requires a session except the short allowlist in `src/helpers/au
 When adding a route, also add it to the access-policy table in `test/auth.test.js`; the
 test suite fails for routes without a policy.
 
-### Default admin
-Setup creates `admin@mail.com` / `admin`. That account must set a new password on
-first login. Change it before the box is handed to a school.
+### First admin: the setup code
+There is no built-in admin. A box without one prints a one-time setup code when the backend
+starts (in its console, or `pnpm pm2:logs`). The frontend's `/setup` page takes that code, the
+school's name and the first admin's account. Only someone at the box can read the code, so nobody
+on the network can claim a new box. Codes last 24 hours and change at every restart.
+
+`pnpm setup:code` (run on the box) prints a new code at any time. Once admins exist it is a
+recovery code (valid 1 hour): `/setup` then sets a new password for an admin, or adds an admin.
+`SOMABOX_SETUP_CODE` in the .env presets the code (tests, scripted installs).
 
 ### Cloud sync (optional)
 The box works fully offline. Changes to synced tables (courses, outcomes, enrollments, grades,

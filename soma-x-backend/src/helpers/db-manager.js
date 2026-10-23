@@ -2,7 +2,6 @@ import pg from 'pg';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { runMigrations } from '../db/migrate.js';
 import { config } from '../config/index.js';
-import bcrypt from 'bcrypt';
 
 const { Pool } = pg;
 
@@ -194,20 +193,6 @@ export async function initSchemas() {
 
     // Every schema change, including the original baseline, is a versioned migration.
     await runMigrations(pool);
-
-    // Ensure default admin user exists; it must change the default password on first login
-    const adminCheck = await pool.query("SELECT id, password_hash FROM users WHERE LOWER(email) = 'admin@mail.com'");
-    if (adminCheck.rows.length === 0) {
-        const hashedPassword = await bcrypt.hash('admin', 12);
-        await pool.query(
-            "INSERT INTO users (email, full_name, password_hash, role, must_change_password) VALUES ($1, $2, $3, $4, 1)",
-            ['admin@mail.com', 'Administrator', hashedPassword, 'admin']
-        );
-        console.log("Created default admin user: admin@mail.com (password change required on first login)");
-    } else if (await bcrypt.compare('admin', adminCheck.rows[0].password_hash)) {
-        await pool.query("UPDATE users SET must_change_password = 1 WHERE id = $1", [adminCheck.rows[0].id]);
-        console.warn("Default admin still uses the default password; a password change will be required at login.");
-    }
 
     // Ensure unit_branding row exists
     await pool.query(`

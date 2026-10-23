@@ -13,6 +13,8 @@ import { startTestServer, USERS, PASSWORD } from "./helpers.js";
 const POLICY = {
   "POST /auth/login": "public",
   "POST /auth/register": "public",
+  "GET /setup/status": "public",
+  "POST /setup": "public",
   "GET /auth/me": "any",
   "GET /auth/verify-auth": "any",
   "POST /auth/logout": "any",

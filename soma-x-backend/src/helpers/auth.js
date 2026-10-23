@@ -94,6 +94,9 @@ const PUBLIC_ROUTES = [
     { method: 'POST', path: '/auth/media-session' },
     // The school's name, logo and colours (login page), and visitor previews.
     { method: 'GET', path: '/school/public' },
+    // Setting up a new box (or recovering its admin) with the code printed on the box.
+    { method: 'GET', path: '/setup/status' },
+    { method: 'POST', path: '/setup' },
     { method: 'POST', path: '/content/preview' },
     // The catalogue guests may browse before signing up (titles, categories, covers).
     { method: 'GET', path: '/content/explore' },

@@ -22,6 +22,7 @@ import calendarServices from './services/calendar.services.js';
 import syncServices from './services/sync.services.js';
 import bundleServices from './services/bundles.services.js';
 import schoolServices from './services/school.services.js';
+import setupServices from './services/setup.services.js';
 
 // API routers in mount order. Exported so tests can enumerate every route.
 export const API_ROUTERS = [
@@ -39,6 +40,7 @@ export const API_ROUTERS = [
     ['/sync', syncServices],
     ['/bundles', bundleServices],
     ['/school', schoolServices],
+    ['/setup', setupServices],
 ];
 
 export function createApp({ logRequests = true } = {}) {

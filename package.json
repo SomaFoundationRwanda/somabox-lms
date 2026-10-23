@@ -10,6 +10,7 @@
     "build": "node scripts/somabox.mjs build",
     "start": "node scripts/somabox.mjs check && pm2 start ecosystem.config.cjs",
     "setup:db": "pnpm --filter soma-x-backend run setup",
+    "setup:code": "pnpm --filter soma-x-backend run setup:code",
     "pm2:start": "node scripts/somabox.mjs check && pm2 start ecosystem.config.cjs",
     "pm2:stop": "pm2 stop ecosystem.config.cjs",
     "pm2:restart": "pm2 restart ecosystem.config.cjs --update-env",

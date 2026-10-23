@@ -88,6 +88,8 @@ const schema = z.object({
   DEVICE_INFO_PATH: z.string().optional(),
   MEDIA_SECRET: z.string().min(16, "must be at least 16 characters").optional(),
   MEDIA_COOKIE_SECURE: flag(false),
+  // Presets the first-run setup code (tests, scripted installs); normally a random one is printed.
+  SOMABOX_SETUP_CODE: z.string().refine((v) => v.replace(/[^A-Za-z0-9]/g, "").length >= 8, "must have at least 8 letters or digits").optional(),
 
   // Cloud content and sync
   CLOUD_URL: url.optional(),

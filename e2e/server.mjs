@@ -9,7 +9,7 @@ import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { BACKEND_PORT, FRONTEND_PORT, PASSWORD, USERS } from "./support/env.mjs";
+import { BACKEND_PORT, FRONTEND_PORT, PASSWORD, SETUP_CODE, USERS } from "./support/env.mjs";
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 // The backend's own dependencies (bcrypt is not hoisted to the root node_modules).
@@ -62,11 +62,16 @@ process.env.AI_GATEWAY_URL = gateway.url;
 const dbManager = await import("../soma-x-backend/src/helpers/db-manager.js");
 await dbManager.initSchemas();
 const hash = await bcrypt.hash(PASSWORD, 4);
-for (const u of Object.values(USERS)) {
+for (const u of Object.values(USERS).filter((u) => u.role !== "admin")) {
   await dbManager.localDb
     .prepare("INSERT INTO users (email, full_name, password_hash, role, gender, profile_completed_at) VALUES (?, ?, ?, ?, 'female', CURRENT_TIMESTAMP)")
     .run(u.email, u.name, hash, u.role);
 }
+
+// No admin yet: the box prints its setup code (preset here), and auth.setup.mjs uses it.
+process.env.SOMABOX_SETUP_CODE = SETUP_CODE;
+const { prepareFirstRun } = await import("../soma-x-backend/src/services/setup.services.js");
+await prepareFirstRun();
 
 const { createApp } = await import("../soma-x-backend/src/app.js");
 const { startExploreIndexer } = await import("../soma-x-backend/src/services/explore/indexer.js");

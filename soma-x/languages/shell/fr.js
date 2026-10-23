@@ -29,6 +29,28 @@ export default {
         "noAccount": "Vous n'avez pas de compte ?",
         "signUp": "S'inscrire"
     },
+    "setup": {
+        "title": "Configurer SOMABOX",
+        "subtitle": "Configuration unique de cette box",
+        "formTitle": "Configurer cette box",
+        "formSubtitle": "Nommez l'école et créez son premier compte administrateur.",
+        "recoverTitle": "Récupérer l'accès administrateur",
+        "recoverSubtitle": "Définissez un nouveau mot de passe pour un administrateur, ou ajoutez-en un autre.",
+        "code": "Code de configuration",
+        "codeHint": "Affiché sur l'écran de la box ou dans ses journaux au démarrage. Sur la box, lancez pnpm setup:code pour en obtenir un nouveau.",
+        "schoolName": "Nom de l'école",
+        "schoolNameHint": "Vous pourrez ajouter le lieu, le logo et les couleurs plus tard sur la page École.",
+        "adminName": "Nom complet de l'administrateur",
+        "adminEmail": "E-mail de l'administrateur",
+        "recoverEmailHint": "L'e-mail d'un administrateur lui donne un nouveau mot de passe ; un nouvel e-mail ajoute un administrateur.",
+        "password": "Mot de passe (8 caractères ou plus)",
+        "passwordTooShort": "Le mot de passe doit contenir au moins 8 caractères",
+        "badCode": "Ce code est incorrect ou a expiré. Lancez pnpm setup:code sur la box pour en obtenir un nouveau.",
+        "submit": "Configurer la box",
+        "recoverSubmit": "Récupérer l'accès",
+        "doneTitle": "Cette box est déjà configurée",
+        "doneText": "Connectez-vous avec votre compte. Un administrateur qui ne peut pas se connecter peut obtenir un code de récupération avec pnpm setup:code sur la box."
+    },
     "signup": {
         "strengthShort": "Trop court (6 caractères minimum)",
         "strengthFair": "Moyen (ajoutez des chiffres ou des symboles)",
