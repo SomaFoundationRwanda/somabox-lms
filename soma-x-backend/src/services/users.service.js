@@ -77,9 +77,9 @@ router.get('/', requireAdmin, async (req, res) => {
 
         // Date range filter
         if (dateRange === '7days') {
-            whereClauses.push("created_at >= datetime('now', '-7 days')");
+            whereClauses.push("created_at >= NOW() - INTERVAL '7 days'");
         } else if (dateRange === '30days') {
-            whereClauses.push("created_at >= datetime('now', '-30 days')");
+            whereClauses.push("created_at >= NOW() - INTERVAL '30 days'");
         }
 
         const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';

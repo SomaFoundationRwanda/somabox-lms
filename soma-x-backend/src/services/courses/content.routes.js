@@ -388,7 +388,7 @@ router.post("/:id/collaborations", async (req, res) => {
     const collaborationId = Number(info.lastInsertRowid);
 
     const memberEmails = Array.isArray(req.body.memberEmails) ? req.body.memberEmails : [];
-    const insertMember = await localDb.prepare("INSERT OR IGNORE INTO collaboration_members (collaboration_id, user_email) VALUES (?, ?)");
+    const insertMember = await localDb.prepare("INSERT INTO collaboration_members (collaboration_id, user_email) VALUES (?, ?) ON CONFLICT DO NOTHING");
     memberEmails.forEach((email) => {
       const normalized = normalizeEmail(email);
       if (normalized) insertMember.run(collaborationId, normalized);

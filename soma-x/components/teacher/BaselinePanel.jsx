@@ -12,7 +12,7 @@ import useSetupText from "@/lib/useSetupText";
 
 const MIN_REASON = 10;
 
-// decided_at is stored as a UTC timestamp ("YYYY-MM-DD HH:MM:SS" in SQLite); read it as UTC.
+// decided_at can arrive as a UTC timestamp without a zone ("YYYY-MM-DD HH:MM:SS"); read it as UTC.
 function decidedOn(value) {
   if (!value) return "";
   const s = String(value);

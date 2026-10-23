@@ -28,8 +28,6 @@ export const config = {
         max: parseInt(process.env.PGMAXCONNECTIONS || '50', 10),
         idleTimeoutMillis: 30000,
         connectionTimeoutMillis: 5000,
-        serverPath: path.join(ROOT_DIR, 'src/db/db.sqlite3'),
-        localPath: path.join(ROOT_DIR, 'src/db/local.db.sqlite3'),
     },
     paths: {
         root: ROOT_DIR,

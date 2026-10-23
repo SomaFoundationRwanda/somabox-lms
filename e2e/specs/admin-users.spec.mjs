@@ -178,6 +178,19 @@ test("filters by role and status, and clears filters", async ({ page }) => {
   await expect(table.getByText(t("role.admin"), { exact: true }).first()).toBeVisible();
 });
 
+test("filters by date joined", async ({ page }) => {
+  const { email } = await makeUser();
+  const table = await openUsers(page, email);
+  for (const range of ["7days", "30days"]) {
+    await page.getByLabel(u("filterDate")).selectOption(range);
+    // People added just now are in both windows.
+    await expect(row(table, email)).toBeVisible();
+  }
+  // Anyone added before the window is left out.
+  const { users } = await api("GET", `/users?dateRange=7days&limit=100`, { as: "admin" });
+  expect(users.every((x) => Date.now() - new Date(x.created_at).getTime() <= 7 * 24 * 3600 * 1000 + 60_000)).toBe(true);
+});
+
 test("opens a user's details page", async ({ page }) => {
   const { email, name } = await makeUser();
   const table = await openUsers(page, email);

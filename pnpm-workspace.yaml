@@ -5,6 +5,10 @@ packages:
   - soma-x-backend
   - ai/gateway
 
+# Refuse Node versions outside package.json "engines" (22 or 24, the LTS lines) with a clear
+# message, instead of failing later on a native package without a ready-made build.
+engineStrict: true
+
 # pnpm runs dependencies' install scripts only when listed here. These build or fetch the
 # native code the apps need.
 onlyBuiltDependencies:

@@ -13,7 +13,8 @@ Offline-first learning platform that runs on a school box. This repository holds
 ## Local development
 
 ### Prerequisites
-- Node.js 22 (20+ works; `.nvmrc` says 22)
+- Node.js 22 or 24, the LTS lines (`.nvmrc` says 22). `pnpm install` refuses other versions,
+  such as Node 25, with "Unsupported environment"
 - pnpm 10, through Corepack (comes with Node): run `corepack enable` once
 - PostgreSQL 14+ running on `localhost:5432`
 

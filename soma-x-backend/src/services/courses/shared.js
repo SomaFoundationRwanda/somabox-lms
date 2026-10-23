@@ -196,7 +196,7 @@ export async function syncPageFileReferences(pageId, bodyJson) {
 
   const tx = localDb.transaction(async (pId, ids) => {
     await localDb.prepare("DELETE FROM page_file_references WHERE page_id = ?").run(pId);
-    const ins = await localDb.prepare("INSERT OR IGNORE INTO page_file_references (page_id, file_id) VALUES (?, ?)");
+    const ins = await localDb.prepare("INSERT INTO page_file_references (page_id, file_id) VALUES (?, ?) ON CONFLICT DO NOTHING");
     for (const fId of ids) {
       if (fId && !isNaN(fId)) await ins.run(pId, fId);
     }
