@@ -840,17 +840,15 @@ const FileManager = () => {
             {/* ── Toolbar ── */}
             <div className="mb-3">
                 <div className="flex items-center gap-2 py-2 flex-wrap">
-                    <div className="relative flex-1 min-w-[180px] max-w-[280px]">
-                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-600 pointer-events-none" aria-hidden="true" />
-                        <TextInput
-                            aria-label={t("explore.manager.search")}
-                            placeholder={t("explore.manager.search")}
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            size="sm"
-                            className="pl-8"
-                        />
-                    </div>
+                    <TextInput
+                        aria-label={t("explore.manager.search")}
+                        placeholder={t("explore.manager.search")}
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        size="sm"
+                        icon={Search}
+                        className="flex-1 min-w-[180px] max-w-[280px]"
+                    />
 
                     <FilterDropdown label={t("explore.manager.type")} options={TYPE_OPTIONS} value={typeFilter} onChange={setTypeFilter} />
 

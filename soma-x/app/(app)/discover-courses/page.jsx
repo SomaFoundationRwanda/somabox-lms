@@ -115,7 +115,8 @@ export default function DiscoverCoursesPage() {
               autoComplete="off"
               autoCapitalize="characters"
               maxLength={12}
-              className="flex-1 min-w-[10rem] w-auto text-base font-mono tracking-widest"
+              variant="code"
+              className="flex-1 min-w-[10rem] w-auto"
             />
             <button type="submit" disabled={codeBusy || !joinCode.trim()} className="text-sm font-semibold text-white bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] disabled:opacity-50 rounded-lg px-4 py-2">
               {codeBusy ? t("learner.discover.joining") : t("learner.discover.code.button")}

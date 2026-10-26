@@ -66,7 +66,7 @@ function ColourField({ id, label, help, value, onChange, t }) {
                 <TextInput value={value} maxLength={7} spellCheck={false} autoCapitalize="characters"
                     onChange={(e) => onChange(e.target.value.trim().toUpperCase())}
                     aria-invalid={!valid} aria-describedby={`${id}-help${lowContrast ? ` ${id}-warn` : ""}`}
-                    size="lg" className="font-mono uppercase" />
+                    size="lg" variant="code" />
             </div>
             <p id={`${id}-help`} className={HELP}>{valid ? help : t("school.settings.colourInvalid")}</p>
             {lowContrast && (
@@ -258,7 +258,7 @@ export default function SchoolSettingsPage() {
                             <Field id="school-code" label={t("school.settings.code")}>
                                 <TextInput value={form.code} maxLength={8}
                                     onChange={(e) => setForm((f) => ({ ...f, code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "") }))}
-                                    size="lg" className="font-mono uppercase tracking-wider max-w-[12rem]"
+                                    size="lg" variant="code" className="max-w-[12rem]"
                                     aria-describedby="school-code-help school-code-preview"
                                     aria-invalid={form.code !== "" && !codeValid}
                                     autoCapitalize="characters" spellCheck={false} />

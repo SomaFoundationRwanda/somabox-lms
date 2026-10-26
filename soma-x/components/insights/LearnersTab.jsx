@@ -79,20 +79,18 @@ export default function LearnersTab({ data, flaggedOnly, setFlaggedOnly }) {
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[12rem] max-w-sm">
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" aria-hidden="true" />
-          <TextInput
-            type="search"
-            aria-label={tp("insights.learners.searchLabel")}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={tp("insights.learners.searchPlaceholder")}
-            size="sm"
-            className="pl-8"
-          />
-        </div>
+        <TextInput
+          type="search"
+          aria-label={tp("insights.learners.searchLabel")}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={tp("insights.learners.searchPlaceholder")}
+          size="sm"
+          icon={Search}
+          className="flex-1 min-w-[12rem] max-w-sm"
+        />
         <CheckboxField
-          label={<>{tp("insights.learners.flaggedOnly")} <span className="text-xs font-normal text-slate-500">({flaggedCount})</span></>}
+          label={`${tp("insights.learners.flaggedOnly")} (${flaggedCount})`}
           checked={flaggedOnly}
           onCheckedChange={setFlaggedOnly}
         />

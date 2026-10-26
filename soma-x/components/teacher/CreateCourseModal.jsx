@@ -75,7 +75,6 @@ export default function CreateCourseModal({ onClose, onCreated }) {
               onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
               rows={3}
               placeholder={t("teacher.createCourse.descriptionPlaceholder")}
-              className="resize-none"
             />
           </Field>
           {error && <p className="text-xs text-red-500">{error}</p>}

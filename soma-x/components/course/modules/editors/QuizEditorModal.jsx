@@ -194,7 +194,7 @@ export default function QuizEditorModal({ open, onClose, onSave, initialData, in
 
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1.5">{t("editors.quiz.descriptionOptional")}</label>
-            <Textarea aria-label={t("editors.quiz.descriptionOptional")} value={description} onChange={(e) => setDescription(e.target.value)} rows={2} placeholder={t("editors.quiz.descriptionPlaceholder")} className="w-full resize-none" />
+            <Textarea aria-label={t("editors.quiz.descriptionOptional")} value={description} onChange={(e) => setDescription(e.target.value)} rows={2} placeholder={t("editors.quiz.descriptionPlaceholder")} className="w-full" />
           </div>
 
           {/* Quiz type & attempts */}

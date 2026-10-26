@@ -469,20 +469,15 @@ export default function Users() {
                 <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
                     
                     {/* Live Search */}
-                    <div className="relative flex-1">
-                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 pointer-events-none" />
-                        <TextInput aria-label={t("admin.users.searchLabel")}
-                            placeholder={t("admin.users.searchPlaceholder")}
-                            value={searchQuery}
-                            onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
-                            className="pl-10 pr-9"
-                        />
-                        {searchQuery && (
-                            <button aria-label={t("admin.users.clearSearch")} onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-600">
-                                <X className="w-3.5 h-3.5" />
-                            </button>
-                        )}
-                    </div>
+                    <TextInput aria-label={t("admin.users.searchLabel")}
+                        placeholder={t("admin.users.searchPlaceholder")}
+                        value={searchQuery}
+                        onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+                        icon={Search}
+                        onClear={() => setSearchQuery("")}
+                        clearLabel={t("admin.users.clearSearch")}
+                        className="flex-1"
+                    />
 
                     {/* Filter Dropdowns */}
                     <div className="flex flex-wrap items-center gap-2">

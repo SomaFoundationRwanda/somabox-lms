@@ -11,7 +11,7 @@
 // A control inside a Field gets its id, label, hint and error wired up (aria-describedby,
 // aria-invalid) without passing them. Outside a Field, give it an aria-label.
 import { createContext, forwardRef, useContext, useId, useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, X } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { Checkbox as CheckboxBox } from "@/components/ui/checkbox";
 
@@ -84,16 +84,41 @@ function useField(props) {
     };
 }
 
-export const TextInput = forwardRef(function TextInput({ size = "md", className, ...props }, ref) {
+// variant "code": codes people read and type (join codes, school codes, colours, setup codes).
+const CODE = "font-mono uppercase tracking-widest";
+
+/**
+ * A text box. `icon`: a lucide icon shown inside, at the start (e.g. Search). `onClear` (with
+ * `clearLabel`): a button inside, at the end, shown while there's text (search boxes).
+ * variant "code" for codes.
+ */
+export const TextInput = forwardRef(function TextInput({ size = "md", variant, icon: Icon, onClear, clearLabel, className, ...props }, ref) {
     const { invalid, ...wired } = useField(props);
-    return <input ref={ref} type="text" {...props} {...wired} className={controlClass({ size, invalid, className })} />;
+    const wrapped = !!(Icon || onClear);
+    const input = (
+        <input ref={ref} type="text" {...props} {...wired}
+            className={controlClass({ size, invalid, className: cn(variant === "code" && CODE, Icon && "pl-9", onClear && "pr-9", wrapped ? null : className) })} />
+    );
+    if (!wrapped) return input;
+    return (
+        <div className={cn("relative", className)}>
+            {Icon ? <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" aria-hidden="true" /> : null}
+            {input}
+            {onClear && props.value ? (
+                <button type="button" onClick={onClear} aria-label={clearLabel}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800">
+                    <X className="w-3.5 h-3.5" aria-hidden="true" />
+                </button>
+            ) : null}
+        </div>
+    );
 });
 
 export const Textarea = forwardRef(function Textarea({ size = "md", rows = 4, className, ...props }, ref) {
     const { invalid, ...wired } = useField(props);
     return (
         <textarea ref={ref} rows={rows} {...props} {...wired}
-            className={cn(controlClass({ size, invalid, className }), "h-auto py-2 leading-relaxed")} />
+            className={cn(controlClass({ size, invalid, className }), "h-auto py-2 leading-relaxed resize-y")} />
     );
 });
 
@@ -128,7 +153,7 @@ export function CheckboxField({ id, label, hint, checked, onCheckedChange, disab
 
 /**
  * One choice out of a few, shown as buttons (a radio group for assistive technology).
- * `options`: [{ value, label, disabled? }]; `columns`: how many per row from small screens up;
+ * `options`: [{ value, label, description?, icon?, disabled? }]; `columns`: how many per row from small screens up;
  * layout "list": one full-width choice per row, for long answers (e.g. a quiz's options).
  */
 export function ChoiceGroup({ options, value, onChange, columns = 3, layout = "grid", size = "md", disabled = false, className, ...props }) {
@@ -162,7 +187,15 @@ export function ChoiceGroup({ options, value, onChange, columns = 3, layout = "g
                                 : cn("bg-white text-slate-700 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800", border(invalid)),
                         )}
                     >
-                        {o.label}
+                        {o.description || o.icon ? (
+                            <span className="flex items-center gap-3">
+                                {o.icon ? <o.icon className="w-4 h-4 shrink-0 text-[var(--brand-secondary)]" aria-hidden="true" /> : null}
+                                <span className="min-w-0">
+                                    <span className="block">{o.label}</span>
+                                    {o.description ? <span className="block text-xs font-normal text-slate-500 dark:text-slate-400 mt-0.5">{o.description}</span> : null}
+                                </span>
+                            </span>
+                        ) : o.label}
                     </button>
                 );
             })}

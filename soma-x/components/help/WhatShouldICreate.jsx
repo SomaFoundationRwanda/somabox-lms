@@ -83,18 +83,11 @@ export default function WhatShouldICreate({ open, onClose, modules, defaultModul
           onChange={setGoal}
           options={CREATE_GOALS.map((g) => {
             const text = helper.goals?.[g.id] || {};
-            const Icon = g.icon;
             return {
               value: g.id,
-              label: (
-                <span className="flex items-center gap-3">
-                  <Icon className="w-4 h-4 text-[var(--brand-secondary)] shrink-0" aria-hidden="true" />
-                  <span className="min-w-0">
-                    <span className="block text-sm font-semibold text-slate-800 dark:text-slate-100">{text.label || g.id}</span>
-                    <span className="block text-xs font-normal text-slate-500">{text.hint}</span>
-                  </span>
-                </span>
-              ),
+              label: text.label || g.id,
+              description: text.hint,
+              icon: g.icon,
             };
           })}
         />

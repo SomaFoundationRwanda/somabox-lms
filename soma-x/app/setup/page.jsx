@@ -98,7 +98,7 @@ export default function SetupPage() {
                         required
                         value={form.code}
                         onChange={set("code")}
-                        className="font-mono tracking-widest uppercase"
+                        variant="code"
                     />
 
                     {mode === "setup" && (

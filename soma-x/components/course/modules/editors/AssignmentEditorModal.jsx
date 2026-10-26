@@ -76,7 +76,7 @@ export default function AssignmentEditorModal({ open, onClose, onSave, initialDa
 
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1.5">{t("editors.instructions")}</label>
-            <Textarea aria-label={t("editors.instructions")} value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder={t("editors.instructionsPlaceholder")} className="w-full resize-none" />
+            <Textarea aria-label={t("editors.instructions")} value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder={t("editors.instructionsPlaceholder")} className="w-full" />
           </div>
 
           {/* Relative timing */}

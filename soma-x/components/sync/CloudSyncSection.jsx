@@ -163,12 +163,8 @@ function ScopeForm({ scope, onSaved }) {
           onChange={(people) => setForm((f) => ({ ...f, people }))}
           options={PEOPLE_OPTIONS.map((value) => ({
             value,
-            label: (
-              <span className="block">
-                <span className="block">{t(`admin.cloud.peopleOptions.${value}.label`)}</span>
-                <span className="block text-xs font-normal text-slate-500 dark:text-slate-400">{t(`admin.cloud.peopleOptions.${value}.help`)}</span>
-              </span>
-            ),
+            label: t(`admin.cloud.peopleOptions.${value}.label`),
+            description: t(`admin.cloud.peopleOptions.${value}.help`),
           }))}
         />
       </Field>

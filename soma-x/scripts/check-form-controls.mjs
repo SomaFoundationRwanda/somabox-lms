@@ -1,6 +1,8 @@
 // Every text box, dropdown and text area comes from components/form (Field, TextInput, Textarea,
 // Select, PasswordInput, ChoiceGroup, CheckboxField), so they look and behave the same on every
-// screen. This fails on a hand-written <input>, <select> or <textarea> anywhere else.
+// screen. This fails on a hand-written <input>, <select> or <textarea> anywhere else, and on a
+// kit control given its own styling: a className may only place it (width, margins, flex);
+// sizes, icons, codes and help text are the kit's props (size, icon, onClear, variant, description).
 // Allowed as they are: file pickers, hidden inputs, sliders and colour pickers (type="file",
 // "hidden", "range", "color"), and a rare deliberate exception marked data-raw-control="<why>".
 // Run with `pnpm test` in soma-x.
@@ -21,6 +23,21 @@ function* files(dir) {
     }
 }
 
+// Classes that only place a control. Anything else (colours, fonts, borders, padding) is styling.
+const LAYOUT = /^(?:(?:sm|md|lg|xl|2xl):)?(?:w-|min-w-|max-w-|flex$|flex-1$|flex-none$|shrink|grow|basis-|m[trblxy]?-|self-|col-span|row-span|order-|block$|inline|hidden$)/;
+const KIT = /<(TextInput|Textarea|Select|PasswordInput|ChoiceGroup|Checkbox|CheckboxField)\b/g;
+
+// The opening tag from `start`, skipping ">" inside {...} (e.g. arrow functions).
+function openingTag(text, start) {
+    let depth = 0;
+    for (let i = start; i < text.length; i++) {
+        if (text[i] === "{") depth++;
+        else if (text[i] === "}") depth--;
+        else if (text[i] === ">" && depth === 0) return text.slice(start, i);
+    }
+    return text.slice(start);
+}
+
 const problems = [];
 for (const dir of DIRS) {
     for (const file of files(path.join(root, dir))) {
@@ -36,11 +53,22 @@ for (const dir of DIRS) {
             const line = text.slice(0, m.index).split("\n").length;
             problems.push(`${rel}:${line}: <${m[1]}>`);
         }
+        let k;
+        while ((k = KIT.exec(text))) {
+            const attrs = openingTag(text, k.index);
+            for (const c of attrs.matchAll(/className="([^"]*)"/g)) {
+                const styling = c[1].split(/\s+/).filter((cls) => cls && !LAYOUT.test(cls));
+                if (styling.length) {
+                    const line = text.slice(0, k.index).split("\n").length;
+                    problems.push(`${rel}:${line}: <${k[1]}> styled with "${styling.join(" ")}"`);
+                }
+            }
+        }
     }
 }
 
 if (problems.length) {
-    console.error(`Use the form controls from components/form instead of:\n${problems.map((p) => `  ${p}`).join("\n")}`);
+    console.error(`Form controls must come from components/form, unstyled (see the note at the top):\n${problems.map((p) => `  ${p}`).join("\n")}`);
     process.exit(1);
 }
 console.log("ok: every form control comes from components/form");
