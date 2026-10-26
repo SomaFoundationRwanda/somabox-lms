@@ -6,6 +6,7 @@ import { ApiError, apiFetch } from "@/lib/api";
 import { Sparkles, ThumbsUp, ThumbsDown, Copy, Check, RefreshCw, AlertTriangle, ChevronDown, ChevronUp } from "lucide-react";
 import DataContext from "@/context/DataContext";
 import { useCourseText } from "@/components/course/useCourseText";
+import { Textarea } from "@/components/form";
 
 // Labels and descriptions come from course.aiAssistant.modes.<id>.
 const MODES = [
@@ -203,13 +204,7 @@ export default function AIAssistantWidget({ courseId = "", lessonId = "", onInse
               {/* Request Prompt */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">{t("aiAssistant.instructions")}</label>
-                <textarea aria-label={t("aiAssistant.instructions")}
-                  rows={2}
-                  value={question}
-                  onChange={(e) => setQuestion(e.target.value)}
-                  placeholder={t("aiAssistant.instructionsPlaceholder")}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
-                />
+                <Textarea size="sm" aria-label={t("aiAssistant.instructions")} rows={2} value={question} onChange={(e) => setQuestion(e.target.value)} placeholder={t("aiAssistant.instructionsPlaceholder")} className="w-full" />
               </div>
 
               {/* Optional Pasted Source Text Toggle */}
@@ -222,13 +217,7 @@ export default function AIAssistantWidget({ courseId = "", lessonId = "", onInse
                   {showSourceBox ? `- ${t("aiAssistant.hideSource")}` : `+ ${t("aiAssistant.addSource")}`}
                 </button>
                 {showSourceBox && (
-                  <textarea aria-label={t("aiAssistant.sourcePlaceholder")}
-                    rows={3}
-                    value={sourceText}
-                    onChange={(e) => setSourceText(e.target.value)}
-                    placeholder={t("aiAssistant.sourcePlaceholder")}
-                    className="w-full mt-1 px-3 py-2 text-xs border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-teal-500"
-                  />
+                  <Textarea size="sm" aria-label={t("aiAssistant.sourcePlaceholder")} rows={3} value={sourceText} onChange={(e) => setSourceText(e.target.value)} placeholder={t("aiAssistant.sourcePlaceholder")} className="w-full mt-1" />
                 )}
               </div>
 

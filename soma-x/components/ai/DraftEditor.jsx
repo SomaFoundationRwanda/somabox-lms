@@ -1,13 +1,13 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useState } from "react";
+import { Field as FormField, Select, TextInput, Textarea } from "@/components/form";
 import { Plus, Trash2 } from "lucide-react";
 import { useProgressText } from "@/components/progress/text";
 
 // Inline editor for an AI draft's payload. The teacher edits text, questions, criteria, etc.;
 // Save sends the whole payload back (PATCH) and the server checks it.
 
-const inputClass = "w-full text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-lg px-2.5 py-1.5 outline-none focus:border-[var(--brand-secondary)]";
 const labelClass = "block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5";
 const addBtn = "inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--brand-secondary)] hover:underline";
 const removeBtn = "p-1.5 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 disabled:opacity-30";
@@ -16,33 +16,30 @@ const clone = (v) => JSON.parse(JSON.stringify(v ?? {}));
 const setAt = (arr, i, value) => arr.map((x, j) => (j === i ? value : x));
 const without = (arr, i) => arr.filter((_, j) => j !== i);
 
+// One labelled value of the draft (text, a number, or several lines), on the app's form controls.
 function Field({ label, value, onChange, multiline = false, rows = 3, type = "text", min, className = "" }) {
-  const id = useId();
   return (
-    <div className={className}>
-      <label htmlFor={id} className={labelClass}>{label}</label>
+    <FormField label={label} className={className}>
       {multiline ? (
-        <textarea id={id} rows={rows} value={value ?? ""} onChange={(e) => onChange(e.target.value)} className={inputClass} />
+        <Textarea size="sm" rows={rows} value={value ?? ""} onChange={(e) => onChange(e.target.value)} />
       ) : (
-        <input id={id} type={type} min={min} inputMode={type === "number" ? "decimal" : undefined} value={value ?? ""} onChange={(e) => onChange(type === "number" ? (e.target.value === "" ? "" : Number(e.target.value)) : e.target.value)} className={inputClass} />
+        <TextInput size="sm" type={type} min={min} inputMode={type === "number" ? "decimal" : undefined} value={value ?? ""} onChange={(e) => onChange(type === "number" ? (e.target.value === "" ? "" : Number(e.target.value)) : e.target.value)} />
       )}
-    </div>
+    </FormField>
   );
 }
 
 function OutcomeSelect({ label, value, onChange, outcomes }) {
-  const id = useId();
   const { tp } = useProgressText();
   return (
-    <div>
-      <label htmlFor={id} className={labelClass}>{label || tp("common.outcome")}</label>
-      <select id={id} value={value == null ? "" : String(value)} onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)} className={inputClass}>
+    <FormField label={label || tp("common.outcome")}>
+      <Select size="sm" value={value == null ? "" : String(value)} onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)}>
         <option value="">{tp("common.noOutcome")}</option>
         {(outcomes || []).map((o) => (
           <option key={o.id} value={String(o.id)}>{o.code || `OUT-${o.id}`}: {o.title}</option>
         ))}
-      </select>
-    </div>
+      </Select>
+    </FormField>
   );
 }
 
@@ -72,17 +69,18 @@ function QuestionsEditor({ questions, onChange, outcomes }) {
                     <div key={j} className="flex items-center gap-2">
                       <input
                         type="radio"
+                        data-raw-control="the correct-answer mark beside each answer's own text box"
                         name={group}
                         checked={q.correctIndex === j}
                         onChange={() => update(i, { correctIndex: j })}
                         aria-label={tp("ai.editor.optionCorrect", { n: j + 1 })}
                         className="w-4 h-4 accent-[var(--brand-secondary)] shrink-0"
                       />
-                      <input
+                      <TextInput
+                        size="sm"
                         value={opt}
                         onChange={(e) => update(i, { options: setAt(options, j, e.target.value) })}
                         aria-label={tp("ai.editor.optionAria", { q: i + 1, n: j + 1 })}
-                        className={inputClass}
                       />
                       <button
                         type="button"

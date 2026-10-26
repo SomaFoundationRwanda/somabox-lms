@@ -19,6 +19,7 @@ import {
     Upload, X, CheckCircle2, AlertCircle, Music, Video, BookOpen, FolderOpen, RefreshCw, Pencil, Trash2, Sparkles,
 } from 'lucide-react';
 import SummaryPanel from '@/components/explore/SummaryPanel';
+import { Field, TextInput, Textarea } from "@/components/form";
 
 // react-reader (epub.js) loads only when a book is opened.
 const EpubReader = dynamic(() => import("@/components/ui/library/EpubReader"), { ssr: false });
@@ -256,14 +257,12 @@ function NewFolderModal({ onClose, onSubmit }) {
                                 {remaining}
                             </span>
                         </div>
-                        <input
+                        <TextInput
                             id="new-folder-name"
                             ref={inputRef}
-                            type="text"
                             value={name}
                             onChange={(e) => setName(e.target.value.slice(0, MAX_FOLDER_NAME))}
                             placeholder={t("explore.manager.folderNamePlaceholder")}
-                            className="w-full h-10 px-3 rounded-[5px] border border-slate-200 bg-slate-50 text-[13px] text-slate-800 placeholder:text-slate-400 outline-none focus:border-slate-400 focus:bg-white focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]"
                         />
                     </div>
                     {status === 'error' && <Notice tone="error">{errorMsg}</Notice>}
@@ -490,33 +489,12 @@ function RenameModal({ row, onClose, onSubmit }) {
             />
             <form onSubmit={handleSubmit}>
                 <div className="px-5 py-5 space-y-4">
-                    <div>
-                        <label htmlFor="rename-name" className="text-[11px] font-bold text-slate-600 uppercase tracking-widest block mb-2">
-                            {t("explore.manager.shownTitle")}
-                        </label>
-                        <input
-                            id="rename-name"
-                            type="text"
-                            value={title}
-                            maxLength={200}
-                            autoFocus
-                            onChange={(e) => setTitle(e.target.value)}
-                            className="w-full h-10 px-3 rounded-[5px] border border-slate-200 bg-slate-50 text-[13px] text-slate-800 outline-none focus:border-slate-400 focus:bg-white focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]"
-                        />
-                    </div>
-                    <div>
-                        <label htmlFor="rename-description" className="text-[11px] font-bold text-slate-600 uppercase tracking-widest block mb-2">
-                            {t("explore.manager.description")}
-                        </label>
-                        <textarea
-                            id="rename-description"
-                            value={subtitle}
-                            maxLength={1000}
-                            rows={3}
-                            onChange={(e) => setSubtitle(e.target.value)}
-                            className="w-full px-3 py-2 rounded-[5px] border border-slate-200 bg-slate-50 text-[13px] text-slate-800 outline-none focus:border-slate-400 focus:bg-white focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]"
-                        />
-                    </div>
+                    <Field id="rename-name" label={t("explore.manager.shownTitle")}>
+                        <TextInput value={title} maxLength={200} autoFocus onChange={(e) => setTitle(e.target.value)} />
+                    </Field>
+                    <Field id="rename-description" label={t("explore.manager.description")}>
+                        <Textarea value={subtitle} maxLength={1000} rows={3} onChange={(e) => setSubtitle(e.target.value)} />
+                    </Field>
                     <p className="text-[11px] text-slate-600">{t("explore.manager.renameHelp")}</p>
                     {error && <Notice tone="error">{error}</Notice>}
                 </div>
@@ -862,15 +840,15 @@ const FileManager = () => {
             {/* ── Toolbar ── */}
             <div className="mb-3">
                 <div className="flex items-center gap-2 py-2 flex-wrap">
-                    <div className="flex items-center gap-2 px-3 h-8 rounded-[5px] border border-slate-200 bg-slate-50 focus-within:bg-white focus-within:border-slate-400 transition-all flex-1 min-w-[180px] max-w-[280px]">
-                        <Search className="w-3.5 h-3.5 text-slate-600 shrink-0" aria-hidden="true" />
-                        <input
+                    <div className="relative flex-1 min-w-[180px] max-w-[280px]">
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-600 pointer-events-none" aria-hidden="true" />
+                        <TextInput
                             aria-label={t("explore.manager.search")}
-                            type="text"
                             placeholder={t("explore.manager.search")}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="flex-1 text-[12px] text-slate-700 placeholder:text-slate-400 bg-transparent outline-none border-none min-w-0"
+                            size="sm"
+                            className="pl-8"
                         />
                     </div>
 

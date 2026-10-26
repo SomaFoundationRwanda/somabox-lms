@@ -23,6 +23,7 @@ import { useCourseText } from "@/components/course/useCourseText";
 import ScheduleFields, { initialScheduleValues, scheduleError, schedulePayload } from "@/components/course/modules/editors/ScheduleFields";
 import { useItemOpened } from "@/lib/usage";
 import Loader from "@/components/ui/Loader";
+import { Checkbox, Select, TextInput, Textarea } from "@/components/form";
 
 const itemDaysOf = (item) => ({ release_day: item.release_day, due_day: item.due_day, close_day: item.close_day });
 
@@ -307,29 +308,19 @@ export default function AssignmentDetailPage() {
             <div className="space-y-5">
               <div>
                 <label htmlFor="assignment-title" className="block text-xs font-bold text-slate-700 mb-1">{t("common.title")} *</label>
-                <input
-                  id="assignment-title"
-                  value={editForm.title}
-                  onChange={(e) => setEditForm((p) => ({ ...p, title: e.target.value }))}
-                  className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2.5 outline-none focus:border-[var(--brand-secondary)]"
-                />
+                <TextInput id="assignment-title" value={editForm.title} onChange={(e) => setEditForm((p) => ({ ...p, title: e.target.value }))} className="w-full" />
               </div>
 
               {/* Module & relative timing */}
               <div>
                 <label htmlFor="assignment-module" className="block text-xs font-bold text-slate-700 mb-1">{t("assignment.moduleWeek")} *</label>
-                <select
-                  id="assignment-module"
-                  value={editForm.moduleId}
-                  onChange={(e) => setEditForm((p) => ({ ...p, moduleId: Number(e.target.value) }))}
-                  className="w-full text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]"
-                >
+                <Select size="sm" id="assignment-module" value={editForm.moduleId} onChange={(e) => setEditForm((p) => ({ ...p, moduleId: Number(e.target.value) }))} className="w-full" >
                   {modules.map((m) => (
                     <option key={m.id} value={m.id}>
                       {weekLabel(m)}: {m.title}
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
 
               <ScheduleFields
@@ -346,11 +337,10 @@ export default function AssignmentDetailPage() {
                     const isChecked = editForm.selectedOutcomeIds.includes(o.id);
                     return (
                       <label key={o.id} className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer">
-                        <input
-                          type="checkbox"
+                        <Checkbox
                           checked={isChecked}
-                          onChange={(e) => {
-                            if (e.target.checked) {
+                          onCheckedChange={(v) => {
+                            if (v === true) {
                               setEditForm(p => ({ ...p, selectedOutcomeIds: [...p.selectedOutcomeIds, o.id] }));
                             } else {
                               setEditForm(p => ({ ...p, selectedOutcomeIds: p.selectedOutcomeIds.filter(id => id !== o.id) }));
@@ -366,13 +356,7 @@ export default function AssignmentDetailPage() {
 
               <div>
                 <label htmlFor="assignment-instructions" className="block text-xs font-bold text-slate-700 mb-1">{t("assignment.instructions")}</label>
-                <textarea
-                  id="assignment-instructions"
-                  value={editForm.description}
-                  onChange={(e) => setEditForm((p) => ({ ...p, description: e.target.value }))}
-                  rows={4}
-                  className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[var(--brand-secondary)]"
-                />
+                <Textarea id="assignment-instructions" value={editForm.description} onChange={(e) => setEditForm((p) => ({ ...p, description: e.target.value }))} rows={4} className="w-full" />
               </div>
 
               {saveError && (
@@ -447,17 +431,12 @@ export default function AssignmentDetailPage() {
                         <label htmlFor="grade-without-submission" className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
                           {t("assignment.gradeWithout")}
                         </label>
-                        <select
-                          id="grade-without-submission"
-                          value={extraLearner}
-                          onChange={(e) => setExtraLearner(e.target.value)}
-                          className="text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-lg px-2.5 py-1.5 max-w-full"
-                        >
+                        <Select size="sm" id="grade-without-submission" value={extraLearner} onChange={(e) => setExtraLearner(e.target.value)} className="max-w-full" >
                           <option value="">{t("assignment.chooseLearner")}</option>
                           {learnersWithout.map((p) => (
                             <option key={p.account} value={p.account}>{p.fullName || p.learnerCode || p.email}</option>
                           ))}
-                        </select>
+                        </Select>
                       </div>
                     </div>
                   ) : null}
@@ -522,14 +501,7 @@ export default function AssignmentDetailPage() {
                         {deadlines.isLate ? (
                           <p className="text-xs font-semibold text-amber-800">{t("assignment.latePossible")}</p>
                         ) : null}
-                        <textarea
-                          value={submissionBody}
-                          onChange={(e) => setSubmissionBody(e.target.value)}
-                          rows={6}
-                          placeholder={t("assignment.responsePlaceholder")}
-                          aria-label={t("assignment.responseLabel")}
-                          className="w-full text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-lg p-4 outline-none focus:border-[var(--brand-secondary)]"
-                        />
+                        <Textarea value={submissionBody} onChange={(e) => setSubmissionBody(e.target.value)} rows={6} placeholder={t("assignment.responsePlaceholder")} aria-label={t("assignment.responseLabel")} className="w-full" />
                       </>
                     )}
 

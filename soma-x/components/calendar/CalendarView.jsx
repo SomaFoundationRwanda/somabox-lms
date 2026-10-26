@@ -8,6 +8,7 @@ import {
 import { addDays, compareDates, diffDays, todayIn, weekday } from "@somabox/timeline";
 import { useCourseText } from "@/components/course/useCourseText";
 import Loader from "@/components/ui/Loader";
+import { TextInput } from "@/components/form";
 
 // Visual language per event type. Labels shown on screen come from course.calendar.types.<type>.
 export const EVENT_TYPES = {
@@ -157,12 +158,11 @@ function MoveDialog({ event, onCancel, onConfirm }) {
         <p className="text-xs text-slate-500">{tf("calendar.currently", { date: fmtDay(event.date) })}</p>
         <div>
           <label htmlFor="move-event-date" className="block text-xs font-semibold text-slate-600 mb-1.5">{t("calendar.newDate")}</label>
-          <input
+          <TextInput
             id="move-event-date"
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[var(--brand-primary)]"
             autoFocus
             required
           />

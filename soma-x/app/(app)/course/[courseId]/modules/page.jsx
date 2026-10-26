@@ -22,6 +22,7 @@ import DeleteItemDialog from "@/components/course/modules/DeleteItemDialog";
 import useAiStatus from "@/lib/useAiStatus";
 import { AiStatusNote } from "@/components/ai/AiBits";
 import Loader from "@/components/ui/Loader";
+import { TextInput } from "@/components/form";
 
 // Teacher-only code is loaded on demand so learners on low-end devices don't download it:
 // the editor modals (TipTap etc.) when one is opened, and drag-and-drop for teachers.
@@ -371,15 +372,7 @@ export default function ModulesPage() {
         {/* Create module form */}
         {creating && (
           <div className="flex flex-wrap items-center gap-2">
-            <input
-              value={newTitle}
-              onChange={(e) => setNewTitle(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") createModule(); }}
-              placeholder={t("modules.newModulePlaceholder")}
-              aria-label={t("modules.newModuleTitle")}
-              className="flex-1 min-w-[12rem] text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[var(--brand-primary)]"
-              autoFocus
-            />
+            <TextInput value={newTitle} onChange={(e) => setNewTitle(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") createModule(); }} placeholder={t("modules.newModulePlaceholder")} aria-label={t("modules.newModuleTitle")} className="flex-1 min-w-[12rem]" autoFocus />
             <button onClick={createModule} className="text-xs font-semibold text-white bg-[var(--brand-primary)] rounded-lg px-3 py-2">
               {t("common.create")}
             </button>
@@ -465,15 +458,7 @@ export default function ModulesPage() {
                 {selectedItemType === "sub_header" && (
                   <div>
                     <label htmlFor="new-subheader-title" className="block text-xs font-semibold text-slate-600 mb-1.5">{t("modules.subHeaderTitle")}</label>
-                    <input
-                      id="new-subheader-title"
-                      value={subHeaderTitle}
-                      onChange={(e) => setSubHeaderTitle(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter") startItemCreation(); }}
-                      placeholder={t("modules.subHeaderPlaceholder")}
-                      className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[var(--brand-primary)]"
-                      autoFocus
-                    />
+                    <TextInput id="new-subheader-title" value={subHeaderTitle} onChange={(e) => setSubHeaderTitle(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") startItemCreation(); }} placeholder={t("modules.subHeaderPlaceholder")} className="w-full" autoFocus />
                   </div>
                 )}
 

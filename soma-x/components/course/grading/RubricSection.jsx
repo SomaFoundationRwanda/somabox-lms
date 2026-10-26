@@ -11,6 +11,7 @@ import { apiFetch, getErrorMessage } from "@/lib/api";
 import { AiStatusNote } from "@/components/ai/AiBits";
 import AiJobPanel from "@/components/ai/AiJobPanel";
 import { useProgressText } from "@/components/progress/text";
+import { Select, TextInput, Textarea } from "@/components/form";
 
 let draftSeq = 0;
 const newKey = () => `draft-${++draftSeq}`;
@@ -23,8 +24,6 @@ const emptyRow = (outcome) => ({
   weight: 1,
   outcomeId: outcome ? String(outcome.id) : "",
 });
-
-const inputClass = "w-full text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-lg px-2.5 py-1.5 outline-none focus:border-[var(--brand-secondary)]";
 
 // Teacher rubric for one assignment: read-only table, or an editor that PUTs the whole rubric.
 // `taggedOutcomes` are this assignment's outcome tags ({ outcome_id, outcome_code, outcome_title })
@@ -174,7 +173,7 @@ export default function RubricSection({ courseId, assignmentId, rubric, outcomes
         <div className="space-y-4">
           <div>
             <label htmlFor="rubric-title" className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{tp("rubric.titleLabel")}</label>
-            <input id="rubric-title" value={title} onChange={(e) => setTitle(e.target.value)} className={inputClass} placeholder={tp("rubric.titlePlaceholder")} />
+            <TextInput id="rubric-title" value={title} onChange={(e) => setTitle(e.target.value)} size="sm" className="w-full" placeholder={tp("rubric.titlePlaceholder")} />
           </div>
 
           <ol aria-label={tp("common.rubricCriteria")} className="divide-y divide-slate-100 dark:divide-slate-800 rounded-xl border border-slate-200 dark:border-slate-800">
@@ -199,29 +198,29 @@ export default function RubricSection({ courseId, assignmentId, rubric, outcomes
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <div>
                       <label htmlFor={`${id}-title`} className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5">{tp("rubric.titleRequired")}</label>
-                      <input id={`${id}-title`} value={r.title} onChange={(e) => update(r.key, { title: e.target.value })} className={inputClass} />
+                      <TextInput id={`${id}-title`} value={r.title} onChange={(e) => update(r.key, { title: e.target.value })} size="sm" className="w-full" />
                     </div>
                     <div>
                       <label htmlFor={`${id}-outcome`} className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5">{tp("common.outcome")}</label>
-                      <select id={`${id}-outcome`} value={r.outcomeId} onChange={(e) => update(r.key, { outcomeId: e.target.value })} className={inputClass}>
+                      <Select id={`${id}-outcome`} value={r.outcomeId} onChange={(e) => update(r.key, { outcomeId: e.target.value })} size="sm" className="w-full">
                         <option value="">{tp("common.noOutcome")}</option>
                         {(outcomes || []).map((o) => (
                           <option key={o.id} value={String(o.id)}>{o.code || `OUT-${o.id}`}: {o.title}</option>
                         ))}
-                      </select>
+                      </Select>
                     </div>
                     <div className="sm:col-span-2">
                       <label htmlFor={`${id}-desc`} className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5">{tp("common.description")}</label>
-                      <textarea id={`${id}-desc`} rows={2} value={r.description} onChange={(e) => update(r.key, { description: e.target.value })} className={inputClass} placeholder={tp("rubric.descriptionPlaceholder")} />
+                      <Textarea id={`${id}-desc`} rows={2} value={r.description} onChange={(e) => update(r.key, { description: e.target.value })} size="sm" className="w-full" placeholder={tp("rubric.descriptionPlaceholder")} />
                     </div>
                     <div className="grid grid-cols-2 gap-2 sm:col-span-2 sm:max-w-xs">
                       <div>
                         <label htmlFor={`${id}-points`} className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5">{tp("common.maxPoints")}</label>
-                        <input id={`${id}-points`} type="number" min={0} step="any" inputMode="decimal" value={r.points} onChange={(e) => update(r.key, { points: e.target.value })} className={inputClass} />
+                        <TextInput id={`${id}-points`} type="number" min={0} step="any" inputMode="decimal" value={r.points} onChange={(e) => update(r.key, { points: e.target.value })} size="sm" className="w-full" />
                       </div>
                       <div>
                         <label htmlFor={`${id}-weight`} className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5">{tp("common.weight")}</label>
-                        <input id={`${id}-weight`} type="number" min={0} step="any" inputMode="decimal" value={r.weight} onChange={(e) => update(r.key, { weight: e.target.value })} className={inputClass} />
+                        <TextInput id={`${id}-weight`} type="number" min={0} step="any" inputMode="decimal" value={r.weight} onChange={(e) => update(r.key, { weight: e.target.value })} size="sm" className="w-full" />
                       </div>
                     </div>
                   </div>

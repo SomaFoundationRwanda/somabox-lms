@@ -20,6 +20,7 @@ import GradeSelect from "@/components/teacher/GradeSelect";
 import Explainer from "@/components/help/Explainer";
 import ShareCourseSection from "@/components/course/ShareCourseSection";
 import CourseStatusSection from "@/components/course/CourseStatusSection";
+import { Select, TextInput, Textarea } from "@/components/form";
 
 // Settings > Course setup (teachers): the setup checklist, the Week 0 baseline and the guided wizard.
 function CourseSetupSection({ courseId, course, userEmail, onCourseChanged }) {
@@ -166,31 +167,19 @@ function ShiftTimelinePanel({ courseId, startDate, onApplied }) {
           <div className="grid grid-cols-1 sm:grid-cols-[8rem_1fr] gap-3">
             <div>
               <label htmlFor="shift-days" className="text-[11px] font-semibold text-slate-600 mb-1 block">{t("settings.shift.days")}</label>
-              <input
-                id="shift-days"
-                type="number"
-                step="1"
-                value={days}
-                onChange={(e) => setDays(e.target.value)}
-                className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]"
-              />
+              <TextInput id="shift-days" type="number" step="1" value={days} onChange={(e) => setDays(e.target.value)} className="w-full" />
               <p className="text-[10px] text-slate-500 mt-0.5">{t("settings.shift.negative")}</p>
             </div>
             <div>
               <label htmlFor="shift-from" className="text-[11px] font-semibold text-slate-600 mb-1 block">{t("settings.shift.from")}</label>
-              <select
-                id="shift-from"
-                value={fromModuleId}
-                onChange={(e) => setFromModuleId(e.target.value)}
-                className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)] bg-white"
-              >
+              <Select id="shift-from" value={fromModuleId} onChange={(e) => setFromModuleId(e.target.value)} className="w-full" >
                 <option value="">{t("settings.shift.whole")}</option>
                 {modules.map((m) => (
                   <option key={m.id} value={m.id}>
                     {weekLabel(m)}: {m.title}{m.startDate ? ` (${formatDate(m.startDate)})` : ""}
                   </option>
                 ))}
-              </select>
+              </Select>
               <p className="text-[10px] text-slate-500 mt-0.5">{t("settings.shift.fromHelp")}</p>
             </div>
           </div>
@@ -423,16 +412,16 @@ export default function CourseSettingsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label htmlFor="course-start-date" className="text-xs font-semibold text-slate-600 mb-1 block">{t("settings.startDate")}</label>
-                <input id="course-start-date" type="date" value={form.startDate || ""} onChange={(e) => setForm((p) => ({ ...p, startDate: e.target.value }))} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]" />
+                <TextInput id="course-start-date" type="date" value={form.startDate || ""} onChange={(e) => setForm((p) => ({ ...p, startDate: e.target.value }))} className="w-full" />
               </div>
               <div>
                 <label htmlFor="course-end-date" className="text-xs font-semibold text-slate-600 mb-1 block">{t("settings.endDate")}</label>
-                <input id="course-end-date" type="date" value={form.endDate || ""} min={form.startDate || undefined} onChange={(e) => setForm((p) => ({ ...p, endDate: e.target.value }))} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]" />
+                <TextInput id="course-end-date" type="date" value={form.endDate || ""} min={form.startDate || undefined} onChange={(e) => setForm((p) => ({ ...p, endDate: e.target.value }))} className="w-full" />
               </div>
             </div>
             <div>
               <label htmlFor="course-length" className="text-xs font-semibold text-slate-600 mb-1 block">{t("settings.duration")}</label>
-              <input id="course-length" type="number" min={1} max={52} value={form.lengthWeeks} onChange={(e) => setForm((p) => ({ ...p, lengthWeeks: Number(e.target.value) }))} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]" />
+              <TextInput id="course-length" type="number" min={1} max={52} value={form.lengthWeeks} onChange={(e) => setForm((p) => ({ ...p, lengthWeeks: Number(e.target.value) }))} className="w-full" />
             </div>
             </div>
             </Section>
@@ -453,7 +442,7 @@ export default function CourseSettingsPage() {
             </div>
             <div>
               <label htmlFor="course-description" className="text-xs font-semibold text-slate-600 mb-1 block">{t("common.description")}</label>
-              <textarea id="course-description" value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} rows={4} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]" />
+              <Textarea id="course-description" value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} rows={4} className="w-full" />
             </div>
             <div>
               <label htmlFor="course-banner" className="text-xs font-semibold text-slate-600 mb-1 block">{t("settings.banner")}</label>
@@ -461,15 +450,10 @@ export default function CourseSettingsPage() {
             </div>
             <div>
               <label htmlFor="course-visibility" className="text-xs font-semibold text-slate-600 mb-1 block">{t("settings.visibility")}</label>
-              <select
-                id="course-visibility"
-                value={form.visibility}
-                onChange={(e) => setForm((p) => ({ ...p, visibility: e.target.value }))}
-                className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)] bg-white"
-              >
+              <Select id="course-visibility" value={form.visibility} onChange={(e) => setForm((p) => ({ ...p, visibility: e.target.value }))} className="w-full" >
                 <option value="private">{t("settings.private")}</option>
                 <option value="public">{t("settings.public")}</option>
-              </select>
+              </Select>
               <p className="text-xs text-slate-500 mt-1">
                 {t("settings.publicHelp")}
               </p>

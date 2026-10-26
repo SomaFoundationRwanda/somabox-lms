@@ -11,8 +11,8 @@ import { LoadingRows, ErrorNote } from "@/components/insights/bits";
 import { formatDate, toDateString } from "@/lib/dates";
 import Register, { StatusCounts } from "./Register";
 import { useAttendanceText, attendanceFlags, pct, attended } from "./text";
+import { Field, TextInput } from "@/components/form";
 
-const inputCls = "h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-[var(--brand-secondary)] dark:border-slate-700 dark:bg-slate-900";
 
 // Sort values for the learners table; nulls always go last.
 const SORTS = {
@@ -202,14 +202,12 @@ export default function TeacherAttendance({ readOnly = false }) {
           {!readOnly ? (
             <Section title={tx("takeTitle")} description={tx("takeDescription")}>
               <form onSubmit={openRegister} className="grid gap-3 sm:grid-cols-[minmax(0,11rem)_minmax(0,1fr)_auto] sm:items-end">
-                <div>
-                  <label htmlFor="att-date" className="block text-xs font-semibold text-slate-600 dark:text-slate-300">{tx("date")}</label>
-                  <input id="att-date" type="date" value={chosenDate} max={today} onChange={(e) => setDate(e.target.value)} required className={`mt-1 ${inputCls}`} />
-                </div>
-                <div>
-                  <label htmlFor="att-title" className="block text-xs font-semibold text-slate-600 dark:text-slate-300">{tx("sessionName")}</label>
-                  <input id="att-title" type="text" value={title} placeholder={defaultTitle} maxLength={80} onChange={(e) => setTitle(e.target.value)} className={`mt-1 ${inputCls}`} />
-                </div>
+                <Field id="att-date" label={tx("date")}>
+                  <TextInput type="date" value={chosenDate} max={today} onChange={(e) => setDate(e.target.value)} required size="lg" />
+                </Field>
+                <Field id="att-title" label={tx("sessionName")}>
+                  <TextInput value={title} placeholder={defaultTitle} maxLength={80} onChange={(e) => setTitle(e.target.value)} size="lg" />
+                </Field>
                 <button
                   type="submit"
                   disabled={opening}
@@ -261,14 +259,12 @@ export default function TeacherAttendance({ readOnly = false }) {
                     return (
                       <li key={s.id} className="px-3 py-3">
                         <form onSubmit={saveEdit} className="grid gap-2 sm:grid-cols-[minmax(0,11rem)_minmax(0,1fr)_auto_auto] sm:items-end">
-                          <div>
-                            <label htmlFor={`att-edit-date-${s.id}`} className="block text-xs font-semibold text-slate-600 dark:text-slate-300">{tx("date")}</label>
-                            <input id={`att-edit-date-${s.id}`} type="date" max={today} required value={editing.date} onChange={(e) => setEditing((v) => ({ ...v, date: e.target.value }))} className={`mt-1 ${inputCls}`} />
-                          </div>
-                          <div>
-                            <label htmlFor={`att-edit-title-${s.id}`} className="block text-xs font-semibold text-slate-600 dark:text-slate-300">{tx("sessionName")}</label>
-                            <input id={`att-edit-title-${s.id}`} type="text" required maxLength={80} value={editing.title} onChange={(e) => setEditing((v) => ({ ...v, title: e.target.value }))} className={`mt-1 ${inputCls}`} />
-                          </div>
+                          <Field id={`att-edit-date-${s.id}`} label={tx("date")}>
+                            <TextInput type="date" max={today} required value={editing.date} onChange={(e) => setEditing((v) => ({ ...v, date: e.target.value }))} size="lg" />
+                          </Field>
+                          <Field id={`att-edit-title-${s.id}`} label={tx("sessionName")}>
+                            <TextInput required maxLength={80} value={editing.title} onChange={(e) => setEditing((v) => ({ ...v, title: e.target.value }))} size="lg" />
+                          </Field>
                           <button type="submit" disabled={busyId === s.id} className="inline-flex h-11 items-center justify-center rounded-lg bg-[var(--brand-secondary)] px-4 text-sm font-bold text-white hover:bg-[var(--brand-secondary-dark)] disabled:opacity-60">{tx("saveChanges")}</button>
                           <button type="button" onClick={() => setEditing(null)} className="inline-flex h-11 items-center justify-center rounded-lg px-4 text-sm font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">{tx("cancel")}</button>
                         </form>

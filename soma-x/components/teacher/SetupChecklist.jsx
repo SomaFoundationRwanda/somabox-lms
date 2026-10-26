@@ -11,6 +11,7 @@ import useSetupText from "@/lib/useSetupText";
 import { useQueryClient } from "@tanstack/react-query";
 import { ApiError, apiFetch } from "@/lib/api";
 import { queryKeys } from "@/lib/queryKeys";
+import { CheckboxField } from "@/components/form";
 
 /** True when a teacher still has something to look at: a draft course, an unfinished checklist item, or warnings. */
 export function setupNeedsAttention(status) {
@@ -154,15 +155,11 @@ export default function SetupChecklist({ courseId, status, onChanged, showSettin
         {isDraft && (
           <div className="flex flex-col items-end gap-1">
             {hiddenWeeks > 0 && (
-              <label className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={publishWeeks}
-                  onChange={(e) => setPublishWeeks(e.target.checked)}
-                  className="accent-[var(--brand-secondary)]"
-                />
-                {fill(t("teacher.setup.publishWeeksToo"), { n: hiddenWeeks })}
-              </label>
+              <CheckboxField
+                label={fill(t("teacher.setup.publishWeeksToo"), { n: hiddenWeeks })}
+                checked={publishWeeks}
+                onCheckedChange={setPublishWeeks}
+              />
             )}
             <button
               type="button"

@@ -10,6 +10,7 @@ import { DeltaText, fmtGain, fmtPct, fmtRate, relativeDay } from "./bits";
 import { useProgressText } from "@/components/progress/text";
 import { useAttendanceText } from "@/components/attendance/text";
 import { startRouteLoading } from "@/components/global/RouteLoader";
+import { CheckboxField, TextInput } from "@/components/form";
 
 // Name for sorting and search; the "Learner" fallback only matters for rows with neither.
 const nameOf = (l) => l.name || l.email || "Learner";
@@ -78,21 +79,23 @@ export default function LearnersTab({ data, flaggedOnly, setFlaggedOnly }) {
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-3">
-        <label className="relative flex-1 min-w-[12rem] max-w-sm">
-          <span className="sr-only">{tp("insights.learners.searchLabel")}</span>
+        <div className="relative flex-1 min-w-[12rem] max-w-sm">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" aria-hidden="true" />
-          <input
+          <TextInput
             type="search"
+            aria-label={tp("insights.learners.searchLabel")}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={tp("insights.learners.searchPlaceholder")}
-            className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 py-1.5 pl-8 pr-2.5 text-sm outline-none focus:border-[var(--brand-secondary)]"
+            size="sm"
+            className="pl-8"
           />
-        </label>
-        <label className="inline-flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
-          <input type="checkbox" checked={flaggedOnly} onChange={(e) => setFlaggedOnly(e.target.checked)} className="h-4 w-4 accent-[var(--brand-secondary)]" />
-          {tp("insights.learners.flaggedOnly")} <span className="text-xs text-slate-500">({flaggedCount})</span>
-        </label>
+        </div>
+        <CheckboxField
+          label={<>{tp("insights.learners.flaggedOnly")} <span className="text-xs font-normal text-slate-500">({flaggedCount})</span></>}
+          checked={flaggedOnly}
+          onCheckedChange={setFlaggedOnly}
+        />
         <span className="text-xs text-slate-500" aria-live="polite">{tp("insights.learners.countOf", { n: rows.length, total: learners.length })}</span>
       </div>
 

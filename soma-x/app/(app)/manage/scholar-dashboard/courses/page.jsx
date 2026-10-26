@@ -15,6 +15,7 @@ import { startRouteLoading } from "@/components/global/RouteLoader";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch, getErrorMessage } from "@/lib/api";
 import { queryKeys } from "@/lib/queryKeys";
+import { TextInput } from "@/components/form";
 
 export default function ScholarCoursesPage() {
   const { SERVER_URL, user } = useContext(DataContext);
@@ -71,11 +72,11 @@ export default function ScholarCoursesPage() {
 
         {joining ? (
           <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-3">
-            <input aria-label={t("learner.discover.code.title")}
+            <TextInput aria-label={t("learner.discover.code.title")}
               value={courseCode}
               onChange={(e) => setCourseCode(e.target.value)}
               placeholder={t("learner.discover.code.placeholder")}
-              className="flex-1 text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-accent-dark"
+              className="flex-1"
             />
             <button onClick={handleJoin} disabled={joinLoading} className="text-xs font-semibold text-white bg-accent-dark rounded-lg px-3 py-2 disabled:opacity-50">
               {joinLoading ? t("learner.discover.joining") : t("learner.courses.join")}

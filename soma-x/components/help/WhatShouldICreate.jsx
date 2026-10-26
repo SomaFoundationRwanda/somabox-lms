@@ -6,6 +6,7 @@ import { BookOpen, ClipboardCheck, FileDown, Heading, ListChecks, MessagesSquare
 import { useLanguage } from "@/context/LanguageContext";
 import { trackEvent } from "@/lib/usage";
 import { useCourseText } from "@/components/course/useCourseText";
+import { ChoiceGroup, Field, Select } from "@/components/form";
 
 // Learner goal -> what to create. `kind` refines quizzes.
 export const CREATE_GOALS = [
@@ -74,38 +75,37 @@ export default function WhatShouldICreate({ open, onClose, modules, defaultModul
           </button>
         </div>
 
-        <fieldset className="mt-4">
-          <legend className="sr-only">{helper.title}</legend>
-          <div className="divide-y divide-slate-100 dark:divide-slate-800 rounded-xl border border-slate-200 dark:border-slate-800">
-            {CREATE_GOALS.map((g) => {
-              const text = helper.goals?.[g.id] || {};
-              const Icon = g.icon;
-              return (
-                <label key={g.id} className={`flex cursor-pointer items-center gap-3 px-3 py-2.5 ${goal === g.id ? "bg-teal-50 dark:bg-teal-950/30" : ""}`}>
-                  <input type="radio" name="create-goal" value={g.id} checked={goal === g.id} onChange={() => setGoal(g.id)} className="accent-[var(--brand-secondary)]" />
+        <ChoiceGroup
+          layout="list"
+          aria-label={helper.title}
+          className="mt-4"
+          value={goal}
+          onChange={setGoal}
+          options={CREATE_GOALS.map((g) => {
+            const text = helper.goals?.[g.id] || {};
+            const Icon = g.icon;
+            return {
+              value: g.id,
+              label: (
+                <span className="flex items-center gap-3">
                   <Icon className="w-4 h-4 text-[var(--brand-secondary)] shrink-0" aria-hidden="true" />
                   <span className="min-w-0">
                     <span className="block text-sm font-semibold text-slate-800 dark:text-slate-100">{text.label || g.id}</span>
-                    <span className="block text-xs text-slate-500">{text.hint}</span>
+                    <span className="block text-xs font-normal text-slate-500">{text.hint}</span>
                   </span>
-                </label>
-              );
-            })}
-          </div>
-        </fieldset>
+                </span>
+              ),
+            };
+          })}
+        />
 
-        <label className="mt-4 block text-xs font-semibold text-slate-600">
-          {helper.module || "Add it to"}
-          <select
-            value={moduleId}
-            onChange={(e) => setModuleId(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"
-          >
+        <Field label={helper.module || "Add it to"} className="mt-4">
+          <Select value={moduleId} onChange={(e) => setModuleId(e.target.value)}>
             {choices.map((m) => (
               <option key={m.id} value={m.id}>{weekLabel(m)}: {m.title}</option>
             ))}
-          </select>
-        </label>
+          </Select>
+        </Field>
 
         <div className="mt-5 flex justify-end gap-2">
           <button type="button" onClick={onClose} className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100">{helper.cancel || "Cancel"}</button>

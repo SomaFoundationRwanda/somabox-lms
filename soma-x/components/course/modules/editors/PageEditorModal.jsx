@@ -5,6 +5,7 @@ import { X, AlertCircle } from "lucide-react";
 import RichTextEditor from "@/components/course/editor/RichTextEditor";
 import AIAssistantWidget from "@/components/course/editor/AIAssistantWidget";
 import { useCourseText } from "@/components/course/useCourseText";
+import { TextInput } from "@/components/form";
 
 export default function PageEditorModal({ open, onClose, onSave, initialData }) {
   const isEdit = Boolean(initialData?.id);
@@ -66,12 +67,7 @@ export default function PageEditorModal({ open, onClose, onSave, initialData }) 
         <div className="px-6 py-4 space-y-4">
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1.5">{t("common.title")}</label>
-            <input aria-label={t("common.title")}
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder={t("editors.pageTitle")}
-              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[var(--brand-primary)] transition-colors"
-            />
+            <TextInput aria-label={t("common.title")} value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("editors.pageTitle")} className="w-full" />
           </div>
 
           {/* Teacher AI Assistant Widget */}

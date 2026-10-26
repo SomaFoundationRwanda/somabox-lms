@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { PageHeader, List, ListRow } from "@/components/layout";
 import { useCourseText } from "@/components/course/useCourseText";
 import { apiFetch } from "@/lib/api";
+import { Select, TextInput, Textarea } from "@/components/form";
 
 export default function DiscussionsListPage() {
   const { courseId } = useCourse();
@@ -63,21 +64,16 @@ export default function DiscussionsListPage() {
 
         {creating ? (
           <div className="space-y-2">
-            <select
-              value={form.moduleId}
-              onChange={(e) => setForm((p) => ({ ...p, moduleId: e.target.value }))}
-              aria-label={t("discussions.module")}
-              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)] bg-white"
-            >
+            <Select value={form.moduleId} onChange={(e) => setForm((p) => ({ ...p, moduleId: e.target.value }))} aria-label={t("discussions.module")} className="w-full" >
               <option value="" disabled>{modules.length === 0 ? t("discussions.noModules") : `${t("discussions.chooseModule")} *`}</option>
               {modules.map((m) => (
                 <option key={m.id} value={m.id}>
                   {weekLabel(m)}: {m.title}
                 </option>
               ))}
-            </select>
-            <input value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} placeholder={t("common.title")} aria-label={t("discussions.titleLabel")} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]" />
-            <textarea value={form.body} onChange={(e) => setForm((p) => ({ ...p, body: e.target.value }))} rows={3} placeholder={t("discussions.promptPlaceholder")} aria-label={t("discussions.promptLabel")} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]" />
+            </Select>
+            <TextInput value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} placeholder={t("common.title")} aria-label={t("discussions.titleLabel")} className="w-full" />
+            <Textarea value={form.body} onChange={(e) => setForm((p) => ({ ...p, body: e.target.value }))} rows={3} placeholder={t("discussions.promptPlaceholder")} aria-label={t("discussions.promptLabel")} className="w-full" />
             {createError ? <p className="text-xs font-semibold text-rose-600">{createError}</p> : null}
             <div className="flex justify-end gap-2">
               <button onClick={() => setCreating(false)} className="text-xs font-medium text-slate-500 px-3 py-2">{t("common.cancel")}</button>

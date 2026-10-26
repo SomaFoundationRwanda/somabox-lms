@@ -12,6 +12,7 @@ import { useCourseText } from "@/components/course/useCourseText";
 import Explainer from "@/components/help/Explainer";
 import { formatRange } from "@/lib/dates";
 import { apiFetch, getErrorMessage } from "@/lib/api";
+import { TextInput } from "@/components/form";
 
 // Teacher-only drag-and-drop, loaded on demand so learners never download dnd-kit.
 const SortableItemList = lazy(() => import("./sortable").then((m) => ({ default: m.SortableItemList })));
@@ -194,15 +195,7 @@ export default function ModuleCard({
             {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
           {editingTitle ? (
-            <input
-              value={titleDraft}
-              onChange={(e) => setTitleDraft(e.target.value)}
-              onBlur={saveTitle}
-              onKeyDown={(e) => { if (e.key === "Enter") saveTitle(); if (e.key === "Escape") setEditingTitle(false); }}
-              aria-label={t("modules.moduleTitle")}
-              className="flex-1 min-w-[10rem] text-sm font-bold border border-slate-300 rounded-lg px-2 py-0.5 outline-none focus:border-[var(--brand-primary)] bg-white"
-              autoFocus
-            />
+            <TextInput size="sm" value={titleDraft} onChange={(e) => setTitleDraft(e.target.value)} onBlur={saveTitle} onKeyDown={(e) => { if (e.key === "Enter") saveTitle(); if (e.key === "Escape") setEditingTitle(false); }} aria-label={t("modules.moduleTitle")} className="flex-1 min-w-[10rem]" autoFocus />
           ) : (
             <h2
               className={`text-base font-bold truncate ${isUnassigned ? "text-amber-800 dark:text-amber-300" : "text-slate-900 dark:text-white"}`}
@@ -289,15 +282,7 @@ export default function ModuleCard({
             <label htmlFor={`story-idea-${moduleRow.id}`} className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5">
               {tf("modules.ai.storyIdeaFor", { week: weekLabel(moduleRow) })}
             </label>
-            <input
-              id={`story-idea-${moduleRow.id}`}
-              value={storyIdea}
-              onChange={(e) => setStoryIdea(e.target.value)}
-              maxLength={500}
-              placeholder={t("modules.ai.storyPlaceholder")}
-              className="w-full text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-lg px-2.5 py-1.5 outline-none focus:border-[var(--brand-secondary)]"
-              autoFocus
-            />
+            <TextInput size="sm" id={`story-idea-${moduleRow.id}`} value={storyIdea} onChange={(e) => setStoryIdea(e.target.value)} maxLength={500} placeholder={t("modules.ai.storyPlaceholder")} className="w-full" autoFocus />
           </div>
           <button type="submit" disabled={!storyIdea.trim() || aiBusy === "story"} className="text-xs font-bold text-white bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-dark)] disabled:opacity-50 px-3.5 py-2 rounded-lg">
             {aiBusy === "story" ? t("modules.ai.starting") : t("modules.ai.writeStoryDraft")}

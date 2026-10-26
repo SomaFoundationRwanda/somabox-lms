@@ -11,6 +11,7 @@ import { PageHeader, Section, List, ListRow, DataTable, EmptyState } from "@/com
 import { aiFetch, DRAFT_TYPE_LABELS } from "@/lib/ai";
 import { fill } from "@/lib/fill";
 import Loader from "@/components/ui/Loader";
+import { Field, TextInput } from "@/components/form";
 
 // Feature and draft-type names are translated under admin.ai.features / admin.ai.draftTypes.
 const FEATURE_KEYS = ["fill_week", "story", "quiz", "outline", "outcome_rewrite", "rubric", "grading", "ask"];
@@ -225,16 +226,15 @@ export default function AdminAiSettingsPage() {
 
             <form onSubmit={turnOffPicked} className="flex flex-wrap items-end gap-2">
               <div className="flex-1 min-w-[14rem] max-w-md">
-                <label htmlFor="ai-off-email" className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t("admin.ai.turnOffFor")}</label>
-                <input
-                  id="ai-off-email"
-                  list="ai-staff-emails"
-                  value={pickEmail}
-                  onChange={(e) => setPickEmail(e.target.value)}
-                  placeholder={t("admin.ai.typeEmail")}
-                  autoComplete="off"
-                  className="w-full text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-lg px-3 py-2 outline-none focus:border-[var(--brand-secondary)]"
-                />
+                <Field id="ai-off-email" label={t("admin.ai.turnOffFor")}>
+                  <TextInput
+                    list="ai-staff-emails"
+                    value={pickEmail}
+                    onChange={(e) => setPickEmail(e.target.value)}
+                    placeholder={t("admin.ai.typeEmail")}
+                    autoComplete="off"
+                  />
+                </Field>
                 <datalist id="ai-staff-emails">
                   {candidates.map((u) => (
                     <option key={u.id} value={u.email}>{u.full_name ? `${u.full_name} (${t(`role.${u.role}`) || u.role})` : (t(`role.${u.role}`) || u.role)}</option>

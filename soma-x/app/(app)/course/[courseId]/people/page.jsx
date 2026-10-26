@@ -18,6 +18,7 @@ import { fill } from "@/lib/fill";
 import { useQueryClient } from "@tanstack/react-query";
 import { apiFetch, getErrorMessage } from "@/lib/api";
 import { queryKeys } from "@/lib/queryKeys";
+import { Select, TextInput } from "@/components/form";
 
 const ROLE_OPTIONS = ["teacher", "ta", "student", "observer"];
 
@@ -98,10 +99,10 @@ export default function PeoplePage() {
 
         {adding ? (
           <div className="flex flex-wrap items-center gap-2">
-            <input value={form.email} onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))} placeholder={t("people.email")} aria-label={t("people.email")} className="flex-1 min-w-[200px] text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[var(--brand-primary)]" />
-            <select value={form.role} onChange={(e) => setForm((p) => ({ ...p, role: e.target.value }))} aria-label={t("people.role")} className="text-sm border border-slate-200 rounded-lg px-2 py-2">
+            <TextInput value={form.email} onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))} placeholder={t("people.email")} aria-label={t("people.email")} className="flex-1 min-w-[200px]" />
+            <Select value={form.role} onChange={(e) => setForm((p) => ({ ...p, role: e.target.value }))} aria-label={t("people.role")} >
               {ROLE_OPTIONS.map((r) => <option key={r} value={r}>{roleLabel(r)}</option>)}
-            </select>
+            </Select>
             <button onClick={addPerson} className="text-xs font-semibold text-white bg-[var(--brand-primary)] rounded-lg px-3 py-2">{t("common.add")}</button>
           </div>
         ) : null}

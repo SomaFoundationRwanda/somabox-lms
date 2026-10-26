@@ -7,6 +7,7 @@ import { LANGUAGE_NAMES } from "@/components/global/LanguageSwitcher"
 import ChangePasswordForm from "@/components/account/ChangePasswordForm"
 import { useToast } from "@/context/ToastContext"
 import { apiFetch } from "@/lib/api"
+import { Select } from "@/components/form"
 
 function Section({ title, children }) {
   return (
@@ -109,16 +110,14 @@ export default function TeacherSettingsPage() {
           <BrightnessSlider className="w-32" />
         </Row>
         <Row label={t("teacher.settings.language")} description={t("teacher.settings.languageHelp")}>
-          <select
+          <Select
             aria-label={t("teacher.settings.language")}
             value={lang}
             onChange={(e) => setLang(e.target.value)}
-            className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none focus:border-[var(--brand-secondary)]"
-          >
-            {Object.entries(LANGUAGE_NAMES).map(([code, name]) => (
-              <option key={code} value={code}>{name}</option>
-            ))}
-          </select>
+            size="sm"
+            className="w-40"
+            options={Object.entries(LANGUAGE_NAMES).map(([code, name]) => ({ value: code, label: name }))}
+          />
         </Row>
       </Section>
 

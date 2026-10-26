@@ -19,6 +19,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { fill } from "@/lib/fill";
 import { libraryCoverUrl, libraryFileUrl, libraryShelf, libraryViewer } from "@/components/ui/library/libraryEntry";
 import Loader from "@/components/ui/Loader";
+import { Field, TextInput } from "@/components/form";
 
 // What the library can hold: books, videos and audio.
 const LIBRARY_ACCEPT = ".pdf,.epub,.mp4,.webm,.mkv,.m4v,.mov,.mp3,.wav,.ogg,.m4a";
@@ -167,19 +168,14 @@ function LibraryUploadModal({ onClose, onSubmit }) {
                     </div>
 
                     {file && (
-                        <div>
-                            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest block mb-2">
-                                {t("admin.library.bookName")}
-                            </label>
-                            <input aria-label={t("admin.library.bookName")}
-                                type="text"
+                        <Field label={t("admin.library.bookName")}>
+                            <TextInput
                                 value={bookName}
                                 onChange={(e) => setBookName(e.target.value)}
                                 placeholder={t("admin.library.bookNamePlaceholder")}
-                                className="w-full h-10 px-3 rounded-[5px] border border-slate-200 bg-white text-[13px] outline-none focus:border-[var(--brand-secondary)] focus:ring-1 focus:ring-[var(--brand-secondary)] transition-all"
                                 required
                             />
-                        </div>
+                        </Field>
                     )}
 
                     {status === 'uploading' && (

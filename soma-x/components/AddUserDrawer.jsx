@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import {
-    AlertCircle, CheckCircle2, Eye, EyeOff,
+    AlertCircle, CheckCircle2,
     GraduationCap, Loader2, ShieldCheck, User, UserPlus, X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { fill } from "@/lib/fill";
 import { apiFetch, getErrorMessage } from "@/lib/api";
 import { useUsersChanged } from "@/lib/queries/users";
+import { Field, PasswordInput, TextInput } from "@/components/form";
 
 /* ── Role config ── */
 const ROLES = [
@@ -33,7 +34,6 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
     const [password, setPassword]           = useState("");
     const [fullName, setFullName]           = useState("");
     const [selectedRole, setSelectedRole]   = useState("teacher");
-    const [showPassword, setShowPassword]   = useState(false);
     const [loading, setLoading]             = useState(false);
     const [error, setError]                 = useState(null);
     const [success, setSuccess]             = useState(null);
@@ -213,68 +213,44 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
                                 )}
                                  {/* ── Full name ── */}
                                 {!restrictToLoginInfo && (
-                                    <div>
-                                        <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest block mb-2">
-                                            {t("admin.addUser.fullName")}
-                                        </label>
-                                        <input aria-label={t("admin.addUser.fullName")}
-                                            type="text"
+                                    <Field label={t("admin.addUser.fullName")}>
+                                        <TextInput
                                             value={fullName}
                                             onChange={(e) => setFullName(e.target.value)}
                                             placeholder={t("admin.addUser.fullNamePlaceholder")}
                                             disabled={loading}
-                                            className="w-full h-10 px-3 rounded-[5px] border border-slate-200 bg-slate-50 text-[13px] text-slate-800 placeholder:text-slate-400 outline-none focus:border-slate-400 focus:bg-white transition-all disabled:opacity-50"
                                         />
-                                    </div>
+                                    </Field>
                                 )}
 
                                 {/* ── Email ── */}
-                                <div>
-                                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest block mb-2">
-                                        {t("admin.addUser.email")}
-                                    </label>
-                                    <input aria-label={t("admin.addUser.email")}
+                                <Field label={t("admin.addUser.email")}>
+                                    <TextInput
                                         type="email"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
                                         placeholder="user@example.com"
                                         disabled={loading}
-                                        className="w-full h-10 px-3 rounded-[5px] border border-slate-200 bg-slate-50 text-[13px] text-slate-800 placeholder:text-slate-400 outline-none focus:border-slate-400 focus:bg-white transition-all disabled:opacity-50"
                                     />
-                                </div>
+                                </Field>
 
                                 {/* ── Password ── */}
-                                <div>
-                                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest block mb-2">
-                                        {user ? t("admin.addUser.newPassword") : t("admin.addUser.tempPassword")}
-                                        {user && <span className="normal-case font-medium text-slate-600 ml-1">{t("admin.addUser.keepCurrentParen")}</span>}
-                                    </label>
-                                    <div className="relative">
-                                        <input
-                                            type={showPassword ? "text" : "password"}
-                                            aria-label={t("admin.addUser.password")}
-                                            value={password}
-                                            onChange={(e) => setPassword(e.target.value)}
-                                            placeholder={user ? t("admin.addUser.keepCurrent") : "••••••••"}
-                                            disabled={loading}
-                                            className="w-full h-10 px-3 pr-10 rounded-[5px] border border-slate-200 bg-slate-50 text-[13px] text-slate-800 placeholder:text-slate-400 outline-none focus:border-slate-400 focus:bg-white transition-all disabled:opacity-50"
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowPassword(s => !s)}
-                                            aria-label={showPassword ? t("admin.addUser.hidePassword") : t("admin.addUser.showPassword")}
-                                            aria-pressed={showPassword}
-                                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-600 transition-colors"
-                                            tabIndex={-1}
-                                        >
-                                            {showPassword
-                                                ? <EyeOff className="w-4 h-4" />
-                                                : <Eye     className="w-4 h-4" />
-                                            }
-                                        </button>
-                                    </div>
-                                    <p className="text-[11px] text-slate-500 mt-1.5">{t("admin.addUser.tempPasswordHint")}</p>
-                                </div>
+                                <Field
+                                    label={user ? t("admin.addUser.newPassword") : t("admin.addUser.tempPassword")}
+                                    optional={user ? t("admin.addUser.keepCurrentParen") : undefined}
+                                    hint={t("admin.addUser.tempPasswordHint")}
+                                >
+                                    {/* Named "Password" for assistive technology, whatever the visible label says. */}
+                                    <PasswordInput
+                                        aria-label={t("admin.addUser.password")}
+                                        toggleLabel={t("admin.addUser.showPassword")}
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        placeholder={user ? t("admin.addUser.keepCurrent") : "••••••••"}
+                                        autoComplete="new-password"
+                                        disabled={loading}
+                                    />
+                                </Field>
 
                                 {/* ── Feedback ── */}
                                 {error && (

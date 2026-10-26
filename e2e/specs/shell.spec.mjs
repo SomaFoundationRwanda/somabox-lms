@@ -97,7 +97,7 @@ test.describe("teacher pages", () => {
   test("explore content lists the box's content and the books", async ({ page }) => {
     await page.goto("/teacher/explore");
     await expect(page.getByRole("heading", { name: "Explore content" })).toBeVisible();
-    await page.getByRole("textbox", { name: "Search folders…" }).fill("Khan");
+    await page.getByRole("searchbox", { name: "Search folders…" }).fill("Khan");
     await expect(page.getByRole("link", { name: /Khan Academy/ })).toBeVisible();
     await expect(page.getByRole("link", { name: /Wikipedia/ })).toHaveCount(0);
     await page.getByRole("tab", { name: "Books" }).click();

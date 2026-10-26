@@ -5,6 +5,7 @@ import { ReactNodeViewRenderer, NodeViewWrapper } from "@tiptap/react";
 import { useState } from "react";
 import { AlertCircle, AlignLeft, AlignCenter, AlignRight, Maximize2 } from "lucide-react";
 import { useCourseText } from "@/components/course/useCourseText";
+import { TextInput } from "@/components/form";
 
 const SIZE_PRESETS = {
   small: "max-w-[25%]",
@@ -131,18 +132,7 @@ function CustomImageComponent({ node, updateAttributes, editor }) {
           <div className="mt-2 space-y-1.5">
             {/* Required Alt Text Field */}
             <div className="flex items-center gap-1.5">
-              <input aria-label={t("editor.image.alt")}
-                type="text"
-                value={altTextDraft}
-                onChange={(e) => setAltTextDraft(e.target.value)}
-                onBlur={handleAltBlur}
-                placeholder={t("editor.image.alt")}
-                className={`flex-1 text-xs px-2.5 py-1.5 border rounded-lg outline-none transition-colors ${
-                  missingAlt
-                    ? "border-amber-400 bg-amber-50/50 text-amber-900 placeholder:text-amber-500 focus:border-amber-600"
-                    : "border-slate-200 focus:border-[var(--brand-primary)] bg-white text-slate-700"
-                }`}
-              />
+              <TextInput aria-label={t("editor.image.alt")} type="text" value={altTextDraft} onChange={(e) => setAltTextDraft(e.target.value)} onBlur={handleAltBlur} placeholder={t("editor.image.alt")} size="sm" aria-invalid={missingAlt || undefined} className="flex-1" />
             </div>
             {missingAlt && (
               <div className="flex items-center gap-1 text-[11px] font-semibold text-amber-600 bg-amber-50 px-2 py-1 rounded-md">
@@ -152,14 +142,7 @@ function CustomImageComponent({ node, updateAttributes, editor }) {
             )}
 
             {/* Optional Caption Field */}
-            <input aria-label={t("editor.image.caption")}
-              type="text"
-              value={captionDraft}
-              onChange={(e) => setCaptionDraft(e.target.value)}
-              onBlur={handleCaptionBlur}
-              placeholder={t("editor.image.captionPlaceholder")}
-              className="w-full text-xs px-2.5 py-1 border border-slate-200 rounded-lg outline-none focus:border-[var(--brand-primary)] bg-slate-50/50 text-slate-600 italic"
-            />
+            <TextInput size="sm" aria-label={t("editor.image.caption")} type="text" value={captionDraft} onChange={(e) => setCaptionDraft(e.target.value)} onBlur={handleCaptionBlur} placeholder={t("editor.image.captionPlaceholder")} className="w-full" />
           </div>
         ) : (
           /* Read-only Caption Rendering */

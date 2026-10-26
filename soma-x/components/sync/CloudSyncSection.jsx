@@ -12,6 +12,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { fill } from "@/lib/fill";
 import DeviceCard from "@/components/sync/DeviceCard";
 import Loader from "@/components/ui/Loader";
+import { CheckboxField, ChoiceGroup, Field } from "@/components/form";
 
 // Cloud sync (admins): changes made on this box wait in a queue and are sent to the cloud on a
 // schedule. This shows where the queue stands, lets an admin send now, and sets what may leave
@@ -145,53 +146,39 @@ function ScopeForm({ scope, onSaved }) {
       <fieldset className="space-y-2">
         <legend className="sr-only">{t("admin.cloud.kinds")}</legend>
         {SCOPE_TOGGLES.map((key) => (
-          <label key={key} className="flex items-start gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={!!form[key]}
-              onChange={() => toggle(key)}
-              className="mt-1 h-4 w-4 shrink-0 accent-[var(--brand-secondary)]"
-            />
-            <span className="min-w-0">
-              <span className="block text-sm font-semibold text-slate-800 dark:text-slate-100">{t(`admin.cloud.scope.${key}.label`)}</span>
-              <span className="block text-xs text-slate-500 dark:text-slate-400">{t(`admin.cloud.scope.${key}.help`)}</span>
-            </span>
-          </label>
+          <CheckboxField
+            key={key}
+            label={t(`admin.cloud.scope.${key}.label`)}
+            hint={t(`admin.cloud.scope.${key}.help`)}
+            checked={!!form[key]}
+            onCheckedChange={() => toggle(key)}
+          />
         ))}
       </fieldset>
 
-      <fieldset className="space-y-2">
-        <legend className="text-sm font-semibold text-slate-800 dark:text-slate-100 mb-1">{t("admin.cloud.people")}</legend>
-        {PEOPLE_OPTIONS.map((value) => (
-          <label key={value} className="flex items-start gap-3 cursor-pointer">
-            <input
-              type="radio"
-              name="sync-people"
-              value={value}
-              checked={form.people === value}
-              onChange={() => setForm((f) => ({ ...f, people: value }))}
-              className="mt-1 h-4 w-4 shrink-0 accent-[var(--brand-secondary)]"
-            />
-            <span className="min-w-0">
-              <span className="block text-sm text-slate-800 dark:text-slate-100">{t(`admin.cloud.peopleOptions.${value}.label`)}</span>
-              <span className="block text-xs text-slate-500 dark:text-slate-400">{t(`admin.cloud.peopleOptions.${value}.help`)}</span>
-            </span>
-          </label>
-        ))}
-      </fieldset>
-
-      <label className="flex items-start gap-3 cursor-pointer">
-        <input
-          type="checkbox"
-          checked={!!form.submissionText}
-          onChange={() => toggle("submissionText")}
-          className="mt-1 h-4 w-4 shrink-0 accent-[var(--brand-secondary)]"
+      <Field label={t("admin.cloud.people")}>
+        <ChoiceGroup
+          layout="list"
+          value={form.people}
+          onChange={(people) => setForm((f) => ({ ...f, people }))}
+          options={PEOPLE_OPTIONS.map((value) => ({
+            value,
+            label: (
+              <span className="block">
+                <span className="block">{t(`admin.cloud.peopleOptions.${value}.label`)}</span>
+                <span className="block text-xs font-normal text-slate-500 dark:text-slate-400">{t(`admin.cloud.peopleOptions.${value}.help`)}</span>
+              </span>
+            ),
+          }))}
         />
-        <span className="min-w-0">
-          <span className="block text-sm font-semibold text-slate-800 dark:text-slate-100">{t("admin.cloud.writtenLabel")}</span>
-          <span className="block text-xs text-slate-500 dark:text-slate-400">{t("admin.cloud.writtenHelp")}</span>
-        </span>
-      </label>
+      </Field>
+
+      <CheckboxField
+        label={t("admin.cloud.writtenLabel")}
+        hint={t("admin.cloud.writtenHelp")}
+        checked={!!form.submissionText}
+        onCheckedChange={() => toggle("submissionText")}
+      />
 
       {risky ? (
         <p role="alert" className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300">

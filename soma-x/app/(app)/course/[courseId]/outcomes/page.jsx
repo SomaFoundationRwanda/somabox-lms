@@ -17,6 +17,7 @@ import { AiStatusNote, AiOffBadge } from "@/components/ai/AiBits";
 import AiJobPanel from "@/components/ai/AiJobPanel";
 import { useProgressText } from "@/components/progress/text";
 import Loader from "@/components/ui/Loader";
+import { TextInput, Textarea } from "@/components/form";
 
 const MASTERY_LEVELS = [
   { points: 4, level: "exceeds" },
@@ -174,15 +175,7 @@ export default function OutcomesPage() {
                   <label htmlFor="ai-goal" className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
                     {aiTarget ? tp("outcomes.aiChangeLabel") : tp("outcomes.aiGoalLabel")}
                   </label>
-                  <textarea
-                    id="ai-goal"
-                    rows={2}
-                    value={aiGoal}
-                    maxLength={500}
-                    onChange={(e) => setAiGoal(e.target.value)}
-                    placeholder={tp("outcomes.aiGoalPlaceholder")}
-                    className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[var(--brand-secondary)]"
-                  />
+                  <Textarea id="ai-goal" rows={2} value={aiGoal} maxLength={500} onChange={(e) => setAiGoal(e.target.value)} placeholder={tp("outcomes.aiGoalPlaceholder")} className="w-full" />
                 </div>
                 <button
                   type="submit"
@@ -226,25 +219,12 @@ export default function OutcomesPage() {
             <div className="space-y-3">
               <div>
                 <label htmlFor="outcome-title" className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">{tp("outcomes.statementLabel")}</label>
-                <input
-                  id="outcome-title"
-                  value={form.title}
-                  onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
-                  placeholder={tp("outcomes.statementPlaceholder")}
-                  className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[var(--brand-secondary)]"
-                />
+                <TextInput id="outcome-title" value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} placeholder={tp("outcomes.statementPlaceholder")} className="w-full" />
               </div>
 
               <div>
                 <label htmlFor="outcome-description" className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">{tp("outcomes.descriptionLabel")}</label>
-                <textarea
-                  id="outcome-description"
-                  value={form.description}
-                  onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
-                  rows={2}
-                  placeholder={tp("outcomes.descriptionPlaceholder")}
-                  className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[var(--brand-secondary)]"
-                />
+                <Textarea id="outcome-description" value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} rows={2} placeholder={tp("outcomes.descriptionPlaceholder")} className="w-full" />
               </div>
 
               <div className="flex justify-end gap-2 pt-1">
@@ -324,23 +304,11 @@ export default function OutcomesPage() {
                     <div className="space-y-2 border border-slate-200 rounded-lg p-3">
                       <div>
                         <label htmlFor={`edit-outcome-title-${m.id}`} className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">{tp("outcomes.statementLabel")}</label>
-                        <input
-                          id={`edit-outcome-title-${m.id}`}
-                          value={editing.title}
-                          onChange={(e) => setEditing((p) => ({ ...p, title: e.target.value }))}
-                          className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[var(--brand-secondary)]"
-                          autoFocus
-                        />
+                        <TextInput id={`edit-outcome-title-${m.id}`} value={editing.title} onChange={(e) => setEditing((p) => ({ ...p, title: e.target.value }))} className="w-full" autoFocus />
                       </div>
                       <div>
                         <label htmlFor={`edit-outcome-description-${m.id}`} className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">{tp("outcomes.descriptionLabel")}</label>
-                        <textarea
-                          id={`edit-outcome-description-${m.id}`}
-                          rows={2}
-                          value={editing.description}
-                          onChange={(e) => setEditing((p) => ({ ...p, description: e.target.value }))}
-                          className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[var(--brand-secondary)]"
-                        />
+                        <Textarea id={`edit-outcome-description-${m.id}`} rows={2} value={editing.description} onChange={(e) => setEditing((p) => ({ ...p, description: e.target.value }))} className="w-full" />
                       </div>
                       <div className="flex justify-end gap-2">
                         <button type="button" onClick={() => setEditing(null)} className="text-xs font-semibold text-slate-500 px-3 py-2">{tp("common.cancel")}</button>

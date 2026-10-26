@@ -8,6 +8,7 @@ import Loader from "@/components/ui/Loader";
 import { useQuery } from "@tanstack/react-query"
 import { apiFetch } from "@/lib/api"
 import { queryKeys } from "@/lib/queryKeys"
+import { TextInput } from "@/components/form"
 
 const CATEGORY_IMAGES = {
   math: "/images/math.webp",
@@ -108,13 +109,13 @@ export default function TeacherExplorePage() {
       <h1 className="text-xl font-semibold text-slate-800 dark:text-white mb-2">{t("explore.teacher.title")}</h1>
       <p className="text-sm text-slate-600 dark:text-slate-400 mb-5">{t("explore.teacher.subtitle")}</p>
 
-      <input
-        type="text"
+      <TextInput
+        type="search"
         placeholder={activeTab === "categories" ? t("explore.teacher.searchExplore") : t("explore.teacher.searchBooks")}
         aria-label={activeTab === "categories" ? t("explore.teacher.searchExplore") : t("explore.teacher.searchBooks")}
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        className="w-full max-w-sm text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 outline-none focus:border-[var(--brand-secondary)] bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 mb-5"
+        className="max-w-sm mb-5"
       />
 
       <div className="flex gap-1 mb-6 bg-slate-100 dark:bg-slate-800 rounded-lg p-1 w-fit" role="tablist">

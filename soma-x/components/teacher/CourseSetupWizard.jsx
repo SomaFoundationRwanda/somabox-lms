@@ -17,6 +17,7 @@ import AiJobPanel from "@/components/ai/AiJobPanel";
 import { useLanguage } from "@/context/LanguageContext";
 import { fill } from "@/lib/fill";
 import useSetupText from "@/lib/useSetupText";
+import { Field, TextInput } from "@/components/form";
 
 // moduleWeekLabel, in the current language.
 function weekLabelT(m, t) {
@@ -245,39 +246,34 @@ export default function CourseSetupWizard({ courseId, course, onCompleted }) {
             </p>
 
             <div className="space-y-4 max-w-md pt-2">
-              <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">{t("teacher.createCourse.courseTitle")} *</label>
-                <input aria-label={t("teacher.createCourse.courseTitle")}
-                  type="text"
-                  value={setupForm.title}
-                  onChange={(e) => setSetupForm((p) => ({ ...p, title: e.target.value }))}
-                  className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:border-[var(--brand-secondary)]"
-                  placeholder={t("teacher.wizard.titlePlaceholder")}
-                />
-              </div>
+              <Field label={t("teacher.createCourse.courseTitle")} required>
+                  <TextInput
+                      aria-label={t("teacher.createCourse.courseTitle")}
+                      value={setupForm.title}
+                      onChange={(e) => setSetupForm((p) => ({ ...p, title: e.target.value }))}
+                      placeholder={t("teacher.wizard.titlePlaceholder")}
+                  />
+              </Field>
 
-              <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">{t("teacher.wizard.startDate")} *</label>
-                <input aria-label={t("teacher.wizard.startDate")}
-                  type="date"
-                  value={setupForm.startDate}
-                  onChange={(e) => setSetupForm((p) => ({ ...p, startDate: e.target.value }))}
-                  className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:border-[var(--brand-secondary)]"
-                />
-                <p className="text-[11px] text-slate-500 mt-1">{t("teacher.wizard.startHelp")}</p>
-              </div>
+              <Field label={t("teacher.wizard.startDate")} required hint={t("teacher.wizard.startHelp")}>
+                  <TextInput
+                      aria-label={t("teacher.wizard.startDate")}
+                      type="date"
+                      value={setupForm.startDate}
+                      onChange={(e) => setSetupForm((p) => ({ ...p, startDate: e.target.value }))}
+                  />
+              </Field>
 
-              <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">{t("teacher.wizard.duration")}</label>
-                <input aria-label={t("teacher.wizard.duration")}
-                  type="number"
-                  min={1}
-                  max={52}
-                  value={setupForm.lengthWeeks}
-                  onChange={(e) => setSetupForm((p) => ({ ...p, lengthWeeks: Number(e.target.value) }))}
-                  className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:border-[var(--brand-secondary)]"
-                />
-              </div>
+              <Field label={t("teacher.wizard.duration")}>
+                  <TextInput
+                      aria-label={t("teacher.wizard.duration")}
+                      type="number"
+                      min={1}
+                      max={52}
+                      value={setupForm.lengthWeeks}
+                      onChange={(e) => setSetupForm((p) => ({ ...p, lengthWeeks: Number(e.target.value) }))}
+                  />
+              </Field>
 
               <div className="pt-4 flex justify-end">
                 <button
@@ -307,13 +303,13 @@ export default function CourseSetupWizard({ courseId, course, onCompleted }) {
 
               {aiStatus.allowed ? (
                 <div className="flex flex-wrap items-center gap-2">
-                  <input
-                    type="text"
+                  <TextInput
                     placeholder={t("teacher.createCourse.descriptionPlaceholder")}
                     aria-label={t("teacher.wizard.aiTopic")}
                     value={aiTopic}
                     onChange={(e) => setAiTopic(e.target.value)}
-                    className="text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]"
+                    size="sm"
+                    className="w-auto"
                   />
                   <button
                     onClick={proposeAiOutcomes}
@@ -341,12 +337,11 @@ export default function CourseSetupWizard({ courseId, course, onCompleted }) {
             ) : null}
 
             <div className="flex gap-2 max-w-md pt-2">
-              <input aria-label={t("teacher.wizard.outcomePlaceholder")}
-                type="text"
+              <TextInput aria-label={t("teacher.wizard.outcomePlaceholder")}
                 value={newOutcomeTitle}
                 onChange={(e) => setNewOutcomeTitle(e.target.value)}
                 placeholder={t("teacher.wizard.outcomePlaceholder")}
-                className="flex-1 text-sm border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-[var(--brand-secondary)]"
+                className="flex-1"
               />
               <button
                 onClick={createOutcome}

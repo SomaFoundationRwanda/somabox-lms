@@ -13,6 +13,7 @@ import { useProgressText, jobKindLabel, weekLabel } from "@/components/progress/
 import { AiStatusNote, JobProgress } from "@/components/ai/AiBits";
 import DraftCard, { ApprovedNote, DecidedDraftRow } from "@/components/ai/DraftCard";
 import Loader from "@/components/ui/Loader";
+import { Select } from "@/components/form";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const DISMISS_KEY = "ai-dismissed-jobs";
@@ -191,19 +192,14 @@ export default function AiDraftsPage() {
               </p>
             ) : (
               <form onSubmit={startFillWeek} className="flex flex-wrap items-center gap-2">
-                <select
-                  aria-label={tp("ai.page.chooseWeek")}
-                  value={fillWeekId}
-                  onChange={(e) => setFillWeekId(e.target.value)}
-                  className="min-w-[14rem] text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 outline-none focus:border-[var(--brand-secondary)]"
-                >
+                <Select aria-label={tp("ai.page.chooseWeek")} value={fillWeekId} onChange={(e) => setFillWeekId(e.target.value)} className="min-w-[14rem]" >
                   <option value="">{tp("ai.page.chooseWeek")}</option>
                   {weeks.map((m) => (
                     <option key={m.id} value={m.id} disabled={busyWeekIds.has(Number(m.id))}>
                       {weekLabel(tp, m)}{m.title ? `: ${m.title}` : ""}
                     </option>
                   ))}
-                </select>
+                </Select>
                 <button
                   type="submit"
                   disabled={!fillWeekId || starting}

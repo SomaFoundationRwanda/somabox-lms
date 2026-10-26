@@ -26,6 +26,7 @@ import { fill } from '@/lib/fill';
 import { GRADE_LEVELS } from '@/lib/grades';
 import { AccessibilityField, GenderField } from '@/components/profile/ProfileFields';
 import { GENDERS } from '@/lib/profileOptions';
+import { Field, Select, TextInput } from '@/components/form';
 
 // Nobody is asked where they live: one box serves one school, and the box places everyone at the
 // school's location (province, district, rural/urban), set by the admin on the School page.
@@ -245,49 +246,14 @@ export default function MandatoryProfileSetupModal() {
     // The blocks a step can show (see VARIANTS).
     const FIELD = {
         fullName: () => (
-            <>
-            {/* Full Name */}
-            <div>
-                <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1.5">
-                    {t("learner.profileSetup.fullName")} <span className="text-rose-500">*</span>
-                </label>
-                <div className="relative">
-                    <input aria-label={t("learner.profileSetup.fullName")}
-                        type="text"
-                        value={fullName}
-                        onChange={(e) => setFullName(e.target.value)}
-                        placeholder={t("learner.profileSetup.namePlaceholder")}
-                        className={`w-full h-11 px-3.5 rounded-xl border ${
-                            errors.fullName
-                                ? "border-rose-500 bg-rose-50/30 dark:bg-rose-950/20"
-                                : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/60"
-                        } text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all`}
-                    />
-                </div>
-                {errors.fullName && (
-                    <p className="text-[11px] font-bold text-rose-500 mt-1">{errors.fullName}</p>
-                )}
-            </div>
-            </>
+            <Field label={t("learner.profileSetup.fullName")} error={errors.fullName} required>
+                <TextInput value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder={t("learner.profileSetup.namePlaceholder")} size="lg" autoComplete="name" />
+            </Field>
         ),
         phone: () => (
-            <>
-            {/* Phone Number */}
-            <div>
-                <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1.5">
-                    {t("learner.profileSetup.phone")} <span className="text-slate-600 normal-case font-medium">{t("learner.profileSetup.optional")}</span>
-                </label>
-                <div className="relative">
-                    <input aria-label={`${t("learner.profileSetup.phone")} ${t("learner.profileSetup.optional")}`}
-                        type="tel"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        placeholder="+250 788 123 456"
-                        className="w-full h-11 px-3.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/60 text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all"
-                    />
-                </div>
-            </div>
-            </>
+            <Field label={t("learner.profileSetup.phone")} optional={t("learner.profileSetup.optional")}>
+                <TextInput type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+250 788 123 456" size="lg" autoComplete="tel" />
+            </Field>
         ),
         gender: () => <GenderField value={gender} onChange={setGender} error={errors.gender} size="lg" />,
         disability: () => <AccessibilityField value={disabilityStatus} onChange={setDisabilityStatus} error={errors.disability} size="lg" />,
@@ -310,31 +276,11 @@ export default function MandatoryProfileSetupModal() {
             </>
         ),
         grade: () => (
-            <>
-            {/* Grade / Study Level */}
-            <div>
-                <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1.5">
-                    {t("learner.profileSetup.grade")} {currentRole === 'scholar' && <span className="text-rose-500">*</span>}
-                </label>
-                <select aria-label={t("learner.profileSetup.grade")}
-                    value={gradeLevel}
-                    onChange={(e) => setGradeLevel(e.target.value)}
-                    className={`w-full h-11 px-3 rounded-xl border ${
-                        errors.gradeLevel
-                            ? "border-rose-500 bg-rose-50/30 dark:bg-rose-950/20"
-                            : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/60"
-                    } text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all`}
-                >
-                    <option value="">{t("learner.profileSetup.selectLevel")}</option>
-                    {GRADE_LEVELS.map((g) => (
-                        <option key={g.value} value={g.value}>{t(`learner.profileSetup.grades.${g.key}`)}</option>
-                    ))}
-                </select>
-                {errors.gradeLevel && (
-                    <p className="text-[11px] font-bold text-rose-500 mt-1">{errors.gradeLevel}</p>
-                )}
-            </div>
-            </>
+            <Field label={t("learner.profileSetup.grade")} error={errors.gradeLevel} required={currentRole === 'scholar'}>
+                <Select value={gradeLevel} onChange={(e) => setGradeLevel(e.target.value)} size="lg"
+                    placeholder={t("learner.profileSetup.selectLevel")}
+                    options={GRADE_LEVELS.map((g) => ({ value: g.value, label: t(`learner.profileSetup.grades.${g.key}`) }))} />
+            </Field>
         ),
         language: () => (
             <>

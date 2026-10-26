@@ -11,6 +11,7 @@ import { PageHeader, Section, List } from "@/components/layout";
 import { useItemOpened } from "@/lib/usage";
 import { useCourseText } from "@/components/course/useCourseText";
 import Loader from "@/components/ui/Loader";
+import { TextInput } from "@/components/form";
 
 export default function DiscussionThreadPage() {
   const { courseId, discussionId } = useParams();
@@ -87,15 +88,7 @@ export default function DiscussionThreadPage() {
           <Section title={t("discussions.grading")}>
             <div className="flex flex-wrap items-center gap-2">
               {!discussion.graded ? (
-                <input
-                  type="number"
-                  min="0"
-                  value={pointsInput}
-                  onChange={(e) => setPointsInput(e.target.value)}
-                  placeholder={t("editors.pointsPossible")}
-                  aria-label={t("editors.pointsPossible")}
-                  className="w-28 text-sm border border-slate-200 rounded-lg px-2 py-1.5 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]"
-                />
+                <TextInput size="sm" type="number" min="0" value={pointsInput} onChange={(e) => setPointsInput(e.target.value)} placeholder={t("editors.pointsPossible")} aria-label={t("editors.pointsPossible")} className="w-28" />
               ) : null}
               <button
                 onClick={toggleGraded}
@@ -131,7 +124,7 @@ export default function DiscussionThreadPage() {
           )}
 
           {isObserver ? null : <div className="mt-3 flex items-center gap-2">
-            <input value={reply} onChange={(e) => setReply(e.target.value)} placeholder={t("discussions.replyPlaceholder")} aria-label={t("discussions.replyPlaceholder")} className="flex-1 min-w-0 text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[var(--brand-primary)]" />
+            <TextInput value={reply} onChange={(e) => setReply(e.target.value)} placeholder={t("discussions.replyPlaceholder")} aria-label={t("discussions.replyPlaceholder")} className="flex-1 min-w-0" />
             <button onClick={postReply} className="text-xs font-semibold text-white bg-[var(--brand-primary)] rounded-lg px-3 py-2">{t("discussions.reply")}</button>
           </div>}
           {replyError ? <p role="alert" className="mt-2 text-xs font-semibold text-rose-600">{replyError}</p> : null}

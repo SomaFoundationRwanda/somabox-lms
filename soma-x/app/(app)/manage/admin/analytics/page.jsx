@@ -14,6 +14,7 @@ import { PageHeader, Section, DataTable, EmptyState } from "@/components/layout"
 import { useLanguage } from "@/context/LanguageContext";
 import { fill } from "@/lib/fill";
 import { DeltaText, Figure, LoadingRows, ErrorNote, fmtPct, fmtRate } from "@/components/insights/bits";
+import { Field, TextInput } from "@/components/form";
 
 const DAY_OPTIONS = [7, 30, 90];
 
@@ -74,10 +75,8 @@ function RetentionSetting() {
     return (
         <div className="space-y-3 max-w-xl">
             <form onSubmit={save} className="flex flex-wrap items-end gap-2">
-                <div>
-                    <label htmlFor="retention-days" className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t("admin.analytics.retentionLabel")}</label>
-                    <input
-                        id="retention-days"
+                <Field id="retention-days" label={t("admin.analytics.retentionLabel")}>
+                    <TextInput
                         type="number"
                         min={30}
                         max={3650}
@@ -86,9 +85,10 @@ function RetentionSetting() {
                         value={value}
                         onChange={(e) => setValue(e.target.value)}
                         aria-describedby="retention-help"
-                        className="w-32 text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-lg px-2.5 py-1.5 outline-none focus:border-[var(--brand-secondary)]"
+                        size="sm"
+                        className="w-32"
                     />
-                </div>
+                </Field>
                 <button type="submit" disabled={saving || !settings} className="text-xs font-bold text-white bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-dark)] disabled:opacity-60 px-4 py-2 rounded-lg">
                     {saving ? t("admin.analytics.saving") : t("admin.analytics.save")}
                 </button>

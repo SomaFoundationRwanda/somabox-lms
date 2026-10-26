@@ -11,6 +11,7 @@ import { PageHeader, List } from "@/components/layout";
 import { useCourseText } from "@/components/course/useCourseText";
 import { useToast } from "@/context/ToastContext";
 import { apiFetch, getErrorMessage } from "@/lib/api";
+import { Checkbox, TextInput } from "@/components/form";
 
 export default function CollaborationsPage() {
   const { courseId, userEmail } = useCourse();
@@ -68,26 +69,14 @@ export default function CollaborationsPage() {
 
         {creating ? (
           <div className="space-y-3">
-            <input
-              value={form.title}
-              onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
-              placeholder={t("collab.titlePlaceholder")}
-              aria-label={t("collab.titleLabel")}
-              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[var(--brand-primary)]"
-            />
-            <input
-              value={form.url}
-              onChange={(e) => setForm((p) => ({ ...p, url: e.target.value }))}
-              placeholder="https://docs.google.com/..."
-              aria-label={t("collab.link")}
-              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[var(--brand-primary)]"
-            />
+            <TextInput value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} placeholder={t("collab.titlePlaceholder")} aria-label={t("collab.titleLabel")} className="w-full" />
+            <TextInput value={form.url} onChange={(e) => setForm((p) => ({ ...p, url: e.target.value }))} placeholder="https://docs.google.com/..." aria-label={t("collab.link")} className="w-full" />
             <fieldset>
               <legend className="text-xs font-semibold text-slate-600 mb-1.5">{t("collab.whoCanAccess")}</legend>
               <div className="max-h-40 overflow-y-auto border border-slate-200 rounded-lg divide-y divide-slate-100">
                 {(people || []).map((person) => (
                   <label key={person.email} className="flex items-center gap-2 px-2.5 py-1.5 text-sm text-slate-700 cursor-pointer">
-                    <input type="checkbox" checked={memberEmails.includes(person.email)} onChange={() => toggleMember(person.email)} />
+                    <Checkbox checked={memberEmails.includes(person.email)} onCheckedChange={() => toggleMember(person.email)} />
                     {person.fullName} <span className="text-xs text-slate-400">({tOr(`people.roles.${person.role}`, person.role)})</span>
                   </label>
                 ))}

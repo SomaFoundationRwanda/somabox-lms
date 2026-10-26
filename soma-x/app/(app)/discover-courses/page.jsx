@@ -12,6 +12,7 @@ import { startRouteLoading } from "@/components/global/RouteLoader";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch, getErrorMessage } from "@/lib/api";
 import { queryKeys } from "@/lib/queryKeys";
+import { TextInput } from "@/components/form";
 
 export default function DiscoverCoursesPage() {
   const router = useRouter();
@@ -106,7 +107,7 @@ export default function DiscoverCoursesPage() {
           </label>
           <p className="text-xs text-slate-600">{t("learner.discover.code.help")}</p>
           <div className="flex flex-wrap gap-2">
-            <input
+            <TextInput
               id="join-code"
               value={joinCode}
               onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
@@ -114,7 +115,7 @@ export default function DiscoverCoursesPage() {
               autoComplete="off"
               autoCapitalize="characters"
               maxLength={12}
-              className="flex-1 min-w-[10rem] text-base font-mono tracking-widest border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[var(--brand-primary)]"
+              className="flex-1 min-w-[10rem] w-auto text-base font-mono tracking-widest"
             />
             <button type="submit" disabled={codeBusy || !joinCode.trim()} className="text-sm font-semibold text-white bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] disabled:opacity-50 rounded-lg px-4 py-2">
               {codeBusy ? t("learner.discover.joining") : t("learner.discover.code.button")}

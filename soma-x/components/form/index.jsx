@@ -31,8 +31,12 @@ const BASE = "w-full rounded-lg border bg-white px-3 text-slate-900 placeholder:
     + "disabled:cursor-not-allowed disabled:opacity-50 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500";
 const border = (invalid) => (invalid ? "border-rose-500 dark:border-rose-400" : "border-slate-300 dark:border-slate-700");
 
+// variant "ghost": no box, for a control that sits in running text or a header (the language switcher).
+const GHOST = "bg-transparent border-transparent shadow-none px-1 h-auto rounded cursor-pointer focus:ring-2 focus:ring-[var(--brand-secondary)]/40";
+
 /** The classes of a text box or dropdown, for the rare control that can't be one of these. */
-export function controlClass({ size = "md", invalid = false, className } = {}) {
+export function controlClass({ size = "md", invalid = false, variant = "outline", className } = {}) {
+    if (variant === "ghost") return cn("outline-none text-inherit", GHOST, className);
     return cn(BASE, SIZES[size] || SIZES.md, border(invalid), className);
 }
 
@@ -97,10 +101,10 @@ export const Textarea = forwardRef(function Textarea({ size = "md", rows = 4, cl
  * A dropdown. `options`: [{ value, label, disabled? }] (or pass <option>s as children).
  * `placeholder` adds a first, unselectable "Choose…" entry for a value of "".
  */
-export const Select = forwardRef(function Select({ size = "md", options, placeholder, className, children, ...props }, ref) {
+export const Select = forwardRef(function Select({ size = "md", variant = "outline", options, placeholder, className, children, ...props }, ref) {
     const { invalid, ...wired } = useField(props);
     return (
-        <select ref={ref} {...props} {...wired} className={cn(controlClass({ size, invalid, className }), "pr-8")}>
+        <select ref={ref} {...props} {...wired} className={cn(controlClass({ size, invalid, variant, className }), variant === "ghost" ? "pr-1" : "pr-8")}>
             {placeholder !== undefined ? <option value="" disabled>{placeholder}</option> : null}
             {options ? options.map((o) => <option key={o.value} value={o.value} disabled={o.disabled}>{o.label}</option>) : children}
         </select>

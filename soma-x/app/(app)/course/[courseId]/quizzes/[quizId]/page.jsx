@@ -14,6 +14,7 @@ import PrevNextNav from "@/components/course/navigation/PrevNextNav";
 import { useCourseText } from "@/components/course/useCourseText";
 import { useItemOpened } from "@/lib/usage";
 import Loader from "@/components/ui/Loader";
+import { ChoiceGroup, Textarea } from "@/components/form";
 
 function getOptionText(opt) {
   if (opt === null || opt === undefined) return "";
@@ -229,33 +230,24 @@ export default function QuizDetailPage() {
               </div>
 
               {q.question_type === "multiple_choice" ? (
-                <div className="space-y-1" role="radiogroup" aria-label={tf("quiz.optionsFor", { n: idx + 1 })}>
-                  {(Array.isArray(q.options) ? q.options : []).map((opt, i) => {
+                <ChoiceGroup
+                  layout="list"
+                  aria-label={tf("quiz.optionsFor", { n: idx + 1 })}
+                  // A saved answer may be the option's id or its text: either one shows as chosen.
+                  value={(Array.isArray(q.options) ? q.options : []).reduce((chosen, opt, i) => {
+                    const id = getOptionId(opt, i);
+                    return id && chosen === getOptionText(opt) ? id : chosen;
+                  }, answers[q.id])}
+                  onChange={(value) => setAnswers((p) => ({ ...p, [q.id]: value }))}
+                  // An answer is kept as the option's id, or its text for options without one.
+                  options={(Array.isArray(q.options) ? q.options : []).map((opt, i) => {
                     const text = getOptionText(opt);
                     const id = getOptionId(opt, i);
-                    const isChecked = answers[q.id] === id || answers[q.id] === text;
-                    return (
-                      <label key={i} className="flex items-center gap-3 px-2 py-2 rounded-lg text-sm font-medium text-slate-800 dark:text-slate-200 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900/40 transition-colors">
-                        <input
-                          type="radio"
-                          name={`q-${q.id}`}
-                          checked={isChecked}
-                          onChange={() => setAnswers((p) => ({ ...p, [q.id]: id || text }))}
-                        />
-                        <span>{text}</span>
-                      </label>
-                    );
+                    return { value: id || text, label: text };
                   })}
-                </div>
-              ) : (
-                <textarea
-                  value={answers[q.id] || ""}
-                  onChange={(e) => setAnswers((p) => ({ ...p, [q.id]: e.target.value }))}
-                  rows={3}
-                  placeholder={t("quiz.openAnswerPlaceholder")}
-                  aria-label={tf("quiz.answerTo", { n: idx + 1 })}
-                  className="w-full text-sm border border-slate-200 rounded-lg p-3 outline-none focus:border-[var(--brand-secondary)]"
                 />
+              ) : (
+                <Textarea value={answers[q.id] || ""} onChange={(e) => setAnswers((p) => ({ ...p, [q.id]: e.target.value }))} rows={3} placeholder={t("quiz.openAnswerPlaceholder")} aria-label={tf("quiz.answerTo", { n: idx + 1 })} className="w-full" />
               )}
             </li>
           ))}

@@ -19,6 +19,7 @@ import Loader from "@/components/ui/Loader";
 import { shownEmail } from "@/lib/session";
 import { apiFetch, getErrorMessage } from "@/lib/api";
 import { useSettled, useUserList, useUsersChanged } from "@/lib/queries/users";
+import { Field, PasswordInput, Select, TextInput } from "@/components/form";
 
 function getInitials(name, email) {
     if (name?.trim()) return name.trim().split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
@@ -470,12 +471,11 @@ export default function Users() {
                     {/* Live Search */}
                     <div className="relative flex-1">
                         <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 pointer-events-none" />
-                        <input aria-label={t("admin.users.searchLabel")}
-                            type="text"
+                        <TextInput aria-label={t("admin.users.searchLabel")}
                             placeholder={t("admin.users.searchPlaceholder")}
                             value={searchQuery}
                             onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
-                            className="w-full h-10 pl-10 pr-9 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-900 dark:text-white placeholder:text-slate-500 outline-none focus:border-accent-dark transition-colors"
+                            className="pl-10 pr-9"
                         />
                         {searchQuery && (
                             <button aria-label={t("admin.users.clearSearch")} onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-600">
@@ -487,46 +487,47 @@ export default function Users() {
                     {/* Filter Dropdowns */}
                     <div className="flex flex-wrap items-center gap-2">
                         {/* Role */}
-                        <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 rounded-xl px-2.5 h-10">
-                            <Filter className="w-3.5 h-3.5 text-slate-600" />
-                            <select
+                        <div className="flex items-center gap-1.5">
+                            <Filter className="w-3.5 h-3.5 text-slate-600" aria-hidden="true" />
+                            <Select
                                 aria-label={t("admin.users.filterRole")} value={roleFilter}
                                 onChange={(e) => { setRoleFilter(e.target.value); setPage(1); }}
-                                className="bg-transparent text-xs font-bold text-slate-800 dark:text-slate-200 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)] cursor-pointer"
-                            >
-                                <option value="all">{t("admin.users.allRoles")}</option>
-                                <option value="scholar">{t("admin.users.roleScholar")}</option>
-                                <option value="teacher">{t("admin.users.roleTeacherMe")}</option>
-                                <option value="admin">{t("admin.users.roleAdmin")}</option>
-                            </select>
+                                size="sm" className="w-auto"
+                                options={[
+                                    { value: "all", label: t("admin.users.allRoles") },
+                                    { value: "scholar", label: t("admin.users.roleScholar") },
+                                    { value: "teacher", label: t("admin.users.roleTeacherMe") },
+                                    { value: "admin", label: t("admin.users.roleAdmin") },
+                                ]}
+                            />
                         </div>
 
                         {/* Status */}
-                        <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 rounded-xl px-2.5 h-10">
-                            <span className="text-[11px] font-bold text-slate-600 uppercase">{t("admin.users.statusLabel")}</span>
-                            <select
+                        <div className="flex items-center gap-1.5">
+                            <span className="text-[11px] font-bold text-slate-600 uppercase" aria-hidden="true">{t("admin.users.statusLabel")}</span>
+                            <Select
                                 aria-label={t("admin.users.filterStatus")} value={statusFilter}
                                 onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-                                className="bg-transparent text-xs font-bold text-slate-800 dark:text-slate-200 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)] cursor-pointer"
-                            >
-                                <option value="all">{t("admin.users.allStatus")}</option>
-                                <option value="active">{t("admin.users.activeOnly")}</option>
-                                <option value="inactive">{t("admin.users.inactiveOnly")}</option>
-                            </select>
+                                size="sm" className="w-auto"
+                                options={[
+                                    { value: "all", label: t("admin.users.allStatus") },
+                                    { value: "active", label: t("admin.users.activeOnly") },
+                                    { value: "inactive", label: t("admin.users.inactiveOnly") },
+                                ]}
+                            />
                         </div>
 
                         {/* Joined Date */}
-                        <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 rounded-xl px-2.5 h-10">
-                            <select
-                                aria-label={t("admin.users.filterDate")} value={dateFilter}
-                                onChange={(e) => { setDateFilter(e.target.value); setPage(1); }}
-                                className="bg-transparent text-xs font-bold text-slate-800 dark:text-slate-200 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)] cursor-pointer"
-                            >
-                                <option value="all">{t("admin.users.allTime")}</option>
-                                <option value="7days">{t("admin.users.last7")}</option>
-                                <option value="30days">{t("admin.users.last30")}</option>
-                            </select>
-                        </div>
+                        <Select
+                            aria-label={t("admin.users.filterDate")} value={dateFilter}
+                            onChange={(e) => { setDateFilter(e.target.value); setPage(1); }}
+                            size="sm" className="w-auto"
+                            options={[
+                                { value: "all", label: t("admin.users.allTime") },
+                                { value: "7days", label: t("admin.users.last7") },
+                                { value: "30days", label: t("admin.users.last30") },
+                            ]}
+                        />
                     </div>
                 </div>
 
@@ -695,12 +696,10 @@ export default function Users() {
                             <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
                                 {t("admin.users.typeBefore")} <span className="font-mono text-rose-600 font-extrabold">{deleteModalUser.full_name || deleteModalUser.email}</span> {t("admin.users.typeAfter")}
                             </label>
-                            <input aria-label={t("admin.users.typeToConfirm")}
-                                type="text"
+                            <TextInput aria-label={t("admin.users.typeToConfirm")}
                                 placeholder={t("admin.users.typePlaceholder")}
                                 value={typedConfirmName}
                                 onChange={(e) => setTypedConfirmName(e.target.value)}
-                                className="w-full h-10 px-3 rounded-xl border-2 border-rose-300 dark:border-rose-800 text-xs font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-900 outline-none focus:border-rose-600"
                             />
                         </div>
 
@@ -742,17 +741,15 @@ export default function Users() {
                         </p>
 
                         <form onSubmit={handleResetPasswordSubmit} className="space-y-4">
-                            <div className="space-y-1">
-                                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">{t("admin.users.newPassword")}</label>
-                                <input aria-label={t("admin.users.newPassword")}
-                                    type="password"
+                            <Field label={t("admin.users.newPassword")}>
+                                <PasswordInput
                                     placeholder={t("admin.users.newPasswordPlaceholder")}
                                     value={newPassword}
                                     onChange={(e) => setNewPassword(e.target.value)}
-                                    className="w-full h-10 px-3 rounded-xl border-2 border-slate-300 dark:border-slate-700 text-xs font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-900 outline-none focus:border-accent-dark"
+                                    autoComplete="new-password"
                                     required
                                 />
-                            </div>
+                            </Field>
 
                             <div className="flex items-center justify-end gap-2 pt-2">
                                 <button
@@ -783,15 +780,15 @@ export default function Users() {
                             {t("admin.users.assignBefore")} <span className="font-bold text-slate-800 dark:text-white">{selectedRows.size}</span> {t("admin.users.assignAfter")}
                         </p>
 
-                        <select
+                        <Select
                             aria-label={t("admin.users.newRoleLabel")} value={selectedBulkRole}
                             onChange={(e) => setSelectedBulkRole(e.target.value)}
-                            className="w-full h-10 px-3 rounded-xl border-2 border-slate-300 text-xs font-semibold text-slate-900 bg-white outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]"
-                        >
-                            <option value="scholar">{t("admin.users.roleScholar")}</option>
-                            <option value="teacher">{t("admin.users.roleTeacherMeOfficer")}</option>
-                            <option value="admin">{t("admin.users.roleAdmin")}</option>
-                        </select>
+                            options={[
+                                { value: "scholar", label: t("admin.users.roleScholar") },
+                                { value: "teacher", label: t("admin.users.roleTeacherMeOfficer") },
+                                { value: "admin", label: t("admin.users.roleAdmin") },
+                            ]}
+                        />
 
                         <div className="flex items-center justify-end gap-2 pt-2">
                             <button

@@ -9,6 +9,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { queryKeys } from "@/lib/queryKeys";
+import { TextInput } from "@/components/form";
 
 const Library = () => {
     // Shelf: null = All, "" = Other (files at the top of the library), else a top folder title.
@@ -55,12 +56,12 @@ const Library = () => {
             <div className="px-3 sm:px-5 pt-4">
                 <div className="relative">
                     <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-600 pointer-events-none" />
-                    <input aria-label={t("learner.library.searchLabel")}
-                        type="text"
+                    <TextInput aria-label={t("learner.library.searchLabel")}
+                        type="search"
                         placeholder={t("learner.library.searchPlaceholder")}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full h-10 pl-9 pr-4 rounded-xl border border-slate-200 bg-white text-[13px] text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-slate-300 shadow-sm"
+                        className="pl-9"
                     />
                     {searchQuery && (
                         <button aria-label={t("learner.common.clearSearch")}

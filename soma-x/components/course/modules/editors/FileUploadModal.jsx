@@ -5,6 +5,7 @@ import { X, Upload, FileIcon, CheckCircle } from "lucide-react";
 import { clickableProps } from "@/lib/a11y";
 import { useCourseText } from "@/components/course/useCourseText";
 import { apiFetch } from "@/lib/api";
+import { TextInput } from "@/components/form";
 
 export default function FileUploadModal({ open, onClose, onUpload, courseId, moduleId }) {
   const { t } = useCourseText();
@@ -107,11 +108,7 @@ export default function FileUploadModal({ open, onClose, onUpload, courseId, mod
           {file && (
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1.5">{t("editors.file.displayTitle")}</label>
-              <input aria-label={t("editors.file.displayTitle")}
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[var(--brand-primary)]"
-              />
+              <TextInput aria-label={t("editors.file.displayTitle")} value={title} onChange={(e) => setTitle(e.target.value)} className="w-full" />
             </div>
           )}
         </div>

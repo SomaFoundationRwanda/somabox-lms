@@ -186,11 +186,11 @@ test.describe("explore and library", () => {
 
   test("Library: finds a book by title and opens it", async ({ page }) => {
     await page.goto("/library");
-    await page.getByRole("textbox", { name: "Search books by title" }).fill("Market Maths");
+    await page.getByRole("searchbox", { name: "Search books by title" }).fill("Market Maths");
     await expect(page.getByText("E2E Market Maths").first()).toBeVisible();
-    await page.getByRole("textbox", { name: "Search books by title" }).fill("no-such-book");
+    await page.getByRole("searchbox", { name: "Search books by title" }).fill("no-such-book");
     await expect(page.getByText("No books found")).toBeVisible();
-    await page.getByRole("textbox", { name: "Search books by title" }).fill("");
+    await page.getByRole("searchbox", { name: "Search books by title" }).fill("");
     await page.getByText("E2E Market Maths").first().click();
     await expect(page.locator("iframe, embed, object, canvas").or(page.getByRole("dialog")).first()).toBeVisible();
   });

@@ -9,6 +9,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { fill } from "@/lib/fill";
 import Loader from "@/components/ui/Loader";
 import { apiFetch } from "@/lib/api";
+import { Textarea } from "@/components/form";
 
 export default function InterleavedReviewPage() {
     const { SERVER_URL, user } = useContext(DataContext);
@@ -112,12 +113,11 @@ export default function InterleavedReviewPage() {
 
                     <div className="mb-4">
                         <label className="text-xs font-semibold text-slate-600 mb-1.5 block">{t("learner.review.recallLabel")}</label>
-                        <textarea aria-label={t("learner.review.recallLabel")}
+                        <Textarea aria-label={t("learner.review.recallLabel")}
                             value={recallText}
                             onChange={(e) => setRecallText(e.target.value)}
                             rows={3}
                             placeholder={t("learner.review.answerPlaceholder")}
-                            className="w-full text-sm border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 outline-none focus:border-[var(--brand-secondary)] bg-white dark:bg-slate-900"
                         />
                     </div>
 

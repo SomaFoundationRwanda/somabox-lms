@@ -7,6 +7,7 @@ import { useToast } from "@/context/ToastContext";
 import { formatDate } from "@/lib/dates";
 import { useAttendanceText, STATUSES, STATUS_STYLE, statusKey, letterKey } from "./text";
 import { apiFetch } from "@/lib/api";
+import { Field, TextInput } from "@/components/form";
 
 const NOTE_MAX = 300;
 
@@ -109,19 +110,15 @@ function RosterRow({ row, mark, onStatus, onNote, noteOpen, toggleNote, readOnly
       </div>
       {noteOpen && !disabled ? (
         <div id={noteId} className="mt-2">
-          <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300" htmlFor={`${noteId}-input`}>
-            {tx("noteFor", { name: row.name })}
-          </label>
-          <input
-            id={`${noteId}-input`}
-            type="text"
-            value={mark.note}
-            maxLength={NOTE_MAX}
-            onChange={(e) => onNote(e.target.value)}
-            placeholder={tx("notePlaceholder")}
-            className="mt-1 h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-[var(--brand-secondary)] dark:border-slate-700 dark:bg-slate-900"
-          />
-          {!mark.status ? <p className="mt-1 text-xs text-slate-500">{tx("noteNeedsStatus")}</p> : null}
+          <Field id={`${noteId}-input`} label={tx("noteFor", { name: row.name })} hint={!mark.status ? tx("noteNeedsStatus") : undefined}>
+            <TextInput
+              value={mark.note}
+              maxLength={NOTE_MAX}
+              onChange={(e) => onNote(e.target.value)}
+              placeholder={tx("notePlaceholder")}
+              size="lg"
+            />
+          </Field>
         </div>
       ) : null}
     </li>

@@ -6,6 +6,7 @@ import {
   List, ListOrdered, Link as LinkIcon, Unlink, Quote, Minus, Code,
 } from "lucide-react";
 import { useCourseText } from "@/components/course/useCourseText";
+import { TextInput } from "@/components/form";
 
 function ToolbarButton({ onClick, isActive, children, title }) {
   return (
@@ -161,15 +162,7 @@ export default function EditorToolbar({ editor }) {
       {/* Link input popover */}
       {showLinkInput && (
         <div className="flex items-center gap-1.5 ml-1 bg-white border border-slate-200 rounded-lg px-2 py-1 shadow-sm">
-          <input aria-label={t("editor.linkUrl")}
-            type="url"
-            value={linkUrl}
-            onChange={(e) => setLinkUrl(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); setLink(); } if (e.key === "Escape") setShowLinkInput(false); }}
-            placeholder="https://..."
-            className="text-xs border-none outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)] w-48 bg-transparent"
-            autoFocus
-          />
+          <TextInput size="sm" aria-label={t("editor.linkUrl")} type="url" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); setLink(); } if (e.key === "Escape") setShowLinkInput(false); }} placeholder="https://..." className="w-48" autoFocus />
           <button
             type="button"
             onClick={setLink}

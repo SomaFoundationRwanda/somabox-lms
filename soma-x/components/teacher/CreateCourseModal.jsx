@@ -8,6 +8,7 @@ import GradeSelect from "@/components/teacher/GradeSelect"
 import { useQueryClient } from "@tanstack/react-query"
 import { apiFetch } from "@/lib/api"
 import { queryKeys } from "@/lib/queryKeys"
+import { Field, TextInput, Textarea } from "@/components/form";
 
 // Shared by every entry point that creates a course, so there's exactly one create-course UX.
 export default function CreateCourseModal({ onClose, onCreated }) {
@@ -58,30 +59,25 @@ export default function CreateCourseModal({ onClose, onCreated }) {
         </div>
 
         <div className="flex flex-col gap-3">
-          <div>
-            <label className="text-xs text-slate-600 mb-1 block">{t("teacher.createCourse.courseTitle")} *</label>
-            <input aria-label={t("teacher.createCourse.courseTitle")}
-              type="text"
+          <Field label={t("teacher.createCourse.courseTitle")} required>
+            <TextInput aria-label={t("teacher.createCourse.courseTitle")}
               placeholder={t("teacher.createCourse.titlePlaceholder")}
               value={form.title}
               onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
-              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2.5 outline-none focus:border-[var(--brand-secondary)]"
             />
-          </div>
-          <div>
-            <label className="text-xs text-slate-600 mb-1 block">{t("teacher.createCourse.grade")} *</label>
+          </Field>
+          <Field label={t("teacher.createCourse.grade")} required>
             <GradeSelect value={form.grade} onChange={(grade) => setForm((p) => ({ ...p, grade }))} />
-          </div>
-          <div>
-            <label className="text-xs text-slate-600 mb-1 block">{t("teacher.createCourse.description")}</label>
-            <textarea aria-label={t("teacher.createCourse.description")}
+          </Field>
+          <Field label={t("teacher.createCourse.description")}>
+            <Textarea aria-label={t("teacher.createCourse.description")}
               value={form.description}
               onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
               rows={3}
               placeholder={t("teacher.createCourse.descriptionPlaceholder")}
-              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2.5 outline-none focus:border-[var(--brand-secondary)] resize-none"
+              className="resize-none"
             />
-          </div>
+          </Field>
           {error && <p className="text-xs text-red-500">{error}</p>}
           <button
             onClick={handleSubmit}

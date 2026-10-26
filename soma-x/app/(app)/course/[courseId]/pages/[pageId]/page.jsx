@@ -15,6 +15,7 @@ import { AlertCircle } from "lucide-react";
 import { useItemOpened } from "@/lib/usage";
 import { useCourseText } from "@/components/course/useCourseText";
 import Loader from "@/components/ui/Loader";
+import { Checkbox, TextInput } from "@/components/form";
 
 function EditorLoading() {
   const { t } = useCourseText();
@@ -122,13 +123,7 @@ export default function PageDetailPage() {
           <div className="space-y-4">
             <div>
               <label htmlFor="page-title" className="block text-xs font-semibold text-slate-600 mb-1">{t("editors.pageTitle")}</label>
-              <input
-                id="page-title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder={t("editors.pageTitle")}
-                className="w-full text-lg font-bold border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[var(--brand-primary)]"
-              />
+              <TextInput size="lg" id="page-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("editors.pageTitle")} className="w-full" />
             </div>
 
             {/* Alt Text Validation Banner */}
@@ -151,12 +146,7 @@ export default function PageDetailPage() {
 
             <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
               <label className="flex items-center gap-2 text-sm text-slate-700 font-medium">
-                <input
-                  type="checkbox"
-                  checked={published}
-                  onChange={(e) => setPublished(e.target.checked)}
-                  className="rounded border-slate-300 text-[var(--brand-primary)] focus:ring-[var(--brand-primary)]"
-                />
+                <Checkbox checked={published} onCheckedChange={(v) => setPublished(v === true)} />
                 {t("pageView.publishedVisible")}
               </label>
 

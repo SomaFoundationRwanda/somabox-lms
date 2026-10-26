@@ -3,6 +3,7 @@
 import { useId } from "react";
 import { addDays, isDateString } from "@somabox/timeline";
 import { useCourseText } from "@/components/course/useCourseText";
+import { TextInput } from "@/components/form";
 
 // Release / due / close day inputs (days after the module's first day) with a live preview
 // of the dates they resolve to when the module's start date is known.
@@ -69,26 +70,25 @@ export default function ScheduleFields({ values, onChange, moduleStartDate, show
   const { t, tf, fmtDay } = useCourseText();
   const set = (key) => (e) => onChange({ ...values, [key]: e.target.value });
   const error = scheduleError(values, t);
-  const inputCls = "w-full text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none bg-white focus:border-[var(--brand-secondary)]";
 
   return (
     <div className={`p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2 ${className}`}>
       <div className={`grid gap-3 ${showDue ? "grid-cols-1 sm:grid-cols-3" : "grid-cols-1"}`}>
         <div>
           <label htmlFor={`${id}-release`} className="block text-[11px] font-bold text-slate-700 mb-1">{t("schedule.opensOnDay")}</label>
-          <input id={`${id}-release`} type="number" min="0" max="365" step="1" value={values.releaseDay} onChange={set("releaseDay")} className={inputCls} />
+          <TextInput id={`${id}-release`} type="number" min="0" max="365" step="1" value={values.releaseDay} onChange={set("releaseDay")} size="sm" className="w-full" />
           <Preview start={moduleStartDate} value={values.releaseDay === "" ? "0" : values.releaseDay} />
         </div>
         {showDue && (
           <>
             <div>
               <label htmlFor={`${id}-due`} className="block text-[11px] font-bold text-slate-700 mb-1">{t("schedule.dueOnDay")}</label>
-              <input id={`${id}-due`} type="number" min="0" max="365" step="1" value={values.dueDay} onChange={set("dueDay")} placeholder={t("common.noDueDate")} className={inputCls} />
+              <TextInput id={`${id}-due`} type="number" min="0" max="365" step="1" value={values.dueDay} onChange={set("dueDay")} placeholder={t("common.noDueDate")} size="sm" className="w-full" />
               <Preview start={moduleStartDate} value={values.dueDay} empty={t("schedule.emptyNoDue")} />
             </div>
             <div>
               <label htmlFor={`${id}-close`} className="block text-[11px] font-bold text-slate-700 mb-1">{t("schedule.closesOnDay")}</label>
-              <input id={`${id}-close`} type="number" min="0" max="365" step="1" value={values.closeDay} onChange={set("closeDay")} placeholder={t("schedule.noCutoff")} className={inputCls} />
+              <TextInput id={`${id}-close`} type="number" min="0" max="365" step="1" value={values.closeDay} onChange={set("closeDay")} placeholder={t("schedule.noCutoff")} size="sm" className="w-full" />
               <Preview start={moduleStartDate} value={values.closeDay} empty={t("schedule.emptyNoCutoff")} />
             </div>
           </>

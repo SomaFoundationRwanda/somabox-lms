@@ -10,6 +10,7 @@ import { apiFetch, getErrorMessage } from "@/lib/api";
 import { AiDraftLabel, JobProgress } from "@/components/ai/AiBits";
 import { trackEvent } from "@/lib/usage";
 import { useProgressText, fmtDateTime } from "@/components/progress/text";
+import { TextInput, Textarea } from "@/components/form";
 
 // Gradings that take longer than this were left open, not worked on: don't report them.
 const MAX_GRADING_MS = 2 * 60 * 60 * 1000;
@@ -198,8 +199,6 @@ export default function SubmissionGrader({ courseId, assignmentId, submission, r
     }
   };
 
-  const inputClass = "text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-lg px-2.5 py-1.5 outline-none focus:border-[var(--brand-secondary)]";
-
   return (
     <li className="text-sm">
       <button
@@ -300,17 +299,7 @@ export default function SubmissionGrader({ courseId, assignmentId, submission, r
                       </p>
                     ) : null}
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <input
-                        id={inputId}
-                        type="number"
-                        min={0}
-                        max={max}
-                        step="any"
-                        inputMode="decimal"
-                        value={current ?? ""}
-                        onChange={(e) => setScores((p) => ({ ...p, [c.id]: e.target.value }))}
-                        className={`${inputClass} w-20`}
-                      />
+                      <TextInput id={inputId} type="number" min={0} max={max} step="any" inputMode="decimal" value={current ?? ""} onChange={(e) => setScores((p) => ({ ...p, [c.id]: e.target.value }))} size="sm" className="w-20" />
                       {quick.map((v) => {
                         const active = current !== undefined && current !== "" && Number(current) === v;
                         return (
@@ -341,28 +330,13 @@ export default function SubmissionGrader({ courseId, assignmentId, submission, r
           ) : (
             <div>
               <label htmlFor={`${panelId}-grade`} className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{tp("grader.gradeOutOf", { n: fmtPoints(pointsPossible) })}</label>
-              <input
-                id={`${panelId}-grade`}
-                type="number"
-                min={0}
-                step="any"
-                inputMode="decimal"
-                value={grade}
-                onChange={(e) => setGrade(e.target.value)}
-                className={`${inputClass} w-28`}
-              />
+              <TextInput id={`${panelId}-grade`} type="number" min={0} step="any" inputMode="decimal" value={grade} onChange={(e) => setGrade(e.target.value)} size="sm" className="w-28" />
             </div>
           )}
 
           <div>
             <label htmlFor={`${panelId}-feedback`} className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{tp("common.feedback")}</label>
-            <textarea
-              id={`${panelId}-feedback`}
-              rows={3}
-              value={feedback}
-              onChange={(e) => setFeedback(e.target.value)}
-              className={`${inputClass} w-full`}
-            />
+            <Textarea id={`${panelId}-feedback`} rows={3} value={feedback} onChange={(e) => setFeedback(e.target.value)} size="sm" className="w-full" />
           </div>
 
           {error ? <p role="alert" className="text-xs font-semibold text-rose-600">{error}</p> : null}

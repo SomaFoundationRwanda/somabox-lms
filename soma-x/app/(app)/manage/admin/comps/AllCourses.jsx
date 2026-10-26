@@ -15,6 +15,7 @@ import { useUserList } from "@/lib/queries/users";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/context/ToastContext";
+import { Field, Select, TextInput } from "@/components/form";
 
 // Admins give a course another teacher, e.g. when its teacher left (PUT /courses/:id/teacher).
 function ChangeTeacher({ course, onClose, onDone }) {
@@ -51,16 +52,16 @@ function ChangeTeacher({ course, onClose, onDone }) {
         <p className="text-sm text-slate-600 dark:text-slate-400">
           {course.teachers ? fill(t("admin.courses.currentTeachers"), { teachers: course.teachers }) : t("admin.courses.noTeacherNow")}
         </p>
-        <div>
-          <label htmlFor="change-teacher" className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">{t("admin.courses.newTeacher")}</label>
+        <Field id="change-teacher" label={t("admin.courses.newTeacher")}>
           {teachers === null ? <Loader size={24} /> : (
-            <select id="change-teacher" value={email} onChange={(e) => setEmail(e.target.value)}
-              className="w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 outline-none focus:border-[var(--brand-secondary)]">
-              <option value="">{t("admin.courses.chooseTeacher")}</option>
-              {teachers.map((u) => <option key={u.id} value={u.email}>{u.full_name ? `${u.full_name} (${u.email})` : u.email}</option>)}
-            </select>
+            <Select
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder={t("admin.courses.chooseTeacher")}
+              options={teachers.map((u) => ({ value: u.email, label: u.full_name ? `${u.full_name} (${u.email})` : u.email }))}
+            />
           )}
-        </div>
+        </Field>
         {course.teachers && (
           <div className="flex items-start gap-2.5">
             <Checkbox id="remove-other-teachers" checked={removeOthers} onCheckedChange={(v) => setRemoveOthers(v === true)} className="mt-0.5" />
@@ -98,13 +99,13 @@ export default function AllCourses() {
 
   return (
     <div className="space-y-3">
-      <input
+      <TextInput
         type="search"
         value={filter}
         onChange={(e) => setFilter(e.target.value)}
         placeholder={t("admin.courses.searchPlaceholder")}
         aria-label={t("admin.courses.searchLabel")}
-        className="w-full sm:w-72 text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[var(--brand-secondary)]"
+        className="sm:w-72"
       />
       <DataTable
         caption={t("admin.courses.caption")}

@@ -12,6 +12,7 @@ import useSetupText from "@/lib/useSetupText";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiError, apiFetch } from "@/lib/api";
 import { queryKeys } from "@/lib/queryKeys";
+import { Field, TextInput, Textarea } from "@/components/form";
 
 const MIN_REASON = 10;
 
@@ -194,21 +195,18 @@ export default function BaselinePanel({ courseId, isDraft, onChanged, compact = 
       {status === "pending" && (
         <div className="flex flex-wrap items-end gap-2">
           <div className="flex items-end gap-2">
-            <div>
-              <label htmlFor={`baseline-per-outcome${compact ? "-wiz" : ""}`} className="text-[11px] font-semibold text-slate-600 block mb-1">
-                {t("teacher.baseline.perOutcome")}
-              </label>
-              <input
-                id={`baseline-per-outcome${compact ? "-wiz" : ""}`}
+            <Field id={`baseline-per-outcome${compact ? "-wiz" : ""}`} label={t("teacher.baseline.perOutcome")}>
+              <TextInput
                 type="number"
                 min={1}
                 max={10}
                 step={1}
                 value={perOutcome}
                 onChange={(e) => setPerOutcome(e.target.value)}
-                className="w-20 text-sm border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-[var(--brand-secondary)]"
+                size="sm"
+                className="w-20"
               />
-            </div>
+            </Field>
             <button type="button" onClick={generate} disabled={anyBusy} className={`${btn} text-teal-800 bg-teal-50 border border-teal-200 hover:bg-teal-100`}>
               <Hammer className="w-3.5 h-3.5" aria-hidden="true" /> {busy === "generate" ? t("teacher.baseline.building") : t("teacher.baseline.build")}
             </button>
@@ -236,17 +234,14 @@ export default function BaselinePanel({ courseId, isDraft, onChanged, compact = 
 
       {status === "pending" && skipOpen && (
         <div className="space-y-2 p-3 border border-slate-200 rounded-xl">
-          <label htmlFor={`baseline-skip-reason${compact ? "-wiz" : ""}`} className="text-[11px] font-semibold text-slate-600 block">
-            {fill(t("teacher.baseline.whySkip"), { min: MIN_REASON })}
-          </label>
-          <textarea
-            id={`baseline-skip-reason${compact ? "-wiz" : ""}`}
-            rows={2}
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[var(--brand-secondary)]"
-            placeholder={t("teacher.baseline.reasonPlaceholder")}
-          />
+          <Field id={`baseline-skip-reason${compact ? "-wiz" : ""}`} label={fill(t("teacher.baseline.whySkip"), { min: MIN_REASON })}>
+            <Textarea
+              rows={2}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder={t("teacher.baseline.reasonPlaceholder")}
+            />
+          </Field>
           <div className="flex items-center gap-2">
             <button
               type="button"

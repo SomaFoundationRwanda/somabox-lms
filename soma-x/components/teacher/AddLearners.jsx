@@ -15,9 +15,8 @@ import Modal from "@/components/ui/Modal"
 import { Button } from "@/components/ui/button"
 import JoinCodePanel from "@/components/teacher/JoinCodePanel"
 import CredentialSheet from "@/components/teacher/CredentialSheet"
+import { Field, Select, TextInput, Textarea } from "@/components/form";
 
-const INPUT = "w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 outline-none focus:border-[var(--brand-secondary)]"
-const LABEL = "block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5"
 
 function MatchList({ matches, l }) {
   return (
@@ -61,9 +60,8 @@ function FindLearner({ courseId, onAdded, l, t }) {
 
   return (
     <div className="space-y-4">
-      <div>
-        <label htmlFor="learner-search" className={LABEL}>{l("searchLabel")}</label>
-        <input id="learner-search" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={l("searchPlaceholder")} className={INPUT} autoComplete="off" />
+      <Field id="learner-search" label={l("searchLabel")}>
+        <TextInput type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={l("searchPlaceholder")} autoComplete="off" />
         {results.length > 0 && (
           <ul className="mt-2 divide-y divide-slate-100 dark:divide-slate-800 border border-slate-100 dark:border-slate-800 rounded-lg" aria-label={l("results")}>
             {results.map((r) => (
@@ -80,17 +78,16 @@ function FindLearner({ courseId, onAdded, l, t }) {
           </ul>
         )}
         {q.trim().length >= 2 && results.length === 0 && <p className="mt-2 text-xs text-slate-500">{l("noResults")}</p>}
-      </div>
+      </Field>
 
-      <div>
-        <label htmlFor="learner-email" className={LABEL}>{t("course.people.join.orEmail")}</label>
+      <Field id="learner-email" label={t("course.people.join.orEmail")}>
         <div className="flex gap-2">
-          <input id="learner-email" aria-label={t("teacher.dashboard.studentEmail")} type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+          <TextInput aria-label={t("teacher.dashboard.studentEmail")} type="email" value={email} onChange={(e) => setEmail(e.target.value)}
             onKeyDown={async (e) => { if (e.key === "Enter" && email.trim() && await add({ email: email.trim() })) setEmail("") }}
-            placeholder={t("teacher.dashboard.studentEmail")} className={INPUT} />
+            placeholder={t("teacher.dashboard.studentEmail")} />
           <Button type="button" variant="outline" disabled={!email.trim()} onClick={async () => { if (await add({ email: email.trim() })) setEmail("") }}>{l("add")}</Button>
         </div>
-      </div>
+      </Field>
       {error && <p role="alert" className="text-sm text-rose-600">{error}</p>}
     </div>
   )
@@ -149,18 +146,13 @@ function NewLearners({ courseId, onCreated, l, t }) {
 
   return (
     <div className="space-y-4">
-      <div>
-        <label htmlFor="new-learner-names" className={LABEL}>{l("namesLabel")}</label>
-        <textarea id="new-learner-names" rows={6} value={names} onChange={(e) => setNames(e.target.value)} placeholder={l("namesPlaceholder")} className={INPUT} />
-        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{fill(l("namesCount"), { count: list.length })}</p>
-      </div>
-      <div>
-        <label htmlFor="new-learner-grade" className={LABEL}>{l("gradeLabel")}</label>
-        <select id="new-learner-grade" value={grade} onChange={(e) => setGrade(e.target.value)} className={INPUT}>
-          <option value="">{t("learner.profileSetup.selectLevel")}</option>
-          {GRADE_LEVELS.map((g) => <option key={g.value} value={g.value}>{t(`learner.profileSetup.grades.${g.key}`)}</option>)}
-        </select>
-      </div>
+      <Field id="new-learner-names" label={l("namesLabel")} hint={fill(l("namesCount"), { count: list.length })}>
+        <Textarea rows={6} value={names} onChange={(e) => setNames(e.target.value)} placeholder={l("namesPlaceholder")} />
+      </Field>
+      <Field id="new-learner-grade" label={l("gradeLabel")}>
+        <Select value={grade} onChange={(e) => setGrade(e.target.value)} placeholder={t("learner.profileSetup.selectLevel")}
+          options={GRADE_LEVELS.map((g) => ({ value: g.value, label: t(`learner.profileSetup.grades.${g.key}`) }))} />
+      </Field>
       <p className="text-xs text-slate-500 dark:text-slate-400">{l("newHelp")}</p>
       {error && <p role="alert" className="text-sm text-rose-600">{error}</p>}
       <Button type="button" onClick={() => submit()} disabled={!list.length || !grade || saving} width="full">

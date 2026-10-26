@@ -5,6 +5,7 @@ import { BellRing, Megaphone, Send, ShieldAlert, X } from "lucide-react";
 import { useToast } from "@/context/ToastContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { apiFetch, getErrorMessage } from "@/lib/api";
+import { Field, Select, TextInput, Textarea } from "@/components/form";
 
 export default function SendNotificationModal({ isOpen, onClose }) {
     const { showToast } = useToast();
@@ -81,87 +82,73 @@ export default function SendNotificationModal({ isOpen, onClose }) {
                 <form onSubmit={handleSend} className="p-6 space-y-4">
                     
                     {/* Target Recipient Selection */}
-                    <div className="space-y-1">
-                        <label className="text-[11px] font-bold text-slate-800 uppercase tracking-wide">{t("shell.broadcast.recipients")}</label>
-                        <select aria-label={t("shell.broadcast.recipients")}
+                    <Field label={t("shell.broadcast.recipients")}>
+                        <Select
                             value={targetRole}
                             onChange={(e) => setTargetRole(e.target.value)}
-                            className="w-full h-10 px-3 rounded-xl border-2 border-slate-300 text-xs font-semibold text-slate-900 bg-white outline-none focus:border-accent-dark"
                         >
                             <option value="all">{t("shell.broadcast.toAll")}</option>
                             <option value="scholar">{t("shell.broadcast.toLearners")}</option>
                             <option value="teacher">{t("shell.broadcast.toTeachers")}</option>
                             <option value="admin">{t("shell.broadcast.toAdmins")}</option>
                             <option value="specific">{t("shell.broadcast.toEmail")}</option>
-                        </select>
-                    </div>
+                        </Select>
+                    </Field>
 
                     {/* Specific User Email Input */}
                     {targetRole === "specific" && (
-                        <div className="space-y-1">
-                            <label className="text-[11px] font-bold text-slate-800 uppercase tracking-wide">{t("shell.broadcast.recipientEmail")}</label>
-                            <input aria-label={t("shell.broadcast.recipientEmail")}
+                        <Field label={t("shell.broadcast.recipientEmail")}>
+                            <TextInput
                                 type="email"
                                 placeholder={t("shell.broadcast.emailPlaceholder")}
                                 value={targetEmail}
                                 onChange={(e) => setTargetEmail(e.target.value)}
-                                className="w-full h-10 px-3 rounded-xl border-2 border-slate-300 text-xs font-semibold text-slate-900 placeholder:text-slate-500 bg-white outline-none focus:border-accent-dark"
                                 required
                             />
-                        </div>
+                        </Field>
                     )}
 
                     {/* Notification Type */}
-                    <div className="space-y-1">
-                        <label className="text-[11px] font-bold text-slate-800 uppercase tracking-wide">{t("shell.broadcast.category")}</label>
-                        <select aria-label={t("shell.broadcast.category")}
+                    <Field label={t("shell.broadcast.category")}>
+                        <Select
                             value={type}
                             onChange={(e) => setType(e.target.value)}
-                            className="w-full h-10 px-3 rounded-xl border-2 border-slate-300 text-xs font-semibold text-slate-900 bg-white outline-none focus:border-accent-dark"
                         >
                             <option value="announcement">{t("shell.broadcast.announcement")}</option>
                             <option value="reminder">{t("shell.broadcast.reminder")}</option>
                             <option value="alert">{t("shell.broadcast.alert")}</option>
-                        </select>
-                    </div>
+                        </Select>
+                    </Field>
 
                     {/* Title */}
-                    <div className="space-y-1">
-                        <label className="text-[11px] font-bold text-slate-800 uppercase tracking-wide">{t("shell.broadcast.titleLabel")}</label>
-                        <input aria-label={t("shell.broadcast.titleLabel")}
-                            type="text"
+                    <Field label={t("shell.broadcast.titleLabel")}>
+                        <TextInput
                             placeholder={t("shell.broadcast.titlePlaceholder")}
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
-                            className="w-full h-10 px-3 rounded-xl border-2 border-slate-300 text-xs font-semibold text-slate-900 placeholder:text-slate-500 bg-white outline-none focus:border-accent-dark"
                             required
                         />
-                    </div>
+                    </Field>
 
                     {/* Message */}
-                    <div className="space-y-1">
-                        <label className="text-[11px] font-bold text-slate-800 uppercase tracking-wide">{t("shell.broadcast.message")}</label>
-                        <textarea aria-label={t("shell.broadcast.message")}
+                    <Field label={t("shell.broadcast.message")}>
+                        <Textarea
                             rows={3}
                             placeholder={t("shell.broadcast.messagePlaceholder")}
                             value={message}
                             onChange={(e) => setMessage(e.target.value)}
-                            className="w-full p-3 rounded-xl border-2 border-slate-300 text-xs font-semibold text-slate-900 placeholder:text-slate-500 bg-white outline-none focus:border-accent-dark"
                             required
                         />
-                    </div>
+                    </Field>
 
                     {/* Optional Link */}
-                    <div className="space-y-1">
-                        <label className="text-[11px] font-bold text-slate-800 uppercase tracking-wide">{t("shell.broadcast.link")}</label>
-                        <input aria-label={t("shell.broadcast.link")}
-                            type="text"
+                    <Field label={t("shell.broadcast.link")}>
+                        <TextInput
                             placeholder={t("shell.broadcast.linkPlaceholder")}
                             value={link}
                             onChange={(e) => setLink(e.target.value)}
-                            className="w-full h-10 px-3 rounded-xl border-2 border-slate-300 text-xs font-semibold text-slate-900 placeholder:text-slate-500 bg-white outline-none focus:border-accent-dark"
                         />
-                    </div>
+                    </Field>
 
                     {/* Actions */}
                     <div className="flex items-center justify-end gap-3 pt-2">

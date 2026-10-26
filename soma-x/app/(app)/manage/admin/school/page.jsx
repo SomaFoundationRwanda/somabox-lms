@@ -17,13 +17,13 @@ import Loader from "@/components/ui/Loader";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch, apiUrl, getErrorMessage } from "@/lib/api";
 import { queryKeys } from "@/lib/queryKeys";
+import { ChoiceGroup, Field, Select, TextInput } from "@/components/form";
 
 // One box serves one school. Everything about it is set here (GET/PUT /school): its name and
 // learner-code prefix, its location (applied to every learner and teacher, who are never asked),
 // its look (logo and colours, shown to everyone including visitors) and visitor previews.
 
 const CODE_RE = /^[A-Z0-9]{2,8}$/;
-const INPUT = `w-full h-11 px-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-semibold text-slate-900 dark:text-white ${FOCUS_RING}`;
 const LABEL = "block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1";
 const HELP = "mt-1 text-xs text-slate-600 dark:text-slate-400";
 const LOGO_TYPES = ["image/png", "image/jpeg", "image/webp"];
@@ -59,21 +59,20 @@ function ColourField({ id, label, help, value, onChange, t }) {
     const valid = isHexColor(value);
     const lowContrast = valid && whiteContrast(value) < 4.5;
     return (
-        <div>
-            <label htmlFor={`${id}-hex`} className={LABEL}>{label}</label>
+        <Field id={`${id}-hex`} label={label}>
             <div className="flex items-center gap-2">
                 <input type="color" value={(valid ? value : DEFAULT_PRIMARY).toLowerCase()} onChange={(e) => onChange(e.target.value.toUpperCase())}
                     aria-label={label} className={`w-11 h-11 shrink-0 rounded-xl cursor-pointer border border-slate-300 dark:border-slate-700 bg-white p-1 ${FOCUS_RING}`} />
-                <input id={`${id}-hex`} type="text" value={value} maxLength={7} spellCheck={false} autoCapitalize="characters"
+                <TextInput value={value} maxLength={7} spellCheck={false} autoCapitalize="characters"
                     onChange={(e) => onChange(e.target.value.trim().toUpperCase())}
                     aria-invalid={!valid} aria-describedby={`${id}-help${lowContrast ? ` ${id}-warn` : ""}`}
-                    className={`${INPUT} font-mono uppercase`} />
+                    size="lg" className="font-mono uppercase" />
             </div>
             <p id={`${id}-help`} className={HELP}>{valid ? help : t("school.settings.colourInvalid")}</p>
             {lowContrast && (
                 <p id={`${id}-warn`} className="mt-1 text-xs font-semibold text-amber-800 dark:text-amber-300">{t("school.settings.lowContrast")}</p>
             )}
-        </div>
+        </Field>
     );
 }
 
@@ -251,17 +250,15 @@ export default function SchoolSettingsPage() {
                     {/* ── School ── */}
                     <Section title={t("school.settings.sectionSchool")} description={t("school.settings.codeOnlyNew")}>
                         <div className="space-y-5">
-                            <div>
-                                <label htmlFor="school-name" className={LABEL}>{t("school.settings.name")}</label>
-                                <input id="school-name" type="text" value={form.name} onChange={set("name")} className={INPUT}
+                            <Field id="school-name" label={t("school.settings.name")}>
+                                <TextInput value={form.name} onChange={set("name")} size="lg"
                                     placeholder={t("school.settings.namePlaceholder")} autoComplete="organization" />
-                            </div>
+                            </Field>
 
-                            <div>
-                                <label htmlFor="school-code" className={LABEL}>{t("school.settings.code")}</label>
-                                <input id="school-code" type="text" value={form.code} maxLength={8}
+                            <Field id="school-code" label={t("school.settings.code")}>
+                                <TextInput value={form.code} maxLength={8}
                                     onChange={(e) => setForm((f) => ({ ...f, code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "") }))}
-                                    className={`${INPUT} font-mono uppercase tracking-wider max-w-[12rem]`}
+                                    size="lg" className="font-mono uppercase tracking-wider max-w-[12rem]"
                                     aria-describedby="school-code-help school-code-preview"
                                     aria-invalid={form.code !== "" && !codeValid}
                                     autoCapitalize="characters" spellCheck={false} />
@@ -279,7 +276,7 @@ export default function SchoolSettingsPage() {
                                         {fill(t("school.settings.codeChanging"), { old: savedCode })}
                                     </p>
                                 )}
-                            </div>
+                            </Field>
                         </div>
                     </Section>
 
@@ -291,45 +288,38 @@ export default function SchoolSettingsPage() {
                         </div>
                         <div className="space-y-5">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                    <label htmlFor="school-province" className={LABEL}>{t("school.settings.province")}</label>
-                                    <select id="school-province" value={RWANDA_LOCATIONS[form.province] ? form.province : (form.province ? OTHER_PROVINCE : "")}
-                                        onChange={(e) => setForm((f) => ({ ...f, province: e.target.value, district: "" }))} className={INPUT}>
+                                <Field id="school-province" label={t("school.settings.province")}>
+                                    <Select value={RWANDA_LOCATIONS[form.province] ? form.province : (form.province ? OTHER_PROVINCE : "")}
+                                        onChange={(e) => setForm((f) => ({ ...f, province: e.target.value, district: "" }))} size="lg">
                                         <option value="">{t("school.settings.notSet")}</option>
                                         {Object.keys(RWANDA_LOCATIONS).map((p) => <option key={p} value={p}>{p}</option>)}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label htmlFor="school-district" className={LABEL}>{t("school.settings.district")}</label>
+                                    </Select>
+                                </Field>
+                                <Field id="school-district" label={t("school.settings.district")}>
                                     {isOther ? (
-                                        <input id="school-district" type="text" value={form.district} onChange={set("district")} className={INPUT} />
+                                        <TextInput value={form.district} onChange={set("district")} size="lg" />
                                     ) : (
-                                        <select id="school-district" value={form.district} onChange={set("district")} disabled={!form.province}
-                                            className={`${INPUT} disabled:opacity-50`}>
+                                        <Select value={form.district} onChange={set("district")} disabled={!form.province} size="lg">
                                             <option value="">{form.province ? t("school.settings.notSet") : t("school.settings.provinceFirst")}</option>
                                             {districts.map((d) => <option key={d} value={d}>{d}</option>)}
                                             {form.district && !districts.includes(form.district) && <option value={form.district}>{form.district}</option>}
-                                        </select>
+                                        </Select>
                                     )}
-                                </div>
+                                </Field>
                             </div>
 
-                            <fieldset>
-                                <legend className={LABEL}>{t("school.settings.ruralLegend")}</legend>
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                                    {[
+                            <Field id="school-rural" label={t("school.settings.ruralLegend")}>
+                                <ChoiceGroup
+                                    value={form.rural}
+                                    onChange={(rural) => setForm((f) => ({ ...f, rural }))}
+                                    size="lg"
+                                    options={[
                                         { value: "rural", label: t("school.settings.rural") },
                                         { value: "urban", label: t("school.settings.urban") },
                                         { value: "unset", label: t("school.settings.ruralUnset") },
-                                    ].map((opt) => (
-                                        <label key={opt.value} className={`flex items-center gap-2 min-h-[44px] px-3 rounded-lg border text-sm font-semibold cursor-pointer ${form.rural === opt.value ? "border-[var(--brand-secondary)] bg-teal-50 dark:bg-teal-950/40 text-slate-900 dark:text-teal-100" : "border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200"}`}>
-                                            <input type="radio" name="school-rural" value={opt.value} checked={form.rural === opt.value}
-                                                onChange={() => setForm((f) => ({ ...f, rural: opt.value }))} className="w-4 h-4 accent-[var(--brand-secondary)]" />
-                                            {opt.label}
-                                        </label>
-                                    ))}
-                                </div>
-                            </fieldset>
+                                    ]}
+                                />
+                            </Field>
                         </div>
                     </Section>
 
@@ -427,20 +417,18 @@ export default function SchoolSettingsPage() {
                             </div>
                             {form.previewEnabled && (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div>
-                                        <label htmlFor="school-preview-seconds" className={LABEL}>{t("school.settings.seconds")}</label>
-                                        <input id="school-preview-seconds" type="number" inputMode="numeric" min={10} max={600} step={1}
-                                            value={form.previewSeconds} onChange={set("previewSeconds")} className={INPUT}
+                                    <Field id="school-preview-seconds" label={t("school.settings.seconds")}>
+                                        <TextInput type="number" inputMode="numeric" min={10} max={600} step={1}
+                                            value={form.previewSeconds} onChange={set("previewSeconds")} size="lg"
                                             aria-invalid={!secondsValid} aria-describedby="school-preview-seconds-help" />
                                         <p id="school-preview-seconds-help" className={HELP}>{secondsValid ? t("school.settings.secondsHelp") : t("school.settings.secondsInvalid")}</p>
-                                    </div>
-                                    <div>
-                                        <label htmlFor="school-preview-items" className={LABEL}>{t("school.settings.items")}</label>
-                                        <input id="school-preview-items" type="number" inputMode="numeric" min={1} max={50} step={1}
-                                            value={form.previewItems} onChange={set("previewItems")} className={INPUT}
+                                    </Field>
+                                    <Field id="school-preview-items" label={t("school.settings.items")}>
+                                        <TextInput type="number" inputMode="numeric" min={1} max={50} step={1}
+                                            value={form.previewItems} onChange={set("previewItems")} size="lg"
                                             aria-invalid={!itemsValid} aria-describedby="school-preview-items-help" />
                                         <p id="school-preview-items-help" className={HELP}>{itemsValid ? t("school.settings.itemsHelp") : t("school.settings.itemsInvalid")}</p>
-                                    </div>
+                                    </Field>
                                 </div>
                             )}
                         </div>
