@@ -10,8 +10,13 @@
 //
 // A control inside a Field gets its id, label, hint and error wired up (aria-describedby,
 // aria-invalid) without passing them. Outside a Field, give it an aria-label.
-import { createContext, forwardRef, useContext, useId } from "react";
+import { createContext, forwardRef, useContext, useId, useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
+import { useLanguage } from "@/context/LanguageContext";
 import { Checkbox as CheckboxBox } from "@/components/ui/checkbox";
+
+/** The bare checkbox (no label), e.g. to select table rows; give it an aria-label. */
+export { CheckboxBox as Checkbox };
 import { cn } from "@/lib/utils";
 
 const FieldContext = createContext(null);
@@ -119,9 +124,10 @@ export function CheckboxField({ id, label, hint, checked, onCheckedChange, disab
 
 /**
  * One choice out of a few, shown as buttons (a radio group for assistive technology).
- * `options`: [{ value, label }]; `columns`: how many per row from small screens up.
+ * `options`: [{ value, label, disabled? }]; `columns`: how many per row from small screens up;
+ * layout "list": one full-width choice per row, for long answers (e.g. a quiz's options).
  */
-export function ChoiceGroup({ options, value, onChange, columns = 3, size = "md", className, ...props }) {
+export function ChoiceGroup({ options, value, onChange, columns = 3, layout = "grid", size = "md", disabled = false, className, ...props }) {
     const field = useContext(FieldContext);
     const invalid = !!(props["aria-invalid"] ?? field?.invalid);
     const cols = { 2: "sm:grid-cols-2", 3: "sm:grid-cols-3", 4: "sm:grid-cols-4" }[columns] || "sm:grid-cols-3";
@@ -132,7 +138,7 @@ export function ChoiceGroup({ options, value, onChange, columns = 3, size = "md"
             aria-label={props["aria-label"]}
             aria-describedby={field?.describedBy}
             aria-invalid={invalid || undefined}
-            className={cn("grid grid-cols-2 gap-2", cols, className)}
+            className={cn(layout === "list" ? "flex flex-col gap-2" : cn("grid grid-cols-2 gap-2", cols), className)}
         >
             {options.map((o) => {
                 const selected = o.value === value;
@@ -142,10 +148,11 @@ export function ChoiceGroup({ options, value, onChange, columns = 3, size = "md"
                         type="button"
                         role="radio"
                         aria-checked={selected}
+                        disabled={disabled || o.disabled}
                         onClick={() => onChange(o.value)}
                         className={cn(
-                            "rounded-lg border px-3 font-semibold transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]/40",
-                            SIZES[size] || SIZES.md,
+                            "rounded-lg border px-3 font-semibold transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]/40 disabled:cursor-not-allowed disabled:opacity-50",
+                            layout === "list" ? "min-h-10 py-2.5 text-left text-sm" : SIZES[size] || SIZES.md,
                             selected
                                 ? "border-[var(--brand-secondary)] bg-teal-50 text-teal-900 dark:bg-teal-950/50 dark:text-teal-100"
                                 : cn("bg-white text-slate-700 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800", border(invalid)),
@@ -158,3 +165,23 @@ export function ChoiceGroup({ options, value, onChange, columns = 3, size = "md"
         </div>
     );
 }
+
+/** A password box with a show/hide button. */
+export const PasswordInput = forwardRef(function PasswordInput({ size = "md", className, toggleLabel, ...props }, ref) {
+    const { t } = useLanguage();
+    const [shown, setShown] = useState(false);
+    return (
+        <div className="relative">
+            <TextInput ref={ref} {...props} type={shown ? "text" : "password"} size={size} className={cn("pr-11", className)} />
+            <button
+                type="button"
+                onClick={() => setShown((v) => !v)}
+                aria-label={toggleLabel || t("shell.login.togglePassword")}
+                aria-pressed={shown}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800"
+            >
+                {shown ? <EyeOff className="w-4 h-4" aria-hidden="true" /> : <Eye className="w-4 h-4" aria-hidden="true" />}
+            </button>
+        </div>
+    );
+});

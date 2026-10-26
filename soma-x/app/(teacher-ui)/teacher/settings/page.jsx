@@ -89,7 +89,7 @@ export default function TeacherSettingsPage() {
               {passwordStatus.message}
             </p>
           )}
-          <ChangePasswordForm onStatus={setPasswordStatus} accent="var(--brand-primary)" darkAware />
+          <ChangePasswordForm onStatus={setPasswordStatus} accent="var(--brand-primary)" />
         </div>
         {!mustChangePassword && (
           <Row label={t("teacher.settings.signOutOthers")} description={t("teacher.settings.signOutOthersHelp")}>

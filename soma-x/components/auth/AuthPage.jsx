@@ -2,14 +2,12 @@
 
 // The sign-in, sign-up and box setup pages: the school's branding panel, the form panel, and
 // the fields they share.
-import { useState } from "react";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { Field, PasswordInput, TextInput } from "@/components/form";
 import LanguageSwitcher from "@/components/global/LanguageSwitcher";
 import { AuthPanelLogo } from "@/components/global/SchoolLogo";
 import { Button } from "@/components/ui/button";
 
-const INPUT = "w-full h-11 rounded-lg bg-white border-2 border-slate-300 hover:border-slate-400 focus:border-accent-dark px-3.5 text-[14px] text-slate-900 font-semibold placeholder:text-slate-500 shadow-sm outline-none transition-colors";
-const LABEL = "block text-[12px] font-bold text-slate-800 uppercase tracking-wider";
 
 export function AuthLayout({ title, subtitle, children }) {
     return (
@@ -46,7 +44,7 @@ export function AuthLayout({ title, subtitle, children }) {
             </div>
 
             {/* ── Right form panel ── */}
-            <div className="flex-1 flex flex-col items-center justify-center bg-white px-6 py-8 md:py-14 relative">
+            <div className="flex-1 flex flex-col items-center justify-center bg-white dark:bg-slate-950 px-6 py-8 md:py-14 relative">
                 <div className="absolute top-6 right-6 z-10">
                     <LanguageSwitcher compact />
                 </div>
@@ -59,39 +57,28 @@ export function AuthLayout({ title, subtitle, children }) {
 export function AuthFormHeader({ title, subtitle, children }) {
     return (
         <div className="mb-6">
-            <h2 className="text-2xl font-bold text-slate-900 tracking-tight leading-tight">{title}</h2>
-            <p className="text-slate-600 text-[14px] font-medium mt-1">{subtitle}</p>
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight leading-tight">{title}</h2>
+            <p className="text-slate-600 dark:text-slate-300 text-[14px] font-medium mt-1">{subtitle}</p>
             {children}
         </div>
     );
 }
 
+// The sign-in pages' fields are the app's form controls (components/form), in the large size.
 export function AuthField({ id, label, hint, className = "", ...input }) {
     return (
-        <div className="space-y-1.5">
-            <label htmlFor={id} className={LABEL}>{label}</label>
-            <input id={id} className={`${INPUT} ${className}`} {...input} />
-            {hint && <p className="text-[12px] text-slate-600 font-medium">{hint}</p>}
-        </div>
+        <Field id={id} label={label} hint={hint}>
+            <TextInput size="lg" className={className} {...input} />
+        </Field>
     );
 }
 
 export function AuthPasswordField({ id, label, toggleLabel, children, ...input }) {
-    const [shown, setShown] = useState(false);
     return (
         <div className="space-y-1.5">
-            <label htmlFor={id} className={LABEL}>{label}</label>
-            <div className="relative">
-                <input id={id} type={shown ? "text" : "password"} placeholder="••••••••" className={`${INPUT} pr-11`} {...input} />
-                <button
-                    type="button"
-                    onClick={() => setShown(!shown)}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5 text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-md transition-colors"
-                    aria-label={toggleLabel}
-                >
-                    {shown ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-            </div>
+            <Field id={id} label={label}>
+                <PasswordInput size="lg" toggleLabel={toggleLabel} placeholder="••••••••" {...input} />
+            </Field>
             {children}
         </div>
     );
@@ -132,7 +119,7 @@ export function AuthDivider({ children }) {
                 <div className="w-full border-t-2 border-slate-300" />
             </div>
             <div className="relative flex justify-center">
-                <span className="bg-white px-3 text-[12px] text-slate-600 font-bold uppercase tracking-wider">{children}</span>
+                <span className="bg-white dark:bg-slate-950 px-3 text-[12px] text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wider">{children}</span>
             </div>
         </div>
     );
