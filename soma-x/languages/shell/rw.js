@@ -107,6 +107,26 @@ export default {
         "openMenu": "Fungura menyu",
         "closeMenu": "Funga menyu"
     },
+    "people": {
+        "gender": "Igitsina",
+        "genderHelp": "Bikoreshwa gusa mu mibare y'ishuri ku buringanire mu kwiga.",
+        "accessibility": "Ubufasha bwihariye",
+        "chooseOne": "Hitamo kimwe",
+        "genders": {
+            "male": "Gabo",
+            "female": "Gore",
+            "other": "Ikindi"
+        },
+        "access": {
+            "none": "Nta bumuga cyangwa ubufasha nkeneye",
+            "visual": "Kutabona neza (amabara akomeye / gusomerwa)",
+            "hearing": "Kutumva neza (inyandiko z'amajwi / ibimenyetso)",
+            "mobility": "Kugenda bigoranye (ubufasha bwo kugenda)",
+            "cognitive": "Ubufasha mu kwiga no gutekereza",
+            "other": "Ubundi bufasha nkeneye"
+        },
+        "notAnswered": "Ntibyagaragajwe"
+    },
     "toasts": {
         "success": "Byakozwe",
         "failed": "Hari ikitagenze neza",

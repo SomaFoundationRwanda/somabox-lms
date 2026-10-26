@@ -106,6 +106,26 @@ export default {
         "openMenu": "Ouvrir le menu",
         "closeMenu": "Fermer le menu"
     },
+    "people": {
+        "gender": "Genre",
+        "genderHelp": "Utilisé uniquement pour les statistiques de l'école sur l'égalité d'accès à l'apprentissage.",
+        "accessibility": "Accessibilité et soutien",
+        "chooseOne": "Choisissez une option",
+        "genders": {
+            "male": "Masculin",
+            "female": "Féminin",
+            "other": "Autre"
+        },
+        "access": {
+            "none": "Aucun handicap ni besoin de soutien",
+            "visual": "Difficulté à voir (contraste élevé / lecteur d'écran)",
+            "hearing": "Difficulté à entendre (sous-titres / repères visuels)",
+            "mobility": "Difficulté à se déplacer (aide à la mobilité)",
+            "cognitive": "Soutien à l'apprentissage ou à la réflexion",
+            "other": "Autre besoin de soutien"
+        },
+        "notAnswered": "Non renseigné"
+    },
     "toasts": {
         "success": "Terminé",
         "failed": "Un problème est survenu",

@@ -434,11 +434,6 @@ export default {
         "personal": "Taarifa binafsi na mawasiliano",
         "phone": "Namba ya simu",
         "gender": "Jinsia",
-        "genders": {
-            "male": "Mwanamume",
-            "female": "Mwanamke",
-            "other": "Nyingine"
-        },
         "preferredLanguage": "Lugha anayopendelea",
         "academic": "Masomo na mahali",
         "school": "Shule / taasisi",
@@ -557,7 +552,6 @@ export default {
     "addUser": {
         "fullName": "Jina kamili",
         "fullNamePlaceholder": "mf. Amina Juma",
-        "demographics": "Taarifa za demografia na ujumuishi (V2.1)",
         "email": "Barua pepe",
         "fillRequired": "Tafadhali jaza sehemu zote zinazohitajika.",
         "invalidEmail": "Tafadhali weka barua pepe sahihi.",
@@ -569,12 +563,6 @@ export default {
         "newUser": "Mtumiaji mpya",
         "editTitle": "Hariri mtumiaji",
         "addTitle": "Ongeza mtumiaji",
-        "gender": "Jinsia",
-        "disability": "Ufikiaji / ulemavu",
-        "visual": "Ulemavu wa kuona",
-        "hearing": "Ulemavu wa kusikia",
-        "mobility": "Ulemavu wa viungo",
-        "cognitive": "Utambuzi / ujifunzaji",
         "province": "Mkoa",
         "provincePlaceholder": "mf. Kigali / Kaskazini",
         "district": "Wilaya",

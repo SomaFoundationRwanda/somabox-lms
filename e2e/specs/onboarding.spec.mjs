@@ -26,8 +26,9 @@ test.describe("profile form", () => {
     // Step 1: Continue stays off until gender and accessibility are answered.
     await expect(dialog.getByRole("button", { name: p("continue") })).toBeDisabled();
     await dialog.getByLabel(p("fullName")).fill("Fresh Learner");
-    await dialog.getByRole("button", { name: p("female"), exact: true }).click();
-    await dialog.getByLabel(p("accessibility")).selectOption("none");
+    // The same gender and accessibility fields as the account page (components/profile/ProfileFields).
+    await dialog.getByRole("radio", { name: t("shell.people.genders.female"), exact: true }).click();
+    await dialog.getByLabel(t("shell.people.accessibility")).selectOption("none");
     await dialog.getByRole("button", { name: p("continue") }).click();
 
     // Step 2: a learner must choose their class.
@@ -65,8 +66,8 @@ test.describe("profile form", () => {
     await expect(dialog.getByLabel(p("fullName"))).toHaveCount(0);
     await expect(dialog.getByLabel(p("grade"))).toHaveCount(0);
     await expect(dialog.getByRole("button", { name: p("finish") })).toBeDisabled();
-    await dialog.getByRole("button", { name: p("male"), exact: true }).click();
-    await dialog.getByLabel(p("accessibility")).selectOption("none");
+    await dialog.getByRole("radio", { name: t("shell.people.genders.male"), exact: true }).click();
+    await dialog.getByLabel(t("shell.people.accessibility")).selectOption("none");
     await dialog.getByRole("button", { name: p("finish") }).click();
     await expect(dialog).toBeHidden({ timeout: 15_000 });
 

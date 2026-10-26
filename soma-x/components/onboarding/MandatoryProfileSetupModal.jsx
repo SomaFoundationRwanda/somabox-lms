@@ -24,6 +24,8 @@ import { useToast } from '@/context/ToastContext';
 import LanguageSwitcher from '@/components/global/LanguageSwitcher';
 import { fill } from '@/lib/fill';
 import { GRADE_LEVELS } from '@/lib/grades';
+import { AccessibilityField, GenderField } from '@/components/profile/ProfileFields';
+import { GENDERS } from '@/lib/profileOptions';
 
 // Nobody is asked where they live: one box serves one school, and the box places everyone at the
 // school's location (province, district, rural/urban), set by the admin on the School page.
@@ -110,7 +112,7 @@ export default function MandatoryProfileSetupModal() {
                 // Populate existing data
                 if (data.full_name) setFullName(data.full_name);
                 if (data.phone) setPhone(data.phone);
-                if (['male', 'female', 'other'].includes(data.gender)) setGender(data.gender);
+                if (GENDERS.includes(data.gender)) setGender(data.gender);
                 if (data.school) setSchool(data.school);
                 // Only reuse this once it was actually answered (older accounts hold defaults).
                 if (data.isProfileComplete && data.disability_status) setDisabilityStatus(data.disability_status);
@@ -287,70 +289,8 @@ export default function MandatoryProfileSetupModal() {
             </div>
             </>
         ),
-        gender: () => (
-            <>
-            {/* Gender Identity */}
-            <div>
-                <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1.5">
-                    {t("learner.profileSetup.gender")} <span className="text-rose-500">*</span>
-                </label>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-2.5">
-                    {t("learner.profileSetup.genderHelp")}
-                </p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                    {[
-                        { value: "male", label: t("learner.profileSetup.male") },
-                        { value: "female", label: t("learner.profileSetup.female") },
-                        { value: "other", label: t("learner.profileSetup.otherGender") }
-                    ].map((opt) => (
-                        <button
-                            key={opt.value}
-                            type="button"
-                            onClick={() => setGender(opt.value)}
-                            className={`py-3 px-3 rounded-xl border text-xs font-extrabold transition-all flex items-center justify-center gap-2 ${
-                                gender === opt.value
-                                    ? "border-teal-600 bg-teal-50 dark:bg-teal-950/50 text-teal-800 dark:text-teal-200 shadow-sm ring-2 ring-teal-500/20"
-                                    : "border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/40 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-                            }`}
-                        >
-                            {gender === opt.value && <CheckCircle2 className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />}
-                            {opt.label}
-                        </button>
-                    ))}
-                </div>
-                {errors.gender && (
-                    <p className="text-[11px] font-bold text-rose-500 mt-1.5">{errors.gender}</p>
-                )}
-            </div>
-            </>
-        ),
-        disability: () => (
-            <>
-            {/* Inclusion & Disability Support */}
-            <div>
-                <label htmlFor="onboarding-disability" className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1.5">
-                    {t("learner.profileSetup.accessibility")} <span className="text-rose-500">*</span>
-                </label>
-                <select id="onboarding-disability"
-                    aria-invalid={!!errors.disability}
-                    value={disabilityStatus}
-                    onChange={(e) => setDisabilityStatus(e.target.value)}
-                    className="w-full h-11 px-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/60 text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all"
-                >
-                    <option value="" disabled>{t("learner.profileSetup.chooseOne")}</option>
-                    <option value="none">{t("learner.profileSetup.disNone")}</option>
-                    <option value="visual">{t("learner.profileSetup.disVisual")}</option>
-                    <option value="hearing">{t("learner.profileSetup.disHearing")}</option>
-                    <option value="mobility">{t("learner.profileSetup.disMobility")}</option>
-                    <option value="cognitive">{t("learner.profileSetup.disCognitive")}</option>
-                    <option value="other">{t("learner.profileSetup.disOther")}</option>
-                </select>
-                {errors.disability && (
-                    <p className="text-[11px] font-bold text-rose-500 mt-1">{errors.disability}</p>
-                )}
-            </div>
-            </>
-        ),
+        gender: () => <GenderField value={gender} onChange={setGender} error={errors.gender} size="lg" />,
+        disability: () => <AccessibilityField value={disabilityStatus} onChange={setDisabilityStatus} error={errors.disability} size="lg" />,
         school: () => (
             <>
             {/* School and its place: set by the school, shown read-only (nobody is asked). */}

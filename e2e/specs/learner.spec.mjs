@@ -215,7 +215,7 @@ test.describe("account", () => {
     await page.goto("/account");
     await page.getByRole("button", { name: lt("account.edit") }).click();
     // Male, female or other: everyone answers (there's no "prefer not to say").
-    const gender = page.getByLabel(/gender/i).first();
+    const gender = page.getByLabel(t("shell.people.gender"));
     expect(await gender.locator("option:not([disabled])").evaluateAll((os) => os.map((o) => o.value))).toEqual(["male", "female", "other"]);
     await gender.selectOption("male");
     await page.getByRole("button", { name: lt("account.save"), exact: true }).click();

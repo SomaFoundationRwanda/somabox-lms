@@ -13,6 +13,8 @@ import { downloadFile } from "@/lib/download";
 import { fill } from "@/lib/fill";
 import Loader from "@/components/ui/Loader";
 import { isInternalEmail } from "@/lib/session";
+import { AccessibilityField, GenderField } from "@/components/profile/ProfileFields";
+import { accessLabel, genderLabel } from "@/lib/profileOptions";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch, getErrorMessage } from "@/lib/api";
 import { queryKeys } from "@/lib/queryKeys";
@@ -165,8 +167,8 @@ export default function AccountPage() {
     const roleLabel  = currentRole ? (t(`role.${currentRole}`) || currentRole.charAt(0).toUpperCase() + currentRole.slice(1)) : "";
     // Stored placeholders and codes, shown in the UI language.
     const placeName  = (v) => (!v || v === "Not Specified" ? t("learner.account.notSpecified") : v);
-    const genderName = (g) => (g ? t(`learner.account.genders.${g}`) || String(g) : t("learner.account.notSpecified"));
-    const accessName = (d) => t(`learner.account.access.${d || "none"}`) || String(d);
+    const genderName = (g) => genderLabel(t, g);
+    const accessName = (d) => accessLabel(t, d);
 
     return (
         <div className="min-h-screen pb-24 md:pb-8" style={{ backgroundColor: pageBg }}>
@@ -349,20 +351,7 @@ export default function AccountPage() {
                                 <Loader variant="page" size={48} className="min-h-[12rem]" />
                             ) : editDemographics ? (
                                 <form onSubmit={handleDemographicsSave} className="p-5 space-y-4">
-                                    {/* Gender */}
-                                    <div className="space-y-1">
-                                        <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">{t("learner.account.gender")}</label>
-                                        <select aria-label={t("learner.account.gender")}
-                                            value={demoForm.gender}
-                                            onChange={e => setDemoForm({ ...demoForm, gender: e.target.value })}
-                                            className="w-full h-10 px-3 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 bg-white outline-none focus:border-accent-dark"
-                                        >
-                                            <option value="" disabled>{t("learner.profileSetup.chooseOne")}</option>
-                                            <option value="male">{t("learner.account.genders.male")}</option>
-                                            <option value="female">{t("learner.account.genders.female")}</option>
-                                            <option value="other">{t("learner.account.genders.other")}</option>
-                                        </select>
-                                    </div>
+                                    <GenderField variant="select" value={demoForm.gender} onChange={(gender) => setDemoForm({ ...demoForm, gender })} />
 
                                     {/* Location: the school's, not edited here */}
                                     <div className="flex items-start gap-2 rounded-xl bg-slate-50 border border-slate-200 px-3 py-2.5">
@@ -375,22 +364,7 @@ export default function AccountPage() {
                                         </div>
                                     </div>
 
-                                    {/* Disability status */}
-                                    <div className="space-y-1 pt-1">
-                                        <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">{t("learner.account.accessibility")}</label>
-                                        <select aria-label={t("learner.account.accessibility")}
-                                            value={demoForm.disabilityStatus}
-                                            onChange={e => setDemoForm({ ...demoForm, disabilityStatus: e.target.value })}
-                                            className="w-full h-10 px-3 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 bg-white outline-none focus:border-accent-dark"
-                                        >
-                                            <option value="none">{t("learner.account.access.none")}</option>
-                                            <option value="visual">{t("learner.account.access.visual")}</option>
-                                            <option value="hearing">{t("learner.account.access.hearing")}</option>
-                                            <option value="mobility">{t("learner.account.access.mobility")}</option>
-                                            <option value="cognitive">{t("learner.account.access.cognitive")}</option>
-                                            <option value="other">{t("learner.account.access.other")}</option>
-                                        </select>
-                                    </div>
+                                    <AccessibilityField value={demoForm.disabilityStatus} onChange={(disabilityStatus) => setDemoForm({ ...demoForm, disabilityStatus })} />
 
                                     <button
                                         type="submit"

@@ -106,6 +106,26 @@ export default {
         "openMenu": "Fungua menyu",
         "closeMenu": "Funga menyu"
     },
+    "people": {
+        "gender": "Jinsia",
+        "genderHelp": "Inatumika tu kwa takwimu za shule kuhusu usawa katika kujifunza.",
+        "accessibility": "Ufikivu na msaada",
+        "chooseOne": "Chagua moja",
+        "genders": {
+            "male": "Mwanaume",
+            "female": "Mwanamke",
+            "other": "Nyingine"
+        },
+        "access": {
+            "none": "Sina ulemavu wala hitaji la msaada",
+            "visual": "Shida ya kuona (rangi zenye utofauti / kisoma skrini)",
+            "hearing": "Shida ya kusikia (manukuu / ishara za kuona)",
+            "mobility": "Shida ya kutembea (msaada wa kutembea)",
+            "cognitive": "Msaada wa kujifunza au kufikiri",
+            "other": "Hitaji lingine la msaada"
+        },
+        "notAnswered": "Haijabainishwa"
+    },
     "toasts": {
         "success": "Imekamilika",
         "failed": "Kuna tatizo",

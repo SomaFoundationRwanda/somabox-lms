@@ -434,11 +434,6 @@ export default {
         "personal": "Umwirondoro n'aho abarizwa",
         "phone": "Nimero ya telefoni",
         "gender": "Igitsina",
-        "genders": {
-            "male": "Gabo",
-            "female": "Gore",
-            "other": "Ikindi"
-        },
         "preferredLanguage": "Ururimi akunda",
         "academic": "Amashuri n'aho atuye",
         "school": "Ishuri / ikigo",
@@ -557,7 +552,6 @@ export default {
     "addUser": {
         "fullName": "Amazina yose",
         "fullNamePlaceholder": "urugero: Uwase Aline",
-        "demographics": "Amakuru y'umwirondoro n'udaheza (V2.1)",
         "email": "Imeyili",
         "fillRequired": "Uzuza imyanya yose ya ngombwa.",
         "invalidEmail": "Andika imeyili nyayo.",
@@ -569,12 +563,6 @@ export default {
         "newUser": "Umukoresha mushya",
         "editTitle": "Hindura umukoresha",
         "addTitle": "Ongeraho umukoresha",
-        "gender": "Igitsina",
-        "disability": "Ubumuga / ibyo akeneye byihariye",
-        "visual": "Ubumuga bwo kutabona",
-        "hearing": "Ubumuga bwo kutumva",
-        "mobility": "Ubumuga bw'ingingo",
-        "cognitive": "Ubumuga bwo mu mutwe / kwiga",
         "province": "Intara",
         "provincePlaceholder": "urugero: Kigali / Amajyaruguru",
         "district": "Akarere",

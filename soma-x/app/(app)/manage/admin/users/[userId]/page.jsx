@@ -22,6 +22,7 @@ import { LANGUAGE_NAMES } from "@/components/global/LanguageSwitcher";
 import { startRouteLoading } from "@/components/global/RouteLoader";
 import Loader from "@/components/ui/Loader";
 import { shownEmail } from "@/lib/session";
+import { accessLabel, genderLabel } from "@/lib/profileOptions";
 
 function getInitials(name, email) {
     if (name?.trim()) return name.trim().split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
@@ -37,7 +38,6 @@ function formatDate(raw, lang) {
     try { return d.toLocaleDateString(lang === "rw" ? ["rw", "en-RW", "en"] : lang, opts); } catch { return d.toLocaleDateString("en", opts); }
 }
 
-const GENDERS = ["male", "female", "other"];
 
 export default function UserProfilePage() {
     const params = useParams();
@@ -222,7 +222,7 @@ export default function UserProfilePage() {
                         <dl className="divide-y divide-slate-100 dark:divide-slate-800">
                             <Field label={t("admin.user.phone")} icon={Phone}>{user.phone || notSpecified}</Field>
                             <Field label={t("admin.user.gender")} className="capitalize">
-                                {user.gender ? (GENDERS.includes(user.gender) ? t(`admin.user.genders.${user.gender}`) : user.gender.replace("_", " ")) : notSpecified}
+                                {genderLabel(t, user.gender)}
                             </Field>
                             <Field label={t("admin.user.preferredLanguage")} icon={Globe2}>
                                 {user.preferred_language ? (LANGUAGE_NAMES[user.preferred_language] || user.preferred_language.toUpperCase()) : LANGUAGE_NAMES.en}
@@ -238,7 +238,7 @@ export default function UserProfilePage() {
                                 {user.region_province || t("admin.user.na")}, {user.region_district || t("admin.user.na")}
                             </Field>
                             <Field label={t("admin.user.locationType")}>{user.is_rural === 1 ? t("admin.user.rural") : t("admin.user.urban")}</Field>
-                            <Field label={t("admin.user.disability")} className="capitalize">{user.disability_status || t("admin.user.none")}</Field>
+                            <Field label={t("admin.user.disability")}>{accessLabel(t, user.disability_status)}</Field>
                             <Field label={t("admin.user.joined")} icon={Calendar}>{joined}</Field>
                         </dl>
                     </Section>

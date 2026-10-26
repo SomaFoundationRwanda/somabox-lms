@@ -434,11 +434,6 @@ export default {
         "personal": "Datos personales y de contacto",
         "phone": "Número de teléfono",
         "gender": "Género",
-        "genders": {
-            "male": "Masculino",
-            "female": "Femenino",
-            "other": "Otro"
-        },
         "preferredLanguage": "Idioma preferido",
         "academic": "Estudios y ubicación",
         "school": "Escuela / institución",
@@ -557,7 +552,6 @@ export default {
     "addUser": {
         "fullName": "Nombre completo",
         "fullNamePlaceholder": "p. ej. Amara Ndiaye",
-        "demographics": "Datos demográficos e inclusión (V2.1)",
         "email": "Correo electrónico",
         "fillRequired": "Rellena todos los campos obligatorios.",
         "invalidEmail": "Escribe un correo válido.",
@@ -569,12 +563,6 @@ export default {
         "newUser": "Nuevo usuario",
         "editTitle": "Editar usuario",
         "addTitle": "Añadir usuario",
-        "gender": "Género",
-        "disability": "Accesibilidad / discapacidad",
-        "visual": "Discapacidad visual",
-        "hearing": "Discapacidad auditiva",
-        "mobility": "Movilidad reducida",
-        "cognitive": "Cognitiva / de aprendizaje",
         "province": "Provincia",
         "provincePlaceholder": "p. ej. Kigali / Norte",
         "district": "Distrito",

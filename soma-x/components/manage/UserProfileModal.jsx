@@ -9,6 +9,7 @@ import DataContext from "@/context/DataContext";
 import { LANGUAGE_NAMES } from "@/components/global/LanguageSwitcher";
 import { useLanguage } from "@/context/LanguageContext";
 import { shownEmail } from "@/lib/session";
+import { accessLabel, genderLabel } from "@/lib/profileOptions";
 
 function getInitials(name, email) {
     if (name?.trim()) return name.trim().split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
@@ -24,7 +25,6 @@ function formatDate(raw, lang) {
     try { return d.toLocaleDateString(lang === "rw" ? ["rw", "en-RW", "en"] : lang, opts); } catch { return d.toLocaleDateString("en", opts); }
 }
 
-const GENDERS = ["male", "female", "other"];
 
 export default function UserProfileModal({ user, isOpen, onClose, onEdit, onSendNotif }) {
     const { isDark } = useContext(DataContext);
@@ -118,7 +118,7 @@ export default function UserProfileModal({ user, isOpen, onClose, onEdit, onSend
                                 <div>
                                     <span className="text-[10px] font-bold text-slate-600 uppercase block">{t("admin.user.gender")}</span>
                                     <span className="font-semibold capitalize text-slate-900 dark:text-white mt-0.5 block">
-                                        {user.gender ? (GENDERS.includes(user.gender) ? t(`admin.user.genders.${user.gender}`) : user.gender.replace("_", " ")) : t("admin.user.notSpecified")}
+                                        {genderLabel(t, user.gender)}
                                     </span>
                                 </div>
 
@@ -195,7 +195,7 @@ export default function UserProfileModal({ user, isOpen, onClose, onEdit, onSend
                                 <div>
                                     <span className="text-[10px] font-bold text-slate-600 uppercase block">{t("admin.user.disability")}</span>
                                     <span className="font-semibold text-slate-900 dark:text-white mt-0.5 block capitalize">
-                                        {user.disability_status || t("admin.user.none")}
+                                        {accessLabel(t, user.disability_status)}
                                     </span>
                                 </div>
                             </div>
