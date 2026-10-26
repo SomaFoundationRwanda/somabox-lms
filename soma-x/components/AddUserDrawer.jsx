@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/context/ToastContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { fill } from "@/lib/fill";
+import { apiFetch, getErrorMessage } from "@/lib/api";
+import { useUsersChanged } from "@/lib/queries/users";
 
 /* ── Role config ── */
 const ROLES = [
@@ -38,6 +40,7 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
     // A new learner's sign-in code from the server (e.g. GSK-0012), shown until the admin closes.
     const [createdCode, setCreatedCode]     = useState("");
     const { t }                             = useLanguage();
+    const usersChanged                      = useUsersChanged();
 
     // No gender, accessibility or location here: people answer their own profile at first
     // sign-in, and the server places everyone at the school's location (School page).
@@ -84,9 +87,7 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
 
         setLoading(true);
         try {
-            const url    = user
-                ? `${process.env.NEXT_PUBLIC_SERVER_URL}/users/${user.id}`
-                : `${process.env.NEXT_PUBLIC_SERVER_URL}/users`;
+            const path   = user ? `/users/${user.id}` : "/users";
             const method = user ? "PATCH" : "POST";
             const body   = { email };
             if (!restrictToLoginInfo) {
@@ -95,9 +96,9 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
             }
             if (password) body.password = password;
 
-            const res  = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.message || t(user ? "admin.addUser.updateFailed" : "admin.addUser.addFailed"));
+            const data = await apiFetch(path, { method, json: body });
+            // Every list showing accounts updates (the admin home's list included).
+            usersChanged();
 
             const successMsg = t(user ? "admin.addUser.updated" : "admin.addUser.created");
             setSuccess(successMsg);
@@ -108,8 +109,9 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
             if (!user && data.user?.learner_code) setCreatedCode(data.user.learner_code);
             else setTimeout(handleClose, 1200);
         } catch (err) {
-            setError(err.message);
-            showToast(fill(t("admin.addUser.actionFailed"), { error: err.message }), "error");
+            const message = getErrorMessage(err, t);
+            setError(message);
+            showToast(fill(t("admin.addUser.actionFailed"), { error: message }), "error");
             console.error(err);
         } finally {
             setLoading(false);

@@ -145,8 +145,8 @@ const AdminPortal = () => {
                         }
                     >
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 min-w-0">
-                            <InclusivityGapReport serverUrl={SERVER_URL} />
-                            <GrowthCurvesChart serverUrl={SERVER_URL} />
+                            <InclusivityGapReport />
+                            <GrowthCurvesChart />
                         </div>
                     </Section>
                 )}
@@ -154,7 +154,7 @@ const AdminPortal = () => {
                 {/* Courses on this box */}
                 {userRole === 'admin' && (
                     <Section title={t("admin.home.coursesTitle")} description={t("admin.home.coursesDescription")} divided>
-                        <AllCourses serverUrl={SERVER_URL} />
+                        <AllCourses />
                     </Section>
                 )}
 

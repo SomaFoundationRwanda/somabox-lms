@@ -1,8 +1,7 @@
 "use client"
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { CloudUpload, Globe, ShieldCheck } from "lucide-react";
-import { getInclusivityGap } from "@/lib/analytics-service";
+import { useInclusivityGap } from "@/lib/analytics-service";
 import { useLanguage } from "@/context/LanguageContext";
 import { fill } from "@/lib/fill";
 import Loader from "@/components/ui/Loader";
@@ -11,22 +10,9 @@ import Loader from "@/components/ui/Loader";
 // any group with fewer than `minGroupSize` learners with results comes back null and is listed
 // in `suppressed`, so no small group (or person) can be singled out.
 
-export default function InclusivityGapReport({ serverUrl }) {
+export default function InclusivityGapReport() {
     const { t } = useLanguage();
-    const [report, setReport] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const loadReport = async () => {
-        if (!serverUrl) return;
-        setLoading(true);
-        const data = await getInclusivityGap(serverUrl);
-        setReport(data);
-        setLoading(false);
-    };
-
-    useEffect(() => {
-        loadReport();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [serverUrl]);
+    const { report, loading } = useInclusivityGap();
 
     if (loading) {
         return <Loader variant="page" size={48} className="min-h-[10rem]" label={t("admin.gap.loading")} />;

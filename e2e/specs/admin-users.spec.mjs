@@ -5,6 +5,7 @@ import { api, uid, createUser } from "../support/api.mjs";
 import { PASSWORD, authFile } from "../support/env.mjs";
 import { t } from "../support/i18n.mjs";
 import { login } from "../support/ui.mjs";
+import { seedCourse } from "../support/seed.mjs";
 
 test.use({ storageState: authFile("admin") });
 
@@ -52,6 +53,28 @@ test("adds a learner, who gets a learner code and must choose their own password
   await p2.waitForURL("**/account");
   await expect(p2.getByText(t("learner.account.defaultPassword")).first()).toBeVisible();
   await fresh.close();
+});
+
+test("a teacher added from the admin home shows up in the list at once, and in Change teacher", async ({ page }) => {
+  const name = `Tess ${uid()}`;
+  const email = `${name.toLowerCase().replace(/\W+/g, "-")}@e2e.test`;
+  await seedCourse({ open: false });
+  await page.goto("/manage/admin");
+  const users = page.getByRole("table", { name: "Users" });
+  await expect(users).toBeVisible();
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await page.getByRole("button", { name: t("role.teacher"), exact: true }).click();
+  await page.getByLabel(a("fullName"), { exact: true }).fill(name);
+  await page.getByLabel(a("email"), { exact: true }).fill(email);
+  await page.getByLabel(a("password"), { exact: true }).fill(PASSWORD);
+  await page.getByRole("button", { name: a("addTitle") }).click();
+  // No search, no reload: the newest account is at the top of the list.
+  await expect(row(users, email)).toBeVisible();
+  await page.mouse.click(5, 5);
+
+  // The teacher list in a course's "Change teacher" has them too.
+  await page.getByRole("button", { name: t("admin.courses.changeTeacher") }).first().click();
+  await expect(page.getByRole("dialog").getByRole("option", { name: new RegExp(email) })).toBeAttached();
 });
 
 test("after adding a learner, Done is reachable on a 1280x720 screen", async ({ page }) => {

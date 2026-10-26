@@ -14,6 +14,9 @@ import { RWANDA_LOCATIONS, OTHER_PROVINCE } from "@/lib/rwandaLocations";
 import { fill } from "@/lib/fill";
 import { FOCUS_RING } from "@/lib/a11y";
 import Loader from "@/components/ui/Loader";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiFetch, apiUrl, getErrorMessage } from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
 
 // One box serves one school. Everything about it is set here (GET/PUT /school): its name and
 // learner-code prefix, its location (applied to every learner and teacher, who are never asked),
@@ -75,13 +78,11 @@ function ColourField({ id, label, help, value, onChange, t }) {
 }
 
 export default function SchoolSettingsPage() {
-    const { SERVER_URL, authenticated, role } = useContext(DataContext);
+    const { authenticated, role } = useContext(DataContext);
     const { t } = useLanguage();
     const { refreshSchool } = useSchool();
     const isAdmin = role === "admin";
 
-    const [loading, setLoading] = useState(true);
-    const [loadError, setLoadError] = useState("");
     const [saving, setSaving] = useState(false);
     const [msg, setMsg] = useState({ type: "", text: "" });
     const [savedCode, setSavedCode] = useState("");
@@ -114,28 +115,18 @@ export default function SchoolSettingsPage() {
         if (data?.nextLearnerNumber != null) setNextNumber(data.nextLearnerNumber);
     };
 
+    // The settings, kept like the rest of the school's data; the form starts from them once.
+    const settings = useQuery({ queryKey: queryKeys.schoolSettings, queryFn: () => apiFetch("/school"), enabled: isAdmin });
+    const loading = settings.isPending;
+    const loadError = settings.isError ? getErrorMessage(settings.error, t) : "";
+    const queryClient = useQueryClient();
+    const filled = useRef(false);
     useEffect(() => {
-        if (!SERVER_URL || !isAdmin) return;
-        let cancelled = false;
-        (async () => {
-            try {
-                const res = await fetch(`${SERVER_URL}/school`);
-                const data = await res.json().catch(() => null);
-                if (cancelled) return;
-                if (!res.ok) {
-                    setLoadError(data?.message || data?.error || t("school.settings.loadFailed"));
-                    return;
-                }
-                applySettings(data);
-            } catch (err) {
-                if (!cancelled) setLoadError(err?.message || t("school.settings.loadFailed"));
-            } finally {
-                if (!cancelled) setLoading(false);
-            }
-        })();
-        return () => { cancelled = true; };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [SERVER_URL, isAdmin]);
+        if (settings.data && !filled.current) {
+            filled.current = true;
+            applySettings(settings.data);
+        }
+    }, [settings.data]); // eslint-disable-line react-hooks/exhaustive-deps
 
     if (!authenticated || !isAdmin) return <Unauthorized />;
 
@@ -181,22 +172,14 @@ export default function SchoolSettingsPage() {
             };
             // The name can't be emptied on the box; an empty field just leaves it as it is.
             if (form.name.trim()) body.name = form.name.trim();
-            const res = await fetch(`${SERVER_URL}/school`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(body),
-            });
-            const data = await res.json().catch(() => null);
-            if (!res.ok) {
-                setMsg({ type: "error", text: data?.message || data?.error || t("school.settings.saveFailed") });
-                return;
-            }
+            const data = await apiFetch("/school", { method: "PUT", json: body });
+            queryClient.setQueryData(queryKeys.schoolSettings, data);
             applySettings(data);
             setMsg({ type: "ok", text: t("school.settings.saved") });
             // The whole app (sidebar, buttons, login page) takes the new look now.
             await refreshSchool();
         } catch (err) {
-            setMsg({ type: "error", text: err?.message || t("school.settings.saveFailed") });
+            setMsg({ type: "error", text: getErrorMessage(err, t) });
         } finally {
             setSaving(false);
         }
@@ -211,17 +194,13 @@ export default function SchoolSettingsPage() {
         try {
             const body = new FormData();
             body.append("logo", file);
-            const res = await fetch(`${SERVER_URL}/school/logo`, { method: "POST", body });
-            const data = await res.json().catch(() => null);
-            if (!res.ok) {
-                setLogoMsg({ type: "error", text: data?.message || data?.error || t("school.settings.logoFailed") });
-                return;
-            }
+            const data = await apiFetch("/school/logo", { method: "POST", body });
+            queryClient.invalidateQueries({ queryKey: queryKeys.schoolSettings });
             setLogoUrl(data?.logoUrl || null);
             setLogoMsg({ type: "ok", text: t("school.settings.logoUploaded") });
             await refreshSchool();
         } catch (err) {
-            setLogoMsg({ type: "error", text: err?.message || t("school.settings.logoFailed") });
+            setLogoMsg({ type: "error", text: getErrorMessage(err, t) });
         } finally {
             setLogoBusy(false);
             if (fileRef.current) fileRef.current.value = "";
@@ -232,23 +211,19 @@ export default function SchoolSettingsPage() {
         setLogoBusy(true);
         setLogoMsg({ type: "", text: "" });
         try {
-            const res = await fetch(`${SERVER_URL}/school/logo`, { method: "DELETE" });
-            const data = await res.json().catch(() => null);
-            if (!res.ok) {
-                setLogoMsg({ type: "error", text: data?.message || data?.error || t("school.settings.logoFailed") });
-                return;
-            }
+            await apiFetch("/school/logo", { method: "DELETE" });
+            queryClient.invalidateQueries({ queryKey: queryKeys.schoolSettings });
             setLogoUrl(null);
             setLogoMsg({ type: "ok", text: t("school.settings.logoRemoved") });
             await refreshSchool();
         } catch (err) {
-            setLogoMsg({ type: "error", text: err?.message || t("school.settings.logoFailed") });
+            setLogoMsg({ type: "error", text: getErrorMessage(err, t) });
         } finally {
             setLogoBusy(false);
         }
     };
 
-    const logoSrc = logoUrl ? `${SERVER_URL}${logoUrl}` : null;
+    const logoSrc = logoUrl ? apiUrl(logoUrl) : null;
     const shownName = form.name.trim() || t("school.settings.namePlaceholder");
 
     return (

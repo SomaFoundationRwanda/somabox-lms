@@ -16,6 +16,7 @@ export const queryKeys = {
 
     catalogue: ["catalogue"],
     explore: ["catalogue", "explore"],
+    libraryBooks: ["catalogue", "library", "books"],
 
     courses: ["courses"],
     myCourses: ["courses", "mine"],

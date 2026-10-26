@@ -1,6 +1,8 @@
 "use client";
 
-import { useCallback, useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiFetch, getErrorMessage } from "@/lib/api";
 import Link from "next/link";
 import { ArrowLeft, Palette } from "lucide-react";
 import DataContext from "@/context/DataContext";
@@ -30,29 +32,23 @@ function fmtSeconds(s, t) {
     return r ? fill(t("admin.analytics.minSec"), { m, s: r }) : fill(t("admin.analytics.minutes"), { m });
 }
 
-function RetentionSetting({ SERVER_URL }) {
+function RetentionSetting() {
     const { showToast } = useToast();
     const { t } = useLanguage();
-    const [settings, setSettings] = useState(null);
+    const queryClient = useQueryClient();
+    const query = useQuery({ queryKey: ["analytics", "settings"], queryFn: () => apiFetch("/analytics/settings") });
+    const settings = query.data || null;
     const [value, setValue] = useState("");
     const [error, setError] = useState("");
     const [saving, setSaving] = useState(false);
     const [purged, setPurged] = useState(null);
 
     useEffect(() => {
-        if (!SERVER_URL) return;
-        (async () => {
-            try {
-                const res = await fetch(`${SERVER_URL}/analytics/settings`);
-                const payload = await res.json().catch(() => ({}));
-                if (!res.ok) throw new Error(payload.message || t("admin.analytics.settingLoadFailed"));
-                setSettings(payload);
-                setValue(String(payload.usageRetentionDays ?? ""));
-            } catch (err) {
-                setError(err.message);
-            }
-        })();
-    }, [SERVER_URL]); // eslint-disable-line react-hooks/exhaustive-deps
+        if (settings) setValue(String(settings.usageRetentionDays ?? ""));
+    }, [settings]);
+    useEffect(() => {
+        if (query.isError) setError(getErrorMessage(query.error, t));
+    }, [query.isError]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const save = async (e) => {
         e.preventDefault();
@@ -64,18 +60,12 @@ function RetentionSetting({ SERVER_URL }) {
         }
         setSaving(true);
         try {
-            const res = await fetch(`${SERVER_URL}/analytics/settings`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ usageRetentionDays: days }),
-            });
-            const payload = await res.json().catch(() => ({}));
-            if (!res.ok) throw new Error(payload.message || t("admin.analytics.settingSaveFailed"));
-            setSettings((s) => ({ ...(s || {}), usageRetentionDays: payload.usageRetentionDays }));
+            const payload = await apiFetch("/analytics/settings", { method: "PUT", json: { usageRetentionDays: days } });
+            queryClient.setQueryData(["analytics", "settings"], (s) => ({ ...(s || {}), usageRetentionDays: payload.usageRetentionDays }));
             setPurged(payload.purged || null);
             showToast(t("admin.analytics.retentionSaved"), "success");
         } catch (err) {
-            setError(err.message);
+            setError(getErrorMessage(err, t));
         } finally {
             setSaving(false);
         }
@@ -117,30 +107,18 @@ function RetentionSetting({ SERVER_URL }) {
 }
 
 export default function AdminAnalyticsPage() {
-    const { authenticated, role, SERVER_URL } = useContext(DataContext);
+    const { authenticated, role } = useContext(DataContext);
     const { t } = useLanguage();
     const [days, setDays] = useState(30);
-    const [data, setData] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
-
-    const load = useCallback(async () => {
-        if (!SERVER_URL || role !== "admin") return;
-        setLoading(true);
-        setError("");
-        try {
-            const res = await fetch(`${SERVER_URL}/analytics/school?days=${days}`);
-            const payload = await res.json().catch(() => ({}));
-            if (!res.ok) throw new Error(payload.message || t("admin.analytics.loadFailed"));
-            setData(payload);
-        } catch (err) {
-            setError(err.message || t("admin.analytics.loadFailed"));
-        } finally {
-            setLoading(false);
-        }
-    }, [SERVER_URL, role, days]); // eslint-disable-line react-hooks/exhaustive-deps
-
-    useEffect(() => { load(); }, [load]);
+    const report = useQuery({
+        queryKey: ["analytics", "school", days],
+        queryFn: () => apiFetch(`/analytics/school?days=${days}`),
+        enabled: role === "admin",
+        placeholderData: keepPreviousData,
+    });
+    const data = report.data || null;
+    const loading = report.isPending;
+    const error = report.isError ? getErrorMessage(report.error, t) : "";
 
     if (!authenticated || role !== "admin") {
         return <Unauthorized />;
@@ -284,13 +262,13 @@ export default function AdminAnalyticsPage() {
 
                 <Section divided title={t("admin.analytics.learningAcross")}>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 min-w-0">
-                        <GrowthCurvesChart serverUrl={SERVER_URL} />
-                        <InclusivityGapReport serverUrl={SERVER_URL} />
+                        <GrowthCurvesChart />
+                        <InclusivityGapReport />
                     </div>
                 </Section>
 
                 <Section divided title={t("admin.analytics.privacy")} description={t("admin.analytics.privacyHelp")}>
-                    <RetentionSetting SERVER_URL={SERVER_URL} />
+                    <RetentionSetting />
                 </Section>
             </div>
         </div>

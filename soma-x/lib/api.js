@@ -93,3 +93,34 @@ export async function apiFetch(path, options = {}) {
     // Checked by content, not just 204: an empty 200/201 would make JSON.parse throw.
     return text ? JSON.parse(text) : undefined;
 }
+
+/**
+ * An upload that reports progress (fetch can't): FormData to `path`, same token, cookie and
+ * error handling as apiFetch. Returns { promise, abort }; the promise resolves to the parsed answer
+ * and rejects with an ApiError (or an AbortError when cancelled).
+ */
+export function apiUpload(path, body, { method = "POST", onProgress } = {}) {
+    const xhr = new XMLHttpRequest();
+    const promise = new Promise((resolve, reject) => {
+        xhr.open(method, apiUrl(path));
+        xhr.withCredentials = true;
+        const token = getSessionToken();
+        if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+        if (onProgress) {
+            xhr.upload.onprogress = (e) => {
+                if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
+            };
+        }
+        xhr.onload = () => {
+            let parsed = null;
+            try { parsed = xhr.responseText ? JSON.parse(xhr.responseText) : undefined; } catch { /* not JSON */ }
+            if (xhr.status >= 200 && xhr.status < 300) return resolve(parsed);
+            handleSessionProblem(new Response(xhr.responseText || null, { status: xhr.status }));
+            reject(new ApiError(parsed?.message || `${method} ${path} failed with ${xhr.status}`, xhr.status, parsed));
+        };
+        xhr.onerror = () => reject(new ApiError(`${method} ${path}: can't reach the box`, 0, null));
+        xhr.onabort = () => reject(new DOMException("Upload cancelled", "AbortError"));
+        xhr.send(body);
+    });
+    return { promise, abort: () => xhr.abort() };
+}

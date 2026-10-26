@@ -11,7 +11,9 @@ test.use({ storageState: authFile("learner2") });
 test("a new notification shows up on an open page, without a reload or polling", async ({ page }) => {
   const asked = [];
   page.on("request", (r) => { if (new URL(r.url()).pathname === "/notifications") asked.push(r.url()); });
+  const connected = page.waitForResponse((r) => new URL(r.url()).pathname === "/live");
   await page.goto(HOME.scholar);
+  await connected;
   await page.getByRole("button", { name: t("shell.notifications.title") }).first().click();
   await expect.poll(() => asked.length).toBeGreaterThan(0);
   const before = asked.length;

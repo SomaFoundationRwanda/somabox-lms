@@ -1,6 +1,10 @@
 "use client";
 
-import { useEffect, useState, useContext } from "react";
+import { useState, useContext } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { apiFetch } from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
+import { useUser } from "@/lib/queries/users";
 import { useParams, useRouter } from "next/navigation";
 import DataContext from "@/context/DataContext";
 import { useLanguage } from "@/context/LanguageContext";
@@ -43,65 +47,27 @@ export default function UserProfilePage() {
     const { showToast } = useToast();
     const [downloading, setDownloading] = useState(false);
     
-    const [user, setUser] = useState(null);
-    const [classes, setClasses] = useState([]);
-    const [analytics, setAnalytics] = useState(null);
-    const [spacedPractice, setSpacedPractice] = useState(null);
-    
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-
     const dm = isDark;
     const userId = params.userId;
 
-    useEffect(() => {
-        async function fetchUserData() {
-            try {
-                setLoading(true);
-                // 1. Fetch User Data
-                const userRes = await fetch(`${SERVER_URL}/users/${userId}`);
-                if (!userRes.ok) throw new Error(t("admin.user.fetchFailed"));
-                const userData = await userRes.json();
-                setUser(userData);
-
-                // 2. If Scholar, fetch enrolled classes & analytics
-                if (userData.role === "scholar") {
-                    const emailParam = encodeURIComponent(userData.email);
-                    
-                    const [classesRes, analyticsRes, spacedRes] = await Promise.all([
-                        fetch(`${SERVER_URL}/courses/mine?userEmail=${emailParam}`).catch(() => null),
-                        fetch(`${SERVER_URL}/analytics/sol-outcomes?scholarEmail=${emailParam}`).catch(() => null),
-                        fetch(`${SERVER_URL}/sol/spaced/pending?scholarEmail=${emailParam}`).catch(() => null)
-                    ]);
-
-                    if (classesRes && classesRes.ok) {
-                        const classesData = await classesRes.json();
-                        setClasses(Array.isArray(classesData) ? classesData : []);
-                    }
-                    
-                    if (analyticsRes && analyticsRes.ok) {
-                        const analyticsData = await analyticsRes.json();
-                        setAnalytics(analyticsData);
-                    }
-
-                    if (spacedRes && spacedRes.ok) {
-                        const spacedData = await spacedRes.json();
-                        // The endpoint returns an array of pending reviews.
-                        setSpacedPractice(Array.isArray(spacedData) ? spacedData : spacedData?.pendingReviews || []);
-                    }
-                }
-                
-                setError(null);
-            } catch (err) {
-                console.error(err);
-                setError(err.message);
-            } finally {
-                setLoading(false);
-            }
-        }
-        
-        if (userId) fetchUserData();
-    }, [userId, SERVER_URL]); // eslint-disable-line react-hooks/exhaustive-deps
+    // The account, and for a learner their courses, outcomes and pending practice.
+    const account = useUser(userId);
+    const user = account.data || null;
+    const learnerEmail = user?.role === "scholar" ? encodeURIComponent(user.email) : null;
+    const about = (part, path) => ({
+        queryKey: [...queryKeys.user(userId), part],
+        queryFn: () => apiFetch(path).catch(() => null),
+        enabled: !!learnerEmail,
+    });
+    const classesQuery = useQuery(about("courses", `/courses/mine?userEmail=${learnerEmail}`));
+    const analyticsQuery = useQuery(about("outcomes", `/analytics/sol-outcomes?scholarEmail=${learnerEmail}`));
+    const spacedQuery = useQuery(about("spaced", `/sol/spaced/pending?scholarEmail=${learnerEmail}`));
+    const classes = Array.isArray(classesQuery.data) ? classesQuery.data : [];
+    const analytics = analyticsQuery.data || null;
+    // The endpoint returns an array of pending reviews.
+    const spacedPractice = spacedQuery.data ? (Array.isArray(spacedQuery.data) ? spacedQuery.data : spacedQuery.data.pendingReviews || []) : null;
+    const loading = account.isPending;
+    const error = account.isError ? t("admin.user.fetchFailed") : null;
 
     if (loading) {
         return (

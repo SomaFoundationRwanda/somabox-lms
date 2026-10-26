@@ -5,13 +5,13 @@
 //   only be renamed and hidden.
 // Every change refreshes the Explore catalogue (DataContext.refreshExplore).
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { apiFetch, apiUpload, getErrorMessage } from "@/lib/api";
 import FileTable from './fileTable';
 import { getFileMediaType } from './fileRow';
 import UniversalPlayerModal from '@/components/ui/UniversalPlayerModal';
 import dynamic from "next/dynamic";
 import { Button } from '@/components/ui/button';
 import { clickableProps } from "@/lib/a11y";
-import { getSessionToken } from "@/lib/session";
 import DataContext from "@/context/DataContext";
 import { useLanguage } from "@/context/LanguageContext";
 import {
@@ -32,12 +32,21 @@ const ACCEPT = ".mp4,.webm,.mkv,.m4v,.mov,.mp3,.wav,.ogg,.m4a,.pdf,.epub";
 const fill = (text, vars) => String(text || '').replace(/\{(\w+)\}/g, (_, k) => (vars[k] ?? ''));
 
 /** The error text a manager endpoint sent ({ error }), or another endpoint ({ message }). */
-async function serverMessage(res, fallback) {
+// The server's own words for a failed request (these routes answer { error } or { message }).
+function serverMessage(error, fallback) {
+    if (error?.status === 0) return getErrorMessage(error);
+    return error?.body?.error || error?.body?.message || fallback;
+}
+
+// A request that throws an Error with the server's message (or `fallback`).
+async function call(path, options, fallback) {
     try {
-        const body = await res.json();
-        return body?.error || body?.message || fallback;
-    } catch {
-        return fallback;
+        return await apiFetch(path, options);
+    } catch (error) {
+        const failure = new Error(serverMessage(error, fallback));
+        failure.status = error?.status;
+        failure.body = error?.body;
+        throw failure;
     }
 }
 
@@ -282,26 +291,12 @@ function formatBytes(bytes) {
 
 /** POSTs one file with progress. Resolves to { status, message }. */
 function uploadOne(file, folderPath, onProgress) {
-    return new Promise((resolve) => {
-        const form = new FormData();
-        form.append('path', folderPath);
-        form.append('file', file);
-        const xhr = new XMLHttpRequest();
-        xhr.open('POST', `${SERVER_URL}/content/manager/upload`);
-        xhr.withCredentials = true;
-        const token = getSessionToken();
-        if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-        xhr.upload.onprogress = (e) => {
-            if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
-        };
-        xhr.onload = () => {
-            let body = null;
-            try { body = JSON.parse(xhr.responseText); } catch { /* not JSON */ }
-            resolve({ status: xhr.status, message: body?.error || body?.message || '' });
-        };
-        xhr.onerror = () => resolve({ status: 0, message: '' });
-        xhr.send(form);
-    });
+    const form = new FormData();
+    form.append('path', folderPath);
+    form.append('file', file);
+    return apiUpload('/content/manager/upload', form, { onProgress }).promise
+        .then(() => ({ status: 200, message: '' }))
+        .catch((error) => ({ status: error?.status ?? 0, message: error?.body?.error || error?.body?.message || '' }));
 }
 
 const FILE_ICON = { video: Video, audio: Music, pdf: BookOpen, epub: BookOpen };
@@ -620,9 +615,7 @@ const FileManager = () => {
 
     const loadRoots = useCallback(async () => {
         try {
-            const res = await fetch(`${SERVER_URL}/content/manager/roots`);
-            if (!res.ok) throw new Error(await serverMessage(res, t("explore.manager.loadFailed")));
-            const data = await res.json();
+            const data = await call("/content/manager/roots", {}, t("explore.manager.loadFailed"));
             setRoots(data.roots || []);
             setIndexInfo({ lastIndexRun: data.lastIndexRun || null, coversWaiting: Number(data.coversWaiting) || 0 });
             setRootsError('');
@@ -638,9 +631,7 @@ const FileManager = () => {
         setLoading(true);
         setListError('');
         try {
-            const res = await fetch(`${SERVER_URL}/content/manager/list?path=${encodeURIComponent(pathKey)}`);
-            if (!res.ok) throw new Error(await serverMessage(res, t("explore.manager.loadFailed")));
-            const data = await res.json();
+            const data = await call(`/content/manager/list?path=${encodeURIComponent(pathKey)}`, {}, t("explore.manager.loadFailed"));
             setFolder(data);
             const folders = (data.categories || []).map(cat => ({
                 id: `cat-${cat.id}`,
@@ -732,12 +723,10 @@ const FileManager = () => {
     const handleToggleVisibility = async (row, nextDisabled) => {
         setActionError('');
         try {
-            const res = await fetch(`${SERVER_URL}/content/manager/toggle`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ target: row.type === 'folder' ? 'category' : 'content', is_disabled: nextDisabled, path_key: row.path_key }),
-            });
-            if (!res.ok) throw new Error(await serverMessage(res, t("explore.manager.actionFailed")));
+            await call("/content/manager/toggle", {
+                method: "PATCH",
+                json: { target: row.type === 'folder' ? 'category' : 'content', is_disabled: nextDisabled, path_key: row.path_key },
+            }, t("explore.manager.actionFailed"));
             afterChange();
         } catch (e) {
             setActionError(e.message);
@@ -745,39 +734,32 @@ const FileManager = () => {
     };
 
     const handleNewFolder = async (name) => {
-        const res = await fetch(`${SERVER_URL}/content/manager/create-folder`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, path: currentPath }),
-        });
-        if (res.status === 409) throw new Error(t("explore.manager.folderExists"));
-        if (!res.ok) throw new Error(await serverMessage(res, t("explore.manager.actionFailed")));
+        try {
+            await call("/content/manager/create-folder", { method: "POST", json: { name, path: currentPath } }, t("explore.manager.actionFailed"));
+        } catch (e) {
+            throw e.status === 409 ? new Error(t("explore.manager.folderExists")) : e;
+        }
         afterChange();
     };
 
     const handleRename = async (row, { title, subtitle }) => {
-        const res = await fetch(`${SERVER_URL}/content/manager/details`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ target: row.type === 'folder' ? 'category' : 'content', path_key: row.path_key, title, subtitle }),
-        });
-        if (!res.ok) throw new Error(await serverMessage(res, t("explore.manager.actionFailed")));
+        await call("/content/manager/details", {
+            method: "PATCH",
+            json: { target: row.type === 'folder' ? 'category' : 'content', path_key: row.path_key, title, subtitle },
+        }, t("explore.manager.actionFailed"));
         afterChange();
     };
 
     const handleDelete = async (row, recursive) => {
-        const res = await fetch(`${SERVER_URL}/content/manager/item`, {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ path_key: row.path_key, ...(recursive ? { recursive: true } : {}) }),
-        });
-        if (res.status === 409) {
-            let body = null;
-            try { body = await res.json(); } catch { /* ignore */ }
-            if (body?.code === 'FOLDER_NOT_EMPTY') return 'not-empty';
-            throw new Error(body?.error || body?.message || t("explore.manager.actionFailed"));
+        try {
+            await call("/content/manager/item", {
+                method: "DELETE",
+                json: { path_key: row.path_key, ...(recursive ? { recursive: true } : {}) },
+            }, t("explore.manager.actionFailed"));
+        } catch (e) {
+            if (e.status === 409 && e.body?.code === 'FOLDER_NOT_EMPTY') return 'not-empty';
+            throw e;
         }
-        if (!res.ok) throw new Error(await serverMessage(res, t("explore.manager.actionFailed")));
         afterChange();
         return 'deleted';
     };
@@ -787,8 +769,7 @@ const FileManager = () => {
         setRescanResult('');
         setActionError('');
         try {
-            const res = await fetch(`${SERVER_URL}/content/manager/rescan`, { method: 'POST' });
-            if (!res.ok) throw new Error(await serverMessage(res, t("explore.manager.actionFailed")));
+            await call("/content/manager/rescan", { method: "POST" }, t("explore.manager.actionFailed"));
             setRescanResult(t("explore.manager.rescanDone"));
             afterChange();
         } catch (e) {

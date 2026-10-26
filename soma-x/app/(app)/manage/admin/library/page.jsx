@@ -1,5 +1,8 @@
 "use client"
 import Unauthorized from "@/components/sections/Unauthorized";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiFetch, getErrorMessage } from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
 import DataContext from "@/context/DataContext";
 import { useContext, useEffect, useState, useRef } from "react";
 import ManageTitle from "@/components/manage/ManageTitle";
@@ -265,39 +268,26 @@ const ConfirmBanner = ({ message, onConfirm, onCancel }) => {
     );
 };
 
+const LIBRARY_DOWNLOAD = ["cloud", "library-download"];
+
 const ManageLibrary = () => {
     const { authenticated } = useContext(DataContext);
     const { t } = useLanguage();
-    const [localBooks, setLocalBooks]     = useState([]);
-    const [books, setBooks]               = useState([]);
+    const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL;
+    const queryClient = useQueryClient();
+    // The box's books (shared with the Library pages) and what the cloud offers.
+    const local = useQuery({ queryKey: queryKeys.libraryBooks, queryFn: () => apiFetch("/library/books"), enabled: authenticated });
+    const cloud = useQuery({ queryKey: ["cloud", "available-books"], queryFn: () => apiFetch("/library/available-books"), enabled: authenticated });
+    const localBooks = Array.isArray(local.data) ? local.data : [];
+    const books = Array.isArray(cloud.data) ? cloud.data : [];
+    const fetching = cloud.isFetching;
+    const loadLocalBooks = () => queryClient.invalidateQueries({ queryKey: queryKeys.libraryBooks });
     const [selectedBooks, setSelectedBooks] = useState({});
     const [downloadStatus, setDownloadStatus] = useState('init');
-    const [fetching, setFetching]         = useState(false);
     const [banner, setBanner]             = useState(null);
     const [confirm, setConfirm]           = useState(null);
     const [showUploadModal, setShowUploadModal] = useState(false);
     const [viewBook, setViewBook]               = useState(null); // { id, name, ext }
-
-    const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL;
-
-    const loadLocalBooks = async () => {
-        try {
-            const res = await fetch(`${SERVER_URL}/library/books`);
-            if (res.ok) setLocalBooks(await res.json());
-        } catch (err) { console.error(err); }
-    };
-
-    useEffect(() => {
-        async function loadBooks() {
-            setFetching(true);
-            try {
-                const res = await fetch(`${SERVER_URL}/library/available-books`);
-                if (res.ok) setBooks(await res.json());
-            } catch (err) { console.error(err); }
-            finally { setFetching(false); }
-        }
-        if (authenticated) { loadBooks(); loadLocalBooks(); }
-    }, [authenticated, SERVER_URL]);
 
     const handleCheck = (book, isChecked) => {
         setSelectedBooks(prev => ({ ...prev, [book.id]: isChecked ? book : null }));
@@ -310,12 +300,9 @@ const ManageLibrary = () => {
             return;
         }
         try {
+            queryClient.removeQueries({ queryKey: LIBRARY_DOWNLOAD });
             setDownloadStatus("downloading");
-            await fetch(`${SERVER_URL}/library/download`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ books: selected }),
-            });
+            await apiFetch("/library/download", { method: "POST", json: { books: selected } });
         } catch (err) {
             console.error(err);
             setDownloadStatus("failed");
@@ -324,16 +311,11 @@ const ManageLibrary = () => {
 
     const executeDelete = async (id) => {
         try {
-            const res = await fetch(`${SERVER_URL}/library/book/${id}`, { method: 'DELETE' });
-            if (res.ok) {
-                loadLocalBooks();
-                setBanner({ type: 'success', message: t("admin.library.deleted") });
-            } else {
-                setBanner({ type: 'error', message: t("admin.library.deleteFailed") });
-            }
+            await apiFetch(`/library/book/${id}`, { method: "DELETE" });
+            loadLocalBooks();
+            setBanner({ type: 'success', message: t("admin.library.deleted") });
         } catch (err) {
-            console.error(err);
-            setBanner({ type: 'error', message: t("admin.library.deleteError") });
+            setBanner({ type: 'error', message: t(err?.status === 0 ? "admin.library.deleteError" : "admin.library.deleteFailed") });
         }
     };
 
@@ -344,39 +326,32 @@ const ManageLibrary = () => {
         });
     };
 
+    // While a download runs (and only then), its progress is checked every 2 seconds.
+    const progress = useQuery({
+        queryKey: LIBRARY_DOWNLOAD,
+        queryFn: () => apiFetch("/library/download-status"),
+        enabled: downloadStatus === "downloading",
+        refetchInterval: 2000,
+    });
     useEffect(() => {
-        if (downloadStatus !== "downloading") return;
-        const id = setInterval(async () => {
-            try {
-                const res = await fetch(`${SERVER_URL}/library/download-status`);
-                const data = await res.json();
-                if (data.status === "finished" || data.status === "failed") {
-                    setDownloadStatus(data.status);
-                    if (data.status === "finished") loadLocalBooks();
-                    clearInterval(id);
-                }
-            } catch (err) { console.error(err); }
-        }, 2000);
-        return () => clearInterval(id);
-    }, [downloadStatus, SERVER_URL]);
+        const status = progress.data?.status;
+        if (status !== "finished" && status !== "failed") return;
+        setDownloadStatus(status);
+        if (status === "finished") loadLocalBooks();
+    }, [progress.data]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleModalSubmit = async (file, bookName) => {
         const formData = new FormData();
         formData.append("file", file);
         if (bookName) formData.append("bookName", bookName);
 
-        const res = await fetch(`${SERVER_URL}/library/upload`, {
-            method: "POST",
-            body: formData,
-        });
-
-        if (res.ok) {
-            setBanner({ type: 'success', message: t("admin.library.uploaded") });
-            loadLocalBooks();
-        } else {
-            const data = await res.json();
-            throw new Error(data.error || t("admin.library.uploadFailed"));
+        try {
+            await apiFetch("/library/upload", { method: "POST", body: formData });
+        } catch (err) {
+            throw new Error(err?.body?.error || getErrorMessage(err, t));
         }
+        setBanner({ type: 'success', message: t("admin.library.uploaded") });
+        loadLocalBooks();
     };
 
     // Downloaded cloud books are titled with their cloud name (local ids are the box's own).

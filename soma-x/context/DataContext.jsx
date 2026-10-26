@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { X, AlertCircle, CheckCircle2, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { clearSession, getSessionToken, installAuthFetch, startMediaSessionKeepAlive } from "@/lib/session";
 import { clearUserQueue, pendingCount } from "@/lib/submissionQueue";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, apiUpload } from "@/lib/api";
 import { queryKeys } from "@/lib/queryKeys";
 import { startLiveUpdates } from "@/lib/liveUpdates";
 
@@ -211,55 +211,37 @@ export function DataProvider({ children }) {
             status: "uploading",
             error: null,
             classId,
-            xhr: null
+            request: null
         };
 
-        const xhr = new XMLHttpRequest();
-        xhr.open(method, url);
-        // XHR bypasses the fetch wrapper, so attach the session token here.
-        const sessionToken = getSessionToken();
-        if (sessionToken) xhr.setRequestHeader("Authorization", `Bearer ${sessionToken}`);
-
-        xhr.upload.onprogress = (event) => {
-            if (event.lengthComputable) {
-                const percent = Math.round((event.loaded / event.total) * 100);
-                setUploads(prev => prev.map(u => u.id === uploadId ? { ...u, progress: percent } : u));
+        // Uploads report progress, so they go through apiUpload (XMLHttpRequest), not apiFetch.
+        const upload = apiUpload(url, formData, {
+            method,
+            onProgress: (percent) => setUploads(prev => prev.map(u => u.id === uploadId ? { ...u, progress: percent } : u)),
+        });
+        upload.promise.then(() => {
+            setUploads(prev => prev.map(u => u.id === uploadId ? { ...u, progress: 100, status: "success" } : u));
+            if (typeof document !== "undefined") {
+                document.dispatchEvent(new CustomEvent("lesson-uploaded", { detail: { classId } }));
             }
-        };
+            setTimeout(() => {
+                setUploads(prev => prev.filter(u => u.id !== uploadId));
+            }, 6000);
+        }).catch((error) => {
+            if (error?.name === "AbortError") return;
+            const errMsg = error?.status === 0 ? "Network error during upload" : error?.body?.message || "Upload failed";
+            setUploads(prev => prev.map(u => u.id === uploadId ? { ...u, status: "failed", error: errMsg } : u));
+        });
 
-        xhr.onload = () => {
-            if (xhr.status >= 200 && xhr.status < 300) {
-                setUploads(prev => prev.map(u => u.id === uploadId ? { ...u, progress: 100, status: "success" } : u));
-                if (typeof document !== "undefined") {
-                    document.dispatchEvent(new CustomEvent("lesson-uploaded", { detail: { classId } }));
-                }
-                setTimeout(() => {
-                    setUploads(prev => prev.filter(u => u.id !== uploadId));
-                }, 6000);
-            } else {
-                let errMsg = "Upload failed";
-                try {
-                    const payload = JSON.parse(xhr.responseText);
-                    errMsg = payload.message || errMsg;
-                } catch (e) {}
-                setUploads(prev => prev.map(u => u.id === uploadId ? { ...u, status: "failed", error: errMsg } : u));
-            }
-        };
-
-        xhr.onerror = () => {
-            setUploads(prev => prev.map(u => u.id === uploadId ? { ...u, status: "failed", error: "Network error during upload" } : u));
-        };
-
-        newUpload.xhr = xhr;
+        newUpload.request = upload;
         setUploads(prev => [...prev, newUpload]);
-        xhr.send(formData);
     }, []);
 
     const cancelUpload = useCallback((uploadId) => {
         setUploads(prev => {
             const upload = prev.find(u => u.id === uploadId);
-            if (upload && upload.xhr) {
-                upload.xhr.abort();
+            if (upload && upload.request) {
+                upload.request.abort();
             }
             return prev.filter(u => u.id !== uploadId);
         });

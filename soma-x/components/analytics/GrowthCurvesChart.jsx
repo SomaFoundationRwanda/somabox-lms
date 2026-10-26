@@ -1,7 +1,6 @@
 "use client"
-import { useEffect, useState } from "react";
 import { TrendingUp } from "lucide-react";
-import { getGrowthCurves } from "@/lib/analytics-service";
+import { useGrowthCurves } from "@/lib/analytics-service";
 import { formatDate } from "@/lib/dates";
 import { useLanguage } from "@/context/LanguageContext";
 import { fill } from "@/lib/fill";
@@ -15,26 +14,10 @@ const shortDate = (d) => formatDate(d, { day: "numeric", month: "short" });
 
 // Weekly average of outcome results (graded work and quizzes; baseline excluded), with the
 // baseline average as a dashed reference line. Only recorded results: no data, no line.
-export default function GrowthCurvesChart({ serverUrl, scholarEmail, weeks: weeksBack = 26, title: titleProp }) {
+export default function GrowthCurvesChart({ scholarEmail, weeks: weeksBack = 26, title: titleProp }) {
     const { t } = useLanguage();
     const title = titleProp || t("admin.growth.title");
-    const [data, setData] = useState(null);
-    const [error, setError] = useState("");
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        if (!serverUrl) return;
-        let alive = true;
-        (async () => {
-            setLoading(true);
-            const r = await getGrowthCurves(serverUrl, scholarEmail, weeksBack);
-            if (!alive) return;
-            setData(r.data);
-            setError(r.ok ? "" : r.message);
-            setLoading(false);
-        })();
-        return () => { alive = false; };
-    }, [serverUrl, scholarEmail, weeksBack]);
+    const { data, error, loading } = useGrowthCurves(scholarEmail, weeksBack);
 
     const weeks = (data?.weeks || []).filter((w) => w.averagePct != null);
     const baseline = data?.baselineAverage ?? null;

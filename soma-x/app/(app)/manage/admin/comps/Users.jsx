@@ -17,6 +17,8 @@ import {
 import { startRouteLoading } from "@/components/global/RouteLoader";
 import Loader from "@/components/ui/Loader";
 import { shownEmail } from "@/lib/session";
+import { apiFetch, getErrorMessage } from "@/lib/api";
+import { useSettled, useUserList, useUsersChanged } from "@/lib/queries/users";
 
 function getInitials(name, email) {
     if (name?.trim()) return name.trim().split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
@@ -34,7 +36,7 @@ function formatDate(raw, lang) {
 
 export default function Users() {
     const { t, lang } = useLanguage();
-    const { isDark, SERVER_URL } = useContext(DataContext);
+    const { isDark } = useContext(DataContext);
     const { showToast } = useToast();
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -51,10 +53,16 @@ export default function Users() {
     const [page, setPage]               = useState(parseInt(searchParams.get("page") || "1", 10));
 
     // User Data & Selection State
-    const [users, setUsers]             = useState([]);
-    const [total, setTotal]             = useState(0);
-    const [totalPages, setTotalPages]   = useState(1);
-    const [loading, setLoading]         = useState(true);
+    const settledSearch = useSettled(searchQuery);
+    const list = useUserList({
+        search: settledSearch, role: roleFilter, status: statusFilter, dateRange: dateFilter,
+        sortBy, sortOrder, page: String(page), limit: "10",
+    });
+    const users = list.data?.users || [];
+    const total = list.data?.total || 0;
+    const totalPages = list.data?.totalPages || 1;
+    const loading = list.isPending;
+    const usersChanged = useUsersChanged();
     const [selectedRows, setSelectedRows] = useState(new Set());
 
     // Modals
@@ -89,38 +97,9 @@ export default function Users() {
         window.history.replaceState(null, "", newUrl);
     }, [searchQuery, roleFilter, statusFilter, dateFilter, sortBy, sortOrder, page]);
 
-    const fetchUsers = async () => {
-        setLoading(true);
-        try {
-            const params = new URLSearchParams({
-                search: searchQuery,
-                role: roleFilter,
-                status: statusFilter,
-                dateRange: dateFilter,
-                sortBy,
-                sortOrder,
-                page: page.toString(),
-                limit: "10"
-            });
-
-            const res = await fetch(`${SERVER_URL}/users?${params.toString()}`);
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.message || t("admin.users.loadFailed"));
-
-            setUsers(data.users || []);
-            setTotal(data.total || 0);
-            setTotalPages(data.totalPages || 1);
-        } catch (err) {
-            console.error("Error fetching users:", err);
-            showToast(t("admin.users.loadListFailed"), "error");
-        } finally {
-            setLoading(false);
-        }
-    };
-
     useEffect(() => {
-        fetchUsers();
-    }, [searchQuery, roleFilter, statusFilter, dateFilter, sortBy, sortOrder, page, SERVER_URL]);
+        if (list.isError) showToast(t("admin.users.loadListFailed"), "error");
+    }, [list.isError]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Clear filters
     const clearFilters = () => {
@@ -153,13 +132,7 @@ export default function Users() {
     const handleToggleStatus = async (user) => {
         const newStatus = user.is_active === 0;
         try {
-            const res = await fetch(`${SERVER_URL}/users/${user.id}/status`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ isActive: newStatus })
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.message || t("admin.users.statusFailed"));
+            const data = await apiFetch(`/users/${user.id}/status`, { method: "PATCH", json: { isActive: newStatus } });
 
             showToast(fill(t(newStatus ? "admin.users.reactivated" : "admin.users.deactivated"), { name: user.full_name || user.email }), "success");
             // A teacher's courses can be left with no teacher: say which, so the admin gives them one.
@@ -167,29 +140,22 @@ export default function Users() {
             if (stranded.length) {
                 showToast(fill(t("admin.users.coursesWithoutTeacher"), { courses: stranded.map((c) => c.title).join(", ") }), "warning", 12000);
             }
-            fetchUsers();
+            usersChanged();
         } catch (err) {
-            showToast(err.message, "error");
+            showToast(getErrorMessage(err, t), "error");
         }
     };
 
     const handleConfirmDelete = async () => {
         if (!deleteModalUser) return;
         try {
-            const res = await fetch(`${SERVER_URL}/users/${deleteModalUser.id}`, {
-                method: "DELETE",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({})
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.message || t("admin.users.deleteFailed"));
-
+            await apiFetch(`/users/${deleteModalUser.id}`, { method: "DELETE", json: {} });
             showToast(t("admin.users.deleted"), "success");
             setDeleteModalUser(null);
             setTypedConfirmName("");
-            fetchUsers();
+            usersChanged();
         } catch (err) {
-            showToast(err.message, "error");
+            showToast(getErrorMessage(err, t), "error");
         }
     };
 
@@ -200,19 +166,12 @@ export default function Users() {
             return;
         }
         try {
-            const res = await fetch(`${SERVER_URL}/users/${resetPassUser.id}/reset-password`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ newPassword })
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.message || t("admin.users.resetFailed"));
-
+            await apiFetch(`/users/${resetPassUser.id}/reset-password`, { method: "PATCH", json: { newPassword } });
             showToast(t("admin.users.resetDone"), "success");
             setResetPassUser(null);
             setNewPassword("");
         } catch (err) {
-            showToast(err.message, "error");
+            showToast(getErrorMessage(err, t), "error");
         }
     };
 
@@ -221,24 +180,13 @@ export default function Users() {
         const ids = Array.from(selectedRows);
         if (ids.length === 0) return;
         try {
-            const res = await fetch(`${SERVER_URL}/users/bulk-action`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    userIds: ids,
-                    action,
-                    ...extraData
-                })
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.message || t("admin.users.bulkFailed"));
-
+            const data = await apiFetch("/users/bulk-action", { method: "POST", json: { userIds: ids, action, ...extraData } });
             showToast(data.message || t("admin.users.bulkDone"), "success");
             setSelectedRows(new Set());
             setBulkRoleModal(false);
-            fetchUsers();
+            usersChanged();
         } catch (err) {
-            showToast(err.message, "error");
+            showToast(getErrorMessage(err, t), "error");
         }
     };
 
@@ -463,7 +411,7 @@ export default function Users() {
                                     {/* Edit */}
                                     <AddUserDrawer
                                         user={user}
-                                        onSuccess={() => { setActiveMenuId(null); fetchUsers(); }}
+                                        onSuccess={() => { setActiveMenuId(null); usersChanged(); }}
                                         trigger={
                                             <button className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
                                                 <Pencil className="w-3.5 h-3.5 text-slate-500" /> {t("admin.users.editProfile")}

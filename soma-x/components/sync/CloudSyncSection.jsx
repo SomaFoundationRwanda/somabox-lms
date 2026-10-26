@@ -1,6 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ApiError, apiFetch, getErrorMessage } from "@/lib/api";
+
+const SYNC_STATUS = ["sync", "status"];
 import { AlertTriangle, CheckCircle2, CloudOff, Loader2, RefreshCw, Clock } from "lucide-react";
 import { useToast } from "@/context/ToastContext";
 import { Section, List, ListRow } from "@/components/layout";
@@ -107,7 +111,7 @@ function runSummary(run, t) {
   return parts.join(" · ");
 }
 
-function ScopeForm({ SERVER_URL, scope, onSaved }) {
+function ScopeForm({ scope, onSaved }) {
   const { showToast } = useToast();
   const { t } = useLanguage();
   const [form, setForm] = useState(scope);
@@ -124,17 +128,11 @@ function ScopeForm({ SERVER_URL, scope, onSaved }) {
     setSaving(true);
     setError("");
     try {
-      const res = await fetch(`${SERVER_URL}/sync/settings`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scope: form }),
-      });
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(payload.message || t("admin.cloud.scopeSaveFailed"));
+      const payload = await apiFetch("/sync/settings", { method: "PUT", json: { scope: form } });
       onSaved(payload.scope || form);
       showToast(t("admin.cloud.scopeSaved"), "success");
     } catch (err) {
-      setError(err.message || t("admin.cloud.scopeSaveFailed"));
+      setError(getErrorMessage(err, t));
     } finally {
       setSaving(false);
     }
@@ -229,39 +227,32 @@ function ScopeForm({ SERVER_URL, scope, onSaved }) {
   );
 }
 
-export default function CloudSyncSection({ SERVER_URL }) {
+export default function CloudSyncSection() {
   const { showToast } = useToast();
   const { t, lang } = useLanguage();
   const formatRelative = (v) => formatRelativeIn(v, lang);
   const formatDateTime = (v) => formatDateTimeIn(v, lang);
-  const [status, setStatus] = useState(null);
-  const [error, setError] = useState("");
+  const queryClient = useQueryClient();
+  // Loaded once; asked again after "Sync now" (the sync itself is scheduled on the box).
+  const query = useQuery({ queryKey: SYNC_STATUS, queryFn: () => apiFetch("/sync/status") });
+  const status = query.data || null;
+  const error = query.isError ? getErrorMessage(query.error, t) : "";
+  const load = () => queryClient.invalidateQueries({ queryKey: SYNC_STATUS });
   const [running, setRunning] = useState(false);
   const [runMessage, setRunMessage] = useState(null); // { ok, text }
-
-  const load = useCallback(async () => {
-    if (!SERVER_URL) return;
-    try {
-      const res = await fetch(`${SERVER_URL}/sync/status`);
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(payload.message || t("admin.cloud.statusFailed"));
-      setStatus(payload);
-      setError("");
-    } catch (err) {
-      setError(err.message || t("admin.cloud.statusFailed"));
-    }
-  }, [SERVER_URL]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => { load(); }, [load]);
 
   const syncNow = async () => {
     setRunning(true);
     setRunMessage(null);
     try {
-      const res = await fetch(`${SERVER_URL}/sync/run`, { method: "POST" });
-      const payload = await res.json().catch(() => ({}));
-      const ok = res.ok && (payload.status === "ok" || payload.status === "nothing_to_send");
-      const text = payload.message || (res.ok ? t("admin.cloud.syncFinished") : t("admin.cloud.syncFailed"));
+      // 503 (the cloud couldn't be reached) still carries the run's message.
+      const response = await apiFetch("/sync/run", { method: "POST", responseType: "response" }).catch((err) => {
+        if (err instanceof ApiError && err.status !== 0) return { ok: false, payload: err.body || {} };
+        throw err;
+      });
+      const payload = response.payload ?? await response.json().catch(() => ({}));
+      const ok = response.ok && (payload.status === "ok" || payload.status === "nothing_to_send");
+      const text = payload.message || (response.ok ? t("admin.cloud.syncFinished") : t("admin.cloud.syncFailed"));
       setRunMessage({ ok, text });
       showToast(text, ok ? "success" : "error");
     } catch {
@@ -340,7 +331,7 @@ export default function CloudSyncSection({ SERVER_URL }) {
           title={t("admin.cloud.scopeTitle")}
           description={t("admin.cloud.scopeHelp")}
         >
-          <ScopeForm SERVER_URL={SERVER_URL} scope={status.scope} onSaved={(scope) => setStatus((s) => ({ ...s, scope }))} />
+          <ScopeForm scope={status.scope} onSaved={(scope) => queryClient.setQueryData(SYNC_STATUS, (s) => ({ ...s, scope }))} />
         </Section>
       ) : null}
 

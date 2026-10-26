@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { DataTable, EmptyState } from "@/components/layout";
 import { formatDate } from "@/lib/dates";
@@ -8,42 +8,38 @@ import { useLanguage } from "@/context/LanguageContext";
 import { fill } from "@/lib/fill";
 import Loader from "@/components/ui/Loader";
 import Modal from "@/components/ui/Modal";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiFetch, getErrorMessage } from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
+import { useUserList } from "@/lib/queries/users";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/context/ToastContext";
 
 // Admins give a course another teacher, e.g. when its teacher left (PUT /courses/:id/teacher).
-function ChangeTeacher({ serverUrl, course, onClose, onDone }) {
+function ChangeTeacher({ course, onClose, onDone }) {
   const { t } = useLanguage();
   const { showToast } = useToast();
-  const [teachers, setTeachers] = useState(null);
+  // The same kept list as the admin's user list (a teacher just added shows up here too).
+  const teacherList = useUserList({ role: "teacher", status: "active", limit: "500", sortBy: "name", sortOrder: "asc" });
+  const teachers = teacherList.isPending ? null : teacherList.data?.users || [];
+  const queryClient = useQueryClient();
   const [email, setEmail] = useState("");
   const [removeOthers, setRemoveOthers] = useState(!course.teachers);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    fetch(`${serverUrl}/users?role=teacher&status=active&limit=500&sortBy=name&sortOrder=asc`)
-      .then((res) => res.json())
-      .then((data) => setTeachers(Array.isArray(data?.users) ? data.users : []))
-      .catch(() => setTeachers([]));
-  }, [serverUrl]);
-
   const save = async () => {
     setSaving(true);
     setError("");
     try {
-      const res = await fetch(`${serverUrl}/courses/${course.id}/teacher`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, removeOthers }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.message || t("admin.courses.changeTeacherFailed"));
+      await apiFetch(`/courses/${course.id}/teacher`, { method: "PUT", json: { email, removeOthers } });
+      queryClient.invalidateQueries({ queryKey: queryKeys.allCourses });
+      queryClient.invalidateQueries({ queryKey: queryKeys.course(course.id) });
       showToast(fill(t("admin.courses.teacherChanged"), { course: course.title }), "success");
       onDone();
     } catch (err) {
-      setError(err.message);
+      setError(getErrorMessage(err, t));
     } finally {
       setSaving(false);
     }
@@ -81,27 +77,13 @@ function ChangeTeacher({ serverUrl, course, onClose, onDone }) {
 }
 
 // Every course on this box, for admins (GET /courses/all).
-export default function AllCourses({ serverUrl }) {
+export default function AllCourses() {
   const { t } = useLanguage();
-  const [courses, setCourses] = useState(null);
-  const [error, setError] = useState("");
+  const query = useQuery({ queryKey: queryKeys.allCourses, queryFn: () => apiFetch("/courses/all") });
+  const courses = query.data ? (Array.isArray(query.data) ? query.data : []) : null;
+  const error = query.isError ? getErrorMessage(query.error, t) : "";
   const [filter, setFilter] = useState("");
   const [changing, setChanging] = useState(null); // the course whose teacher is being changed
-
-  const load = async () => {
-    try {
-      const res = await fetch(`${serverUrl}/courses/all`);
-      const data = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(data?.message || t("admin.courses.loadFailed"));
-      setCourses(Array.isArray(data) ? data : []);
-    } catch (err) {
-      setError(err.message);
-    }
-  };
-
-  useEffect(() => {
-    if (serverUrl) load();
-  }, [serverUrl]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (error) return <p className="text-sm text-rose-600">{error}</p>;
   if (!courses) return <Loader variant="page" size={48} className="min-h-[8rem]" />;
@@ -158,7 +140,7 @@ export default function AllCourses({ serverUrl }) {
         ]}
       />
       {changing && (
-        <ChangeTeacher serverUrl={serverUrl} course={changing} onClose={() => setChanging(null)} onDone={() => { setChanging(null); load(); }} />
+        <ChangeTeacher course={changing} onClose={() => setChanging(null)} onDone={() => setChanging(null)} />
       )}
     </div>
   );

@@ -3,6 +3,11 @@ import formatSize from "@/components/helpers/formatSize";
 import Unauthorized from "@/components/sections/Unauthorized";
 import DataContext from "@/context/DataContext";
 import { useContext, useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ApiError, apiFetch } from "@/lib/api";
+
+const AVAILABLE = ["cloud", "available-content"];
+const DOWNLOAD_STATUS = ["cloud", "download-status"];
 import { PageHeader, Section, EmptyState } from "@/components/layout";
 import CloudSyncSection from "@/components/sync/CloudSyncSection";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -125,34 +130,25 @@ const TreeNode = ({ node, onCheck, checked }) => {
 const ManageSync = () => {
     const { authenticated, role, refreshExplore } = useContext(DataContext);
     const { t } = useLanguage();
-    const [contentTree, setContentTree]         = useState([]);
+    const queryClient = useQueryClient();
+    // What the cloud offers (and which of it is on the box). 503: the cloud can't be reached.
+    const available = useQuery({
+        queryKey: AVAILABLE,
+        queryFn: () => apiFetch("/cloud/available-content").catch((err) => {
+            if (err instanceof ApiError && err.status === 503) return { unavailable: true };
+            throw err;
+        }),
+        enabled: authenticated,
+    });
+    const cloudUnavailable = !!available.data?.unavailable;
+    const contentTree = Array.isArray(available.data) ? available.data : [];
+    const fetching = available.isFetching;
+    const refreshAvailable = () => queryClient.invalidateQueries({ queryKey: AVAILABLE });
     const [checked, setChecked]                 = useState({});
-    const [cloudUnavailable, setCloudUnavailable] = useState(false);
-    const [fetching, setFetching]               = useState(false);
-    const [refetch, setRefetch]                 = useState(false);
     const [downloadStatus, setDownloadStatus]   = useState('init');
     const [deleting, setDeleting]               = useState(false);
     const [banner, setBanner]                   = useState(null);
     const [confirm, setConfirm]                 = useState(null);
-
-    const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL;
-
-    useEffect(() => {
-        async function loadData() {
-            setFetching(true);
-            setCloudUnavailable(false);
-            try {
-                const res = await fetch(`${SERVER_URL}/cloud/available-content`);
-                if (res.status === 503) { setCloudUnavailable(true); return; }
-                setContentTree(await res.json());
-            } catch (err) {
-                console.error(err);
-            } finally {
-                setFetching(false);
-            }
-        }
-        if (authenticated) loadData();
-    }, [authenticated, refetch, SERVER_URL]);
 
     const toggleCheckRecursive = (node, isChecked, newChecked = {}) => {
         newChecked[node.path] = isChecked;
@@ -175,16 +171,12 @@ const ManageSync = () => {
 
     const executeDownload = async (selected) => {
         try {
-            let res = await fetch(`${SERVER_URL}/cloud/download-status`);
-            let data0 = await res.json();
-            if (data0.status === "downloading") { setDownloadStatus("downloading"); return; }
-
+            // A finished earlier download mustn't count as this one finishing.
+            queryClient.removeQueries({ queryKey: DOWNLOAD_STATUS });
+            const current = await apiFetch("/cloud/download-status");
             setDownloadStatus("downloading");
-            await fetch(`${SERVER_URL}/cloud/download`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ files: selected }),
-            });
+            if (current.status === "downloading") return;
+            await apiFetch("/cloud/download", { method: "POST", json: { files: selected } });
         } catch (err) {
             console.error(err);
             setDownloadStatus("failed");
@@ -221,23 +213,17 @@ const ManageSync = () => {
         const selectedPaths = Object.keys(checked).filter(p => checked[p]);
         setDeleting(true);
         try {
-            const res = await fetch(`${SERVER_URL}/cloud/delete`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ paths: selectedPaths }),
-            });
-            if (res.ok) {
-                setBanner({ type: 'success', message: t("admin.sync.deleted") });
-                setChecked({});
-                setRefetch(r => !r);
-                refreshExplore?.();
-            } else {
-                const data = await res.json();
-                setBanner({ type: 'error', message: fill(t("admin.sync.deleteFailed"), { error: data.error || t("admin.sync.unknownError") }) });
-            }
+            await apiFetch("/cloud/delete", { method: "POST", json: { paths: selectedPaths } });
+            setBanner({ type: 'success', message: t("admin.sync.deleted") });
+            setChecked({});
+            refreshAvailable();
+            refreshExplore?.();
         } catch (err) {
-            console.error(err);
-            setBanner({ type: 'error', message: t("admin.sync.deleteError") });
+            if (err instanceof ApiError && err.status !== 0) {
+                setBanner({ type: 'error', message: fill(t("admin.sync.deleteFailed"), { error: err.body?.error || err.body?.message || t("admin.sync.unknownError") }) });
+            } else {
+                setBanner({ type: 'error', message: t("admin.sync.deleteError") });
+            }
         } finally {
             setDeleting(false);
         }
@@ -255,28 +241,26 @@ const ManageSync = () => {
         });
     };
 
+    // While a download runs (and only then), its progress is checked every 2 seconds.
+    const progress = useQuery({
+        queryKey: DOWNLOAD_STATUS,
+        queryFn: () => apiFetch("/cloud/download-status"),
+        enabled: downloadStatus === "downloading",
+        refetchInterval: 2000,
+        retry: false,
+    });
     useEffect(() => {
-        if (downloadStatus !== "downloading") return;
-        const checkStatus = async () => {
-            try {
-                const res = await fetch(`${SERVER_URL}/cloud/download-status`);
-                const data = await res.json();
-                if (data.status === "finished") setDownloadStatus("finished");
-                else if (data.status === "failed") setDownloadStatus("failed");
-            } catch (err) {
-                console.error(err);
-                setDownloadStatus("failed");
-            }
-        };
-        checkStatus();
-        const id = setInterval(checkStatus, 2000);
-        return () => clearInterval(id);
-    }, [downloadStatus, SERVER_URL]);
+        const status = progress.data?.status;
+        if (progress.isError) setDownloadStatus("failed");
+        else if (status === "finished" || status === "failed") setDownloadStatus(status);
+    }, [progress.data, progress.isError]);
 
-    // A finished download changes what Explore shows.
+    // A finished download changes what's on the box, and what Explore shows.
     useEffect(() => {
-        if (downloadStatus === "finished") refreshExplore?.();
-    }, [downloadStatus, refreshExplore]);
+        if (downloadStatus !== "finished") return;
+        refreshAvailable();
+        refreshExplore?.();
+    }, [downloadStatus]); // eslint-disable-line react-hooks/exhaustive-deps
 
     if (!authenticated) return <Unauthorized />;
 
@@ -291,7 +275,7 @@ const ManageSync = () => {
                     description={t("admin.sync.description")}
                 />
 
-                {role === "admin" ? <CloudSyncSection SERVER_URL={SERVER_URL} /> : null}
+                {role === "admin" ? <CloudSyncSection /> : null}
 
             <div className="space-y-4 pt-6 border-t border-slate-200 dark:border-slate-800">
                 {/* Feedback banners */}
@@ -363,7 +347,7 @@ const ManageSync = () => {
                         <div className="flex gap-2 shrink-0">
                             {cloudUnavailable || fetching ? (
                                 <Button
-                                    onClick={() => setRefetch(r => !r)}
+                                    onClick={refreshAvailable}
                                     className="h-8 px-4 rounded-[5px] text-[12px]"
                                 >
                                     {t("admin.common.retry")}
