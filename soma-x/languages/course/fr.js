@@ -761,6 +761,8 @@ export default {
     "duration": "Durée (semaines)",
     "about": "À propos du cours",
     "grade": "Classe / niveau",
+    "bannerChoose": "Choisir une image",
+    "bannerChange": "Choisir une autre image",
     "banner": "Image de bannière",
     "visibility": "Visibilité",
     "private": "Privé : sur invitation",

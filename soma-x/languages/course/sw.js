@@ -761,6 +761,8 @@ export default {
     "duration": "Muda (wiki)",
     "about": "Kuhusu kozi hii",
     "grade": "Darasa / kiwango",
+    "bannerChoose": "Chagua picha",
+    "bannerChange": "Chagua picha nyingine",
     "banner": "Picha ya bango",
     "visibility": "Mwonekano",
     "private": "Binafsi: kwa mwaliko tu",

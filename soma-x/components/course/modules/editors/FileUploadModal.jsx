@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { X, Upload, FileIcon, CheckCircle } from "lucide-react";
-import { clickableProps } from "@/lib/a11y";
 import { useCourseText } from "@/components/course/useCourseText";
 import { apiFetch } from "@/lib/api";
 import { TextInput } from "@/components/form";
+import { FileDrop } from "@/components/form";
 
 export default function FileUploadModal({ open, onClose, onUpload, courseId, moduleId }) {
   const { t } = useCourseText();
@@ -13,23 +13,9 @@ export default function FileUploadModal({ open, onClose, onUpload, courseId, mod
   const [title, setTitle] = useState("");
   const [uploading, setUploading] = useState(false);
   const [done, setDone] = useState(false);
-  const inputRef = useRef(null);
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    const dropped = e.dataTransfer.files?.[0];
-    if (dropped) {
-      setFile(dropped);
-      if (!title) setTitle(dropped.name);
-    }
-  };
-
-  const handleSelect = (e) => {
-    const selected = e.target.files?.[0];
-    if (selected) {
-      setFile(selected);
-      if (!title) setTitle(selected.name);
-    }
+  const choose = ([selected]) => {
+    setFile(selected);
+    if (!title) setTitle(selected.name);
   };
 
   const handleUpload = async () => {
@@ -78,12 +64,7 @@ export default function FileUploadModal({ open, onClose, onUpload, courseId, mod
 
         <div className="px-6 py-4 space-y-4">
           {/* Drop zone */}
-          <div
-            onDrop={handleDrop}
-            onDragOver={(e) => e.preventDefault()}
-            {...clickableProps(() => inputRef.current?.click(), t("editors.file.chooseAria"))}
-            className="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center cursor-pointer hover:border-[var(--brand-primary)] hover:bg-slate-50/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]"
-          >
+          <FileDrop onFiles={choose} label={t("editors.file.chooseAria")}>
             {file ? (
               <div className="flex flex-col items-center gap-2">
                 {done ? (
@@ -101,8 +82,7 @@ export default function FileUploadModal({ open, onClose, onUpload, courseId, mod
                 <p className="text-xs text-slate-400">{t("editors.file.types")}</p>
               </div>
             )}
-            <input ref={inputRef} type="file" onChange={handleSelect} className="hidden" />
-          </div>
+          </FileDrop>
 
           {/* Title */}
           {file && (

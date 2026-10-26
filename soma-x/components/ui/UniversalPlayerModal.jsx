@@ -6,6 +6,7 @@ import { PreviewChip, PreviewEndedPanel, usePreview } from '@/components/guest/P
 import SummaryPanel, { SummaryToggleButton, useContentSummary } from '@/components/explore/SummaryPanel';
 import { useLanguage } from '@/context/LanguageContext';
 import { fill } from '@/lib/fill';
+import { Slider } from "@/components/form";
 
 const UniversalPlayerModal = ({
     isOpen,
@@ -122,8 +123,7 @@ const UniversalPlayerModal = ({
         }
     };
 
-    const handleVolumeChange = (e) => {
-        const newVolume = parseFloat(e.target.value);
+    const handleVolumeChange = (newVolume) => {
         setVolume(newVolume);
         const mediaElement = mediaItem?.type === 'video' ? videoRef.current : audioRef.current;
         if (mediaElement) {
@@ -139,10 +139,10 @@ const UniversalPlayerModal = ({
         }
     };
 
-    const handleSeek = (e) => {
+    const handleSeek = (percent) => {
         const mediaElement = mediaItem?.type === 'video' ? videoRef.current : audioRef.current;
         if (mediaElement) {
-            const seekTime = (e.target.value / 100) * duration;
+            const seekTime = (percent / 100) * duration;
             mediaElement.currentTime = seekTime;
             setCurrentTime(seekTime);
         }
@@ -223,32 +223,13 @@ const UniversalPlayerModal = ({
                                         {isPlaying ? <Pause size={24} /> : <Play size={24} />}
                                     </Button>
                                     <div className="flex-1">
-                                        <input
-                                            type="range"
-                                            min="0"
-                                            max="100"
-                                            value={(currentTime / duration) * 100 || 0}
-                                            onChange={handleSeek}
-                                            aria-label={t("shell.player.seek")}
-                                    aria-label={t("shell.player.seek")}
-                                            className="w-full h-2 bg-white/30 rounded-lg appearance-none cursor-pointer slider"
-                                        />
+                                        <Slider tone="onDark" min={0} max={100} value={(currentTime / duration) * 100 || 0} onChange={handleSeek} aria-label={t("shell.player.seek")} className="w-full" />
                                     </div>
                                     <span className="text-sm">{formatTime(currentTime)} / {formatTime(duration)}</span>
                                     <Button variant="ghost" onClick={toggleMute} aria-label={isMuted ? t("shell.player.unmute") : t("shell.player.mute")} aria-pressed={isMuted} className="p-2 hover:bg-white/20 rounded-full transition-colors ring-0 h-10 w-10">
                                         {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
                                     </Button>
-                                    <input
-                                        type="range"
-                                        min="0"
-                                        max="1"
-                                        step="0.1"
-                                        value={volume}
-                                        onChange={handleVolumeChange}
-                                        aria-label={t("shell.player.volume")}
-                                    aria-label={t("shell.player.volume")}
-                                        className="w-20 h-2 bg-white/30 rounded-lg appearance-none cursor-pointer"
-                                    />
+                                    <Slider tone="onDark" min={0} max={1} step={0.1} value={volume} onChange={handleVolumeChange} aria-label={t("shell.player.volume")} className="w-20" />
                                     <Button variant="ghost" onClick={toggleFullscreen} aria-label={isFullscreen ? t("shell.player.exitFullScreen") : t("shell.player.fullScreen")} className="p-2 hover:bg-white/20 rounded-full transition-colors ring-0 h-10 w-10">
                                         {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
                                     </Button>
@@ -298,15 +279,7 @@ const UniversalPlayerModal = ({
                             </div>
 
                             <div className="space-y-2">
-                                <input
-                                    type="range"
-                                    min="0"
-                                    max="100"
-                                    value={(currentTime / duration) * 100 || 0}
-                                    onChange={handleSeek}
-                                    aria-label={t("shell.player.seek")}
-                                    className="w-full h-2 bg-white/30 rounded-lg appearance-none cursor-pointer"
-                                />
+                                <Slider tone="onDark" min={0} max={100} value={(currentTime / duration) * 100 || 0} onChange={handleSeek} aria-label={t("shell.player.seek")} className="w-full" />
                                 <div className="flex justify-between text-sm text-white/70">
                                     <span>{formatTime(currentTime)}</span>
                                     <span>{formatTime(duration)}</span>
@@ -317,16 +290,7 @@ const UniversalPlayerModal = ({
                                 <Button variant="ghost" onClick={toggleMute} aria-label={isMuted ? t("shell.player.unmute") : t("shell.player.mute")} aria-pressed={isMuted} className="p-2 hover:bg-white/20 rounded-full transition-colors ring-0 h-10 w-10">
                                     {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
                                 </Button>
-                                <input
-                                    type="range"
-                                    min="0"
-                                    max="1"
-                                    step="0.1"
-                                    value={volume}
-                                    onChange={handleVolumeChange}
-                                    aria-label={t("shell.player.volume")}
-                                    className="w-32 h-2 bg-white/30 rounded-lg appearance-none cursor-pointer"
-                                />
+                                <Slider tone="onDark" min={0} max={1} step={0.1} value={volume} onChange={handleVolumeChange} aria-label={t("shell.player.volume")} className="w-32" />
                             </div>
                         </div>
                     </div>

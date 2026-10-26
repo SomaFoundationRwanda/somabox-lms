@@ -17,7 +17,7 @@ import Loader from "@/components/ui/Loader";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch, apiUrl, getErrorMessage } from "@/lib/api";
 import { queryKeys } from "@/lib/queryKeys";
-import { ChoiceGroup, Field, Select, TextInput } from "@/components/form";
+import { ChoiceGroup, Field, FileButton, Select, TextInput } from "@/components/form";
 
 // One box serves one school. Everything about it is set here (GET/PUT /school): its name and
 // learner-code prefix, its location (applied to every learner and teacher, who are never asked),
@@ -94,7 +94,6 @@ export default function SchoolSettingsPage() {
     const [logoUrl, setLogoUrl] = useState(null);
     const [logoBusy, setLogoBusy] = useState(false);
     const [logoMsg, setLogoMsg] = useState({ type: "", text: "" });
-    const fileRef = useRef(null);
 
     const applySettings = (data) => {
         setForm({
@@ -202,7 +201,6 @@ export default function SchoolSettingsPage() {
             setLogoMsg({ type: "error", text: getErrorMessage(err, t) });
         } finally {
             setLogoBusy(false);
-            if (fileRef.current) fileRef.current.value = "";
         }
     };
 
@@ -342,13 +340,11 @@ export default function SchoolSettingsPage() {
                                             {logoSrc ? t("school.settings.logoHelp") : `${t("school.settings.logoNone")}. ${t("school.settings.logoHelp")}`}
                                         </p>
                                         <div className="flex flex-wrap gap-2">
-                                            <input ref={fileRef} id="school-logo-file" type="file" accept="image/png,image/jpeg,image/webp" className="sr-only"
-                                                aria-describedby="school-logo-help" onChange={(e) => uploadLogo(e.target.files?.[0])} disabled={logoBusy} />
-                                            <label htmlFor="school-logo-file"
-                                                className={`inline-flex items-center gap-2 h-11 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-bold text-slate-800 dark:text-slate-100 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 focus-within:ring-2 focus-within:ring-[var(--brand-secondary)] ${logoBusy ? "opacity-50 pointer-events-none" : ""}`}>
+                                            <FileButton id="school-logo-file" accept="image/png,image/jpeg,image/webp" size="lg"
+                                                aria-describedby="school-logo-help" onFiles={([f]) => uploadLogo(f)} disabled={logoBusy}>
                                                 <ImageUp className="w-4 h-4" aria-hidden="true" />
                                                 {logoBusy ? t("school.settings.logoUploading") : logoSrc ? t("school.settings.logoReplace") : t("school.settings.logoChoose")}
-                                            </label>
+                                            </FileButton>
                                             {logoSrc && (
                                                 <button type="button" onClick={removeLogo} disabled={logoBusy}
                                                     className={`inline-flex items-center gap-2 h-11 px-4 rounded-xl border border-slate-300 dark:border-slate-700 text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 ${FOCUS_RING}`}>

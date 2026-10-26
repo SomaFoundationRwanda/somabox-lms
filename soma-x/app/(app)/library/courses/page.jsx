@@ -1,6 +1,6 @@
 "use client";
 
-import { useContext, useMemo, useRef, useState } from "react";
+import { useContext, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, ArrowLeft, ChevronDown, ChevronRight, FileUp, Info, Library, Loader2 } from "lucide-react";
@@ -16,6 +16,7 @@ import Loader from "@/components/ui/Loader";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { queryKeys } from "@/lib/queryKeys";
+import { FileDrop } from "@/components/form";
 
 // Course library (teachers and admins): bundles exported from courses on this box or uploaded
 // as files. Creating a course from a bundle always makes a NEW draft course.
@@ -204,9 +205,7 @@ function BundleGroup({ SERVER_URL, versions, creatingId, onCreate }) {
 
 function UploadArea({ SERVER_URL, onUploaded, onCreated }) {
   const { t } = useLanguage();
-  const inputRef = useRef(null);
   const [file, setFile] = useState(null);
-  const [dragging, setDragging] = useState(false);
   const [busy, setBusy] = useState(""); // "add" | "import" | ""
   const [error, setError] = useState("");
   const [result, setResult] = useState(null); // { added, title, version }
@@ -232,7 +231,6 @@ function UploadArea({ SERVER_URL, onUploaded, onCreated }) {
       form.append("bundle", file);
       const payload = await apiFetch(`/bundles${mode === "import" ? "/import" : ""}`, { method: "POST", body: form });
       setFile(null);
-      if (inputRef.current) inputRef.current.value = "";
       if (mode === "import") {
         onCreated(payload);
       } else {
@@ -248,25 +246,13 @@ function UploadArea({ SERVER_URL, onUploaded, onCreated }) {
 
   return (
     <div className="space-y-3">
-      <label
-        htmlFor="bundle-file"
-        onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-        onDragLeave={() => setDragging(false)}
-        onDrop={(e) => { e.preventDefault(); setDragging(false); pick(e.dataTransfer.files?.[0]); }}
-        className={`flex flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed px-4 py-6 text-center cursor-pointer transition-colors ${dragging ? "border-[var(--brand-secondary)] bg-teal-50 dark:bg-teal-950/20" : "border-slate-200 dark:border-slate-700 hover:border-slate-300"}`}
-      >
-        <FileUp className="w-6 h-6 text-slate-400" aria-hidden="true" />
-        <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{file ? file.name : t("shell.courseLibrary.chooseFile")}</span>
-        <span className="text-xs text-slate-500">{file ? t("shell.courseLibrary.chooseOther") : t("shell.courseLibrary.orDrop")}</span>
-        <input
-          ref={inputRef}
-          id="bundle-file"
-          type="file"
-          accept=".json,application/json"
-          className="sr-only"
-          onChange={(e) => pick(e.target.files?.[0])}
-        />
-      </label>
+      <FileDrop
+        accept=".json,application/json"
+        onFiles={([f]) => pick(f)}
+        icon={FileUp}
+        title={file ? file.name : t("shell.courseLibrary.chooseFile")}
+        hint={file ? t("shell.courseLibrary.chooseOther") : t("shell.courseLibrary.orDrop")}
+      />
 
       {file ? (
         <div className="flex flex-wrap items-center gap-2">

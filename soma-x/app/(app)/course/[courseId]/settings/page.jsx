@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowRight, ChevronDown, ChevronUp, Eye, EyeOff, ListChecks, X } from "lucide-react";
+import { ArrowRight, ChevronDown, ChevronUp, Eye, EyeOff, ListChecks, X, ImageUp } from "lucide-react";
 import { compareDates, isDateString } from "@somabox/timeline";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCourse } from "@/context/CourseContext";
@@ -20,7 +20,7 @@ import GradeSelect from "@/components/teacher/GradeSelect";
 import Explainer from "@/components/help/Explainer";
 import ShareCourseSection from "@/components/course/ShareCourseSection";
 import CourseStatusSection from "@/components/course/CourseStatusSection";
-import { Select, TextInput, Textarea } from "@/components/form";
+import { FileButton, Select, TextInput, Textarea } from "@/components/form";
 
 // Settings > Course setup (teachers): the setup checklist, the Week 0 baseline and the guided wizard.
 function CourseSetupSection({ courseId, course, userEmail, onCourseChanged }) {
@@ -445,8 +445,13 @@ export default function CourseSettingsPage() {
               <Textarea id="course-description" value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} rows={4} className="w-full" />
             </div>
             <div>
-              <label htmlFor="course-banner" className="text-xs font-semibold text-slate-600 mb-1 block">{t("settings.banner")}</label>
-              <input id="course-banner" type="file" accept="image/*" onChange={(e) => setCoverFile(e.target.files?.[0] || null)} className="text-sm" />
+              <p className="text-xs font-semibold text-slate-600 mb-1">{t("settings.banner")}</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <FileButton id="course-banner" accept="image/*" onFiles={([f]) => setCoverFile(f)} aria-label={t("settings.banner")}>
+                  <ImageUp className="w-3.5 h-3.5" aria-hidden="true" /> {coverFile ? t("settings.bannerChange") : t("settings.bannerChoose")}
+                </FileButton>
+                {coverFile ? <span className="text-xs text-slate-600 dark:text-slate-300 truncate max-w-[16rem]">{coverFile.name}</span> : null}
+              </div>
             </div>
             <div>
               <label htmlFor="course-visibility" className="text-xs font-semibold text-slate-600 mb-1 block">{t("settings.visibility")}</label>

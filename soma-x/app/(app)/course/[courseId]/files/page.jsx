@@ -10,6 +10,7 @@ import { PageHeader, List } from "@/components/layout";
 import { useCourseText } from "@/components/course/useCourseText";
 import { useToast } from "@/context/ToastContext";
 import { apiFetch, apiUrl, getErrorMessage } from "@/lib/api";
+import { FileButton } from "@/components/form";
 
 export default function FilesPage() {
   const { courseId, isTeacher } = useCourse();
@@ -49,10 +50,9 @@ export default function FilesPage() {
         <PageHeader help="pages.files"
           title={t("nav.files")}
           actions={isTeacher ? (
-            <label className="flex items-center gap-1.5 text-xs font-semibold text-white bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] rounded-lg px-3 py-2 cursor-pointer focus-within:ring-2 focus-within:ring-[var(--brand-secondary)]">
-              <Upload className="w-3.5 h-3.5" /> {uploading ? t("editors.file.uploading") : t("editors.file.title")}
-              <input type="file" className="sr-only" onChange={(e) => handleUpload(e.target.files?.[0])} />
-            </label>
+            <FileButton variant="default" onFiles={([f]) => handleUpload(f)} disabled={uploading}>
+              <Upload className="w-3.5 h-3.5" aria-hidden="true" /> {uploading ? t("editors.file.uploading") : t("editors.file.title")}
+            </FileButton>
           ) : null}
         />
 

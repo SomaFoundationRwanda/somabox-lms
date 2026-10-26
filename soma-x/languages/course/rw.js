@@ -761,6 +761,8 @@ export default {
     "duration": "Igihe bimara (ibyumweru)",
     "about": "Ibyerekeye iri somo",
     "grade": "Umwaka / urwego",
+    "bannerChoose": "Hitamo ifoto",
+    "bannerChange": "Hitamo indi foto",
     "banner": "Ifoto y'ahabanza",
     "visibility": "Abemerewe kubona",
     "private": "Bwite: ku batumiwe gusa",

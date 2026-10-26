@@ -3,8 +3,8 @@
 // screen. This fails on a hand-written <input>, <select> or <textarea> anywhere else, and on a
 // kit control given its own styling: a className may only place it (width, margins, flex);
 // sizes, icons, codes and help text are the kit's props (size, icon, onClear, variant, description).
-// Allowed as they are: file pickers, hidden inputs, sliders and colour pickers (type="file",
-// "hidden", "range", "color"), and a rare deliberate exception marked data-raw-control="<why>".
+// File pickers and sliders are the kit's FileButton, FileDrop and Slider too. Allowed as they
+// are: hidden inputs, colour pickers, and a rare deliberate exception marked data-raw-control="<why>".
 // Run with `pnpm test` in soma-x.
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
@@ -13,7 +13,7 @@ import { fileURLToPath } from "node:url";
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const DIRS = ["app", "components"];
 const OWNERS = ["components/form/", "components/ui/checkbox"];
-const ALLOWED_TYPES = /type=["'](file|hidden|range|color)["']/;
+const ALLOWED_TYPES = /type=["'](hidden|color)["']/;
 
 function* files(dir) {
     for (const name of readdirSync(dir)) {
@@ -25,7 +25,7 @@ function* files(dir) {
 
 // Classes that only place a control. Anything else (colours, fonts, borders, padding) is styling.
 const LAYOUT = /^(?:(?:sm|md|lg|xl|2xl):)?(?:w-|min-w-|max-w-|flex$|flex-1$|flex-none$|shrink|grow|basis-|m[trblxy]?-|self-|col-span|row-span|order-|block$|inline|hidden$)/;
-const KIT = /<(TextInput|Textarea|Select|PasswordInput|ChoiceGroup|Checkbox|CheckboxField)\b/g;
+const KIT = /<(TextInput|Textarea|Select|PasswordInput|ChoiceGroup|Checkbox|CheckboxField|Slider|FileDrop)\b/g;
 
 // The opening tag from `start`, skipping ">" inside {...} (e.g. arrow functions).
 function openingTag(text, start) {

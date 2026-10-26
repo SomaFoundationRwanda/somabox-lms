@@ -1,7 +1,7 @@
 "use client";
 
-// The app's form controls: every text box, dropdown, text area, checkbox and choice comes from
-// here, so they look and behave the same on every screen (size, border, focus ring in the
+// The app's form controls: every text box, dropdown, text area, checkbox, choice, file picker
+// and slider comes from here, so they look and behave the same on every screen (size, border, focus ring in the
 // school's colour, dark mode, disabled and error states).
 //
 //   <Field label={t("...")} hint={...} error={errors.name} required>
@@ -18,6 +18,7 @@ import { Checkbox as CheckboxBox } from "@/components/ui/checkbox";
 /** The bare checkbox (no label), e.g. to select table rows; give it an aria-label. */
 export { CheckboxBox as Checkbox };
 import { cn } from "@/lib/utils";
+import { buttonVariants } from "@/components/ui/button";
 
 const FieldContext = createContext(null);
 
@@ -222,3 +223,109 @@ export const PasswordInput = forwardRef(function PasswordInput({ size = "md", cl
         </div>
     );
 });
+
+// ── Files ───────────────────────────────────────────────────────────────────────────────────
+
+function FileInput({ inputRef, accept, multiple, disabled, onFiles, id, describedBy }) {
+    return (
+        <input
+            ref={inputRef}
+            id={id}
+            type="file"
+            accept={accept}
+            multiple={multiple}
+            disabled={disabled}
+            aria-describedby={describedBy}
+            className="sr-only"
+            onChange={(e) => {
+                const files = Array.from(e.target.files || []);
+                e.target.value = ""; // choosing the same file again still counts
+                if (files.length) onFiles(files);
+            }}
+        />
+    );
+}
+
+/**
+ * A button that opens the file chooser. `onFiles(files[])`. variant/size as Button's
+ * (components/ui/button); variant "bare" takes the look of the toolbar it sits in (className).
+ */
+export function FileButton({ accept, multiple = false, disabled = false, onFiles, variant = "outline", size = "sm", id, title, className, children, ...rest }) {
+    const autoId = useId();
+    const inputId = id || `file-${autoId}`;
+    const look = variant === "bare" ? className : buttonVariants({ variant, size, className: cn("focus-within:ring-[3px] focus-within:ring-[var(--brand-secondary)]/40", className) });
+    return (
+        <label htmlFor={inputId} title={title} aria-disabled={disabled || undefined}
+            className={cn(look, "cursor-pointer", disabled && "pointer-events-none opacity-50")} {...rest}>
+            {children}
+            <FileInput id={inputId} accept={accept} multiple={multiple} disabled={disabled} onFiles={onFiles} describedBy={rest["aria-describedby"]} />
+        </label>
+    );
+}
+
+/**
+ * A box to drop files on, or click to choose them. `onFiles(files[])`. `title`/`hint`/`icon`
+ * describe it; `children` replaces that content (e.g. to show the chosen file).
+ */
+export function FileDrop({ accept, multiple = false, disabled = false, onFiles, title, hint, icon: Icon, label, className, children }) {
+    const autoId = useId();
+    const inputId = `drop-${autoId}`;
+    const [dragging, setDragging] = useState(false);
+    return (
+        <label
+            htmlFor={inputId}
+            aria-label={label}
+            onDragOver={(e) => { e.preventDefault(); if (!disabled) setDragging(true); }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={(e) => {
+                e.preventDefault();
+                setDragging(false);
+                const files = Array.from(e.dataTransfer.files || []);
+                if (!disabled && files.length) onFiles(multiple ? files : files.slice(0, 1));
+            }}
+            className={cn(
+                "flex flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed px-4 py-6 text-center cursor-pointer transition-colors",
+                "focus-within:ring-2 focus-within:ring-[var(--brand-secondary)]/40",
+                dragging
+                    ? "border-[var(--brand-secondary)] bg-teal-50 dark:bg-teal-950/20"
+                    : "border-slate-300 bg-slate-50 hover:border-slate-400 hover:bg-white dark:border-slate-700 dark:bg-slate-900/40 dark:hover:bg-slate-900",
+                disabled && "pointer-events-none opacity-50",
+                className,
+            )}
+        >
+            {children ?? (
+                <>
+                    {Icon ? <Icon className="w-6 h-6 text-slate-400" aria-hidden="true" /> : null}
+                    {title ? <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{title}</span> : null}
+                    {hint ? <span className="text-xs text-slate-500 dark:text-slate-400">{hint}</span> : null}
+                </>
+            )}
+            <FileInput id={inputId} accept={accept} multiple={multiple} disabled={disabled} onFiles={onFiles} />
+        </label>
+    );
+}
+
+// ── Sliders ─────────────────────────────────────────────────────────────────────────────────
+
+/**
+ * A range slider with its filled part shown. `onChange(number)`. tone "onDark" for controls
+ * over video or dark panels. Needs an aria-label (and aria-valuetext when the number alone
+ * means little).
+ */
+export function Slider({ value, min = 0, max = 100, step = 1, onChange, tone = "default", className, ...props }) {
+    const share = max > min ? ((Number(value) - min) / (max - min)) * 100 : 0;
+    const [fill, rest] = tone === "onDark" ? ["#ffffff", "rgba(255,255,255,0.3)"] : ["var(--brand-secondary)", "rgba(148,163,184,0.35)"];
+    return (
+        <input
+            type="range"
+            min={min}
+            max={max}
+            step={step}
+            value={value}
+            onChange={(e) => onChange(Number(e.target.value))}
+            {...props}
+            className={cn("kit-slider w-full h-1.5 rounded-full appearance-none cursor-pointer", tone === "onDark" && "kit-slider-on-dark", className)}
+            style={{ background: `linear-gradient(to right, ${fill} 0%, ${fill} ${share}%, ${rest} ${share}%, ${rest} 100%)` }}
+        />
+    );
+}

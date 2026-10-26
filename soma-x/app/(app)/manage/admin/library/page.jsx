@@ -4,22 +4,21 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch, getErrorMessage } from "@/lib/api";
 import { queryKeys } from "@/lib/queryKeys";
 import DataContext from "@/context/DataContext";
-import { useContext, useEffect, useState, useRef } from "react";
+import { useContext, useEffect, useState } from "react";
 import ManageTitle from "@/components/manage/ManageTitle";
 import { DataTable, Section } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { BookOpen, CheckCircle2, Loader2, Trash2, X, Upload, File, AlertCircle, Eye } from "lucide-react";
-import { useCallback } from "react";
 import UniversalPlayerModal from "@/components/ui/UniversalPlayerModal";
 import dynamic from "next/dynamic";
-import { clickableProps } from "@/lib/a11y";
 import Link from "next/link";
 import { useLanguage } from "@/context/LanguageContext";
 import { fill } from "@/lib/fill";
 import { libraryCoverUrl, libraryFileUrl, libraryShelf, libraryViewer } from "@/components/ui/library/libraryEntry";
 import Loader from "@/components/ui/Loader";
 import { Field, TextInput } from "@/components/form";
+import { FileDrop } from "@/components/form";
 
 // What the library can hold: books, videos and audio.
 const LIBRARY_ACCEPT = ".pdf,.epub,.mp4,.webm,.mkv,.m4v,.mov,.mp3,.wav,.ogg,.m4a";
@@ -53,10 +52,8 @@ function LibraryUploadModal({ onClose, onSubmit }) {
     const { t } = useLanguage();
     const [file, setFile] = useState(null);
     const [bookName, setBookName] = useState('');
-    const [dragging, setDragging] = useState(false);
     const [status, setStatus] = useState('idle'); // idle | uploading | done | error
     const [errorMsg, setErrorMsg] = useState('');
-    const fileInputRef = useRef(null);
 
     const handleFile = (f) => { 
         if (f) {
@@ -66,16 +63,6 @@ function LibraryUploadModal({ onClose, onSubmit }) {
             }
         }
     };
-
-    const handleDrop = useCallback((e) => {
-        e.preventDefault();
-        setDragging(false);
-        const f = e.dataTransfer.files?.[0];
-        if (f) handleFile(f);
-    }, []);
-
-    const handleDragOver  = (e) => { e.preventDefault(); setDragging(true); };
-    const handleDragLeave = ()  => setDragging(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -117,27 +104,14 @@ function LibraryUploadModal({ onClose, onSubmit }) {
                         <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest block mb-2">
                             {t("admin.library.file")}
                         </p>
-                        <div
-                            {...clickableProps(() => fileInputRef.current?.click(), t("admin.library.chooseFile"))}
-                            onDrop={handleDrop}
-                            onDragOver={handleDragOver}
-                            onDragLeave={handleDragLeave}
-                            className={`relative flex flex-col items-center justify-center gap-2 h-[120px] rounded-[5px] border-2 border-dashed cursor-pointer transition-all ${
-                                dragging
-                                    ? 'border-accent-dark bg-accent-dark/5 scale-[1.01]'
-                                    : file
-                                    ? 'border-slate-300 bg-slate-50'
-                                    : 'border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-white'
-                            }`}
+                        <FileDrop
+                            accept={LIBRARY_ACCEPT}
+                            onFiles={([f]) => handleFile(f)}
+                            label={t("admin.library.chooseFile")}
+                            icon={File}
+                            title={`${t("admin.library.dropHere")} ${t("admin.library.browse")}`}
+                            hint={t("explore.manager.allowedTypes")}
                         >
-                            <input
-                                ref={fileInputRef}
-                                type="file"
-                                accept={LIBRARY_ACCEPT}
-                                className="hidden"
-                                onChange={(e) => handleFile(e.target.files?.[0])}
-                            />
-
                             {file ? (
                                 <>
                                     <div className="flex items-center gap-2.5">
@@ -151,20 +125,8 @@ function LibraryUploadModal({ onClose, onSubmit }) {
                                     </div>
                                     <p className="text-[10px] text-slate-600 mt-2">{t("admin.library.changeFile")}</p>
                                 </>
-                            ) : (
-                                <>
-                                    <div className="w-9 h-9 rounded-[5px] bg-slate-100 flex items-center justify-center">
-                                        <File className="w-4 h-4 text-slate-600" />
-                                    </div>
-                                    <div className="text-center">
-                                        <p className="text-[12px] font-semibold text-slate-600">
-                                            {t("admin.library.dropHere")} <span className="text-[var(--brand-secondary)] underline underline-offset-2">{t("admin.library.browse")}</span>
-                                        </p>
-                                        <p className="text-[10px] text-slate-600 mt-0.5">{t("explore.manager.allowedTypes")}</p>
-                                    </div>
-                                </>
-                            )}
-                        </div>
+                            ) : undefined}
+                        </FileDrop>
                     </div>
 
                     {file && (

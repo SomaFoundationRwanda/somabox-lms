@@ -6,7 +6,7 @@ import {
   List, ListOrdered, Link as LinkIcon, Unlink, Quote, Minus, Code,
 } from "lucide-react";
 import { useCourseText } from "@/components/course/useCourseText";
-import { TextInput } from "@/components/form";
+import { FileButton, TextInput } from "@/components/form";
 
 function ToolbarButton({ onClick, isActive, children, title }) {
   return (
@@ -28,6 +28,9 @@ function ToolbarButton({ onClick, isActive, children, title }) {
 function ToolbarDivider() {
   return <div className="w-px h-5 bg-slate-200 mx-0.5" />;
 }
+
+// A chosen file goes to the editor, which uploads and places it (RichTextEditor listens).
+const uploadToEditor = ([file]) => window.dispatchEvent(new CustomEvent("editor-upload-file", { detail: file }));
 
 export default function EditorToolbar({ editor }) {
   const { t } = useCourseText();
@@ -183,46 +186,22 @@ export default function EditorToolbar({ editor }) {
       <ToolbarDivider />
 
       {/* Insert Image */}
-      <label className="p-1.5 rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-700 cursor-pointer transition-colors" title={t("editor.insertImage")}>
+      <FileButton variant="bare" accept="image/*" title={t("editor.insertImage")} aria-label={t("editor.insertImage")} onFiles={uploadToEditor}
+        className="p-1.5 rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors">
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <rect x="3" y="3" width="18" height="18" rx="2" ry="2" strokeWidth="2" />
           <circle cx="8.5" cy="8.5" r="1.5" strokeWidth="2" />
           <path d="M21 15l-5-5L5 21" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
-        <input
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) {
-              const domEvent = new CustomEvent("editor-upload-file", { detail: file });
-              window.dispatchEvent(domEvent);
-              e.target.value = "";
-            }
-          }}
-        />
-      </label>
+      </FileButton>
 
       {/* Attach File */}
-      <label className="p-1.5 rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-700 cursor-pointer transition-colors" title={t("editor.attachFile")}>
+      <FileButton variant="bare" accept="*/*" title={t("editor.attachFile")} aria-label={t("editor.attachFile")} onFiles={uploadToEditor}
+        className="p-1.5 rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors">
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
-        <input
-          type="file"
-          accept="*/*"
-          className="hidden"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) {
-              const domEvent = new CustomEvent("editor-upload-file", { detail: file });
-              window.dispatchEvent(domEvent);
-              e.target.value = "";
-            }
-          }}
-        />
-      </label>
+      </FileButton>
     </div>
   );
 }

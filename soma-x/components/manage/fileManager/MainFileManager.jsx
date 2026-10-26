@@ -11,7 +11,6 @@ import { getFileMediaType } from './fileRow';
 import UniversalPlayerModal from '@/components/ui/UniversalPlayerModal';
 import dynamic from "next/dynamic";
 import { Button } from '@/components/ui/button';
-import { clickableProps } from "@/lib/a11y";
 import DataContext from "@/context/DataContext";
 import { useLanguage } from "@/context/LanguageContext";
 import {
@@ -19,7 +18,7 @@ import {
     Upload, X, CheckCircle2, AlertCircle, Music, Video, BookOpen, FolderOpen, RefreshCw, Pencil, Trash2, Sparkles,
 } from 'lucide-react';
 import SummaryPanel from '@/components/explore/SummaryPanel';
-import { Field, TextInput, Textarea } from "@/components/form";
+import { Field, FileDrop, TextInput, Textarea } from "@/components/form";
 
 // react-reader (epub.js) loads only when a book is opened.
 const EpubReader = dynamic(() => import("@/components/ui/library/EpubReader"), { ssr: false });
@@ -303,9 +302,7 @@ const FILE_ICON = { video: Video, audio: Music, pdf: BookOpen, epub: BookOpen };
 function UploadModal({ folderPath, folderTitle, onClose, onUploaded }) {
     const { t } = useLanguage();
     const [entries, setEntries]   = useState([]); // { key, file, state: waiting|uploading|added|exists|unsupported|failed, progress, message }
-    const [dragging, setDragging] = useState(false);
     const [running, setRunning]   = useState(false);
-    const fileInputRef = useRef(null);
 
     const addFiles = (list) => {
         const files = Array.from(list || []);
@@ -318,11 +315,6 @@ function UploadModal({ folderPath, folderTitle, onClose, onUploaded }) {
 
     const update = (key, patch) => setEntries((prev) => prev.map((e) => (e.key === key ? { ...e, ...patch } : e)));
 
-    const handleDrop = (e) => {
-        e.preventDefault();
-        setDragging(false);
-        if (!running) addFiles(e.dataTransfer.files);
-    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -376,29 +368,16 @@ function UploadModal({ folderPath, folderTitle, onClose, onUploaded }) {
             />
             <form onSubmit={handleSubmit}>
                 <div className="px-5 py-5 space-y-4">
-                    <div
-                        {...clickableProps(() => { if (!running) fileInputRef.current?.click(); }, t("explore.manager.chooseFiles"))}
-                        onDrop={handleDrop}
-                        onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-                        onDragLeave={() => setDragging(false)}
-                        className={`flex flex-col items-center justify-center gap-2 h-[110px] rounded-[5px] border-2 border-dashed cursor-pointer transition-all ${
-                            dragging ? 'border-accent-dark bg-accent-dark/5' : 'border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-white'
-                        }`}
-                    >
-                        <input
-                            ref={fileInputRef}
-                            type="file"
-                            multiple
-                            accept={ACCEPT}
-                            className="hidden"
-                            onChange={(e) => { addFiles(e.target.files); e.target.value = ''; }}
-                        />
-                        <File className="w-5 h-5 text-slate-600" aria-hidden="true" />
-                        <p className="text-[12px] font-semibold text-slate-600 text-center">
-                            {t("explore.manager.dropFiles")}
-                        </p>
-                        <p className="text-[11px] text-slate-600 text-center px-4">{t("explore.manager.allowedTypes")}</p>
-                    </div>
+                    <FileDrop
+                        multiple
+                        accept={ACCEPT}
+                        disabled={running}
+                        onFiles={addFiles}
+                        label={t("explore.manager.chooseFiles")}
+                        icon={File}
+                        title={t("explore.manager.dropFiles")}
+                        hint={t("explore.manager.allowedTypes")}
+                    />
 
                     {entries.length > 0 && (
                         <ul className="divide-y divide-slate-100 border border-slate-100 rounded-[5px]" aria-live="polite">
