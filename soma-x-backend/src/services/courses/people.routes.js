@@ -4,6 +4,7 @@
 import express from "express";
 import { localDb, serverDb } from "../../helpers/db-manager.js";
 import { isInternalEmail } from "../../helpers/identity.js";
+import { membershipChanged } from "../../helpers/live.js";
 import {
   normalizeEmail,
   requireTeacher,
@@ -109,6 +110,7 @@ router.post("/:id/people", async (req, res) => {
       VALUES (?, ?, ?, 'active')
       ON CONFLICT(course_id, user_email) DO UPDATE SET role = excluded.role, status = 'active'
     `).run(courseId, email, role);
+    membershipChanged(courseId, [email]);
 
     return res.status(201).json({ message: "Enrolled", email, role, status: "active" });
   } catch (error) {
@@ -129,6 +131,7 @@ router.delete("/:id/people/:enrollmentId", async (req, res) => {
     if (problem) return res.status(problem.status).json({ message: problem.message });
 
     await localDb.prepare("DELETE FROM enrollments WHERE id = ? AND course_id = ?").run(req.params.enrollmentId, courseId);
+    membershipChanged(courseId, [target.user_email]);
     return res.status(204).end();
   } catch (error) {
     console.error("Error removing enrollment:", error);
@@ -153,6 +156,7 @@ router.post("/:id/enroll", async (req, res) => {
     if (course.lifecycle !== "open") return res.status(400).json({ message: "This course isn't open for joining yet" });
 
     await localDb.prepare("INSERT INTO enrollments (course_id, user_email, role, status) VALUES (?, ?, 'student', 'active')").run(courseId, email);
+    membershipChanged(courseId, [email]);
     return res.status(201).json({ message: "Enrolled successfully", courseId });
   } catch (error) {
     console.error("Error self-enrolling:", error);

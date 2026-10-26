@@ -2,6 +2,7 @@
 // Kinyarwanda: please have a native-speaking teacher review.
 export default {
     "common": {
+        "cantReachBox": "Ntibishoboka kugera kuri SOMABOX. Reba Wi-Fi wongere ugerageze.",
         "somethingWrong": "Habaye ikibazo. Ongera ugerageze.",
         "loading": "Tegereza gato…",
         "close": "Funga",

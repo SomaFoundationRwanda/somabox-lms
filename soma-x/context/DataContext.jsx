@@ -1,8 +1,26 @@
 "use client"
-import { createContext, useEffect, useState, useCallback, useRef } from "react";
+import { createContext, useEffect, useState, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { X, AlertCircle, CheckCircle2, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { clearSession, getSessionToken, installAuthFetch, startMediaSessionKeepAlive } from "@/lib/session";
 import { clearUserQueue, pendingCount } from "@/lib/submissionQueue";
+import { apiFetch } from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
+import { startLiveUpdates } from "@/lib/liveUpdates";
+
+// The signed-in user as the app uses it, from GET /auth/me.
+async function loadMe() {
+    const { user: me } = await apiFetch("/auth/me");
+    return {
+        id: me.id,
+        email: String(me.email || "").toLowerCase(),
+        fullName: me.full_name || "",
+        role: me.role,
+        mustChangePassword: !!me.must_change_password,
+        // Learners' sign-in code (e.g. GSK-0012); "" for staff.
+        learnerCode: me.learner_code || "",
+    };
+}
 
 // Attach the session token (and the media cookie) to every backend request from the first render on.
 installAuthFetch(process.env.NEXT_PUBLIC_SERVER_URL);
@@ -54,13 +72,9 @@ function computeCanvasVars(brightness) {
 }
 
 export function DataProvider({ children }) {
-    const [summaryData, setSummaryData] = useState(null);
-    const [mainCategories, setMainCategories] = useState(null);
-    const [customContentSummary, setCustomContentSummary] = useState(null);
-    // The logged-in user from GET /auth/me: { id, email, fullName, role, mustChangePassword, learnerCode }.
-    const [user, setUser] = useState(null);
-    const [authenticated, setAuthenticated] = useState(false);
-    const [authLoading, setAuthLoading] = useState(true);
+    const queryClient = useQueryClient();
+    // Whether this browser holds a session token (read after mount: storage is client-only).
+    const [hasToken, setHasToken] = useState(false);
     const [isDark, setIsDark] = useState(false);
     const [brightness, setBrightnessState] = useState(100);
     // Guards against hydration mismatch (#418): components using isDark/
@@ -70,65 +84,16 @@ export function DataProvider({ children }) {
     const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL;
 
     // The Explore catalogue: one public fetch (GET /content/explore) built from the folders on
-    // the box. mainCategories, summaryData and customContentSummary are all views of it.
-    const [exploreVersion, setExploreVersion] = useState(null);
-    const exploreLoadedAt = useRef(0);
-    const exploreInFlight = useRef(null);
-
-    const refreshExplore = useCallback(async () => {
-        if (exploreInFlight.current) return exploreInFlight.current;
-        const run = (async () => {
-            try {
-                const res = await fetch(`${SERVER_URL}/content/explore`);
-                if (!res.ok) {
-                    // Keep showing what we had; on first load fall back to an empty catalogue
-                    // so pages show their empty state instead of loading forever.
-                    if (!exploreLoadedAt.current) {
-                        setMainCategories((prev) => prev ?? []);
-                        setSummaryData((prev) => prev ?? {});
-                        setCustomContentSummary((prev) => prev ?? {});
-                    }
-                    return;
-                }
-                const data = await res.json();
-                const summary = data?.summary || {};
-                setMainCategories(Array.isArray(data?.mainCategories) ? data.mainCategories : []);
-                setSummaryData(summary);
-                setCustomContentSummary(summary);
-                setExploreVersion(data?.version ?? null);
-                exploreLoadedAt.current = Date.now();
-            } catch (error) {
-                console.error("Explore fetch error:", error);
-                if (!exploreLoadedAt.current) {
-                    setMainCategories((prev) => prev ?? []);
-                    setSummaryData((prev) => prev ?? {});
-                    setCustomContentSummary((prev) => prev ?? {});
-                }
-            } finally {
-                exploreInFlight.current = null;
-            }
-        })();
-        exploreInFlight.current = run;
-        return run;
-    }, [SERVER_URL]);
-
-    useEffect(() => {
-        refreshExplore();
-        const STALE_MS = 2 * 60 * 1000;
-        const onFocus = () => {
-            if (document.visibilityState === "visible" && Date.now() - exploreLoadedAt.current > STALE_MS) refreshExplore();
-        };
-        const timer = setInterval(() => {
-            if (document.visibilityState === "visible") refreshExplore();
-        }, 5 * 60 * 1000);
-        window.addEventListener("focus", onFocus);
-        document.addEventListener("visibilitychange", onFocus);
-        return () => {
-            clearInterval(timer);
-            window.removeEventListener("focus", onFocus);
-            document.removeEventListener("visibilitychange", onFocus);
-        };
-    }, [refreshExplore]);
+    // the box. mainCategories, summaryData and customContentSummary are all views of it. Kept
+    // until the box says the catalogue changed (live updates) or the app reloads.
+    const explore = useQuery({ queryKey: queryKeys.explore, queryFn: () => apiFetch("/content/explore") });
+    // On a failed first load, an empty catalogue: pages show their empty state, not a spinner.
+    const catalogue = explore.data ?? (explore.isError ? {} : null);
+    const mainCategories = catalogue ? (Array.isArray(catalogue.mainCategories) ? catalogue.mainCategories : []) : null;
+    const summaryData = catalogue ? catalogue.summary || {} : null;
+    const customContentSummary = summaryData;
+    const exploreVersion = catalogue?.version ?? null;
+    const refreshExplore = useCallback(() => queryClient.invalidateQueries({ queryKey: queryKeys.explore }), [queryClient]);
 
     const applyBrightness = useCallback((value, { persist = true } = {}) => {
         const clamped = Math.min(100, Math.max(0, value));
@@ -152,39 +117,41 @@ export function DataProvider({ children }) {
     // Back-compat shim for existing Light/Dark buttons: true -> darkest, false -> lightest.
     const toggleDark = useCallback((val) => applyBrightness(val ? 0 : 100), [applyBrightness]);
 
-    const refreshUser = useCallback(async () => {
-        if (!getSessionToken()) {
-            setUser(null);
-            setAuthenticated(false);
-            return null;
-        }
-        try {
-            const res = await fetch(`${SERVER_URL}/auth/me`);
-            if (!res.ok) throw new Error("Session expired");
-            const { user: me } = await res.json();
-            const next = {
-                id: me.id,
-                email: String(me.email || "").toLowerCase(),
-                fullName: me.full_name || "",
-                role: me.role,
-                mustChangePassword: !!me.must_change_password,
-                // Learners' sign-in code (e.g. GSK-0012); "" for staff.
-                learnerCode: me.learner_code || "",
-            };
-            setUser(next);
-            setAuthenticated(true);
-            return next;
-        } catch {
+    // The logged-in user: { id, email, fullName, role, mustChangePassword, learnerCode }.
+    const me = useQuery({ queryKey: queryKeys.me, queryFn: loadMe, enabled: hasToken });
+    const user = me.data ?? null;
+    const authenticated = !!user;
+    const authLoading = !mounted || (hasToken && me.isPending);
+
+    // A session the box no longer accepts ends here (a 401 is already handled by apiFetch). When
+    // the box can't be reached, the session is kept: the person is signed in again once it's back.
+    useEffect(() => {
+        if (me.error && me.error.status !== 0) {
             clearSession();
-            setUser(null);
-            setAuthenticated(false);
+            setHasToken(false);
+            queryClient.removeQueries({ queryKey: queryKeys.me });
+        }
+    }, [me.error, queryClient]);
+
+    const refreshUser = useCallback(async () => {
+        if (!getSessionToken()) return null;
+        setHasToken(true);
+        try {
+            return await queryClient.fetchQuery({ queryKey: queryKeys.me, queryFn: loadMe, staleTime: 0 });
+        } catch {
             return null;
         }
-    }, [SERVER_URL]);
+    }, [queryClient]);
+
+    // While someone is signed in, the box tells this browser what changed (lib/liveUpdates.js).
+    useEffect(() => {
+        if (!authenticated) return undefined;
+        return startLiveUpdates(queryClient);
+    }, [authenticated, queryClient]);
 
     // Auth + theme — runs only on the client after mount
     useEffect(() => {
-        refreshUser().finally(() => setAuthLoading(false));
+        setHasToken(!!getSessionToken());
 
         // Resolve initial brightness: prefer the new "brightness" key; fall
         // back to migrating the old binary "theme" key (dark -> 0, light -> 100)
@@ -228,10 +195,10 @@ export function DataProvider({ children }) {
             // offline: the local session is still cleared below
         }
         clearSession();
-        setAuthenticated(false);
-        setUser(null);
+        // Nothing of this person's stays in memory for the next one on this device.
+        queryClient.clear();
         window.location.href = '/';
-    }, [SERVER_URL, user]);
+    }, [SERVER_URL, user, queryClient]);
 
     const [uploads, setUploads] = useState([]);
 
@@ -316,15 +283,11 @@ export function DataProvider({ children }) {
 
     const contextData = {
         summaryData,
-        setSummaryData,
         mainCategories,
-        setMainCategories,
         customContentSummary,
-        setCustomContentSummary,
         exploreVersion,
         refreshExplore,
         authenticated,
-        setAuthenticated,
         authLoading,
         isDark,
         toggleDark,

@@ -41,3 +41,6 @@ package-lock.json
 
 # Old per-app settings, kept by `pnpm env:migrate` until checked
 *.env.migrated
+
+# e2e request counts from local runs (baseline.json is kept)
+e2e/metrics/latest.json

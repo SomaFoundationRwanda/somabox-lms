@@ -1,29 +1,19 @@
 "use client";
 
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useContext } from 'react';
 import { AlertTriangle, ArrowRight, UserCheck, X } from 'lucide-react';
 import Link from 'next/link';
 import DataContext from '@/context/DataContext';
 import { useLanguage } from '@/context/LanguageContext';
-import { fetchNotifications } from '@/lib/notification-service';
+import { useNotifications } from '@/lib/notification-service';
 import { accountPage } from '@/lib/session';
 
 export default function ProfileCompletionBanner() {
-    const { authenticated, user } = useContext(DataContext);
+    const { user } = useContext(DataContext);
     const { t } = useLanguage();
-    const [isIncomplete, setIsIncomplete] = useState(false);
+    // The same kept copy as the notification bell: no request of its own.
+    const { isProfileIncomplete: isIncomplete } = useNotifications();
     const [dismissed, setDismissed] = useState(false);
-
-    const userEmail = user?.email || "";
-
-    useEffect(() => {
-        if (!authenticated || !userEmail) return;
-        fetchNotifications().then(data => {
-            if (data?.isProfileIncomplete) {
-                setIsIncomplete(true);
-            }
-        });
-    }, [authenticated, userEmail]);
 
     if (!isIncomplete || dismissed) return null;
 

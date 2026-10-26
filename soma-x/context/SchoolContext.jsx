@@ -6,6 +6,9 @@
 // screen updates at once. The colours are set as CSS variables on <html>:
 // --brand-primary and --brand-secondary (see app/globals.css for the defaults).
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiFetch } from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
 
 export const DEFAULT_PRIMARY = "#203A3A";
 export const DEFAULT_SECONDARY = "#0F766E";
@@ -56,39 +59,40 @@ const SchoolContext = createContext({
     logoSrc: null,
 });
 
+const loadSchool = async () => normalise(await apiFetch("/school/public"));
+
 export function SchoolBrandingProvider({ children }) {
     const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL;
-    const [school, setSchool] = useState(DEFAULT_SCHOOL);
-    const [loaded, setLoaded] = useState(false);
+    const queryClient = useQueryClient();
+    // Kept until the admin changes it (live updates) or the app reloads.
+    const query = useQuery({ queryKey: queryKeys.schoolPublic, queryFn: loadSchool });
+    const [lastKnown, setLastKnown] = useState(DEFAULT_SCHOOL);
 
     // Show the last known look straight away (no SOMABOX flash on every page load); the
     // fresh copy from the box replaces it a moment later.
     useEffect(() => {
         try {
             const cached = localStorage.getItem(CACHE_KEY);
-            if (cached) setSchool(normalise(JSON.parse(cached)));
+            if (cached) setLastKnown(normalise(JSON.parse(cached)));
         } catch {
             // storage unavailable or bad JSON: wait for the box
         }
     }, []);
+    useEffect(() => {
+        if (!query.data) return;
+        try { localStorage.setItem(CACHE_KEY, JSON.stringify(query.data)); } catch { /* ignore */ }
+    }, [query.data]);
+
+    const school = query.data ?? lastKnown;
+    const loaded = query.isFetched;
 
     const refreshSchool = useCallback(async () => {
-        if (!SERVER_URL) return null;
         try {
-            const res = await fetch(`${SERVER_URL}/school/public`);
-            if (!res.ok) return null;
-            const data = normalise(await res.json());
-            setSchool(data);
-            try { localStorage.setItem(CACHE_KEY, JSON.stringify(data)); } catch { /* ignore */ }
-            return data;
+            return await queryClient.fetchQuery({ queryKey: queryKeys.schoolPublic, queryFn: loadSchool, staleTime: 0 });
         } catch {
             return null; // offline: keep what we have
-        } finally {
-            setLoaded(true);
         }
-    }, [SERVER_URL]);
-
-    useEffect(() => { refreshSchool(); }, [refreshSchool]);
+    }, [queryClient]);
 
     useEffect(() => {
         applyBrandColors(school.primaryColor, school.secondaryColor);

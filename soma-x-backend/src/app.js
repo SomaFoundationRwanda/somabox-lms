@@ -23,6 +23,17 @@ import syncServices from './services/sync.services.js';
 import bundleServices from './services/bundles.services.js';
 import schoolServices from './services/school.services.js';
 import setupServices from './services/setup.services.js';
+import liveServices from './services/live.services.js';
+import { publish } from './helpers/live.js';
+
+const WRITES = ['POST', 'PUT', 'PATCH', 'DELETE'];
+const BOX_CHANGES = [
+    { kind: 'school', methods: WRITES, path: /^\/school(\/|$)/ },
+    { kind: 'school', methods: ['POST'], path: /^\/analytics\/branding$/ },
+    { kind: 'catalogue', methods: ['POST', 'DELETE'], path: /^\/library\/(upload|book\/)/ },
+    { kind: 'catalogue', methods: WRITES, path: /^\/content\/manager\// },
+    { kind: 'catalogue', methods: ['PATCH', 'DELETE'], path: /^\/content\/summary$/ },
+];
 
 // API routers in mount order. Exported so tests can enumerate every route.
 export const API_ROUTERS = [
@@ -41,6 +52,7 @@ export const API_ROUTERS = [
     ['/bundles', bundleServices],
     ['/school', schoolServices],
     ['/setup', setupServices],
+    ['/live', liveServices],
 ];
 
 export function createApp({ logRequests = true } = {}) {
@@ -129,6 +141,14 @@ export function createApp({ logRequests = true } = {}) {
 
     // Every API route below requires a session unless listed in PUBLIC_ROUTES.
     app.use(requireAuthUnlessPublic);
+
+    // Changes everyone sees (the school's look, books, Explore content): open browsers are told
+    // once the change succeeds (helpers/live.js). Course changes are announced by the course guards.
+    app.use((req, res, next) => {
+        const kind = BOX_CHANGES.find((c) => c.methods.includes(req.method) && c.path.test(req.path))?.kind;
+        if (kind) res.on('finish', () => { if (res.statusCode >= 200 && res.statusCode < 300) publish({ kind }, { everyone: true }); });
+        next();
+    });
 
     for (const [prefix, router] of API_ROUTERS) app.use(prefix, router);
 

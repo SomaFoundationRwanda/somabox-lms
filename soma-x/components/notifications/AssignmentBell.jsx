@@ -1,6 +1,9 @@
 "use client";
 
-import { useCallback, useContext, useEffect, useState } from "react";
+import { useContext, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { apiFetch } from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
 import Link from "next/link";
 import { ClipboardList, AlertTriangle } from "lucide-react";
 import DataContext from "@/context/DataContext";
@@ -10,38 +13,19 @@ import { formatDate } from "@/components/helpers/localeDate";
 import Loader from "@/components/ui/Loader";
 
 export default function AssignmentBell({ className = "" }) {
-    const { authenticated, isDark, SERVER_URL, user } = useContext(DataContext);
+    const { authenticated, isDark } = useContext(DataContext);
     const { t, lang } = useLanguage();
     const [open, setOpen] = useState(false);
-    const [outstanding, setOutstanding] = useState([]);
-    const [outstandingCount, setOutstandingCount] = useState(0);
-    const [loading, setLoading] = useState(false);
-
-    const userEmail = user?.email || "";
-
-    const load = useCallback(async () => {
-        if (!userEmail || !SERVER_URL) return;
-        try {
-            setLoading(true);
-            const res = await fetch(`${SERVER_URL}/users/me/assignment-summary`);
-            if (!res.ok) return;
-            const data = await res.json();
-            setOutstanding(data.outstanding || []);
-            setOutstandingCount(data.outstanding_count || 0);
-        } catch {
-            /* silent */
-        } finally {
-            setLoading(false);
-        }
-    }, [userEmail, SERVER_URL]);
-
-    useEffect(() => {
-        if (authenticated && userEmail) {
-            load();
-            const timer = setInterval(load, 30000);
-            return () => clearInterval(timer);
-        }
-    }, [authenticated, userEmail, load]);
+    // Kept until the box says a course changed (new or changed work: live updates) or the
+    // learner hands something in.
+    const summary = useQuery({
+        queryKey: queryKeys.assignmentSummary,
+        queryFn: () => apiFetch("/users/me/assignment-summary"),
+        enabled: authenticated,
+    });
+    const outstanding = summary.data?.outstanding || [];
+    const outstandingCount = summary.data?.outstanding_count || 0;
+    const loading = summary.isFetching;
 
     const formatDue = (dueAt) => {
         if (!dueAt) return t("shell.assignments.noDueDate");

@@ -14,6 +14,7 @@ import { hashPassword, logAdminAuditAction } from "../users.service.js";
 import { applySchoolToUser, assignLearnerCode } from "../school.js";
 import { courseExists, requireTeacher } from "./shared.js";
 import { LEARNER_EMAIL_DOMAIN } from "../../helpers/identity.js";
+import { membershipChanged } from "../../helpers/live.js";
 
 const router = express.Router();
 
@@ -150,6 +151,10 @@ router.post("/:id/learners", async (req, res) => {
         targetUserEmail: learner.email,
         details: `Created learner ${name} (${learner.code}) in course ${courseId}`,
       });
+    }
+    if (added.length) {
+      const emails = await Promise.all(added.map(async (l) => (await localDb.prepare("SELECT email FROM users WHERE id = ?").get(l.id))?.email));
+      membershipChanged(courseId, emails);
     }
     return res.status(201).json({ created, added, ambiguous });
   } catch (error) {

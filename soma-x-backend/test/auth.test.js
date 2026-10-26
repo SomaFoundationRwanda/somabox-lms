@@ -19,6 +19,8 @@ const POLICY = {
   "GET /auth/verify-auth": "any",
   "POST /auth/logout": "any",
   "POST /auth/logout-others": "any",
+  "POST /live/ticket": "any",
+  "GET /live": "public", // the single-use ticket is the authentication
   "POST /auth/media-session": "any",
   "GET /analytics/branding": "public",
   "GET /ai/health": "any",

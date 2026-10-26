@@ -73,6 +73,30 @@ export function loginUrlWithNext(next) {
 }
 
 /**
+ * What a backend answer means for the session: a 401 ends the local session and returns to the
+ * login page; a pending password change (403 PASSWORD_CHANGE_REQUIRED) sends the user to their
+ * account page. Shared by apiFetch (lib/api.js) and the window.fetch wrapper below.
+ */
+export function handleSessionProblem(response) {
+    if (typeof window === "undefined") return;
+    if (response.status === 401) {
+        clearSession();
+        if (window.location.pathname !== "/") window.location.href = loginUrlWithNext();
+    } else if (response.status === 403) {
+        response.clone().json().then((body) => {
+            if (body?.code === "PASSWORD_CHANGE_REQUIRED" && !ACCOUNT_PAGES.includes(window.location.pathname)) {
+                window.location.href = window.location.pathname.startsWith("/teacher") ? "/teacher/settings" : "/account";
+            }
+        }).catch(() => {});
+    }
+}
+
+/** window.fetch as it was before the wrapper (apiFetch adds the token and handling itself). */
+export function baseFetch() {
+    return rawFetch || window.fetch.bind(window);
+}
+
+/**
  * Wraps window.fetch once so every request to the backend carries the session token,
  * without touching each of the app's fetch calls. Also reacts to session problems:
  * a 401 ends the local session and returns to the login page; a pending password
@@ -104,16 +128,7 @@ export function installAuthFetch(serverUrl) {
         if (!headers.has("Authorization")) headers.set("Authorization", `Bearer ${token}`);
         const response = await originalFetch(input, { ...withCookies, headers });
 
-        if (response.status === 401 && !url.startsWith(`${base}/auth/login`)) {
-            clearSession();
-            if (window.location.pathname !== "/") window.location.href = loginUrlWithNext();
-        } else if (response.status === 403) {
-            response.clone().json().then((body) => {
-                if (body?.code === "PASSWORD_CHANGE_REQUIRED" && !ACCOUNT_PAGES.includes(window.location.pathname)) {
-                    window.location.href = window.location.pathname.startsWith("/teacher") ? "/teacher/settings" : "/account";
-                }
-            }).catch(() => {});
-        }
+        if (!url.startsWith(`${base}/auth/login`)) handleSessionProblem(response);
         return response;
     };
 }

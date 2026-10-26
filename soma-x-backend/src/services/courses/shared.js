@@ -1,6 +1,21 @@
 // Helpers shared by the course routers (src/services/courses/*.routes.js).
 import multer from "multer";
 import { localDb, serverDb, DEFAULT_NAV_ITEMS } from "../../helpers/db-manager.js";
+import { publishCourse } from "../../helpers/live.js";
+
+// Changes that don't alter what the course's members see: no live update for them.
+const QUIET_PATHS = [/\/ai\/jobs/, /\/reset-password$/, /\/learner-search$/];
+
+/**
+ * Once a change to the course succeeds, the browsers showing it are told (helpers/live.js):
+ * a teacher's change reaches everyone in the course, a learner's work reaches the teachers.
+ */
+function announceWhenDone(req, res, courseId, kind) {
+  if (req.method === "GET" || req.method === "HEAD" || QUIET_PATHS.some((re) => re.test(req.path))) return;
+  res.on("finish", () => {
+    if (res.statusCode >= 200 && res.statusCode < 300) publishCourse(kind, courseId);
+  });
+}
 
 // In-memory uploads (cover images, course files); routes write the files themselves.
 export const upload = multer({ storage: multer.memoryStorage() });
@@ -46,6 +61,7 @@ export async function requireTeacher(req, res, courseId) {
     res.status(403).json({ message: "Not allowed — teacher/TA role required for this course" });
     return null;
   }
+  announceWhenDone(req, res, courseId, "course");
   return { email, enrollment };
 }
 
@@ -66,6 +82,7 @@ export async function requireParticipant(req, res, courseId) {
       return null;
     }
   }
+  announceWhenDone(req, res, courseId, isTeacherRole(auth.enrollment.role) ? "course" : "course-work");
   return auth;
 }
 

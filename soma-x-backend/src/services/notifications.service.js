@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { localDb, serverDb } from '../helpers/db-manager.js';
 import { requireRole } from '../helpers/auth.js';
 import { profileComplete } from './users.service.js';
+import { publish } from '../helpers/live.js';
 
 const router = Router();
 const requireAdmin = requireRole('admin');
@@ -25,6 +26,7 @@ export async function createNotification({ userEmail, title, message, type = 'sy
             VALUES (?, ?, ?, ?, ?)
         `);
         const info = await stmt.run(normalizedEmail, title, message, type, link);
+        publish({ kind: 'notifications' }, { emails: [normalizedEmail] });
         return info.lastInsertRowid;
     } catch (err) {
         console.error("Failed to create notification:", err);
@@ -193,6 +195,7 @@ router.post('/send', requireAdmin, async (req, res) => {
             sentCount++;
         }
 
+        publish({ kind: 'notifications' }, { emails: recipientEmails });
         return res.status(201).json({
             count: sentCount,
             message: `Notification broadcast successfully sent to ${sentCount} recipient(s)`

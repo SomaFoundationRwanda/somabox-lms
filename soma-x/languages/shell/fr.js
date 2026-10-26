@@ -1,6 +1,7 @@
 // shell screen text (fr): app shell (navigation, header, notifications, login, sign-up, shared UI). Keys must match en.js; checked by scripts/check-ui-translations.mjs.
 export default {
     "common": {
+        "cantReachBox": "Impossible de joindre SOMABOX. Vérifiez le Wi-Fi et réessayez.",
         "somethingWrong": "Une erreur s'est produite. Veuillez réessayer.",
         "loading": "Chargement…",
         "close": "Fermer",

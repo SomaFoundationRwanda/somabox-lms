@@ -1,53 +1,37 @@
 "use client";
 
-import { useContext, useEffect, useState } from "react";
+import { useContext } from "react";
+import { useQuery } from "@tanstack/react-query";
 import DataContext from "@/context/DataContext";
+import { apiFetch, ApiError } from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
 
-// GET /ai/status → { allowed, reason, modelRunning }. Fetched once per page: many components
-// on one page (every week on the Modules page, every submission row) share one request.
-const CACHE_MS = 30000;
-let cached = null; // { at, promise }
+// GET /ai/status → { allowed, reason, modelRunning }. One kept answer for the whole app: many
+// components on one page (every week on the Modules page, every submission row) share it.
+// It's asked again only while the model is starting (allowed, but not running yet).
+const STARTING_RECHECK_MS = 15000;
 
-// While the model is down, re-check this often so the warning clears once it starts.
-const RECHECK_MS = 15000;
-
-function loadStatus(SERVER_URL, { fresh = false } = {}) {
-  if (!fresh && cached && Date.now() - cached.at < CACHE_MS) return cached.promise;
-  const promise = fetch(`${SERVER_URL}/ai/status`)
-    .then(async (res) => {
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) return { allowed: false, reason: data.message || "The AI assistant isn't available right now.", modelRunning: false };
-      return { allowed: !!data.allowed, reason: data.reason || "", modelRunning: data.modelRunning !== false };
-    })
-    .catch(() => ({ allowed: false, reason: "Couldn't reach the server to check the AI assistant.", modelRunning: false }));
-  cached = { at: Date.now(), promise };
-  return promise;
+async function loadStatus() {
+  try {
+    const data = await apiFetch("/ai/status");
+    return { allowed: !!data.allowed, reason: data.reason || "", modelRunning: data.modelRunning !== false };
+  } catch (error) {
+    const reason = error instanceof ApiError && error.status !== 0
+      ? error.body?.message || "The AI assistant isn't available right now."
+      : "Couldn't reach the server to check the AI assistant.";
+    return { allowed: false, reason, modelRunning: false };
+  }
 }
 
 /** { loading, allowed, reason, modelRunning } for the logged-in user. */
 export default function useAiStatus() {
-  const { SERVER_URL } = useContext(DataContext);
-  const [status, setStatus] = useState({ loading: true, allowed: false, reason: "", modelRunning: true });
-
-  useEffect(() => {
-    if (!SERVER_URL) return undefined;
-    let alive = true;
-    loadStatus(SERVER_URL).then((s) => { if (alive) setStatus({ loading: false, ...s }); });
-    return () => { alive = false; };
-  }, [SERVER_URL]);
-
-  // AI allowed but the model isn't up (still loading, or not started): keep checking, and
-  // check again when the teacher comes back to the tab.
-  const waitingForModel = !status.loading && status.allowed && !status.modelRunning;
-  useEffect(() => {
-    if (!SERVER_URL || !waitingForModel) return undefined;
-    let alive = true;
-    const recheck = () => loadStatus(SERVER_URL, { fresh: true }).then((s) => { if (alive) setStatus({ loading: false, ...s }); });
-    const timer = setInterval(recheck, RECHECK_MS);
-    const onFocus = () => { if (document.visibilityState === "visible") recheck(); };
-    document.addEventListener("visibilitychange", onFocus);
-    return () => { alive = false; clearInterval(timer); document.removeEventListener("visibilitychange", onFocus); };
-  }, [SERVER_URL, waitingForModel]);
-
-  return status;
+  const { authenticated } = useContext(DataContext);
+  const query = useQuery({
+    queryKey: queryKeys.aiStatus,
+    queryFn: loadStatus,
+    enabled: authenticated,
+    refetchInterval: (q) => (q.state.data?.allowed && !q.state.data?.modelRunning ? STARTING_RECHECK_MS : false),
+  });
+  const status = query.data || { allowed: false, reason: "", modelRunning: true };
+  return { loading: query.isPending, ...status };
 }

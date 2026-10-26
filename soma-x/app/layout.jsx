@@ -5,6 +5,7 @@ import { LanguageProvider } from "@/context/LanguageContext";
 import { ToastProvider } from "@/context/ToastContext";
 import { SchoolBrandingProvider } from "@/context/SchoolContext";
 import RouteLoader from "@/components/global/RouteLoader";
+import QueryProvider from "@/components/global/QueryProvider";
 
 // Self-hosted from public/fonts/poppins/ instead of next/font/google.
 // SomaBox is an offline-first app, and next/font/google needs a one-time
@@ -43,18 +44,21 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${poppins.className} antialiased flex min-h-screen`} suppressHydrationWarning>
-        <DataProvider>
-          <LanguageProvider>
-            {/* The school's name, logo and colours (for guests too). */}
-            <SchoolBrandingProvider>
-              {/* The SOMABOX logo loader in the centre of the screen while pages change. */}
-              <RouteLoader />
-              <ToastProvider>
-                {children}
-              </ToastProvider>
-            </SchoolBrandingProvider>
-          </LanguageProvider>
-        </DataProvider>
+        {/* Server data (lib/queryClient.js), available to the contexts below. */}
+        <QueryProvider>
+          <DataProvider>
+            <LanguageProvider>
+              {/* The school's name, logo and colours (for guests too). */}
+              <SchoolBrandingProvider>
+                {/* The SOMABOX logo loader in the centre of the screen while pages change. */}
+                <RouteLoader />
+                <ToastProvider>
+                  {children}
+                </ToastProvider>
+              </SchoolBrandingProvider>
+            </LanguageProvider>
+          </DataProvider>
+        </QueryProvider>
       </body>
     </html>
   );

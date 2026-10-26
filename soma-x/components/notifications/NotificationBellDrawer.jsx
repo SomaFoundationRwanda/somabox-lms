@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useContext, useCallback } from 'react';
+import React, { useState, useContext } from 'react';
 import { 
     Bell, CheckCheck, CheckCircle2, ChevronRight, GraduationCap, 
     Info, Trash2, UserCheck, UserPlus, X 
@@ -10,64 +10,31 @@ import DataContext from '@/context/DataContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { fill } from '@/lib/fill';
 import { formatDate } from '@/components/helpers/localeDate';
-import { 
-    fetchNotifications, markNotificationAsRead, 
-    markAllNotificationsAsRead, deleteNotification 
+import {
+    useNotifications, useMarkNotificationRead,
+    useMarkAllNotificationsRead, useDeleteNotification
 } from '@/lib/notification-service';
 
 export default function NotificationBellDrawer({ className = "" }) {
-    const { authenticated, isDark, user } = useContext(DataContext);
+    const { isDark } = useContext(DataContext);
     const { t, lang } = useLanguage();
     const [open, setOpen] = useState(false);
-    const [notifications, setNotifications] = useState([]);
-    const [unreadCount, setUnreadCount] = useState(0);
-    const [isProfileIncomplete, setIsProfileIncomplete] = useState(false);
-    const [loading, setLoading] = useState(false);
+    const { notifications, unreadCount, isProfileIncomplete } = useNotifications();
+    const markRead = useMarkNotificationRead();
+    const markAllRead = useMarkAllNotificationsRead();
+    const remove = useDeleteNotification();
     const [filter, setFilter] = useState('all');
 
-    const userEmail = user?.email || "";
-
-    const loadNotifications = useCallback(async () => {
-        if (!userEmail) return;
-        try {
-            const data = await fetchNotifications();
-            setNotifications(data.notifications || []);
-            setUnreadCount(data.unreadCount || 0);
-            setIsProfileIncomplete(data.isProfileIncomplete || false);
-        } catch (err) {
-            console.error("Failed to load notifications:", err);
-        }
-    }, [userEmail]);
-
-    useEffect(() => {
-        if (authenticated && userEmail) {
-            loadNotifications();
-            const timer = setInterval(loadNotifications, 25000); // refresh every 25s
-            return () => clearInterval(timer);
-        }
-    }, [authenticated, userEmail, loadNotifications]);
-
-    const handleMarkAsRead = async (id, e) => {
+    const handleMarkAsRead = (id, e) => {
         e?.stopPropagation();
-        await markNotificationAsRead(id);
-        setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: 1 } : n));
-        setUnreadCount(prev => Math.max(0, prev - 1));
+        markRead.mutate(id);
     };
 
-    const handleMarkAllRead = async () => {
-        await markAllNotificationsAsRead();
-        setNotifications(prev => prev.map(n => ({ ...n, is_read: 1 })));
-        setUnreadCount(0);
-    };
+    const handleMarkAllRead = () => markAllRead.mutate();
 
-    const handleDelete = async (id, e) => {
+    const handleDelete = (id, e) => {
         e?.stopPropagation();
-        await deleteNotification(id);
-        const target = notifications.find(n => n.id === id);
-        setNotifications(prev => prev.filter(n => n.id !== id));
-        if (target && target.is_read === 0) {
-            setUnreadCount(prev => Math.max(0, prev - 1));
-        }
+        remove.mutate(id);
     };
 
     const formatTime = (dateStr) => {

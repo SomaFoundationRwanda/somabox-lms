@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { serverDb } from './db-manager.js';
+import { closeSessionStreams, closeUserStreams } from './live.js';
 
 // Sessions end after 7 days, or after 12 hours without any request. One started on a shared
 // device (a family phone, a classroom tablet) ends after 12 hours, or 30 minutes without any request.
@@ -32,10 +33,12 @@ export async function createSession(userId, userAgent, { sharedDevice = false } 
 
 export async function revokeSession(token) {
     if (!token) return;
+    closeSessionStreams(token);
     await serverDb.prepare('UPDATE sessions SET revoked_at = CURRENT_TIMESTAMP WHERE token_hash = ? AND revoked_at IS NULL').run(hashToken(token));
 }
 
 export async function revokeUserSessions(userId, exceptToken) {
+    closeUserStreams(Number(userId), exceptToken);
     if (exceptToken) {
         await serverDb.prepare('UPDATE sessions SET revoked_at = CURRENT_TIMESTAMP WHERE user_id = ? AND revoked_at IS NULL AND token_hash <> ?').run(userId, hashToken(exceptToken));
     } else {
@@ -97,6 +100,8 @@ const PUBLIC_ROUTES = [
     // Setting up a new box (or recovering its admin) with the code printed on the box.
     { method: 'GET', path: '/setup/status' },
     { method: 'POST', path: '/setup' },
+    // Live updates: authenticated by a single-use ticket (helpers/live.js).
+    { method: 'GET', path: '/live' },
     { method: 'POST', path: '/content/preview' },
     // The catalogue guests may browse before signing up (titles, categories, covers).
     { method: 'GET', path: '/content/explore' },

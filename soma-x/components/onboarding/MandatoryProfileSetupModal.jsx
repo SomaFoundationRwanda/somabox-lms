@@ -16,6 +16,8 @@ import {
     Loader2
 } from 'lucide-react';
 import DataContext from '@/context/DataContext';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/queryKeys';
 import { useLanguage } from '@/context/LanguageContext';
 import { useToast } from '@/context/ToastContext';
 import LanguageSwitcher from '@/components/global/LanguageSwitcher';
@@ -47,6 +49,7 @@ const VARIANTS = {
 
 export default function MandatoryProfileSetupModal() {
     const { authenticated, role, user, refreshUser } = useContext(DataContext);
+    const queryClient = useQueryClient();
     const { lang, setLang, t } = useLanguage();
     const { showToast } = useToast();
 
@@ -223,8 +226,10 @@ export default function MandatoryProfileSetupModal() {
                 throw new Error(errData.message || t("learner.profileSetup.saveFailed"));
             }
 
-            // Pick up the new name in the header and menus.
+            // Pick up the new name in the header and menus; the profile reminder goes.
             await refreshUser();
+            queryClient.invalidateQueries({ queryKey: queryKeys.notifications });
+            queryClient.invalidateQueries({ queryKey: queryKeys.profile });
             if (preferredLanguage) {
                 setLang(preferredLanguage);
             }

@@ -7,6 +7,7 @@ import fs from "fs";
 import path from "path";
 import { localDb, seedDefaultNavItems } from "../../helpers/db-manager.js";
 import { logAdminAuditAction } from "../users.service.js";
+import { membershipChanged, publishCourse } from "../../helpers/live.js";
 import { config } from "../../config/index.js";
 import {
   normalizeEmail,
@@ -127,6 +128,9 @@ router.put("/:id/teacher", async (req, res) => {
     if (Number(account.is_active) === 0) return res.status(400).json({ message: "This account is deactivated. Reactivate it first." });
 
     const removeOthers = req.body.removeOthers === true;
+    const others = removeOthers
+      ? (await localDb.prepare("SELECT user_email FROM enrollments WHERE course_id = ? AND role = 'teacher' AND LOWER(user_email) <> ?").all(courseId, email)).map((r) => r.user_email)
+      : [];
     await localDb.transaction(async () => {
       await localDb.prepare(`
         INSERT INTO enrollments (course_id, user_email, role, status) VALUES (?, ?, 'teacher', 'active')
@@ -142,6 +146,8 @@ router.put("/:id/teacher", async (req, res) => {
       targetUserEmail: email,
       details: `${removeOthers ? "Made" : "Added"} ${email} teacher of course ${courseId} (${course.title})`,
     });
+    membershipChanged(courseId, [email, ...others]);
+    publishCourse("course", courseId);
     const teachers = await localDb.prepare("SELECT user_email FROM enrollments WHERE course_id = ? AND role = 'teacher' AND status = 'active' ORDER BY user_email").all(courseId);
     return res.json({ courseId, teachers: teachers.map((t) => t.user_email) });
   } catch (error) {
@@ -223,6 +229,7 @@ router.post("/join-by-code", async (req, res) => {
     } else {
       await localDb.prepare("INSERT INTO enrollments (course_id, user_email, role, status) VALUES (?, ?, 'student', 'active')").run(course.id, email);
     }
+    membershipChanged(course.id, [email]);
     return res.json({ message: "Joined course", courseId: course.id, title: course.title });
   } catch (error) {
     console.error("Error joining by code:", error);
@@ -291,6 +298,7 @@ router.post("/:id/join", async (req, res) => {
       `).run(courseId, email);
     }
 
+    membershipChanged(courseId, [email]);
     return res.status(200).json({ message: "Joined course", course: await courseExists(courseId) });
   } catch (error) {
     console.error("Error joining course:", error);
