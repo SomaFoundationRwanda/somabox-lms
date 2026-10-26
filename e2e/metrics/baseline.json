@@ -1,0 +1,103 @@
+{
+  "learner": {
+    "total": 38,
+    "sections": {
+      "dashboard": 10,
+      "course home": 5,
+      "modules": 2,
+      "a page": 4,
+      "an assignment": 6,
+      "grades": 1,
+      "back to dashboard": 5,
+      "idle minute on dashboard": 5
+    },
+    "byPath": {
+      "GET /notifications": 6,
+      "GET /users/me/assignment-summary": 4,
+      "GET /sol/spaced/pending": 2,
+      "GET /users/me/dashboard": 2,
+      "GET /courses/:n/modules": 2,
+      "GET /courses/:n/module-items/sequence-position": 2,
+      "POST /analytics/events": 2,
+      "GET /school/public": 1,
+      "GET /content/explore": 1,
+      "GET /auth/me": 1,
+      "GET /users/profile/view": 1,
+      "POST /auth/media-session": 1,
+      "GET /courses/:n": 1,
+      "GET /courses/:n/nav": 1,
+      "GET /courses/:n/setup-status": 1,
+      "GET /courses/:n/home-loop": 1,
+      "GET /courses/:n/outcome-mastery": 1,
+      "GET /ai/status": 1,
+      "GET /courses/:n/pages/:n": 1,
+      "POST /courses/:n/pages/:n/view": 1,
+      "GET /courses/:n/assignments/:n": 1,
+      "GET /courses/:n/outcomes": 1,
+      "GET /courses/:n/item-outcomes": 1,
+      "GET /courses/:n/assignments/:n/rubric": 1,
+      "GET /courses/:n/grades": 1
+    }
+  },
+  "teacher": {
+    "total": 30,
+    "sections": {
+      "dashboard": 8,
+      "course home": 7,
+      "modules": 4,
+      "people": 3,
+      "grades": 1,
+      "insights": 1,
+      "back to course home": 3,
+      "idle minute on course home": 3
+    },
+    "byPath": {
+      "GET /notifications": 5,
+      "GET /users/profile/view": 2,
+      "GET /courses/:n/setup-status": 2,
+      "GET /courses/:n/home-loop": 2,
+      "GET /courses/:n/outcome-mastery": 2,
+      "POST /analytics/events": 2,
+      "GET /school/public": 1,
+      "GET /content/explore": 1,
+      "GET /auth/me": 1,
+      "GET /courses/mine": 1,
+      "POST /auth/media-session": 1,
+      "GET /courses/:n": 1,
+      "GET /courses/:n/nav": 1,
+      "GET /courses/:n/modules": 1,
+      "GET /ai/status": 1,
+      "GET /courses/:n/ai/jobs": 1,
+      "GET /courses/:n/ai/drafts": 1,
+      "GET /courses/:n/join-code": 1,
+      "GET /courses/:n/people": 1,
+      "GET /courses/:n/grades": 1,
+      "GET /courses/:n/insights": 1
+    }
+  },
+  "admin": {
+    "total": 21,
+    "sections": {
+      "admin home": 10,
+      "school": 1,
+      "analytics": 4,
+      "back to admin home": 4,
+      "idle minute on admin home": 2
+    },
+    "byPath": {
+      "GET /notifications": 3,
+      "GET /analytics/inclusivity-gap": 3,
+      "GET /analytics/growth-curves": 3,
+      "GET /courses/all": 2,
+      "GET /users": 2,
+      "GET /school/public": 1,
+      "GET /content/explore": 1,
+      "GET /auth/me": 1,
+      "GET /users/profile/view": 1,
+      "POST /auth/media-session": 1,
+      "GET /school": 1,
+      "GET /analytics/settings": 1,
+      "GET /analytics/school": 1
+    }
+  }
+}

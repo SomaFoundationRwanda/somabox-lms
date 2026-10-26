@@ -22,6 +22,8 @@ export default defineConfig({
   projects: [
     { name: "setup", testDir: ".", testMatch: /auth\.setup\.mjs/ },
     { name: "chromium", use: { ...devices["Desktop Chrome"] }, dependencies: ["setup"] },
+    // Request counts per journey (e2e/metrics), only when asked for: E2E_METRICS=1 ... --project=metrics
+    ...(process.env.E2E_METRICS ? [{ name: "metrics", testDir: "./metrics", use: { ...devices["Desktop Chrome"] }, dependencies: ["setup"] }] : []),
   ],
   webServer: {
     command: "node server.mjs",
