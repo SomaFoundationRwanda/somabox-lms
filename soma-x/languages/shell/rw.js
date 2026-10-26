@@ -110,6 +110,7 @@ export default {
     "toasts": {
         "success": "Byakozwe",
         "failed": "Hari ikitagenze neza",
+        "warning": "Icyitonderwa",
         "notice": "Ku makuru yawe",
         "dismiss": "Funga iri tangazo",
         "workSent": "Umukoro wawe woherejwe"

@@ -109,6 +109,7 @@ export default {
     "toasts": {
         "success": "Done",
         "failed": "Something went wrong",
+        "warning": "Please note",
         "notice": "For your information",
         "dismiss": "Dismiss notification",
         "workSent": "Your work was sent"

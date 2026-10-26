@@ -109,6 +109,7 @@ export default {
     "toasts": {
         "success": "Imekamilika",
         "failed": "Kuna tatizo",
+        "warning": "Tafadhali zingatia",
         "notice": "Kwa taarifa yako",
         "dismiss": "Funga arifa",
         "workSent": "Kazi yako imetumwa"

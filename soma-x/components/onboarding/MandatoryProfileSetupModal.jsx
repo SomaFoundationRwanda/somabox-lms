@@ -509,7 +509,7 @@ export default function MandatoryProfileSetupModal() {
                 <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-6">
                     {isCompletedSuccess ? (
                         <div className="py-12 flex flex-col items-center justify-center text-center space-y-4 animate-in zoom-in-95 duration-300">
-                            <div className="w-20 h-20 rounded-full bg-teal-100 dark:bg-teal-950/60 border-2 border-teal-500 text-teal-600 dark:text-teal-400 flex items-center justify-center shadow-xl">
+                            <div className="w-20 h-20 rounded-full bg-green-100 dark:bg-green-950/60 border-2 border-green-600 text-green-600 dark:text-green-400 flex items-center justify-center shadow-xl">
                                 <CheckCircle2 className="w-10 h-10" />
                             </div>
                             <div className="space-y-1">
