@@ -15,11 +15,14 @@ import CredentialSheet from "@/components/teacher/CredentialSheet";
 import Modal from "@/components/ui/Modal";
 import { useLanguage } from "@/context/LanguageContext";
 import { fill } from "@/lib/fill";
+import { useQueryClient } from "@tanstack/react-query";
+import { apiFetch, getErrorMessage } from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
 
 const ROLE_OPTIONS = ["teacher", "ta", "student", "observer"];
 
 export default function PeoplePage() {
-  const { SERVER_URL, courseId, isTeacher, course } = useCourse();
+  const { courseId, isTeacher, course } = useCourse();
   const { t, tf, tOr } = useCourseText();
   const roleLabel = (r) => tOr(`people.roles.${r}`, r);
   const { data: people, loading, error, refetch } = useCourseSection("people");
@@ -35,42 +38,41 @@ export default function PeoplePage() {
   const filtered = Array.isArray(people) ? people.filter((p) => roleFilter === "all" || p.role === roleFilter) : people;
 
   const { showToast } = useToast();
-  // The server refuses some changes (e.g. removing the last teacher): show why.
-  const failed = async (res, fallback) => {
-    if (res.ok) return false;
-    const body = await res.json().catch(() => ({}));
-    showToast(body.message || fallback, "error");
-    return true;
+  const queryClient = useQueryClient();
+  // Runs a change; the server refuses some (e.g. removing the last teacher): show why.
+  const attempt = async (request, fallback) => {
+    try {
+      return await request();
+    } catch (err) {
+      showToast(err?.body?.message || (err?.status === 0 ? getErrorMessage(err) : fallback), "error");
+      return null;
+    }
+  };
+  // People changed: this list, and the course lists (learner counts) everywhere.
+  const peopleChanged = () => {
+    refetch();
+    queryClient.invalidateQueries({ queryKey: queryKeys.courses });
   };
 
   const addPerson = async () => {
     if (!form.email.trim()) return;
-    const res = await fetch(`${SERVER_URL}/courses/${courseId}/people`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: form.email.trim(), role: form.role }),
-    });
-    if (await failed(res, t("people.addFailed"))) return;
+    const done = await attempt(() => apiFetch(`/courses/${courseId}/people`, { method: "POST", json: { email: form.email.trim(), role: form.role } }), t("people.addFailed"));
+    if (!done) return;
     setForm({ email: "", role: "student" });
     setAdding(false);
-    refetch();
+    peopleChanged();
   };
 
   const removePerson = async (enrollmentId) => {
-    const res = await fetch(`${SERVER_URL}/courses/${courseId}/people/${enrollmentId}`, {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({}),
-    });
-    if (await failed(res, t("people.removeFailed"))) return;
-    refetch();
+    const done = await attempt(() => apiFetch(`/courses/${courseId}/people/${enrollmentId}`, { method: "DELETE", json: {} }).then(() => true), t("people.removeFailed"));
+    if (!done) return;
+    peopleChanged();
   };
 
   const resetPassword = async (person) => {
     if (!window.confirm(fill(l("resetConfirm"), { name: person.fullName }))) return;
-    const res = await fetch(`${SERVER_URL}/courses/${courseId}/people/${person.id}/reset-password`, { method: "POST" });
-    if (await failed(res, l("resetFailed"))) return;
-    setResetDone(await res.json());
+    const sheet = await attempt(() => apiFetch(`/courses/${courseId}/people/${person.id}/reset-password`, { method: "POST" }), l("resetFailed"));
+    if (sheet) setResetDone(sheet);
   };
 
   return (
@@ -92,7 +94,7 @@ export default function PeoplePage() {
         />
 
         {/* Learners join with the code; email is for the few who have one (and for staff). */}
-        {isTeacher ? <JoinCodePanel SERVER_URL={SERVER_URL} courseId={courseId} isDraft={course?.lifecycle === "draft"} /> : null}
+        {isTeacher ? <JoinCodePanel courseId={courseId} isDraft={course?.lifecycle === "draft"} /> : null}
 
         {adding ? (
           <div className="flex flex-wrap items-center gap-2">

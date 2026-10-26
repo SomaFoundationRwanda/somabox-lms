@@ -1,40 +1,34 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useState } from "react"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { apiFetch } from "@/lib/api"
+import { queryKeys } from "@/lib/queryKeys"
 import { KeyRound, RefreshCw } from "lucide-react"
 import { useLanguage } from "@/context/LanguageContext"
 
 // A course's join code (teachers only): learners type it on Discover courses to join by themselves,
 // so they don't need an email address. Off until the teacher turns it on.
-export default function JoinCodePanel({ SERVER_URL, courseId, isDraft = false }) {
+export default function JoinCodePanel({ courseId, isDraft = false }) {
   const { t } = useLanguage()
   const tj = (key) => t(`course.people.join.${key}`)
-  const [code, setCode] = useState(undefined) // undefined: loading; null: off
+  const queryClient = useQueryClient()
+  const queryKey = queryKeys.courseSection(courseId, "join-code")
+  const query = useQuery({
+    queryKey,
+    queryFn: () => apiFetch(`/courses/${courseId}/join-code`).catch(() => ({ code: null })),
+    enabled: !!courseId,
+  })
+  const code = query.isPending ? undefined : query.data?.code ?? null // undefined: loading; null: off
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState("")
-
-  useEffect(() => {
-    if (!SERVER_URL || !courseId) return undefined
-    let alive = true
-    fetch(`${SERVER_URL}/courses/${courseId}/join-code`)
-      .then((res) => (res.ok ? res.json() : { code: null }))
-      .then((data) => { if (alive) setCode(data.code ?? null) })
-      .catch(() => { if (alive) setCode(null) })
-    return () => { alive = false }
-  }, [SERVER_URL, courseId])
 
   const change = async (action) => {
     if (action === "new" && !window.confirm(tj("confirmNew"))) return
     setBusy(true)
     setError("")
     try {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/join-code`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action }),
-      })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error()
-      setCode(data.code ?? null)
+      const data = await apiFetch(`/courses/${courseId}/join-code`, { method: "POST", json: { action } })
+      queryClient.setQueryData(queryKey, { code: data.code ?? null })
     } catch {
       setError(tj("failed"))
     } finally {

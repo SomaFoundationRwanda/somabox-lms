@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Calendar, Target, Award } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
+import { useCourseSection } from "@/lib/useCourseSection";
 import { useCourseText } from "@/components/course/useCourseText";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
 import { PageHeader, Section, List, DataTable } from "@/components/layout";
@@ -10,32 +10,14 @@ import { formatRange } from "@/lib/dates";
 import Loader from "@/components/ui/Loader";
 
 export default function SyllabusPage() {
-  const { SERVER_URL, courseId, userEmail, course } = useCourse();
+  const { course } = useCourse();
   const { t, tf, tOr, weekLabel, fmtDate } = useCourseText();
-  const [modules, setModules] = useState([]);
-  const [outcomes, setOutcomes] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  const loadSyllabusData = async () => {
-    if (!SERVER_URL || !courseId) return;
-    try {
-      setLoading(true);
-      const [modRes, outRes] = await Promise.all([
-        fetch(`${SERVER_URL}/courses/${courseId}/modules`),
-        fetch(`${SERVER_URL}/courses/${courseId}/outcomes`),
-      ]);
-      if (modRes.ok) setModules(await modRes.json());
-      if (outRes.ok) setOutcomes(await outRes.json());
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadSyllabusData();
-  }, [SERVER_URL, courseId, userEmail]);
+  // The same kept weeks and outcomes as the Modules and Outcomes pages.
+  const modulesQuery = useCourseSection("modules");
+  const outcomesQuery = useCourseSection("outcomes");
+  const modules = Array.isArray(modulesQuery.data) ? modulesQuery.data : [];
+  const outcomes = Array.isArray(outcomesQuery.data) ? outcomesQuery.data : [];
+  const loading = modulesQuery.loading || outcomesQuery.loading;
 
   const startDateStr = course?.start_date
     ? fmtDate(course.start_date, { year: "numeric", month: "long", day: "numeric" })

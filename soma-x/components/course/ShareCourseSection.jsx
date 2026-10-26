@@ -6,6 +6,7 @@ import { AlertTriangle, Check, Download, Loader2, X } from "lucide-react";
 import { Section } from "@/components/layout";
 import { useToast } from "@/context/ToastContext";
 import { useCourseText } from "@/components/course/useCourseText";
+import { apiFetch } from "@/lib/api";
 
 // Settings > Share (teachers): export the course as a bundle file another teacher or school
 // can import as a new draft course.
@@ -21,7 +22,7 @@ function filenameFrom(res, bundle) {
   return `${slug(bundle?.course?.title)}-v${bundle?.version ?? 1}.somabox.json`;
 }
 
-export default function ShareCourseSection({ SERVER_URL, courseId }) {
+export default function ShareCourseSection({ courseId }) {
   const { showToast } = useToast();
   const { t, tf } = useCourseText();
   const [busy, setBusy] = useState(false);
@@ -33,9 +34,11 @@ export default function ShareCourseSection({ SERVER_URL, courseId }) {
     setError("");
     setResult(null);
     try {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/bundle`);
+      // The whole response: the file name comes from its headers.
+      const res = await apiFetch(`/courses/${courseId}/bundle`, { responseType: "response" })
+        .catch((err) => { throw new Error(err?.status === 0 ? t("share.unreachable") : err?.body?.message || t("share.exportFailed")); });
       const payload = await res.json().catch(() => null);
-      if (!res.ok || !payload) throw new Error(payload?.message || t("share.exportFailed"));
+      if (!payload) throw new Error(t("share.exportFailed"));
       const filename = filenameFrom(res, payload);
       const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
       const href = URL.createObjectURL(blob);
@@ -49,7 +52,7 @@ export default function ShareCourseSection({ SERVER_URL, courseId }) {
       setResult({ version: payload.version, warnings: Array.isArray(payload.warnings) ? payload.warnings : [], filename });
       showToast(tf("share.exported", { n: payload.version }), "success");
     } catch (err) {
-      setError(err.message === "Failed to fetch" ? t("share.unreachable") : err.message || t("share.exportFailed"));
+      setError(err.message || t("share.exportFailed"));
     } finally {
       setBusy(false);
     }

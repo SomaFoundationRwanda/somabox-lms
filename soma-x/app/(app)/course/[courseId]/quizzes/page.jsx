@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { HelpCircle, Plus } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
+import { useCourseSection } from "@/lib/useCourseSection";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
 import { PageHeader, List, ListRow, EmptyState } from "@/components/layout";
 import { ExplainerText } from "@/components/help/Explainer";
@@ -11,27 +11,11 @@ import { useCourseText } from "@/components/course/useCourseText";
 import Loader from "@/components/ui/Loader";
 
 export default function QuizzesListPage() {
-  const { SERVER_URL, courseId, userEmail, isTeacher } = useCourse();
+  const { courseId, isTeacher } = useCourse();
   const { t, tf, fmtDate } = useCourseText();
-  const [quizzes, setQuizzes] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  const loadData = async () => {
-    if (!SERVER_URL || !courseId) return;
-    try {
-      setLoading(true);
-      const quizRes = await fetch(`${SERVER_URL}/courses/${courseId}/quizzes`);
-      if (quizRes.ok) setQuizzes(await quizRes.json());
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadData();
-  }, [SERVER_URL, courseId, userEmail]);
+  const section = useCourseSection("quizzes");
+  const quizzes = Array.isArray(section.data) ? section.data : [];
+  const loading = section.loading;
 
   return (
     <div>

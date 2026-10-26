@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useContext, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, ArrowLeft, ChevronDown, ChevronRight, FileUp, Info, Library, Loader2 } from "lucide-react";
@@ -13,6 +13,9 @@ import { useLanguage } from "@/context/LanguageContext";
 import { fill } from "@/lib/fill";
 import { startRouteLoading } from "@/components/global/RouteLoader";
 import Loader from "@/components/ui/Loader";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiFetch } from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
 
 // Course library (teachers and admins): bundles exported from courses on this box or uploaded
 // as files. Creating a course from a bundle always makes a NEW draft course.
@@ -24,7 +27,8 @@ const ITEM_TYPE_KEYS = ["page", "quiz", "assignment", "discussion", "sub_header"
 // "{n} weeks" / "1 week": oneKey and manyKey are full translation keys.
 const plural = (t, n, oneKey, manyKey) => fill(t(n === 1 ? oneKey : manyKey), { n });
 const networkMessage = (t, err, fallback) =>
-  err?.name === "TypeError" ? t("shell.courseLibrary.unreachable") : err?.message || fallback;
+  err?.status === 0 ? t("shell.courseLibrary.unreachable") : err?.body?.message || fallback;
+const BUNDLES = ["catalogue", "bundles"];
 
 function Warnings({ items }) {
   if (!items?.length) return null;
@@ -39,23 +43,9 @@ function Warnings({ items }) {
 
 function BundlePreview({ SERVER_URL, entryId }) {
   const { t } = useLanguage();
-  const [data, setData] = useState(null);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch(`${SERVER_URL}/bundles/${entryId}`);
-        const payload = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(payload.message || t("shell.courseLibrary.bundleLoadFailed"));
-        if (!cancelled) setData(payload.bundle || {});
-      } catch (err) {
-        if (!cancelled) setError(networkMessage(t, err, t("shell.courseLibrary.bundleLoadFailed")));
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [SERVER_URL, entryId, t]);
+  const preview = useQuery({ queryKey: [...BUNDLES, String(entryId)], queryFn: () => apiFetch(`/bundles/${entryId}`) });
+  const data = preview.data ? preview.data.bundle || {} : null;
+  const error = preview.isError ? networkMessage(t, preview.error, t("shell.courseLibrary.bundleLoadFailed")) : "";
 
   if (error) return <p role="alert" className="text-xs text-rose-600">{error}</p>;
   if (!data) return <Loader variant="page" size={40} className="min-h-[8rem]" label={t("shell.courseLibrary.loadingPreview")} />;
@@ -240,9 +230,7 @@ function UploadArea({ SERVER_URL, onUploaded, onCreated }) {
     try {
       const form = new FormData();
       form.append("bundle", file);
-      const res = await fetch(`${SERVER_URL}/bundles${mode === "import" ? "/import" : ""}`, { method: "POST", body: form });
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(payload.message || t("shell.courseLibrary.uploadFailed"));
+      const payload = await apiFetch(`/bundles${mode === "import" ? "/import" : ""}`, { method: "POST", body: form });
       setFile(null);
       if (inputRef.current) inputRef.current.value = "";
       if (mode === "import") {
@@ -322,26 +310,14 @@ export default function CourseLibraryPage() {
   const router = useRouter();
   const allowed = role === "teacher" || role === "admin";
 
-  const [entries, setEntries] = useState(null);
-  const [error, setError] = useState("");
+  const queryClient = useQueryClient();
+  const list = useQuery({ queryKey: BUNDLES, queryFn: () => apiFetch("/bundles"), enabled: allowed });
+  const entries = list.data ? (Array.isArray(list.data) ? list.data : []) : list.isError ? [] : null;
+  const error = list.isError ? networkMessage(t, list.error, t("shell.courseLibrary.loadFailed")) : "";
+  const load = () => queryClient.invalidateQueries({ queryKey: BUNDLES });
   const [creatingId, setCreatingId] = useState(null);
   const [created, setCreated] = useState(null); // { courseId, warnings, existingCopies, title }
 
-  const load = useCallback(async () => {
-    if (!SERVER_URL || !allowed) return;
-    try {
-      const res = await fetch(`${SERVER_URL}/bundles`);
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(payload.message || t("shell.courseLibrary.loadFailed"));
-      setEntries(Array.isArray(payload) ? payload : []);
-      setError("");
-    } catch (err) {
-      setError(networkMessage(t, err, t("shell.courseLibrary.loadFailed")));
-      setEntries((e) => e || []);
-    }
-  }, [SERVER_URL, allowed, t]);
-
-  useEffect(() => { load(); }, [load]);
 
   // One group per bundleId, newest version first; groups sorted by their latest title.
   const groups = useMemo(() => {
@@ -373,9 +349,8 @@ export default function CourseLibraryPage() {
     setCreatingId(entry.id);
     setCreated(null);
     try {
-      const res = await fetch(`${SERVER_URL}/bundles/${entry.id}/courses`, { method: "POST" });
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(payload.message || t("shell.courseLibrary.createFailed"));
+      const payload = await apiFetch(`/bundles/${entry.id}/courses`, { method: "POST" });
+      queryClient.invalidateQueries({ queryKey: queryKeys.courses });
       handleCreated(payload, entry.title);
     } catch (err) {
       showToast(networkMessage(t, err, t("shell.courseLibrary.createFailed")), "error");

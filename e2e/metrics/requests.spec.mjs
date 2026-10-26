@@ -48,6 +48,8 @@ async function measure(browser, role, name, journey) {
 test("learner, teacher and admin journeys", async ({ browser }) => {
   test.setTimeout(10 * 60_000);
   const c = await seedCourse({ learners: ["learner"] });
+  // Setting the course up is a teacher's change: let its live update go out before measuring.
+  await new Promise((r) => setTimeout(r, 7000));
 
   await measure(browser, "learner", "learner", async (page, step) => {
     await step("dashboard", () => page.goto("/manage/scholar-dashboard"));

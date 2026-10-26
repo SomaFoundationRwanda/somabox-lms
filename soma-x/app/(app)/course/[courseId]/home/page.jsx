@@ -6,6 +6,8 @@ import {
   ChevronDown, ChevronRight, Clock, AlertTriangle, Target, CheckCircle2, Play, Calendar, TrendingUp,
 } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
+import { useCourseSection } from "@/lib/useCourseSection";
+import { apiUrl } from "@/lib/api";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
 import { PageHeader, Section, List, ListRow } from "@/components/layout";
 import MasterySummary from "@/components/course/outcomes/MasterySummary";
@@ -15,7 +17,7 @@ import { formatRange } from "@/lib/dates";
 import Loader from "@/components/ui/Loader";
 
 export default function CourseHomePage() {
-  const { courseId, course, SERVER_URL, userEmail, isTeacher, refresh } = useCourse();
+  const { courseId, course, isTeacher, refresh } = useCourse();
   const { t, tf, tOr, weekLabel, lifecycleLabel, fmtDay } = useCourseText();
   // Server text for the weekly loop comes with a key + params; show it in the UI language,
   // falling back to the server's English when a key is unknown.
@@ -27,39 +29,22 @@ export default function CourseHomePage() {
     if (vars.date) vars.date = fmtDay(vars.date);
     return tf(`home.${group}.${key}`, vars);
   };
-  const [setupStatus, setSetupStatus] = useState(null);
-  const [homeLoop, setHomeLoop] = useState(null);
-  const [outcomePulse, setOutcomePulse] = useState(null);
-  const [loading, setLoading] = useState(true);
+  // Kept like the rest of the course (the Settings page shares the setup status).
+  const statusQuery = useCourseSection("setup-status");
+  const loopQuery = useCourseSection("home-loop");
+  const pulseQuery = useCourseSection("outcome-mastery");
+  const setupStatus = statusQuery.data;
+  const homeLoop = loopQuery.data;
+  const outcomePulse = pulseQuery.data;
+  const loading = statusQuery.loading || loopQuery.loading || pulseQuery.loading;
   const [expandedWeek, setExpandedWeek] = useState(null);
-
-  const loadHomeData = async () => {
-    if (!SERVER_URL || !courseId) return;
-    try {
-      setLoading(true);
-      const [statusRes, loopRes, outcomeRes] = await Promise.all([
-        fetch(`${SERVER_URL}/courses/${courseId}/setup-status`),
-        fetch(`${SERVER_URL}/courses/${courseId}/home-loop`),
-        fetch(`${SERVER_URL}/courses/${courseId}/outcome-mastery`),
-      ]);
-
-      if (statusRes.ok) setSetupStatus(await statusRes.json());
-      if (loopRes.ok) {
-        const loopData = await loopRes.json();
-        setHomeLoop(loopData);
-        setExpandedWeek(loopData.currentModuleId ?? null);
-      }
-      if (outcomeRes.ok) setOutcomePulse(await outcomeRes.json());
-    } catch (err) {
-      console.error("Home data load error:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // This week starts open, once the week is known.
+  const [openedCurrent, setOpenedCurrent] = useState(false);
   useEffect(() => {
-    loadHomeData();
-  }, [SERVER_URL, courseId, userEmail]);
+    if (!homeLoop || openedCurrent) return;
+    setOpenedCurrent(true);
+    setExpandedWeek(homeLoop.currentModuleId ?? null);
+  }, [homeLoop, openedCurrent]);
 
   const showSetupCard = isTeacher && setupNeedsAttention(setupStatus);
 
@@ -83,7 +68,7 @@ export default function CourseHomePage() {
   const beatName = ["prepare", "release", "collect", "grade", "review"].includes(currentBeat) ? t(`home.beats.${currentBeat}`) : currentBeat;
 
   // First load: the SOMABOX loader until the course's week, attention list and outcomes arrive.
-  if (loading && SERVER_URL && !homeLoop && !setupStatus && !outcomePulse) return <Loader variant="page" />;
+  if (loading && !homeLoop && !setupStatus && !outcomePulse) return <Loader variant="page" />;
 
   return (
     <div>
@@ -92,7 +77,7 @@ export default function CourseHomePage() {
       {/* Course banner (image only; the title lives in the PageHeader below) */}
       {course?.coverImageUrl ? (
         <div className="w-full h-32 md:h-44 bg-slate-100 relative">
-          <img src={`${SERVER_URL}${course.coverImageUrl}`} alt="" className="w-full h-full object-cover" />
+          <img src={apiUrl(course.coverImageUrl)} alt="" className="w-full h-full object-cover" />
         </div>
       ) : null}
 
@@ -118,12 +103,8 @@ export default function CourseHomePage() {
         {showSetupCard && (
           <SetupChecklist
             courseId={courseId}
-            SERVER_URL={SERVER_URL}
             status={setupStatus}
-            onChanged={() => {
-              refresh();
-              loadHomeData();
-            }}
+            onChanged={refresh}
           />
         )}
 

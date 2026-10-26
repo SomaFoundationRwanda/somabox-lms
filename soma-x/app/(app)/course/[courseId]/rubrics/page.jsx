@@ -1,41 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ListChecks, Target, Lock } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
+import { useCourseSection } from "@/lib/useCourseSection";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
 import { PageHeader, Section, DataTable, EmptyState } from "@/components/layout";
 import { useCourseText } from "@/components/course/useCourseText";
 import Loader from "@/components/ui/Loader";
 
 export default function RubricsPage() {
-  const { SERVER_URL, courseId, userEmail } = useCourse();
   const { t, tf } = useCourseText();
-  const [rubrics, setRubrics] = useState([]);
-  const [outcomes, setOutcomes] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  const loadRubricLibrary = async () => {
-    if (!SERVER_URL || !courseId) return;
-    try {
-      setLoading(true);
-      const [rubRes, outRes] = await Promise.all([
-        fetch(`${SERVER_URL}/courses/${courseId}/rubrics`),
-        fetch(`${SERVER_URL}/courses/${courseId}/outcomes`),
-      ]);
-      if (rubRes.ok) setRubrics(await rubRes.json());
-      if (outRes.ok) setOutcomes(await outRes.json());
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadRubricLibrary();
-  }, [SERVER_URL, courseId, userEmail]);
+  const { courseId } = useCourse();
+  const rubricsQuery = useCourseSection("rubrics");
+  const outcomesQuery = useCourseSection("outcomes");
+  const rubrics = Array.isArray(rubricsQuery.data) ? rubricsQuery.data : [];
+  const outcomes = Array.isArray(outcomesQuery.data) ? outcomesQuery.data : [];
+  const loading = rubricsQuery.loading || outcomesQuery.loading;
 
   return (
     <div>

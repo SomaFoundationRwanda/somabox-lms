@@ -1,11 +1,14 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Filter, Search, X } from "lucide-react";
 import BooksPage from "@/components/ui/library/books";
 import LibrarySidebar from "@/components/ui/library/LibrarySidebar";
 import { libraryShelves } from "@/components/ui/library/libraryEntry";
 import { useLanguage } from "@/context/LanguageContext";
+import { useQuery } from "@tanstack/react-query";
+import { apiFetch } from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
 
 const Library = () => {
     // Shelf: null = All, "" = Other (files at the top of the library), else a top folder title.
@@ -13,27 +16,11 @@ const Library = () => {
     const [shelf, setShelf] = useState(null);
     const [searchQuery, setSearchQuery] = useState("");
     const [filterPanelOpen, setFilterPanelOpen] = useState(false);
-    const [books, setBooks] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL;
+    // The box's books, kept with the rest of the catalogue (same copy as Explore and the admin).
+    const library = useQuery({ queryKey: queryKeys.libraryBooks, queryFn: () => apiFetch("/library/books") });
+    const books = useMemo(() => (Array.isArray(library.data) ? library.data : []), [library.data]);
+    const loading = library.isPending;
 
-    useEffect(() => {
-        async function loadBooks() {
-            try {
-                setLoading(true);
-                const res = await fetch(`${SERVER_URL}/library/books`);
-                if (res.ok) {
-                    const data = await res.json();
-                    setBooks(Array.isArray(data) ? data : []);
-                }
-            } catch (err) {
-                console.error(err);
-            } finally {
-                setLoading(false);
-            }
-        }
-        loadBooks();
-    }, [SERVER_URL]);
 
     const shelves = useMemo(() => libraryShelves(books), [books]);
     // A shelf that's no longer there (e.g. after a reload) falls back to All.

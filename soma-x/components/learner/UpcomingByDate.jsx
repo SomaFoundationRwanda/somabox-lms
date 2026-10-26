@@ -1,5 +1,7 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useQuery } from "@tanstack/react-query"
+import { apiFetch } from "@/lib/api"
+import { queryKeys } from "@/lib/queryKeys"
 import Link from "next/link"
 import { ChevronRight, ClipboardList, FileText, Folder, HelpCircle, MessageSquare } from "lucide-react"
 import { useLanguage } from "@/context/LanguageContext"
@@ -25,26 +27,17 @@ const addDays = (day, n) => {
  * A learner's next four weeks across all their courses, one group per day: what's due, what
  * closes and what opens (GET /calendar/me). The dashboard's alternative to the course cards.
  */
-export default function UpcomingByDate({ SERVER_URL }) {
+export default function UpcomingByDate() {
   const { t, lang } = useLanguage()
-  const [state, setState] = useState({ loading: true, error: false, today: null, events: [] })
-
-  useEffect(() => {
-    if (!SERVER_URL) return undefined
-    let alive = true
-    ;(async () => {
-      try {
-        // days=N: the server counts from the school's today (not this device's clock).
-        const res = await fetch(`${SERVER_URL}/calendar/me?days=${DAYS_AHEAD}`)
-        if (!res.ok) throw new Error()
-        const data = await res.json()
-        if (alive) setState({ loading: false, error: false, today: data.today, events: Array.isArray(data.events) ? data.events : [] })
-      } catch {
-        if (alive) setState({ loading: false, error: true, today: null, events: [] })
-      }
-    })()
-    return () => { alive = false }
-  }, [SERVER_URL])
+  // days=N: the server counts from the school's today (not this device's clock). Kept with the
+  // learner's other calendar data; a course change (live updates) marks it out of date.
+  const upcoming = useQuery({ queryKey: [...queryKeys.myCalendar, "upcoming", DAYS_AHEAD], queryFn: () => apiFetch(`/calendar/me?days=${DAYS_AHEAD}`) })
+  const state = {
+    loading: upcoming.isPending,
+    error: upcoming.isError,
+    today: upcoming.data?.today ?? null,
+    events: Array.isArray(upcoming.data?.events) ? upcoming.data.events : [],
+  }
 
   if (state.loading) return <Loader variant="page" size={48} className="min-h-[20vh]" />
   if (state.error) return <p role="alert" className="text-xs text-rose-600">{t("learner.dashboard.upcoming.loadFailed")}</p>

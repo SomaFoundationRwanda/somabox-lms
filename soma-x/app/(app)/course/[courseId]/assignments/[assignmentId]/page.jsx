@@ -1,6 +1,10 @@
 "use client";
 
 import { useContext, useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCourseSection } from "@/lib/useCourseSection";
+import { apiFetch } from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
 import { useParams } from "next/navigation";
 import { Pencil, Target, Clock, Lock, CalendarClock, CloudOff, AlertTriangle } from "lucide-react";
 import DataContext from "@/context/DataContext";
@@ -25,17 +29,38 @@ const itemDaysOf = (item) => ({ release_day: item.release_day, due_day: item.due
 export default function AssignmentDetailPage() {
   const { courseId, assignmentId } = useParams();
   useItemOpened("assignment", assignmentId, courseId);
-  const { SERVER_URL, userEmail, isTeacher, isObserver } = useCourse();
+  const { userEmail, isTeacher, isObserver } = useCourse();
   const { t, tf, weekLabel, fmtDay, fmtDate, fmtDateTime } = useCourseText();
   const formatDate = (d) => fmtDay(d);
-  const [assignment, setAssignment] = useState(null);
-  const [modules, setModules] = useState([]);
-  const [outcomes, setOutcomes] = useState([]);
-  const [itemOutcomes, setItemOutcomes] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const assignmentKey = queryKeys.courseSection(courseId, `assignments/${assignmentId}`);
+  const assignmentQuery = useQuery({
+    queryKey: assignmentKey,
+    queryFn: () => apiFetch(`/courses/${courseId}/assignments/${assignmentId}`),
+    enabled: !!courseId && !!assignmentId && !!userEmail,
+  });
+  // The weeks, outcomes and outcome tags are the course's kept copies (shared with other pages).
+  const modulesQuery = useCourseSection("modules");
+  const outcomesQuery = useCourseSection("outcomes");
+  const tagsQuery = useCourseSection("item-outcomes");
+  const rubricKey = [...assignmentKey, "rubric"];
+  const rubricQuery = useQuery({
+    queryKey: rubricKey,
+    queryFn: () => apiFetch(`/courses/${courseId}/assignments/${assignmentId}/rubric`).catch(() => null),
+    enabled: !!courseId && !!assignmentId && !!userEmail,
+  });
+  const assignment = assignmentQuery.data || null;
+  const modules = Array.isArray(modulesQuery.data) ? modulesQuery.data : [];
+  const outcomes = Array.isArray(outcomesQuery.data) ? outcomesQuery.data : [];
+  const itemOutcomes = (Array.isArray(tagsQuery.data) ? tagsQuery.data : [])
+    .filter((tag) => tag.item_type === "assignment" && Number(tag.item_id) === Number(assignmentId));
+  const rubric = rubricQuery.data ?? null;
+  const setRubric = (next) => queryClient.setQueryData(rubricKey, next);
+  const loading = assignmentQuery.isPending || modulesQuery.loading;
   const [submissionBody, setSubmissionBody] = useState("");
-  const [rubric, setRubric] = useState(null);
-  const [people, setPeople] = useState([]);
+  // Teachers can grade a learner who has no submission (e.g. oral work).
+  const { data: peopleData } = useCourseSection(isTeacher ? "people" : null);
+  const people = Array.isArray(peopleData) ? peopleData : [];
   const [extraLearner, setExtraLearner] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
@@ -52,48 +77,21 @@ export default function AssignmentDetailPage() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
 
-  const loadData = async () => {
-    if (!SERVER_URL || !courseId || !assignmentId) return;
-    try {
-      setLoading(true);
-      const [assignRes, modRes, outRes, itemOutRes, rubricRes] = await Promise.all([
-        fetch(`${SERVER_URL}/courses/${courseId}/assignments/${assignmentId}`),
-        fetch(`${SERVER_URL}/courses/${courseId}/modules`),
-        fetch(`${SERVER_URL}/courses/${courseId}/outcomes`),
-        fetch(`${SERVER_URL}/courses/${courseId}/item-outcomes`),
-        fetch(`${SERVER_URL}/courses/${courseId}/assignments/${assignmentId}/rubric`),
-      ]);
-
-      if (assignRes.ok) setAssignment(await assignRes.json());
-      if (rubricRes.ok) setRubric(await rubricRes.json().catch(() => null));
-      if (modRes.ok) setModules(await modRes.json());
-      if (outRes.ok) setOutcomes(await outRes.json());
-      if (itemOutRes.ok) {
-        const allTags = await itemOutRes.json();
-        const myTags = allTags.filter(t => t.item_type === 'assignment' && Number(t.item_id) === Number(assignmentId));
-        setItemOutcomes(myTags);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
+  // This assignment again (its submissions, my submission, grades, rubric).
+  const loadData = () => queryClient.invalidateQueries({ queryKey: assignmentKey });
+  // A grade changed: also the gradebook and the course's reports (reloaded when next shown).
+  const gradesChanged = () => {
+    loadData();
+    for (const section of ["grades", "insights", "outcome-mastery", "home-loop"]) {
+      queryClient.invalidateQueries({ queryKey: queryKeys.courseSection(courseId, section) });
     }
   };
-
-  useEffect(() => {
+  // A learner's work changed: also their to-do list and dashboard.
+  const workChanged = () => {
     loadData();
-  }, [SERVER_URL, courseId, assignmentId, userEmail]);
-
-  // Teachers can grade a learner who has no submission (e.g. oral work).
-  useEffect(() => {
-    if (!isTeacher || !SERVER_URL || !courseId) return;
-    let cancelled = false;
-    fetch(`${SERVER_URL}/courses/${courseId}/people`)
-      .then((res) => (res.ok ? res.json() : []))
-      .then((list) => { if (!cancelled) setPeople(Array.isArray(list) ? list : []); })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, [isTeacher, SERVER_URL, courseId]);
+    queryClient.invalidateQueries({ queryKey: queryKeys.assignmentSummary });
+    queryClient.invalidateQueries({ queryKey: queryKeys.dashboard });
+  };
 
   useEffect(() => {
     if (!learnerId || !courseId || !assignmentId) return undefined;
@@ -104,8 +102,8 @@ export default function AssignmentDetailPage() {
       const d = e.detail || {};
       if (String(d.courseId) !== String(courseId) || String(d.assignmentId) !== String(assignmentId)) return;
       if (d.type === "queued") { setPendingSubmission(getPendingSubmission(ids)); setQueueNotice(null); }
-      if (d.type === "sent") { setPendingSubmission(getPendingSubmission(ids)); loadData(); }
-      if (d.type === "refused") { setPendingSubmission(getPendingSubmission(ids)); setQueueNotice(getNotice(ids) || { message: d.message }); loadData(); }
+      if (d.type === "sent") { setPendingSubmission(getPendingSubmission(ids)); workChanged(); }
+      if (d.type === "refused") { setPendingSubmission(getPendingSubmission(ids)); setQueueNotice(getNotice(ids) || { message: d.message }); workChanged(); }
     };
     window.addEventListener(QUEUE_EVENT, onQueue);
     return () => window.removeEventListener(QUEUE_EVENT, onQueue);
@@ -131,19 +129,20 @@ export default function AssignmentDetailPage() {
     setSubmitResult(null);
     setSubmitting(true);
     try {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/assignments/${assignmentId}/submit`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body: submissionBody }),
-      });
-      if (isNetworkFailure(res) && keepOnDevice()) return;
-      const payload = await res.json().catch(() => ({}));
-      if (learnerId && res.status !== 401) {
+      // A refusal from the box is an answer too; only "can't reach the box" keeps the work here.
+      const outcome = await apiFetch(`/courses/${courseId}/assignments/${assignmentId}/submit`, { method: "POST", json: { body: submissionBody } })
+        .then((payload) => ({ ok: true, payload }))
+        .catch((err) => {
+          if (isNetworkFailure(err)) throw err;
+          return { ok: false, status: err?.status, payload: err?.body || {} };
+        });
+      if (learnerId && outcome.status !== 401) {
         // This answer replaces anything that was waiting on this device.
         clearPendingSubmission({ userId: learnerId, courseId, assignmentId });
         setPendingSubmission(null);
       }
-      if (!res.ok) {
+      const payload = outcome.payload || {};
+      if (!outcome.ok) {
         const fallback = { CLOSED: t("assignment.closed"), NOT_OPEN_YET: t("assignment.notOpenYet") }[payload.code];
         setSubmitError(payload.message || fallback || t("assignment.submitFailed"));
       } else {
@@ -151,7 +150,7 @@ export default function AssignmentDetailPage() {
         setSubmissionBody("");
         showToast(payload.late ? t("assignment.submittedLate") : t("assignment.submitted"), payload.late ? "warning" : "success");
       }
-      loadData();
+      workChanged();
     } catch (err) {
       if (isNetworkFailure(err) && keepOnDevice()) return;
       setSubmitError(isNetworkFailure(err) ? t("share.unreachable") : err.message || t("assignment.submitFailed"));
@@ -188,42 +187,30 @@ export default function AssignmentDetailPage() {
     try {
       const saveOutcomes = async () => {
         if (!editForm.selectedOutcomeIds) return true;
-        const res = await fetch(`${SERVER_URL}/courses/${courseId}/item-outcomes`, {
+        return apiFetch(`/courses/${courseId}/item-outcomes`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            itemType: "assignment",
-            itemId: Number(assignmentId),
-            outcomeIds: editForm.selectedOutcomeIds
-          })
-        });
-        if (!res.ok) {
-          const payload = await res.json().catch(() => ({}));
-          setSaveError(payload.message || t("assignment.outcomeTagsFailed"));
+          json: { itemType: "assignment", itemId: Number(assignmentId), outcomeIds: editForm.selectedOutcomeIds },
+        }).then(() => true).catch((err) => {
+          setSaveError(err?.body?.message || t("assignment.outcomeTagsFailed"));
           return false;
-        }
-        return true;
+        });
       };
 
       const saveAssignment = async () => {
-        const res = await fetch(`${SERVER_URL}/courses/${courseId}/assignments/${assignmentId}`, {
+        return apiFetch(`/courses/${courseId}/assignments/${assignmentId}`, {
           method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+          json: {
             title: editForm.title.trim(),
             description: editForm.description,
             moduleId: editForm.moduleId,
             ...schedulePayload(editForm.schedule),
             pointsPossible: Number(editForm.pointsPossible) || 100,
             published: editForm.published,
-          }),
-        });
-        if (!res.ok) {
-          const payload = await res.json().catch(() => ({}));
-          setSaveError(payload.message || t("modules.errors.saveAssignment"));
+          },
+        }).then(() => true).catch((err) => {
+          setSaveError(err?.body?.message || t("modules.errors.saveAssignment"));
           return false;
-        }
-        return true;
+        });
       };
 
       // Publishing requires an outcome tag, and removing the last tag from a
@@ -231,13 +218,15 @@ export default function AssignmentDetailPage() {
       const ok = editForm.published
         ? (await saveOutcomes()) && (await saveAssignment())
         : (await saveAssignment()) && (await saveOutcomes());
+      // Title, week, dates and tags show across the course (weeks, calendar, syllabus).
+      const courseChanged = () => queryClient.invalidateQueries({ queryKey: queryKeys.course(courseId) });
       if (!ok) {
-        loadData();
+        courseChanged();
         return;
       }
 
       setEditing(false);
-      loadData();
+      courseChanged();
     } finally {
       setSaving(false);
     }
@@ -257,9 +246,10 @@ export default function AssignmentDetailPage() {
   const submissions = Array.isArray(assignment.submissions) ? assignment.submissions : [];
   const rubricSignature = rubric ? `${rubric.id}:${(rubric.criteria || []).map((c) => c.id).join(",")}` : "none";
   const submittedEmails = new Set(submissions.map((x) => String(x.scholar_email).toLowerCase()));
-  const learnersWithout = people.filter((p) => p.role === "student" && p.status === "active" && !submittedEmails.has(String(p.email).toLowerCase()));
-  const extraPerson = extraLearner ? learnersWithout.find((p) => p.email === extraLearner) : null;
-  const extraRow = extraPerson ? { scholar_email: extraPerson.email, fullName: extraPerson.fullName, grade: null, feedback: "", rubricScores: [] } : null;
+  // Learners made by their teacher have no shown email: `account` names them for grading.
+  const learnersWithout = people.filter((p) => p.role === "student" && p.status === "active" && p.account && !submittedEmails.has(String(p.account).toLowerCase()));
+  const extraPerson = extraLearner ? learnersWithout.find((p) => p.account === extraLearner) : null;
+  const extraRow = extraPerson ? { scholar_email: extraPerson.account, fullName: extraPerson.fullName, grade: null, feedback: "", rubricScores: [] } : null;
   const mine = assignment.mySubmission || null;
   const myScores = Object.fromEntries((mine?.rubricScores || []).map((r) => [r.criterion_id, r]));
   const deadlines = assignment.deadlines || {};
@@ -407,7 +397,6 @@ export default function AssignmentDetailPage() {
             {isTeacher ? (
               <>
                 <RubricSection
-                  SERVER_URL={SERVER_URL}
                   courseId={courseId}
                   assignmentId={assignmentId}
                   rubric={rubric}
@@ -429,26 +418,24 @@ export default function AssignmentDetailPage() {
                       {extraRow ? (
                         <SubmissionGrader
                           key={`extra-${extraRow.scholar_email}-${rubricSignature}`}
-                          SERVER_URL={SERVER_URL}
                           courseId={courseId}
                           assignmentId={assignmentId}
                           submission={extraRow}
                           rubric={rubric}
                           pointsPossible={assignment.points_possible}
                           defaultOpen
-                          onSaved={() => { setExtraLearner(""); loadData(); }}
+                          onSaved={() => { setExtraLearner(""); gradesChanged(); }}
                         />
                       ) : null}
                       {submissions.map((s) => (
                         <SubmissionGrader
                           key={`${s.scholar_email}-${s.graded_at || ""}-${s.grade ?? ""}-${rubricSignature}`}
-                          SERVER_URL={SERVER_URL}
                           courseId={courseId}
                           assignmentId={assignmentId}
                           submission={s}
                           rubric={rubric}
                           pointsPossible={assignment.points_possible}
-                          onSaved={loadData}
+                          onSaved={gradesChanged}
                         />
                       ))}
                     </List>
@@ -468,7 +455,7 @@ export default function AssignmentDetailPage() {
                         >
                           <option value="">{t("assignment.chooseLearner")}</option>
                           {learnersWithout.map((p) => (
-                            <option key={p.email} value={p.email}>{p.fullName || p.email}</option>
+                            <option key={p.account} value={p.account}>{p.fullName || p.learnerCode || p.email}</option>
                           ))}
                         </select>
                       </div>

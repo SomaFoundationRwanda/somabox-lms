@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { BookOpen, CheckCircle2, Hammer, Pencil, Plus, RotateCcw, SkipForward } from "lucide-react";
 import { useToast } from "@/context/ToastContext";
@@ -9,6 +9,9 @@ import { useLanguage } from "@/context/LanguageContext";
 import { fill } from "@/lib/fill";
 import Loader from "@/components/ui/Loader";
 import useSetupText from "@/lib/useSetupText";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ApiError, apiFetch } from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
 
 const MIN_REASON = 10;
 
@@ -26,11 +29,19 @@ function decidedOn(value) {
  * onChanged: called after every successful action (refresh setup status).
  * compact: smaller layout for the setup wizard.
  */
-export default function BaselinePanel({ SERVER_URL, courseId, isDraft, onChanged, compact = false }) {
+export default function BaselinePanel({ courseId, isDraft, onChanged, compact = false }) {
   const { showToast } = useToast();
   const { t } = useLanguage();
-  const [state, setState] = useState(null);
-  const [loadError, setLoadError] = useState("");
+  const queryClient = useQueryClient();
+  const baseline = useQuery({
+    queryKey: queryKeys.courseSection(courseId, "baseline"),
+    queryFn: () => apiFetch(`/courses/${courseId}/baseline`),
+    enabled: !!courseId,
+  });
+  const state = baseline.data || null;
+  const loadError = baseline.isError ? baseline.error?.body?.message || t("teacher.baseline.loadFailed") : "";
+  // The baseline touches the course's weeks, quizzes and setup status: all of it is reloaded.
+  const load = () => queryClient.invalidateQueries({ queryKey: queryKeys.course(courseId) });
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [problems, setProblems] = useState([]);
@@ -39,44 +50,30 @@ export default function BaselinePanel({ SERVER_URL, courseId, isDraft, onChanged
   const [skipOpen, setSkipOpen] = useState(false);
   const [reason, setReason] = useState("");
 
-  const load = useCallback(async () => {
-    if (!SERVER_URL || !courseId) return;
-    try {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/baseline`);
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(payload?.message || t("teacher.baseline.loadFailed"));
-      setState(payload);
-      setLoadError("");
-    } catch (err) {
-      setLoadError(err.message || t("teacher.baseline.loadFailed"));
-    }
-  }, [SERVER_URL, courseId, t]);
-
-  useEffect(() => { load(); }, [load]);
-
   const run = async (key, path, body, successMessage) => {
     setBusy(key);
     setError("");
     setProblems([]);
     try {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}${path}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body || {}),
-      });
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        if (Array.isArray(payload?.problems) && payload.problems.length > 0) {
+      let payload;
+      try {
+        payload = await apiFetch(`/courses/${courseId}${path}`, { method: "POST", json: body || {} });
+      } catch (err) {
+        if (!(err instanceof ApiError) || err.status === 0) throw err;
+        const failure = err.body || {};
+        if (Array.isArray(failure.problems) && failure.problems.length > 0) {
           setError(t("teacher.baseline.notReady"));
-          setProblems(baselineProblems(payload.problemCodes, payload.problems));
+          setProblems(baselineProblems(failure.problemCodes, failure.problems));
         } else {
-          setError(payload?.message || t("teacher.common.somethingWrong"));
+          setError(failure.message || t("teacher.common.somethingWrong"));
         }
         await load();
         return false;
       }
-      if (payload && typeof payload === "object" && "status" in payload) setState(payload);
-      else await load();
+      if (payload && typeof payload === "object" && "status" in payload) {
+        queryClient.setQueryData(queryKeys.courseSection(courseId, "baseline"), payload);
+      }
+      await load();
       showToast(successMessage, "success");
       onChanged?.();
       return true;
@@ -108,14 +105,14 @@ export default function BaselinePanel({ SERVER_URL, courseId, isDraft, onChanged
     setBusy("module");
     setError("");
     try {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/modules`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: t("teacher.baseline.week0Title"), kind: "baseline" }),
-      });
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok && res.status !== 409) throw new Error(payload?.message || t("teacher.baseline.addModuleFailed"));
-      showToast(res.status === 409 ? t("teacher.baseline.moduleExists") : t("teacher.baseline.moduleAdded"), "success");
+      // 409: Week 0 is already there, which is fine.
+      const exists = await apiFetch(`/courses/${courseId}/modules`, { method: "POST", json: { title: t("teacher.baseline.week0Title"), kind: "baseline" } })
+        .then(() => false)
+        .catch((err) => {
+          if (err?.status === 409) return true;
+          throw new Error(err?.body?.message || t("teacher.baseline.addModuleFailed"));
+        });
+      showToast(exists ? t("teacher.baseline.moduleExists") : t("teacher.baseline.moduleAdded"), "success");
       await load();
       onChanged?.();
     } catch (err) {

@@ -4,8 +4,10 @@
 // code, or by email for the few who have one), or create accounts for new ones from a list of
 // names. A name that may already have an account is shown first, so nobody gets two accounts.
 // New accounts end on the class sheet (codes and temporary passwords, shown once).
-import { useContext, useEffect, useState } from "react"
-import DataContext from "@/context/DataContext"
+import { useEffect, useState } from "react"
+import { useQueryClient } from "@tanstack/react-query"
+import { apiFetch, getErrorMessage } from "@/lib/api"
+import { queryKeys } from "@/lib/queryKeys"
 import { useLanguage } from "@/context/LanguageContext"
 import { fill } from "@/lib/fill"
 import { GRADE_LEVELS } from "@/lib/grades"
@@ -30,7 +32,6 @@ function MatchList({ matches, l }) {
 }
 
 function FindLearner({ courseId, onAdded, l, t }) {
-  const { SERVER_URL } = useContext(DataContext)
   const [q, setQ] = useState("")
   const [results, setResults] = useState([])
   const [email, setEmail] = useState("")
@@ -38,22 +39,22 @@ function FindLearner({ courseId, onAdded, l, t }) {
 
   useEffect(() => {
     if (q.trim().length < 2) { setResults([]); return }
+    // Not kept: the results change with every pause in typing.
     const timer = setTimeout(async () => {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/learner-search?q=${encodeURIComponent(q.trim())}`)
-      setResults(res.ok ? await res.json() : [])
+      const found = await apiFetch(`/courses/${courseId}/learner-search?q=${encodeURIComponent(q.trim())}`).catch(() => [])
+      setResults(Array.isArray(found) ? found : [])
     }, 250)
     return () => clearTimeout(timer)
-  }, [q, courseId, SERVER_URL])
+  }, [q, courseId])
 
   const add = async (body) => {
     setError("")
-    const res = await fetch(`${SERVER_URL}/courses/${courseId}/people`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...body, role: "student" }),
-    })
-    const data = await res.json().catch(() => ({}))
-    if (!res.ok) { setError(data.message || t("teacher.dashboard.addStudentFailed")); return false }
+    try {
+      await apiFetch(`/courses/${courseId}/people`, { method: "POST", json: { ...body, role: "student" } })
+    } catch (err) {
+      setError(err?.body?.message || (err?.status === 0 ? getErrorMessage(err, t) : t("teacher.dashboard.addStudentFailed")))
+      return false
+    }
     onAdded()
     return true
   }
@@ -96,7 +97,6 @@ function FindLearner({ courseId, onAdded, l, t }) {
 }
 
 function NewLearners({ courseId, onCreated, l, t }) {
-  const { SERVER_URL } = useContext(DataContext)
   const [names, setNames] = useState("")
   const [grade, setGrade] = useState("")
   const [duplicates, setDuplicates] = useState(null) // possible duplicates, waiting for the teacher's choice
@@ -108,14 +108,13 @@ function NewLearners({ courseId, onCreated, l, t }) {
     setSaving(true)
     setError("")
     try {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/learners`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ names: list, grade, duplicates: choice }),
-      })
-      const data = await res.json().catch(() => ({}))
-      if (res.status === 409 && data.code === "POSSIBLE_DUPLICATES") { setDuplicates(data.duplicates); return }
-      if (!res.ok) throw new Error(data.message || l("createFailed"))
+      let data
+      try {
+        data = await apiFetch(`/courses/${courseId}/learners`, { method: "POST", json: { names: list, grade, duplicates: choice } })
+      } catch (err) {
+        if (err?.code === "POSSIBLE_DUPLICATES") { setDuplicates(err.body.duplicates); return }
+        throw new Error(err?.status === 0 ? getErrorMessage(err, t) : err?.body?.message || l("createFailed"))
+      }
       setDuplicates(null)
       onCreated(data)
     } catch (err) {
@@ -172,7 +171,13 @@ function NewLearners({ courseId, onCreated, l, t }) {
 }
 
 export default function AddLearners({ courseId, courseTitle, isDraft, showJoinCode = false, onClose, onChanged }) {
-  const { SERVER_URL } = useContext(DataContext)
+  const queryClient = useQueryClient()
+  // Whoever shows this course's people or the course lists sees the new learners.
+  const changed = () => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.courseSection(courseId, "people") })
+    queryClient.invalidateQueries({ queryKey: queryKeys.courses })
+    onChanged?.()
+  }
   const { t } = useLanguage()
   const l = (key) => t(`teacher.learners.${key}`)
   const [tab, setTab] = useState("find")
@@ -180,7 +185,7 @@ export default function AddLearners({ courseId, courseTitle, isDraft, showJoinCo
 
   const created = (data) => {
     setResult(data)
-    onChanged()
+    changed()
   }
 
   const title = fill(t("teacher.dashboard.addStudentTo"), { course: courseTitle || "" })
@@ -207,7 +212,7 @@ export default function AddLearners({ courseId, courseTitle, isDraft, showJoinCo
     <Modal title={title} onClose={onClose} size="lg">
       {showJoinCode && (
         <div className="mb-4">
-          <JoinCodePanel SERVER_URL={SERVER_URL} courseId={courseId} isDraft={isDraft} />
+          <JoinCodePanel courseId={courseId} isDraft={isDraft} />
         </div>
       )}
       <div className="flex items-center gap-1.5 mb-4" role="group" aria-label={l("howLabel")}>
@@ -219,7 +224,7 @@ export default function AddLearners({ courseId, courseTitle, isDraft, showJoinCo
         ))}
       </div>
       {tab === "find"
-        ? <FindLearner courseId={courseId} onAdded={onChanged} l={l} t={t} />
+        ? <FindLearner courseId={courseId} onAdded={changed} l={l} t={t} />
         : <NewLearners courseId={courseId} onCreated={created} l={l} t={t} />}
     </Modal>
   )

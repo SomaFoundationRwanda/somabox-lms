@@ -10,36 +10,25 @@ import AsyncListState from "@/components/course/AsyncListState";
 import { Button } from "@/components/ui/button";
 import { PageHeader, List, ListRow } from "@/components/layout";
 import { useCourseText } from "@/components/course/useCourseText";
+import { apiFetch } from "@/lib/api";
 
 export default function DiscussionsListPage() {
-  const { SERVER_URL, courseId } = useCourse();
+  const { courseId } = useCourse();
   const { t, tf, weekLabel } = useCourseText();
   const { data: discussions, loading, error, refetch } = useCourseSection("discussions");
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({ title: "", body: "", moduleId: "" });
-  const [modules, setModules] = useState([]);
   const [createError, setCreateError] = useState("");
 
   // Discussions must live in a module. Learners only receive published modules
-  // from the API; the "unassigned" bucket is never a valid target.
+  // from the API; the "unassigned" bucket is never a valid target. The kept weeks list is shared
+  // with the Modules page.
+  const { data: mods } = useCourseSection(creating ? "modules" : null);
+  const modules = (Array.isArray(mods) ? mods : []).filter((m) => m.kind !== "unassigned");
   useEffect(() => {
-    if (!creating || !SERVER_URL || !courseId) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch(`${SERVER_URL}/courses/${courseId}/modules`);
-        if (!res.ok) return;
-        const mods = await res.json();
-        if (cancelled) return;
-        const choices = (Array.isArray(mods) ? mods : []).filter((m) => m.kind !== "unassigned");
-        setModules(choices);
-        setForm((p) => (p.moduleId || choices.length === 0 ? p : { ...p, moduleId: choices[0].id }));
-      } catch (err) {
-        console.error(err);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [creating, SERVER_URL, courseId]);
+    if (!creating || modules.length === 0) return;
+    setForm((p) => (p.moduleId ? p : { ...p, moduleId: modules[0].id }));
+  }, [creating, modules.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const create = async () => {
     if (!form.title.trim()) return;
@@ -48,14 +37,10 @@ export default function DiscussionsListPage() {
       return;
     }
     setCreateError("");
-    const res = await fetch(`${SERVER_URL}/courses/${courseId}/discussions`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: form.title.trim(), body: form.body, moduleId: Number(form.moduleId) }),
-    });
-    if (!res.ok) {
-      const payload = await res.json().catch(() => ({}));
-      setCreateError(payload.message || t("discussions.createFailed"));
+    try {
+      await apiFetch(`/courses/${courseId}/discussions`, { method: "POST", json: { title: form.title.trim(), body: form.body, moduleId: Number(form.moduleId) } });
+    } catch (err) {
+      setCreateError(err?.body?.message || t("discussions.createFailed"));
       return;
     }
     setForm({ title: "", body: "", moduleId: "" });

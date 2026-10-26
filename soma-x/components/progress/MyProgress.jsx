@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { useCourse } from "@/context/CourseContext";
+import { useCourseSection } from "@/lib/useCourseSection";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
 import { PageHeader, Section, List, ListRow, EmptyState } from "@/components/layout";
 import { formatDate, formatInstantDate } from "@/lib/dates";
@@ -52,32 +53,16 @@ function WorkRow({ courseId, w, showPct }) {
 }
 
 export default function MyProgress({ sectionKey = "progress" }) {
-  const { SERVER_URL, courseId, userEmail } = useCourse();
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const { courseId } = useCourse();
   const tracked = useRef(false);
   const { txn, tx } = useAttendanceText();
   const { tp, tpn } = useProgressText();
 
-  const load = useCallback(async () => {
-    if (!SERVER_URL || !courseId || !userEmail) return;
-    setLoading(true);
-    setError("");
-    try {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/my-progress`);
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(payload.message || tp("myProgress.loadFailed"));
-      setData(payload);
-    } catch (err) {
-      setError(err.message || tp("myProgress.loadFailed"));
-    } finally {
-      setLoading(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [SERVER_URL, courseId, userEmail]);
-
-  useEffect(() => { load(); }, [load]);
+  const progress = useCourseSection("my-progress");
+  const data = progress.data;
+  const loading = progress.loading;
+  const error = progress.error ? progress.error || tp("myProgress.loadFailed") : "";
+  const load = progress.refetch;
 
   useEffect(() => {
     if (tracked.current || !courseId) return;

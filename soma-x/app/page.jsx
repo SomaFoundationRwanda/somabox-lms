@@ -9,6 +9,7 @@ import { AuthDivider, AuthError, AuthField, AuthFormHeader, AuthLayout, AuthPass
 import { useToast } from "@/context/ToastContext";
 import { accountPage, renewMediaSession, safeNext, setSessionToken, takeNext } from "@/lib/session";
 import { startRouteLoading } from "@/components/global/RouteLoader";
+import { apiFetch, getErrorMessage } from "@/lib/api";
 
 const AuthComp = () => {
     const { t } = useLanguage();
@@ -23,8 +24,7 @@ const AuthComp = () => {
     const [next, setNext] = useState("");
     // A new box has no admin yet: it's set up first, with the code shown on the box.
     useEffect(() => {
-        fetch(`${SERVER_URL}/setup/status`)
-            .then((res) => (res.ok ? res.json() : null))
+        apiFetch("/setup/status", { allowUnauthenticated: true })
             .then((status) => { if (status?.needsSetup) window.location.replace("/setup"); })
             .catch(() => {});
     }, [SERVER_URL]);
@@ -43,24 +43,22 @@ const AuthComp = () => {
         setLoginError('');
         setLoading(true);
         try {
-            const response = await fetch(`${SERVER_URL}/auth/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: formData.email.trim(), password: formData.password, sharedDevice }),
-            });
-            const data = await response.json();
-            if (!response.ok) {
-                const msg = response.status === 429
+            const data = await apiFetch("/auth/login", {
+                method: "POST",
+                json: { email: formData.email.trim(), password: formData.password, sharedDevice },
+                allowUnauthenticated: true,
+            }).catch((err) => {
+                const msg = err?.status === 429
                     ? t('shell.login.tooManyAttempts')
-                    : data.message || t('shell.login.invalidCredentials');
+                    : err?.status === 0 ? getErrorMessage(err, t) : err?.body?.message || t('shell.login.invalidCredentials');
                 throw new Error(msg);
-            }
+            });
 
             const userRole = String(data.user?.role || 'scholar').toLowerCase();
             setSessionToken(data.token, { sharedDevice: data.sharedDevice === true });
             // The login response set the media cookie (this request used credentials:
             // "include"); renew it once more so videos and books work straight away.
-            await renewMediaSession(SERVER_URL);
+            await renewMediaSession();
 
             // The backend blocks everything else until the password is changed.
             if (data.user?.must_change_password) {

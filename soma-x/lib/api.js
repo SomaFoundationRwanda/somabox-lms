@@ -10,7 +10,7 @@
 //
 // The box is on the local network: when it can't be reached (Wi-Fi dropped, the box restarting)
 // the error has status 0 and code "NETWORK", so screens can say so instead of a server message.
-import { baseFetch, getSessionToken, handleSessionProblem } from "@/lib/session";
+import { getSessionToken, handleSessionProblem } from "@/lib/session";
 
 const API_BASE = String(process.env.NEXT_PUBLIC_SERVER_URL || "").replace(/\/+$/, "");
 
@@ -60,12 +60,13 @@ export function jsonBody(value) {
  *   json?: any,                 // sent as a JSON body
  *   responseType?: "json" | "blob" | "text" | "response",
  *   allowUnauthenticated?: boolean, // a 401 is just an error (sign-in, setup), not a sign-out
+ *   withSession?: boolean,          // false: no session token (checks that only the media cookie works)
  * }} [options]
  */
 export async function apiFetch(path, options = {}) {
-    const { json, responseType = "json", allowUnauthenticated = false, headers: given, ...init } = options;
+    const { json, responseType = "json", allowUnauthenticated = false, withSession = true, headers: given, ...init } = options;
     const headers = new Headers(given);
-    const token = getSessionToken();
+    const token = withSession ? getSessionToken() : null;
     if (token && !headers.has("Authorization")) headers.set("Authorization", `Bearer ${token}`);
     if (json !== undefined) {
         init.body = JSON.stringify(json);
@@ -74,7 +75,7 @@ export async function apiFetch(path, options = {}) {
 
     let response;
     try {
-        response = await baseFetch()(apiUrl(path), { credentials: "include", ...init, headers });
+        response = await fetch(apiUrl(path), { credentials: "include", ...init, headers });
     } catch (error) {
         if (error?.name === "AbortError") throw error;
         throw new ApiError(`${init.method || "GET"} ${path}: can't reach the box`, 0, null);

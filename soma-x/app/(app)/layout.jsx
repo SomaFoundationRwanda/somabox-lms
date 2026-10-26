@@ -9,6 +9,8 @@ import { useToast } from "@/context/ToastContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { accountPage, loginUrlWithNext } from "@/lib/session";
 import { startSubmissionQueue } from "@/lib/submissionQueue";
+import { useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/queryKeys";
 import { useContext, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Loader from "@/components/ui/Loader";
@@ -30,6 +32,7 @@ const Spinner = () => (
 export default function AppLayout({ children }) {
   const { authLoading, authenticated, user, SERVER_URL } = useContext(DataContext);
   const { showToast } = useToast();
+  const queryClient = useQueryClient();
   const { t } = useLanguage();
   // The submission queue lives across language changes; read the current t when it reports.
   const tRef = useRef(t);
@@ -66,10 +69,16 @@ export default function AppLayout({ children }) {
   useEffect(() => {
     if (!learnerId) return undefined;
     return startSubmissionQueue(SERVER_URL, learnerId, {
-      onSent: () => showToast(tRef.current("shell.toasts.workSent"), "success"),
+      onSent: (entry) => {
+        showToast(tRef.current("shell.toasts.workSent"), "success");
+        // The work is on the box now: what shows it (the assignment, grades, what's due) reloads.
+        queryClient.invalidateQueries({ queryKey: queryKeys.courseSection(entry.courseId, `assignments/${entry.assignmentId}`) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.assignmentSummary });
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard });
+      },
       onRefused: (_entry, message) => showToast(message, "error", 8000),
     });
-  }, [learnerId, SERVER_URL, showToast]);
+  }, [learnerId, SERVER_URL, showToast, queryClient]);
 
   if (authLoading || (guest && !explore)) return <Spinner />;
 

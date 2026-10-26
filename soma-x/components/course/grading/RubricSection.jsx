@@ -6,7 +6,8 @@ import { Section, DataTable, EmptyState } from "@/components/layout";
 import { useToast } from "@/context/ToastContext";
 import { fmtPoints } from "@/lib/rubric";
 import useAiStatus from "@/lib/useAiStatus";
-import { startAiJob, aiFetch } from "@/lib/ai";
+import { startAiJob } from "@/lib/ai";
+import { apiFetch, getErrorMessage } from "@/lib/api";
 import { AiStatusNote } from "@/components/ai/AiBits";
 import AiJobPanel from "@/components/ai/AiJobPanel";
 import { useProgressText } from "@/components/progress/text";
@@ -28,7 +29,9 @@ const inputClass = "w-full text-sm border border-slate-200 dark:border-slate-700
 // Teacher rubric for one assignment: read-only table, or an editor that PUTs the whole rubric.
 // `taggedOutcomes` are this assignment's outcome tags ({ outcome_id, outcome_code, outcome_title })
 // used to seed a new rubric with one row per outcome.
-export default function RubricSection({ SERVER_URL, courseId, assignmentId, rubric, outcomes, taggedOutcomes, pointsPossible, onChange }) {
+export default function RubricSection({ courseId, assignmentId, rubric, outcomes, taggedOutcomes, pointsPossible, onChange }) {
+  // Still passed to the AI helpers (lib/ai.js, AiJobPanel).
+  const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL;
   const { showToast } = useToast();
   const { tp } = useProgressText();
   const [editing, setEditing] = useState(false);
@@ -37,7 +40,7 @@ export default function RubricSection({ SERVER_URL, courseId, assignmentId, rubr
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  const base = `${SERVER_URL}/courses/${courseId}/assignments/${assignmentId}/rubric`;
+  const base = `/courses/${courseId}/assignments/${assignmentId}/rubric`;
 
   // AI: draft a rubric for this assignment, reviewed inline before it replaces anything.
   const aiStatus = useAiStatus();
@@ -52,8 +55,7 @@ export default function RubricSection({ SERVER_URL, courseId, assignmentId, rubr
     setAiJob(r.data);
   };
   const afterAiApproved = async () => {
-    const r = await aiFetch(base);
-    onChange?.(r.ok ? r.data : null);
+    onChange?.(await apiFetch(base).catch(() => null));
   };
   const aiButton = aiStatus.allowed ? (
     <button type="button" onClick={startAiRubric} disabled={aiStarting || aiRunning} className="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-800 dark:text-violet-200 border border-violet-200 dark:border-violet-800 hover:bg-violet-50 dark:hover:bg-violet-950/30 disabled:opacity-50 px-3 py-1.5 rounded-lg">
@@ -121,10 +123,9 @@ export default function RubricSection({ SERVER_URL, courseId, assignmentId, rubr
     }
     setSaving(true);
     try {
-      const res = await fetch(base, {
+      const payload = await apiFetch(base, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        json: {
           ...(title.trim() ? { title: title.trim() } : {}),
           criteria: rows.map((r) => ({
             title: r.title.trim(),
@@ -133,10 +134,9 @@ export default function RubricSection({ SERVER_URL, courseId, assignmentId, rubr
             weight: r.weight === "" ? 1 : Number(r.weight),
             ...(r.outcomeId ? { outcomeId: Number(r.outcomeId) } : {}),
           })),
-        }),
-      });
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok) { setError(payload.message || tp("rubric.saveFailed")); return; }
+        },
+      }).catch((err) => { setError(err?.body?.message || (err?.status === 0 ? getErrorMessage(err) : tp("rubric.saveFailed"))); return null; });
+      if (!payload) return;
       showToast(tp("rubric.saved"), "success");
       setEditing(false);
       onChange?.(payload);
@@ -151,12 +151,11 @@ export default function RubricSection({ SERVER_URL, courseId, assignmentId, rubr
     if (!window.confirm(tp("rubric.confirmRemove"))) return;
     setSaving(true);
     try {
-      const res = await fetch(base, { method: "DELETE" });
-      if (!res.ok) {
-        const payload = await res.json().catch(() => ({}));
-        showToast(payload.message || tp("rubric.removeFailed"), "error");
-        return;
-      }
+      const removed = await apiFetch(base, { method: "DELETE" }).then(() => true).catch((err) => {
+        showToast(err?.body?.message || (err?.status === 0 ? getErrorMessage(err) : tp("rubric.removeFailed")), "error");
+        return false;
+      });
+      if (!removed) return;
       showToast(tp("rubric.removed"), "success");
       setEditing(false);
       onChange?.(null);

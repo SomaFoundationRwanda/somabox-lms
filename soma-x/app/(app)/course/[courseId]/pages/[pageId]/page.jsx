@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiFetch } from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
 import { useParams } from "next/navigation";
 import { useCourse } from "@/context/CourseContext";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
@@ -29,8 +32,14 @@ export default function PageDetailPage() {
   useItemOpened("page", pageId, courseId);
   const { SERVER_URL, userEmail, isTeacher } = useCourse();
   const { t, tf } = useCourseText();
-  const [page, setPage] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const pageQuery = useQuery({
+    queryKey: queryKeys.courseSection(courseId, `pages/${pageId}`),
+    queryFn: () => apiFetch(`/courses/${courseId}/pages/${pageId}`),
+    enabled: !!SERVER_URL && !!userEmail,
+  });
+  const page = pageQuery.data || null;
+  const loading = pageQuery.isPending;
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState("");
   const [editorData, setEditorData] = useState({ json: null, html: "" });
@@ -40,31 +49,24 @@ export default function PageDetailPage() {
 
   const editorRef = useRef(null);
 
-  const load = async () => {
-    setLoading(true);
-    const res = await fetch(`${SERVER_URL}/courses/${courseId}/pages/${pageId}`);
-    const payload = await res.json();
-    if (res.ok) {
-      setPage(payload);
-      setTitle(payload.title);
-      setPublished(Boolean(payload.published));
-    }
-    setLoading(false);
-  };
-
+  // The form follows the page as loaded (and reloaded after a save).
   useEffect(() => {
-    if (SERVER_URL && userEmail) load();
-  }, [SERVER_URL, userEmail]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!page) return;
+    setTitle(page.title);
+    setPublished(Boolean(page.published));
+  }, [page]);
+
+  // A page's title and visibility also show in the pages list and on Modules.
+  const pageChanged = () => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.courseSection(courseId, "pages") });
+    queryClient.invalidateQueries({ queryKey: queryKeys.courseSection(courseId, "modules") });
+  };
 
   const togglePublish = async () => {
     if (!page) return;
     const nextState = !page.published;
-    await fetch(`${SERVER_URL}/courses/${courseId}/pages/${pageId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ published: nextState }),
-    });
-    load();
+    await apiFetch(`/courses/${courseId}/pages/${pageId}`, { method: "PATCH", json: { published: nextState } }).catch(console.error);
+    pageChanged();
   };
 
   const save = async () => {
@@ -81,19 +83,18 @@ export default function PageDetailPage() {
 
     setSaving(true);
     try {
-      await fetch(`${SERVER_URL}/courses/${courseId}/pages/${pageId}`, {
+      await apiFetch(`/courses/${courseId}/pages/${pageId}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        json: {
           title,
           body: editorData.html || page?.body || "",
           bodyJson: editorData.json ? JSON.stringify(editorData.json) : page?.body_json || null,
           bodyHtml: editorData.html || page?.body_html || "",
           published,
-        }),
-      });
+        },
+      }).catch(console.error);
       setEditing(false);
-      load();
+      pageChanged();
     } finally {
       setSaving(false);
     }

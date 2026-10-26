@@ -1,9 +1,10 @@
 "use client";
 
-import { Suspense, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { Suspense, useContext, useEffect, useRef } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import DataContext from "@/context/DataContext";
 import { useCourse } from "@/context/CourseContext";
+import { useCourseSection } from "@/lib/useCourseSection";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
 import { PageHeader } from "@/components/layout";
 import MyProgress from "@/components/progress/MyProgress";
@@ -24,7 +25,7 @@ const TABS = [
 ];
 
 function TeacherInsights() {
-  const { SERVER_URL, courseId, course } = useCourse();
+  const { courseId, course } = useCourse();
   const { tp, locale } = useProgressText();
   const router = useRouter();
   const pathname = usePathname();
@@ -34,28 +35,12 @@ function TeacherInsights() {
   const flaggedOnly = searchParams.get("flagged") === "1";
   const tabRefs = useRef({});
 
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  const load = useCallback(async () => {
-    if (!SERVER_URL || !courseId) return;
-    setLoading(true);
-    setError("");
-    try {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/insights`);
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(payload.message || tp("insights.loadFailed"));
-      setData(payload);
-    } catch (err) {
-      setError(err.message || tp("insights.loadFailed"));
-    } finally {
-      setLoading(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [SERVER_URL, courseId]);
-
-  useEffect(() => { load(); }, [load]);
+  // The class report: kept until the app reloads (or Refresh), not rebuilt on every visit.
+  const report = useCourseSection("insights");
+  const data = report.data;
+  const loading = report.loading;
+  const error = report.error ? report.error || tp("insights.loadFailed") : "";
+  const load = report.refetch;
 
   useEffect(() => {
     if (courseId) trackEvent("insights_viewed", { tab }, courseId);

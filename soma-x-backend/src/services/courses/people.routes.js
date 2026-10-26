@@ -61,6 +61,9 @@ router.get("/:id/people", async (req, res) => {
       // Learners without an email have an internal address: never shown.
       email: (staff || String(row.user_email).toLowerCase() === auth.email.toLowerCase()) && !isInternalEmail(row.user_email) ? row.user_email : null,
       learnerCode: staff ? row.learner_code || null : null,
+      // Who the person is, for staff actions that name them (e.g. grading someone who handed
+      // nothing in): their address even when it's an internal one that's never shown.
+      account: staff ? row.user_email : null,
       // Teachers may give a learner (a learner account) a new temporary password.
       canResetPassword: staff && !auth.enrollment.adminView && row.role === "student" && row.account_role === "scholar",
       fullName: await userFullName(row.user_email),

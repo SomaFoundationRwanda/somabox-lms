@@ -8,6 +8,7 @@ import { getSessionToken } from '@/lib/session';
 import { useLanguage } from '@/context/LanguageContext';
 import SummaryPanel, { SummaryToggleButton, useContentSummary } from '@/components/explore/SummaryPanel';
 import Loader from "@/components/ui/Loader";
+import { apiFetch, getErrorMessage } from '@/lib/api'
 
 // `summaryPath`: the book's path_key, to offer its AI summary beside the reader.
 // `preview`: a visitor's preview (see components/guest/Preview.jsx): the time the book is open
@@ -35,19 +36,23 @@ const EpubReader = ({ url, title, onClose, summaryPath = null, preview = null })
                 // credentials: "include" via the fetch wrapper) and handed to epub.js as a Blob,
                 // so epub.js itself makes no credentialed requests.
                 const signedIn = Boolean(getSessionToken())
-                const response = await fetch(url, { credentials: 'include' })
-                if (response.status === 401) {
-                    // A visitor whose preview window has closed: the sign-up panel.
-                    if (!signedIn && preview) { endPreview(); return }
-                    setAccess(signedIn ? 'expired' : 'guest')
-                    return
+                let buffer
+                try {
+                    // A visitor's 401 is the end of their preview, not a session to end.
+                    buffer = await (await apiFetch(url, { responseType: 'response', allowUnauthenticated: !signedIn })).arrayBuffer()
+                } catch (err) {
+                    if (err?.status === 401) {
+                        // A visitor whose preview window has closed: the sign-up panel.
+                        if (!signedIn && preview) { endPreview(); return }
+                        setAccess(signedIn ? 'expired' : 'guest')
+                        return
+                    }
+                    if (err?.status === 403) {
+                        setAccess('forbidden')
+                        return
+                    }
+                    throw new Error(err?.status === 0 ? getErrorMessage(err) : `Failed to fetch book (${err?.status})`)
                 }
-                if (response.status === 403) {
-                    setAccess('forbidden')
-                    return
-                }
-                if (!response.ok) throw new Error(`Failed to fetch book: ${response.statusText}`)
-                const buffer = await response.arrayBuffer()
                 // Convert to Blob for better compatibility with epub.js
                 const blob = new Blob([buffer], { type: 'application/epub+zip' })
                 setData(blob)

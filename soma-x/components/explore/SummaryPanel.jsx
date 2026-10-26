@@ -15,6 +15,7 @@ import { useGuestGate } from "@/components/guest/GuestGate";
 import { fill } from "@/lib/fill";
 import { FOCUS_RING } from "@/lib/a11y";
 import Loader from "@/components/ui/Loader";
+import { apiFetch, getErrorMessage } from "@/lib/api";
 
 const POLL_MS = 5000;
 const ACTIVE = ["queued", "running"];
@@ -40,7 +41,7 @@ export function useContentSummary(pathKey, { active = true } = {}) {
     const hasData = useRef(false);
 
     const canFetch = Boolean(active && pathKey && authenticated && SERVER_URL);
-    const getUrl = canFetch ? `${SERVER_URL}/content/summary?path=${encodeURIComponent(pathKey)}` : "";
+    const getUrl = canFetch ? `/content/summary?path=${encodeURIComponent(pathKey)}` : "";
 
     useEffect(() => {
         hasData.current = false;
@@ -55,25 +56,24 @@ export function useContentSummary(pathKey, { active = true } = {}) {
         let timer = null;
         const run = async (first) => {
             if (first && !hasData.current) setLoading(true);
+            // While a summary is being made (and only then), it's checked again every few seconds.
             try {
-                const res = await fetch(getUrl);
-                const json = await res.json().catch(() => null);
+                const json = await apiFetch(getUrl);
                 if (!alive) return;
-                if (res.status === 404) {
+                hasData.current = true;
+                setLoadError("");
+                setData(json);
+                if (ACTIVE.includes(json?.status)) timer = setTimeout(() => run(false), POLL_MS);
+            } catch (err) {
+                if (!alive) return;
+                if (err?.status === 404) {
                     // Not a file the person can see: show nothing.
                     hasData.current = true;
                     setData({ enabled: false, status: "none" });
                     setLoadError("");
-                } else if (!res.ok) {
-                    setLoadError(messageOf(json, t("explore.summary.loadFailed")));
                 } else {
-                    hasData.current = true;
-                    setLoadError("");
-                    setData(json);
-                    if (ACTIVE.includes(json?.status)) timer = setTimeout(() => run(false), POLL_MS);
+                    setLoadError(err?.status === 0 ? getErrorMessage(err, t) : messageOf(err?.body, t("explore.summary.loadFailed")));
                 }
-            } catch (err) {
-                if (alive) setLoadError(err?.message || t("explore.summary.loadFailed"));
             } finally {
                 if (alive && first) setLoading(false);
             }
@@ -90,26 +90,22 @@ export function useContentSummary(pathKey, { active = true } = {}) {
         setBusy(true);
         setActionError(null);
         try {
-            const res = await fetch(`${SERVER_URL}/content/summary`, {
-                method,
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(body),
-            });
-            const json = res.status === 204 ? null : await res.json().catch(() => null);
-            if (!res.ok) {
-                const err = { message: messageOf(json, t("explore.summary.actionFailed")), code: json?.code || "" };
-                setActionError(err);
-                if (err.code === "SUMMARIES_OFF") setData((d) => ({ ...(d || {}), enabled: false }));
-                return { ok: false, data: json };
-            }
+            const json = (await apiFetch("/content/summary", { method, json: body })) ?? null;
             return { ok: true, data: json };
-        } catch (err) {
-            setActionError({ message: err?.message || t("explore.summary.actionFailed"), code: "" });
-            return { ok: false, data: null };
+        } catch (error) {
+            if (error?.status === 0) {
+                setActionError({ message: getErrorMessage(error, t), code: "" });
+                return { ok: false, data: null };
+            }
+            const json = error?.body || null;
+            const err = { message: messageOf(json, t("explore.summary.actionFailed")), code: json?.code || "" };
+            setActionError(err);
+            if (err.code === "SUMMARIES_OFF") setData((d) => ({ ...(d || {}), enabled: false }));
+            return { ok: false, data: json };
         } finally {
             setBusy(false);
         }
-    }, [SERVER_URL, t]);
+    }, [t]);
 
     const request = useCallback(async () => {
         const out = await send("POST", { path: pathKey });

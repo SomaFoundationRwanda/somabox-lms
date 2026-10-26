@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { apiFetch } from "@/lib/api";
 
 // Batched usage events (POST /analytics/events). Fire-and-forget: never blocks the UI and
 // silently drops events if the box is unreachable.
@@ -12,15 +13,9 @@ const MAX_BATCH = 20;
 function flush() {
   timer = null;
   if (!queue.length) return;
-  const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
   const events = queue.splice(0, MAX_BATCH);
-  if (!serverUrl) return;
-  fetch(`${serverUrl}/analytics/events`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ events }),
-    keepalive: true,
-  }).catch(() => {});
+  // keepalive: the last batch still goes out when the page closes (pagehide).
+  apiFetch("/analytics/events", { method: "POST", json: { events }, keepalive: true }).catch(() => {});
   if (queue.length) timer = setTimeout(flush, 0);
 }
 

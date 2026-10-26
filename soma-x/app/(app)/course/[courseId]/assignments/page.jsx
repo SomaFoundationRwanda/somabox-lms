@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ClipboardList, HelpCircle, MessageSquare, Plus } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
+import { useCourseSection } from "@/lib/useCourseSection";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
 import { PageHeader, List, ListRow, EmptyState } from "@/components/layout";
 import { ExplainerText } from "@/components/help/Explainer";
@@ -13,27 +13,11 @@ import Loader from "@/components/ui/Loader";
 const KIND_ICONS = { assignment: ClipboardList, quiz: HelpCircle, discussion: MessageSquare };
 
 export default function AssignmentsPage() {
-  const { SERVER_URL, courseId, userEmail, isTeacher } = useCourse();
+  const { courseId, isTeacher } = useCourse();
   const { t, tf, fmtDate } = useCourseText();
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  const loadData = async () => {
-    if (!SERVER_URL || !courseId) return;
-    try {
-      setLoading(true);
-      const assignRes = await fetch(`${SERVER_URL}/courses/${courseId}/assignments`);
-      if (assignRes.ok) setItems(await assignRes.json());
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadData();
-  }, [SERVER_URL, courseId, userEmail]);
+  const query = useCourseSection("assignments");
+  const items = Array.isArray(query.data) ? query.data : [];
+  const loading = query.loading;
 
   return (
     <div>

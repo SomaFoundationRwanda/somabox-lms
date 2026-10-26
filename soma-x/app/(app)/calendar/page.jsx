@@ -1,6 +1,9 @@
 "use client";
 
-import { useCallback, useContext, useEffect, useRef, useState } from "react";
+import { useCallback, useContext, useState } from "react";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { apiFetch } from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
 import { Download } from "lucide-react";
 import DataContext from "@/context/DataContext";
 import { useToast } from "@/context/ToastContext";
@@ -9,39 +12,26 @@ import { downloadFile } from "@/lib/download";
 import { useCourseText } from "@/components/course/useCourseText";
 
 export default function MyCalendarPage() {
-  const { SERVER_URL, role, mounted } = useContext(DataContext);
+  const { role, mounted } = useContext(DataContext);
   const { showToast } = useToast();
   const { t } = useCourseText();
   const isAdmin = role === "admin";
   const [scope, setScope] = useState("me"); // "me" | "school" (admins only)
   const [range, setRange] = useState(null);
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const [downloading, setDownloading] = useState(false);
-  const requestId = useRef(0);
 
   const activeScope = isAdmin ? scope : "me";
 
-  const load = useCallback(async () => {
-    if (!SERVER_URL || !range) return;
-    const id = ++requestId.current;
-    setLoading(true);
-    setError("");
-    try {
-      const qs = new URLSearchParams({ from: range.from, to: range.to });
-      const res = await fetch(`${SERVER_URL}/calendar/${activeScope}?${qs}`);
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(payload?.message || t("calendar.loadFailed"));
-      if (id === requestId.current) setData(payload);
-    } catch (err) {
-      if (id === requestId.current) setError(err.message || t("calendar.loadFailed"));
-    } finally {
-      if (id === requestId.current) setLoading(false);
-    }
-  }, [SERVER_URL, range, activeScope, t]);
-
-  useEffect(() => { load(); }, [load]);
+  // Kept per scope and range; a course change (live updates) marks it out of date.
+  const calendar = useQuery({
+    queryKey: [...queryKeys.myCalendar, activeScope, range?.from, range?.to],
+    queryFn: () => apiFetch(`/calendar/${activeScope}?${new URLSearchParams({ from: range.from, to: range.to })}`),
+    enabled: !!range,
+    placeholderData: keepPreviousData,
+  });
+  const data = calendar.data || null;
+  const loading = calendar.isFetching;
+  const error = calendar.isError ? (calendar.error?.body?.message || t("calendar.loadFailed")) : "";
 
   const handleRangeChange = useCallback(({ from, to }) => {
     setRange((prev) => (prev && prev.from === from && prev.to === to ? prev : { from, to }));
@@ -50,7 +40,7 @@ export default function MyCalendarPage() {
   const downloadIcs = async () => {
     setDownloading(true);
     try {
-      await downloadFile(`${SERVER_URL}/calendar/me.ics`, "my-calendar.ics");
+      await downloadFile("/calendar/me.ics", "my-calendar.ics");
     } catch (err) {
       showToast(err.message || t("calendar.downloadFailed"), "error");
     } finally {

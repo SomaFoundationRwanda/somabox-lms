@@ -1,9 +1,12 @@
 "use client"
-import { useContext, useEffect, useMemo, useState } from "react"
+import { useContext, useMemo, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { Library, Plus } from "lucide-react"
 import DataContext from "@/context/DataContext"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { apiFetch } from "@/lib/api"
+import { queryKeys } from "@/lib/queryKeys"
 import { EmptyState } from "@/components/ui/empty-state"
 import CreateCourseModal from "@/components/teacher/CreateCourseModal"
 import { useLanguage } from "@/context/LanguageContext"
@@ -13,27 +16,16 @@ import Loader from "@/components/ui/Loader";
 export default function TeacherCoursesPage() {
   const { SERVER_URL, user } = useContext(DataContext)
   const { t } = useLanguage()
-  const [courses, setCourses] = useState([])
-  const [loading, setLoading] = useState(true)
   const [createOpen, setCreateOpen] = useState(false)
 
   const teacherEmail = user?.email || "";
 
-  const load = async () => {
-    if (!SERVER_URL || !teacherEmail) return
-    setLoading(true)
-    try {
-      const res = await fetch(`${SERVER_URL}/courses/mine`)
-      const data = await res.json().catch(() => [])
-      if (res.ok) setCourses(Array.isArray(data) ? data : [])
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => { load() }, [SERVER_URL, teacherEmail]) // eslint-disable-line react-hooks/exhaustive-deps
+  // The same kept list as every other "my courses" screen.
+  const queryClient = useQueryClient()
+  const mine = useQuery({ queryKey: queryKeys.myCourses, queryFn: () => apiFetch("/courses/mine"), enabled: !!teacherEmail })
+  const courses = Array.isArray(mine.data) ? mine.data : []
+  const loading = mine.isPending
+  const load = () => queryClient.invalidateQueries({ queryKey: queryKeys.courses })
 
   return (
     <div className="space-y-6">

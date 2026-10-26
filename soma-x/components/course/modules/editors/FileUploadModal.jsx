@@ -4,8 +4,9 @@ import { useState, useRef } from "react";
 import { X, Upload, FileIcon, CheckCircle } from "lucide-react";
 import { clickableProps } from "@/lib/a11y";
 import { useCourseText } from "@/components/course/useCourseText";
+import { apiFetch } from "@/lib/api";
 
-export default function FileUploadModal({ open, onClose, onUpload, courseId, moduleId, SERVER_URL }) {
+export default function FileUploadModal({ open, onClose, onUpload, courseId, moduleId }) {
   const { t } = useCourseText();
   const [file, setFile] = useState(null);
   const [title, setTitle] = useState("");
@@ -38,12 +39,9 @@ export default function FileUploadModal({ open, onClose, onUpload, courseId, mod
       formData.append("file", file);
       formData.append("title", title || file.name);
 
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/modules/${moduleId}/items/file`, {
-        method: "POST",
-        body: formData,
-      });
-      const data = await res.json();
-      if (res.ok) {
+      const data = await apiFetch(`/courses/${courseId}/modules/${moduleId}/items/file`, { method: "POST", body: formData })
+        .catch(() => null);
+      if (data) {
         setDone(true);
         setTimeout(() => {
           onUpload(data);

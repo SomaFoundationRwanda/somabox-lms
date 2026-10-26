@@ -7,6 +7,8 @@
 // per learner per assignment. Quiz submissions must never go through here: a retry could create
 // an extra attempt.
 
+import { ApiError, apiFetch } from "@/lib/api";
+
 const PENDING_PREFIX = "somabox.pendingSubmission:";
 const NOTICE_PREFIX = "somabox.submissionNotice:";
 const RETRY_MS = 30_000;
@@ -126,26 +128,27 @@ export async function flushQueue(serverUrl, userId, { onSent, onRefused } = {}) 
     for (const key of keysFor(PENDING_PREFIX, userId)) {
       const entry = read(key);
       if (!entry?.courseId || !entry?.assignmentId) { remove(key); continue; }
-      let res;
+      // ok / status / payload of the answer; a failure that never reached the box keeps everything.
+      let ok = true;
+      let status = 200;
+      let payload = {};
       try {
-        res = await fetch(`${serverUrl}/courses/${entry.courseId}/assignments/${entry.assignmentId}/submit`, {
+        payload = (await apiFetch(`/courses/${entry.courseId}/assignments/${entry.assignmentId}/submit`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ body: entry.body }),
-        });
-      } catch {
-        return; // still offline: keep everything and stop for now
+          json: { body: entry.body },
+        })) || {};
+      } catch (error) {
+        if (!(error instanceof ApiError) || error.status === 0) return; // still offline: keep everything and stop for now
+        ok = false;
+        status = error.status;
+        payload = error.body || {};
       }
-      if (RETRYABLE_STATUSES.has(res.status)) {
-        if (res.status === 0) return;
-        continue;
-      }
-      const payload = await res.json().catch(() => ({}));
+      if (RETRYABLE_STATUSES.has(status)) continue;
       // The learner may have submitted again (and been queued again) while this was in flight.
       const current = read(key);
       if (current && current.queuedAt === entry.queuedAt) remove(key);
       const detail = { courseId: entry.courseId, assignmentId: entry.assignmentId };
-      if (res.ok) {
+      if (ok) {
         emit({ type: "sent", ...detail, late: !!payload.late });
         onSent?.(entry, payload);
       } else {

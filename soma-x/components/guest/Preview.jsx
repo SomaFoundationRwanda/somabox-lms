@@ -16,6 +16,7 @@ import { useSchool } from "@/context/SchoolContext";
 import { authLinks, useGuestGate } from "@/components/guest/GuestGate";
 import { rememberNext } from "@/lib/session";
 import { fill } from "@/lib/fill";
+import { apiFetch } from "@/lib/api";
 
 const PREVIEWABLE = new Set(["video", "audio", "book", "pdf", "document", "epub"]);
 
@@ -32,7 +33,6 @@ export const formatPreviewTime = (seconds) => {
  * ok is false. `starting` is true while the box is asked.
  */
 export function useGuestPreview() {
-    const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL;
     const { authenticated } = useContext(DataContext);
     const { school, loaded } = useSchool();
     const { requireAccount } = useGuestGate();
@@ -51,16 +51,14 @@ export function useGuestPreview() {
         busy.current = true;
         setStarting(true);
         try {
-            const res = await fetch(`${SERVER_URL}/content/preview`, {
-                method: "POST",
-                credentials: "include", // keeps the visitor cookie the box uses to count previews
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ path }),
-            });
-            const data = await res.json().catch(() => null);
-            if (!res.ok) {
+            // The visitor cookie the box uses to count previews travels with it (credentials).
+            let data;
+            try {
+                data = await apiFetch("/content/preview", { method: "POST", json: { path }, allowUnauthenticated: true });
+            } catch (err) {
+                if (err?.status === 0) throw err;
                 // PREVIEW_LIMIT / PREVIEW_ENDED / PREVIEW_OFF: the sign-up prompt, with the box's words.
-                requireAccount(next, { message: data?.message || t("guest.previewFailed") });
+                requireAccount(next, { message: err?.body?.message || t("guest.previewFailed") });
                 return { ok: false, preview: null };
             }
             if (data?.signedIn) return { ok: true, preview: null };
@@ -77,7 +75,7 @@ export function useGuestPreview() {
             busy.current = false;
             setStarting(false);
         }
-    }, [SERVER_URL, authenticated, loaded, school.guestPreview.enabled, school.guestPreview.seconds, requireAccount, t]);
+    }, [authenticated, loaded, school.guestPreview.enabled, school.guestPreview.seconds, requireAccount, t]);
 
     return { open, starting };
 }

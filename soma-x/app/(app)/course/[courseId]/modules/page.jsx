@@ -1,6 +1,9 @@
 "use client";
 
 import { useState, useCallback, useEffect, lazy, Suspense } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiFetch, getErrorMessage } from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { Plus, Sparkles } from "lucide-react";
@@ -42,53 +45,55 @@ const ITEM_TYPE_OPTIONS = [
 const itemDays = (item) => ({ release_day: item.release_day, due_day: item.due_day, close_day: item.close_day });
 
 export default function ModulesPage() {
-  const { SERVER_URL, courseId, userEmail, isTeacher } = useCourse();
-  const { data: modules, loading, error, refetch } = useCourseSection("modules");
+  const { SERVER_URL, courseId, isTeacher } = useCourse();
+  const { data: modules, loading, error } = useCourseSection("modules");
+  const queryClient = useQueryClient();
+  // After a teacher's change on this page: the weeks, and everything else that lists or counts
+  // items (pages, quizzes, assignments, outcome tags, setup status, calendar); not the course's
+  // own details, menu or people.
+  const refetch = useCallback(() => queryClient.invalidateQueries({
+    predicate: ({ queryKey: [scope, id, section] }) =>
+      scope === "course" && id === String(courseId) && !["info", "nav", "people", "join-code", "ai"].includes(section),
+  }), [queryClient, courseId]);
   const { showToast } = useToast();
   const aiStatus = useAiStatus();
   const { t, tf } = useCourseText();
 
-  // AI: pending drafts and running jobs, for the header link and per-week buttons.
-  const [aiActiveJobs, setAiActiveJobs] = useState([]);
-  const [aiPendingCount, setAiPendingCount] = useState(0);
-  const loadAiSummary = useCallback(async () => {
-    if (!SERVER_URL || !courseId || !isTeacher) return;
-    try {
-      const [jobsRes, draftsRes] = await Promise.all([
-        fetch(`${SERVER_URL}/courses/${courseId}/ai/jobs?active=1`),
-        fetch(`${SERVER_URL}/courses/${courseId}/ai/drafts?status=pending`),
-      ]);
-      if (jobsRes.ok) setAiActiveJobs(await jobsRes.json().catch(() => []));
-      if (draftsRes.ok) {
-        const drafts = await draftsRes.json().catch(() => []);
-        setAiPendingCount(Array.isArray(drafts) ? drafts.length : 0);
-      }
-    } catch {
-      /* the link still works without counts */
-    }
-  }, [SERVER_URL, courseId, isTeacher]);
-  useEffect(() => { loadAiSummary(); }, [loadAiSummary]);
+  // AI: pending drafts and running jobs, for the header link and per-week buttons. While jobs
+  // run (and only then) both are asked again every few seconds, so counts and buttons stay current.
+  const activeJobsKey = queryKeys.courseSection(courseId, "ai/jobs/active");
+  const aiReady = !!SERVER_URL && !!courseId && isTeacher;
+  const jobsQuery = useQuery({
+    queryKey: activeJobsKey,
+    queryFn: () => apiFetch(`/courses/${courseId}/ai/jobs?active=1`),
+    enabled: aiReady,
+    refetchInterval: (q) => (q.state.data?.length ? 5000 : false),
+  });
+  const aiActiveJobs = Array.isArray(jobsQuery.data) ? jobsQuery.data : [];
+  const draftsQuery = useQuery({
+    queryKey: queryKeys.courseSection(courseId, "ai/drafts/pending"),
+    queryFn: () => apiFetch(`/courses/${courseId}/ai/drafts?status=pending`),
+    enabled: aiReady,
+    refetchInterval: aiActiveJobs.length ? 5000 : false,
+  });
+  const aiPendingCount = Array.isArray(draftsQuery.data) ? draftsQuery.data.length : 0;
   // "#module-<id>" links (from the Home timeline) scroll to that week once the list has loaded.
   useEffect(() => {
     if (!modules?.length || typeof window === "undefined") return;
     const id = window.location.hash.slice(1);
     if (id.startsWith("module-")) document.getElementById(id)?.scrollIntoView({ block: "start" });
   }, [modules]);
-  // While jobs run, refresh every few seconds so the counts and buttons stay current.
-  useEffect(() => {
-    if (aiActiveJobs.length === 0) return undefined;
-    const t = setTimeout(loadAiSummary, 5000);
-    return () => clearTimeout(t);
-  }, [aiActiveJobs, loadAiSummary]);
-  const aiProps = { status: aiStatus, activeJobs: aiActiveJobs, onStarted: (job) => { setAiActiveJobs((list) => [...list, job]); } };
+  const aiProps = { status: aiStatus, activeJobs: aiActiveJobs, onStarted: (job) => queryClient.setQueryData(activeJobsKey, (list) => [...(list || []), job]) };
 
-  // Reads a JSON response; on failure shows the server message and throws so
-  // editor modals stay open. On success, surfaces any `notice` (e.g. a graded
-  // item saved unpublished because it has no outcome tag).
-  const handleResponse = async (res, fallbackError) => {
-    const payload = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      const message = payload?.message || fallbackError;
+  // Sends a change; on failure shows the server message and throws so editor modals stay open.
+  // On success, surfaces any `notice` (e.g. a graded item saved unpublished because it has no
+  // outcome tag).
+  const request = async (path, options, fallbackError) => {
+    let payload;
+    try {
+      payload = await apiFetch(path, options);
+    } catch (err) {
+      const message = err?.status === 0 ? getErrorMessage(err) : err?.body?.message || fallbackError;
       showToast(message, "error");
       throw new Error(message);
     }
@@ -119,27 +124,14 @@ export default function ModulesPage() {
   // ===== Module CRUD =====
   const createModule = async () => {
     if (!newTitle.trim()) return;
-    const res = await fetch(`${SERVER_URL}/courses/${courseId}/modules`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: newTitle.trim() }),
-    });
-    if (!res.ok) {
-      const payload = await res.json().catch(() => ({}));
-      showToast(payload?.message || t("modules.errors.createModule"), "error");
-      return;
-    }
+    try { await request(`/courses/${courseId}/modules`, { method: "POST", json: { title: newTitle.trim() } }, t("modules.errors.createModule")); } catch { return; }
     setNewTitle("");
     setCreating(false);
     refetch();
   };
 
   const handleModuleReorder = async (moduleIds) => {
-    await fetch(`${SERVER_URL}/courses/${courseId}/modules/reorder`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ moduleIds }),
-    });
+    await apiFetch(`/courses/${courseId}/modules/reorder`, { method: "PATCH", json: { moduleIds } }).catch(console.error);
     refetch();
   };
 
@@ -205,99 +197,54 @@ export default function ModulesPage() {
   };
 
   const createSubHeader = async (moduleId, title) => {
-    const res = await fetch(`${SERVER_URL}/courses/${courseId}/modules/${moduleId}/items`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ itemType: "sub_header", title }),
-    });
-    try { await handleResponse(res, t("modules.errors.addSubHeader")); } catch { return; }
+    try { await request(`/courses/${courseId}/modules/${moduleId}/items`, { method: "POST", json: { itemType: "sub_header", title } }, t("modules.errors.addSubHeader")); } catch { return; }
     setAddingItemFor(null);
     setSubHeaderTitle("");
     refetch();
   };
 
   const createSimpleItem = async (moduleId, itemType, title) => {
-    const res = await fetch(`${SERVER_URL}/courses/${courseId}/modules/${moduleId}/items`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ itemType, title }),
-    });
-    try { await handleResponse(res, t("modules.errors.addItem")); } catch { return; }
+    try { await request(`/courses/${courseId}/modules/${moduleId}/items`, { method: "POST", json: { itemType, title } }, t("modules.errors.addItem")); } catch { return; }
     setAddingItemFor(null);
     refetch();
   };
 
   // ===== Save handlers for editor modals =====
   const handlePageSave = async (data) => {
-    let res;
     if (pageModal.itemId) {
       // Edit existing
-      res = await fetch(`${SERVER_URL}/courses/${courseId}/modules/${pageModal.moduleId}/items/${pageModal.itemId}/content`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data }),
-      });
+      await request(`/courses/${courseId}/modules/${pageModal.moduleId}/items/${pageModal.itemId}/content`, { method: "PATCH", json: { ...data } }, t("modules.errors.savePage"));
     } else {
       // Create new
-      res = await fetch(`${SERVER_URL}/courses/${courseId}/modules/${pageModal.moduleId}/items`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ itemType: "page", ...data }),
-      });
+      await request(`/courses/${courseId}/modules/${pageModal.moduleId}/items`, { method: "POST", json: { itemType: "page", ...data } }, t("modules.errors.savePage"));
     }
-    await handleResponse(res, t("modules.errors.savePage"));
     refetch();
   };
 
   const handleAssignmentSave = async ({ outcomeIds = [], ...data }) => {
-    let res;
     if (assignmentModal.itemId) {
-      res = await fetch(`${SERVER_URL}/courses/${courseId}/modules/${assignmentModal.moduleId}/items/${assignmentModal.itemId}/content`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data }),
-      });
-      await handleResponse(res, t("modules.errors.saveAssignment"));
+      await request(`/courses/${courseId}/modules/${assignmentModal.moduleId}/items/${assignmentModal.itemId}/content`, { method: "PATCH", json: { ...data } }, t("modules.errors.saveAssignment"));
       // Outcome tags are saved separately; only when they changed.
       const before = [...(assignmentModal.outcomeIds || [])].sort().join(",");
       if ([...outcomeIds].sort().join(",") !== before) {
-        const tagRes = await fetch(`${SERVER_URL}/courses/${courseId}/item-outcomes`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ itemType: "assignment", itemId: assignmentModal.data?.id, outcomeIds }),
-        });
-        try { await handleResponse(tagRes, t("modules.errors.saveAssignment")); } finally { refetch(); }
+        try {
+          await request(`/courses/${courseId}/item-outcomes`, { method: "POST", json: { itemType: "assignment", itemId: assignmentModal.data?.id, outcomeIds } }, t("modules.errors.saveAssignment"));
+        } finally { refetch(); }
         return;
       }
       refetch();
       return;
-    } else {
-      res = await fetch(`${SERVER_URL}/courses/${courseId}/modules/${assignmentModal.moduleId}/items`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ itemType: "assignment", ...data, outcomeIds }),
-      });
     }
-    await handleResponse(res, t("modules.errors.saveAssignment"));
+    await request(`/courses/${courseId}/modules/${assignmentModal.moduleId}/items`, { method: "POST", json: { itemType: "assignment", ...data, outcomeIds } }, t("modules.errors.saveAssignment"));
     refetch();
   };
 
   const handleQuizSave = async (data) => {
-    let res;
     if (quizModal.itemId) {
-      res = await fetch(`${SERVER_URL}/courses/${courseId}/modules/${quizModal.moduleId}/items/${quizModal.itemId}/content`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data }),
-      });
+      await request(`/courses/${courseId}/modules/${quizModal.moduleId}/items/${quizModal.itemId}/content`, { method: "PATCH", json: { ...data } }, t("modules.errors.saveQuiz"));
     } else {
-      res = await fetch(`${SERVER_URL}/courses/${courseId}/modules/${quizModal.moduleId}/items`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ itemType: "quiz", ...data }),
-      });
+      await request(`/courses/${courseId}/modules/${quizModal.moduleId}/items`, { method: "POST", json: { itemType: "quiz", ...data } }, t("modules.errors.saveQuiz"));
     }
-    await handleResponse(res, t("modules.errors.saveQuiz"));
     refetch();
   };
 
@@ -306,12 +253,9 @@ export default function ModulesPage() {
     if (item.item_type === "sub_header") {
       const newTitle = prompt(t("modules.editSubHeaderPrompt"), item.title);
       if (newTitle !== null && newTitle.trim()) {
-        const res = await fetch(`${SERVER_URL}/courses/${courseId}/modules/${moduleRow.id}/items/${item.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title: newTitle.trim() }),
-        });
-        try { await handleResponse(res, t("modules.errors.renameSubHeader")); } catch { /* toast shown */ }
+        try {
+          await request(`/courses/${courseId}/modules/${moduleRow.id}/items/${item.id}`, { method: "PATCH", json: { title: newTitle.trim() } }, t("modules.errors.renameSubHeader"));
+        } catch { /* toast shown */ }
         refetch();
       }
       return;
@@ -321,20 +265,23 @@ export default function ModulesPage() {
     const contentId = item.content_id;
     if (!contentId) return;
 
+    // The item as it is now (also kept for its own page), fresh for editing.
+    const load = (path) => queryClient.fetchQuery({
+      queryKey: queryKeys.courseSection(courseId, path),
+      queryFn: () => apiFetch(`/courses/${courseId}/${path}`),
+      staleTime: 0,
+    });
     if (item.item_type === "page") {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/pages/${contentId}`);
-      const data = await res.json();
+      const data = await load(`pages/${contentId}`);
       setPageModal({ open: true, moduleId: moduleRow.id, data, itemId: item.id });
     } else if (item.item_type === "assignment") {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/assignments/${contentId}`);
-      const data = await res.json();
+      const data = await load(`assignments/${contentId}`);
       setAssignmentModal({ open: true, moduleId: moduleRow.id, data, itemId: item.id, days: itemDays(item), startDate: moduleRow.startDate || null, outcomeIds: (item.outcomes || []).map((o) => Number(o.id)) });
     } else if (item.item_type === "quiz") {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/quizzes/${contentId}`);
-      const data = await res.json();
+      const data = await load(`quizzes/${contentId}`);
       setQuizModal({ open: true, moduleId: moduleRow.id, data, itemId: item.id, days: itemDays(item), startDate: moduleRow.startDate || null });
     }
-  }, [SERVER_URL, courseId, userEmail, refetch, showToast, t]);
+  }, [courseId, queryClient, refetch, showToast, t]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ===== Delete item =====
   const handleDeleteItem = (moduleRow, item) => {
@@ -343,19 +290,17 @@ export default function ModulesPage() {
 
   const removeFromModule = async () => {
     const { module: m, item } = deleteTarget;
-    const res = await fetch(`${SERVER_URL}/courses/${courseId}/modules/${m.id}/items/${item.id}?mode=remove_from_module`, {
-      method: "DELETE",
-    });
-    try { await handleResponse(res, t("modules.errors.removeItem")); } catch { /* toast shown */ }
+    try {
+      await request(`/courses/${courseId}/modules/${m.id}/items/${item.id}?mode=remove_from_module`, { method: "DELETE" }, t("modules.errors.removeItem"));
+    } catch { /* toast shown */ }
     refetch();
   };
 
   const deletePermanently = async () => {
     const { module: m, item } = deleteTarget;
-    const res = await fetch(`${SERVER_URL}/courses/${courseId}/modules/${m.id}/items/${item.id}?mode=delete_permanently`, {
-      method: "DELETE",
-    });
-    try { await handleResponse(res, t("modules.errors.deleteItem")); } catch { /* toast shown */ }
+    try {
+      await request(`/courses/${courseId}/modules/${m.id}/items/${item.id}?mode=delete_permanently`, { method: "DELETE" }, t("modules.errors.deleteItem"));
+    } catch { /* toast shown */ }
     refetch();
   };
 
@@ -372,7 +317,6 @@ export default function ModulesPage() {
       module={moduleRow}
       courseId={courseId}
       isTeacher={isTeacher}
-      SERVER_URL={SERVER_URL}
       onRefetch={refetch}
       onAddItem={handleAddItem}
       onEditItem={handleEditItem}
@@ -472,7 +416,6 @@ export default function ModulesPage() {
                   module={moduleRow}
                   courseId={courseId}
                   isTeacher={false}
-                  SERVER_URL={SERVER_URL}
                   onRefetch={refetch}
                   onAddItem={() => {}}
                   onEditItem={() => {}}
@@ -598,7 +541,6 @@ export default function ModulesPage() {
         onUpload={() => refetch()}
         courseId={courseId}
         moduleId={fileModal.moduleId}
-        SERVER_URL={SERVER_URL}
       />}
 
       <DeleteItemDialog

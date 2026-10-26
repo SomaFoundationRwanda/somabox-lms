@@ -1,6 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useCourseSection } from "@/lib/useCourseSection";
+import { ApiError, apiFetch, getErrorMessage } from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
 import { CheckCircle2, ChevronRight, Sparkles, Plus, Trash2, ArrowRight, Target, Calendar, BookOpen, Layers } from "lucide-react";
 import { isDateString, todayIn } from "@somabox/timeline";
 import { formatDate, toDateInput } from "@/lib/dates";
@@ -22,7 +26,10 @@ function weekLabelT(m, t) {
   return fill(t("teacher.wizard.weekN"), { n: m.week_offset });
 }
 
-export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, course, onCompleted }) {
+export default function CourseSetupWizard({ courseId, course, onCompleted }) {
+  // Still passed to the AI helpers (lib/ai.js, AiJobPanel).
+  const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL;
+  const queryClient = useQueryClient();
   const { t } = useLanguage();
   const { blockingText } = useSetupText();
   const [step, setStep] = useState(1);
@@ -39,7 +46,10 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
   });
 
   // Step 2 State: Outcomes
-  const [outcomes, setOutcomes] = useState([]);
+  // The course's kept outcomes and weeks (shared with the Outcomes and Modules pages).
+  const outcomesQuery = useCourseSection("outcomes");
+  const modulesQuery = useCourseSection("modules");
+  const outcomes = Array.isArray(outcomesQuery.data) ? outcomesQuery.data : [];
   const [newOutcomeTitle, setNewOutcomeTitle] = useState("");
   const [aiTopic, setAiTopic] = useState("");
   const aiStatus = useAiStatus();
@@ -48,29 +58,10 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
   const [fillStarted, setFillStarted] = useState({}); // moduleId -> true
 
   // Step 4 State: Modules
-  const [modules, setModules] = useState([]);
+  const modules = Array.isArray(modulesQuery.data) ? modulesQuery.data : [];
 
-  // Fetch initial wizard data
-  const loadWizardData = async () => {
-    if (!SERVER_URL || !courseId) return;
-    try {
-      setLoading(true);
-      const [outRes, modRes] = await Promise.all([
-        fetch(`${SERVER_URL}/courses/${courseId}/outcomes`),
-        fetch(`${SERVER_URL}/courses/${courseId}/modules`),
-      ]);
-      if (outRes.ok) setOutcomes(await outRes.json());
-      if (modRes.ok) setModules(await modRes.json());
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadWizardData();
-  }, [SERVER_URL, courseId, userEmail]);
+  // After a change: everything kept for the course (weeks, outcomes, setup status, baseline).
+  const loadWizardData = () => queryClient.invalidateQueries({ queryKey: queryKeys.course(courseId) });
 
   // Step 1: Save Course details & next
   const saveStep1 = async () => {
@@ -81,19 +72,12 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}`, {
+      await apiFetch(`/courses/${courseId}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: setupForm.title,
-          startDate: setupForm.startDate,
-          lengthWeeks: setupForm.lengthWeeks,
-        }),
-      });
-      if (!res.ok) {
-        const payload = await res.json().catch(() => ({}));
-        throw new Error(payload?.message || t("teacher.wizard.updateFailed"));
-      }
+        json: { title: setupForm.title, startDate: setupForm.startDate, lengthWeeks: setupForm.lengthWeeks },
+      }).catch((err) => { throw new Error(err?.body?.message || t("teacher.wizard.updateFailed")); });
+      loadWizardData();
+      queryClient.invalidateQueries({ queryKey: queryKeys.courses });
       setStep(2);
     } catch (err) {
       setError(err.message || t("teacher.wizard.updateFailed"));
@@ -107,18 +91,14 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
     if (!newOutcomeTitle.trim()) return;
     setLoading(true);
     try {
-      await fetch(`${SERVER_URL}/courses/${courseId}/outcomes`, {
+      await apiFetch(`/courses/${courseId}/outcomes`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: newOutcomeTitle.trim(),
-          description: t("teacher.wizard.coreOutcome"),
-        }),
+        json: { title: newOutcomeTitle.trim(), description: t("teacher.wizard.coreOutcome") },
       });
       setNewOutcomeTitle("");
       await loadWizardData();
     } catch (err) {
-      setError(err.message);
+      setError(getErrorMessage(err, t));
     } finally {
       setLoading(false);
     }
@@ -144,18 +124,13 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
       const body = Number(weekOffset) === 0
         ? { title: t("teacher.baseline.week0Title"), kind: "baseline" }
         : { title: fill(t("teacher.wizard.newWeekTitle"), { n: weekOffset }), weekOffset };
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/modules`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+      await apiFetch(`/courses/${courseId}/modules`, { method: "POST", json: body }).catch((err) => {
+        if (err?.status === 0) throw err;
+        setError(err?.body?.message || t("teacher.wizard.addWeekFailed"));
       });
-      if (!res.ok) {
-        const payload = await res.json().catch(() => ({}));
-        setError(payload.message || t("teacher.wizard.addWeekFailed"));
-      }
       await loadWizardData();
     } catch (err) {
-      setError(err.message);
+      setError(getErrorMessage(err, t));
     } finally {
       setLoading(false);
     }
@@ -177,18 +152,20 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
     setError("");
     setOpenErrors([]);
     try {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/open-course`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      });
-      if (res.ok) {
+      const failure = await apiFetch(`/courses/${courseId}/open-course`, { method: "POST", json: {} })
+        .then(() => null)
+        .catch((err) => {
+          if (!(err instanceof ApiError) || err.status === 0) throw err;
+          return err.body || {};
+        });
+      if (!failure) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.courses });
+        loadWizardData();
         onCompleted?.();
       } else {
-        const data = await res.json().catch(() => ({}));
-        const blocking = Array.isArray(data.blocking) ? data.blocking.map(blockingText).filter(Boolean) : [];
+        const blocking = Array.isArray(failure.blocking) ? failure.blocking.map(blockingText).filter(Boolean) : [];
         // The listed steps say what's missing; the server's summary sentence is English only.
-        setError(blocking.length ? t("teacher.setup.cantOpenTitle") : (data.message || t("teacher.setup.cantOpenYet")));
+        setError(blocking.length ? t("teacher.setup.cantOpenTitle") : (failure.message || t("teacher.setup.cantOpenYet")));
         setOpenErrors(blocking);
       }
     } catch (err) {
@@ -421,7 +398,6 @@ export default function CourseSetupWizard({ SERVER_URL, courseId, userEmail, cou
             </p>
 
             <BaselinePanel
-              SERVER_URL={SERVER_URL}
               courseId={courseId}
               isDraft={!course?.lifecycle || course.lifecycle === "draft"}
               onChanged={loadWizardData}

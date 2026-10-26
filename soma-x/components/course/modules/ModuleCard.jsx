@@ -11,13 +11,19 @@ import { isUnassignedModule } from "@/lib/moduleLabels";
 import { useCourseText } from "@/components/course/useCourseText";
 import Explainer from "@/components/help/Explainer";
 import { formatRange } from "@/lib/dates";
+import { apiFetch, getErrorMessage } from "@/lib/api";
 
 // Teacher-only drag-and-drop, loaded on demand so learners never download dnd-kit.
 const SortableItemList = lazy(() => import("./sortable").then((m) => ({ default: m.SortableItemList })));
 
-async function readError(res, fallback) {
-  const payload = await res.json().catch(() => ({}));
-  return payload?.message || fallback;
+// Sends a change. Returns "" when it worked, else the box's message (or `fallback`).
+async function send(path, options, fallback) {
+  try {
+    await apiFetch(path, options);
+    return "";
+  } catch (err) {
+    return err?.status === 0 ? getErrorMessage(err) : err?.body?.message || fallback;
+  }
 }
 
 // File name kept for import stability; renders one module: a header bar and its item rows.
@@ -25,7 +31,6 @@ export default function ModuleCard({
   module: moduleRow,
   courseId,
   isTeacher,
-  SERVER_URL,
   onRefetch,
   onAddItem,
   onEditItem,
@@ -52,14 +57,11 @@ export default function ModuleCard({
   const startAiJob = async (kind, input) => {
     setAiBusy(kind);
     try {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/ai/jobs`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind, moduleId: moduleRow.id, input }),
-      });
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        showToast(payload?.message || t("modules.ai.couldNotStart"), "error");
+      let payload;
+      try {
+        payload = await apiFetch(`/courses/${courseId}/ai/jobs`, { method: "POST", json: { kind, moduleId: moduleRow.id, input } });
+      } catch (err) {
+        showToast(err?.status === 0 ? getErrorMessage(err) : err?.body?.message || t("modules.ai.couldNotStart"), "error");
         return false;
       }
       showToast(t("modules.ai.started"), "success", 6000);
@@ -85,57 +87,39 @@ export default function ModuleCard({
   };
 
   const togglePublish = async () => {
-    const res = await fetch(`${SERVER_URL}/courses/${courseId}/modules/${moduleRow.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ published: !moduleRow.published }),
-    });
-    if (!res.ok) showToast(await readError(res, t("modules.errors.updateModule")), "error");
+    const error = await send(`/courses/${courseId}/modules/${moduleRow.id}`, { method: "PATCH", json: { published: !moduleRow.published } }, t("modules.errors.updateModule"));
+    if (error) showToast(error, "error");
     onRefetch();
   };
 
   const deleteModule = async () => {
     if (!confirm(tf("modules.confirmDeleteModule", { title: moduleRow.title }))) return;
-    const res = await fetch(`${SERVER_URL}/courses/${courseId}/modules/${moduleRow.id}`, {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({}),
-    });
-    if (!res.ok) showToast(await readError(res, t("modules.errors.deleteModule")), "error");
+    const error = await send(`/courses/${courseId}/modules/${moduleRow.id}`, { method: "DELETE", json: {} }, t("modules.errors.deleteModule"));
+    if (error) showToast(error, "error");
     onRefetch();
   };
 
   const saveTitle = async () => {
     if (titleDraft.trim() && titleDraft.trim() !== moduleRow.title) {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/modules/${moduleRow.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: titleDraft.trim() }),
-      });
-      if (!res.ok) showToast(await readError(res, t("modules.errors.renameModule")), "error");
+      const error = await send(`/courses/${courseId}/modules/${moduleRow.id}`, { method: "PATCH", json: { title: titleDraft.trim() } }, t("modules.errors.renameModule"));
+      if (error) showToast(error, "error");
       onRefetch();
     }
     setEditingTitle(false);
   };
 
   const toggleItemPublish = async (item) => {
-    const res = await fetch(`${SERVER_URL}/courses/${courseId}/modules/${moduleRow.id}/items/${item.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ published: !item.published }),
-    });
-    if (!res.ok) {
-      showToast(await readError(res, item.published ? t("modules.errors.unpublishItem") : t("modules.errors.publishItem")), "error");
-    }
+    const error = await send(
+      `/courses/${courseId}/modules/${moduleRow.id}/items/${item.id}`,
+      { method: "PATCH", json: { published: !item.published } },
+      item.published ? t("modules.errors.unpublishItem") : t("modules.errors.publishItem"),
+    );
+    if (error) showToast(error, "error");
     onRefetch();
   };
 
   const handleItemReorder = async (itemIds) => {
-    await fetch(`${SERVER_URL}/courses/${courseId}/modules/${moduleRow.id}/items/reorder`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ itemIds }),
-    });
+    await send(`/courses/${courseId}/modules/${moduleRow.id}/items/reorder`, { method: "PATCH", json: { itemIds } }, "");
     onRefetch();
   };
 

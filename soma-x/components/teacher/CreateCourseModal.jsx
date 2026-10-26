@@ -5,9 +5,13 @@ import { useRouter } from "next/navigation"
 import { X } from "lucide-react"
 import { useLanguage } from "@/context/LanguageContext"
 import GradeSelect from "@/components/teacher/GradeSelect"
+import { useQueryClient } from "@tanstack/react-query"
+import { apiFetch } from "@/lib/api"
+import { queryKeys } from "@/lib/queryKeys"
 
 // Shared by every entry point that creates a course, so there's exactly one create-course UX.
-export default function CreateCourseModal({ SERVER_URL, onClose, onCreated }) {
+export default function CreateCourseModal({ onClose, onCreated }) {
+  const queryClient = useQueryClient()
   const { t } = useLanguage()
   const router = useRouter()
   const [form, setForm] = useState({ title: "", grade: "", description: "" })
@@ -23,17 +27,15 @@ export default function CreateCourseModal({ SERVER_URL, onClose, onCreated }) {
     setError("")
     setLoading(true)
     try {
-      const res = await fetch(`${SERVER_URL}/courses`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: form.title.trim(),
-          grade: resolvedGrade,
-          description: form.description,
-        }),
-      })
-      const data = await res.json()
-      if (!res.ok) { setError(data.message || t("teacher.createCourse.failed")); return }
+      let data
+      try {
+        data = await apiFetch("/courses", { method: "POST", json: { title: form.title.trim(), grade: resolvedGrade, description: form.description } })
+      } catch (err) {
+        if (err?.status === 0) throw err
+        setError(err?.body?.message || t("teacher.createCourse.failed"))
+        return
+      }
+      queryClient.invalidateQueries({ queryKey: queryKeys.courses })
       onCreated?.(data)
       // Straight into the guided setup: a new course is a draft that needs outcomes, dates and weeks.
       if (data?.id) router.push(`/course/${data.id}/settings#guided-setup`)

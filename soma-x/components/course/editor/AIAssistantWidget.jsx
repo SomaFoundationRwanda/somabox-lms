@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useEffect, useContext } from "react";
+import { useState, useContext } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { ApiError, apiFetch } from "@/lib/api";
 import { Sparkles, ThumbsUp, ThumbsDown, Copy, Check, RefreshCw, AlertTriangle, ChevronDown, ChevronUp } from "lucide-react";
 import DataContext from "@/context/DataContext";
 import { useCourseText } from "@/components/course/useCourseText";
@@ -29,32 +31,18 @@ export default function AIAssistantWidget({ courseId = "", lessonId = "", onInse
   const [disclaimer, setDisclaimer] = useState("");
   const [copied, setCopied] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [available, setAvailable] = useState(true);
 
   const [feedbackSent, setFeedbackSent] = useState(false);
   const [feedbackComment, setFeedbackComment] = useState("");
   const [showCommentBox, setShowCommentBox] = useState(false);
   const [pendingRating, setPendingRating] = useState(null);
 
-  const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:3000";
-
-  // Check health on mount
-  useEffect(() => {
-    async function checkHealth() {
-      try {
-        const res = await fetch(`${SERVER_URL}/ai/health`);
-        if (res.ok) {
-          const data = await res.json();
-          setAvailable(data.available);
-        } else {
-          setAvailable(false);
-        }
-      } catch {
-        setAvailable(false);
-      }
-    }
-    checkHealth();
-  }, [SERVER_URL]);
+  // Whether the assistant is up: asked once, kept until the app reloads.
+  const health = useQuery({
+    queryKey: ["ai", "health"],
+    queryFn: () => apiFetch("/ai/health").then((data) => !!data?.available).catch(() => false),
+  });
+  const available = health.data ?? true;
 
   const handleGenerate = async (e) => {
     e.preventDefault();
@@ -68,24 +56,21 @@ export default function AIAssistantWidget({ courseId = "", lessonId = "", onInse
     setShowCommentBox(false);
 
     try {
-      const res = await fetch(`${SERVER_URL}/ai/ask`, {
-        method: "POST",
-        // Identity comes from the session token added by the fetch wrapper.
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          mode,
-          question,
-          source_text: sourceText,
-          course_id: courseId,
-          lesson_id: lessonId
-        })
-      });
-
-      if (!res.ok) {
-        const errJson = await res.json().catch(() => ({}));
-        setErrorMessage(errJson.message || errJson.error || t("aiAssistant.unavailable"));
-        setIsGenerating(false);
-        return;
+      let res;
+      try {
+        // The answer streams in: read from the response as it arrives.
+        res = await apiFetch("/ai/ask", {
+          method: "POST",
+          json: { mode, question, source_text: sourceText, course_id: courseId, lesson_id: lessonId },
+          responseType: "response",
+        });
+      } catch (err) {
+        if (err instanceof ApiError && err.status !== 0) {
+          setErrorMessage(err.body?.message || err.body?.error || t("aiAssistant.unavailable"));
+          setIsGenerating(false);
+          return;
+        }
+        throw err;
       }
 
       const reader = res.body.getReader();
@@ -141,15 +126,9 @@ export default function AIAssistantWidget({ courseId = "", lessonId = "", onInse
     setPendingRating(rating);
 
     try {
-      await fetch(`${SERVER_URL}/ai/feedback`, {
+      await apiFetch("/ai/feedback", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          response_id: responseId,
-          rating,
-          comment: feedbackComment,
-          mode
-        })
+        json: { response_id: responseId, rating, comment: feedbackComment, mode },
       });
       setFeedbackSent(true);
       setShowCommentBox(false);

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { apiFetch } from "@/lib/api";
 
 export function usePageScrollTracker({ SERVER_URL, courseId, pageId, userEmail, initialView }) {
   const [completed, setCompleted] = useState(Boolean(initialView?.completed));
@@ -22,16 +23,9 @@ export function usePageScrollTracker({ SERVER_URL, courseId, pageId, userEmail, 
 
     const reportView = async (pct) => {
       try {
-        const res = await fetch(`${SERVER_URL}/courses/${courseId}/pages/${pageId}/view`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ scrollPct: pct }),
-        });
-        const data = await res.json();
-        if (res.ok) {
-          if (data.completed) setCompleted(true);
-          setScrollPct(data.scroll_pct_reached || pct);
-        }
+        const data = await apiFetch(`/courses/${courseId}/pages/${pageId}/view`, { method: "POST", json: { scrollPct: pct } });
+        if (data.completed) setCompleted(true);
+        setScrollPct(data.scroll_pct_reached || pct);
       } catch (err) {
         console.error("Failed to report page scroll view:", err);
       }

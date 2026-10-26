@@ -1,6 +1,6 @@
 "use client";
 
-import { useContext, useEffect, useMemo, useState } from "react";
+import { useContext, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Plus } from "lucide-react";
@@ -12,13 +12,14 @@ import { useLanguage } from "@/context/LanguageContext";
 import Loader from "@/components/ui/Loader";
 import { useRouter } from "next/navigation";
 import { startRouteLoading } from "@/components/global/RouteLoader";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiFetch, getErrorMessage } from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
 
 export default function ScholarCoursesPage() {
   const { SERVER_URL, user } = useContext(DataContext);
   const { t } = useLanguage();
   const router = useRouter();
-  const [courses, setCourses] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
   const [courseCode, setCourseCode] = useState("");
   const [joinError, setJoinError] = useState("");
@@ -26,15 +27,11 @@ export default function ScholarCoursesPage() {
 
   const scholarEmail = user?.email || "";
 
-  const load = async () => {
-    if (!SERVER_URL || !scholarEmail) return;
-    setLoading(true);
-    const res = await fetch(`${SERVER_URL}/courses/mine`);
-    if (res.ok) setCourses(await res.json());
-    setLoading(false);
-  };
-
-  useEffect(() => { load(); }, [SERVER_URL, scholarEmail]); // eslint-disable-line react-hooks/exhaustive-deps
+  // The same kept list as every other "my courses" screen.
+  const queryClient = useQueryClient();
+  const mine = useQuery({ queryKey: queryKeys.myCourses, queryFn: () => apiFetch("/courses/mine"), enabled: !!scholarEmail });
+  const courses = Array.isArray(mine.data) ? mine.data : [];
+  const loading = mine.isPending;
 
   const handleJoin = async () => {
     if (!courseCode.trim()) return;
@@ -42,13 +39,15 @@ export default function ScholarCoursesPage() {
     setJoinLoading(true);
     try {
       // The code the teacher gives out (People > Join code), as on Discover courses.
-      const res = await fetch(`${SERVER_URL}/courses/join-by-code`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: courseCode }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) { setJoinError((data.code && t(`learner.discover.code.errors.${data.code}`)) || data.message || t("learner.discover.joinFailed")); return; }
+      let data;
+      try {
+        data = await apiFetch("/courses/join-by-code", { method: "POST", json: { code: courseCode } });
+      } catch (err) {
+        setJoinError((err?.code && t(`learner.discover.code.errors.${err.code}`)) || err?.body?.message || (err?.status === 0 ? getErrorMessage(err, t) : t("learner.discover.joinFailed")));
+        return;
+      }
+      queryClient.invalidateQueries({ queryKey: queryKeys.courses });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard });
       setCourseCode("");
       setJoining(false);
       startRouteLoading();

@@ -17,6 +17,9 @@ import { fill } from "@/lib/fill";
 import { startRouteLoading } from "@/components/global/RouteLoader";
 import Loader from "@/components/ui/Loader";
 import UpcomingByDate from "@/components/learner/UpcomingByDate";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiFetch, getErrorMessage } from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
 
 // The learner's choice of "cards" or "date" for My courses, kept on this device.
 const VIEW_KEY = "somabox.learnerDashboard.view";
@@ -36,9 +39,16 @@ const ScholarDashboard = () => {
         setScholarEmail(user?.email || "");
     }, [user]);
 
-    const [enrolledCourses, setEnrolledCourses] = useState([]);
-    const [publicCourses, setPublicCourses] = useState([]);
-    const [loading, setLoading] = useState(false);
+    // The learner's dashboard, kept until their courses change (live updates) or they join one.
+    const queryClient = useQueryClient();
+    const dashboard = useQuery({
+        queryKey: queryKeys.dashboard,
+        queryFn: () => apiFetch("/users/me/dashboard"),
+        enabled: authenticated && currentRole === "scholar" && !!scholarEmail,
+    });
+    const enrolledCourses = dashboard.data?.enrolled_courses || [];
+    const publicCourses = dashboard.data?.public_courses || [];
+    const loading = dashboard.isFetching && !dashboard.data;
     const [joiningId, setJoiningId] = useState(null);
     const [joinError, setJoinError] = useState("");
     const [coursesView, setCoursesView] = useState("cards");
@@ -48,20 +58,6 @@ const ScholarDashboard = () => {
     const chooseView = (view) => {
         setCoursesView(view);
         try { window.localStorage.setItem(VIEW_KEY, view); } catch { /* storage unavailable */ }
-    };
-
-    const loadDashboard = async () => {
-        if (!SERVER_URL || !scholarEmail) return;
-        setLoading(true);
-        try {
-            const res = await fetch(`${SERVER_URL}/users/me/dashboard`);
-            if (res.ok) {
-                const data = await res.json();
-                setEnrolledCourses(data.enrolled_courses || []);
-                setPublicCourses(data.public_courses || []);
-            }
-        } catch { /* silent */ }
-        finally { setLoading(false); }
     };
 
     useEffect(() => {
@@ -74,7 +70,6 @@ const ScholarDashboard = () => {
                 } catch { /* silent */ }
             }
         })();
-        loadDashboard();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [authenticated, currentRole, SERVER_URL, scholarEmail]);
 
@@ -82,16 +77,13 @@ const ScholarDashboard = () => {
         setJoiningId(courseId);
         setJoinError("");
         try {
-            const res = await fetch(`${SERVER_URL}/courses/${courseId}/join`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({}),
-            });
-            if (!res.ok) throw new Error((await res.json()).message || t("learner.discover.joinFailed"));
+            await apiFetch(`/courses/${courseId}/join`, { method: "POST", json: {} });
+            queryClient.invalidateQueries({ queryKey: queryKeys.courses });
+            queryClient.invalidateQueries({ queryKey: queryKeys.dashboard });
             startRouteLoading();
             router.push(`/course/${courseId}/home`);
         } catch (err) {
-            setJoinError(err.message || t("learner.discover.joinFailed"));
+            setJoinError(err?.body?.message || (err?.status === 0 ? getErrorMessage(err, t) : t("learner.discover.joinFailed")));
             setJoiningId(null);
         }
     };
@@ -254,7 +246,7 @@ const ScholarDashboard = () => {
                                             </div>
                                         </div>
                                         {coursesView === "date" ? (
-                                            <UpcomingByDate SERVER_URL={SERVER_URL} />
+                                            <UpcomingByDate />
                                         ) : (
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                             {enrolledCourses.map((course) => (

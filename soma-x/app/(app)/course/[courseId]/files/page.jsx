@@ -8,10 +8,13 @@ import Breadcrumbs from "@/components/course/Breadcrumbs";
 import AsyncListState from "@/components/course/AsyncListState";
 import { PageHeader, List } from "@/components/layout";
 import { useCourseText } from "@/components/course/useCourseText";
+import { useToast } from "@/context/ToastContext";
+import { apiFetch, apiUrl, getErrorMessage } from "@/lib/api";
 
 export default function FilesPage() {
-  const { SERVER_URL, courseId, isTeacher } = useCourse();
+  const { courseId, isTeacher } = useCourse();
   const { t, tf } = useCourseText();
+  const { showToast } = useToast();
   const { data: files, loading, error, refetch } = useCourseSection("files");
   const [uploading, setUploading] = useState(false);
 
@@ -21,19 +24,21 @@ export default function FilesPage() {
     try {
       const formData = new FormData();
       formData.append("file", file);
-      await fetch(`${SERVER_URL}/courses/${courseId}/files`, { method: "POST", body: formData });
+      await apiFetch(`/courses/${courseId}/files`, { method: "POST", body: formData });
       refetch();
+    } catch (err) {
+      showToast(getErrorMessage(err), "error");
     } finally {
       setUploading(false);
     }
   };
 
   const remove = async (id) => {
-    await fetch(`${SERVER_URL}/courses/${courseId}/files/${id}`, {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({}),
-    });
+    try {
+      await apiFetch(`/courses/${courseId}/files/${id}`, { method: "DELETE", json: {} });
+    } catch (err) {
+      showToast(getErrorMessage(err), "error");
+    }
     refetch();
   };
 
@@ -56,7 +61,7 @@ export default function FilesPage() {
             <List label={t("nav.files")}>
               {list.map((f) => (
                 <li key={f.id} className="flex items-center justify-between gap-3 px-3 py-2.5">
-                  <a href={`${SERVER_URL}${f.downloadUrl}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200 hover:text-[var(--brand-primary)] min-w-0">
+                  <a href={apiUrl(f.downloadUrl)} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200 hover:text-[var(--brand-primary)] min-w-0">
                     <FileIcon className="w-4 h-4 text-slate-400 shrink-0" />
                     <span className="truncate">{f.original_name}</span>
                   </a>

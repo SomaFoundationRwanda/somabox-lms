@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { X, Target } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
 import ScheduleFields, { initialScheduleValues, scheduleError, schedulePayload } from "./ScheduleFields";
 import { useCourseText } from "@/components/course/useCourseText";
+import { useQuery } from "@tanstack/react-query";
+import { apiFetch } from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
 
 // initialDays: the module item's { release_day, due_day, close_day } when editing.
 // moduleStartDate: the module's first day ('YYYY-MM-DD'), for previewing dates.
@@ -16,20 +19,14 @@ export default function AssignmentEditorModal({ open, onClose, onSave, initialDa
   const { t } = useCourseText();
   // Tagging happens here so a new assignment can be published right away (untagged graded
   // work is saved unpublished).
-  const [outcomes, setOutcomes] = useState(null);
+  const outcomesQuery = useQuery({
+    queryKey: queryKeys.courseSection(courseId, "outcomes"),
+    queryFn: () => apiFetch(`/courses/${courseId}/outcomes`),
+    enabled: !!open && !!SERVER_URL && !!courseId,
+  });
+  // null while loading; [] when there are none (or they couldn't be loaded).
+  const outcomes = outcomesQuery.isPending ? null : Array.isArray(outcomesQuery.data) ? outcomesQuery.data : [];
   const [outcomeIds, setOutcomeIds] = useState(() => initialOutcomeIds.map(Number));
-  useEffect(() => {
-    if (!open || !SERVER_URL || !courseId) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch(`${SERVER_URL}/courses/${courseId}/outcomes`);
-        const payload = await res.json().catch(() => []);
-        if (!cancelled) setOutcomes(res.ok && Array.isArray(payload) ? payload : []);
-      } catch { if (!cancelled) setOutcomes([]); }
-    })();
-    return () => { cancelled = true; };
-  }, [open, SERVER_URL, courseId]);
   const toggleOutcome = (id) => setOutcomeIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
   const [title, setTitle] = useState(initialData?.title || "");
   const [description, setDescription] = useState(initialData?.description || "");

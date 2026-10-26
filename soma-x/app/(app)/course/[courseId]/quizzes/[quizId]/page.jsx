@@ -1,6 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiFetch, getErrorMessage } from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
 import { useParams } from "next/navigation";
 import { Target, CheckCircle2, Clock, RotateCcw } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
@@ -29,67 +32,44 @@ export default function QuizDetailPage() {
   useItemOpened("quiz", quizId, courseId);
   const { SERVER_URL, userEmail, isTeacher, isObserver } = useCourse();
   const { t, tf, weekLabel, fmtDate, fmtDateTime } = useCourseText();
-  const [quiz, setQuiz] = useState(null);
-  const [modules, setModules] = useState([]);
-  const [itemOutcomes, setItemOutcomes] = useState([]);
+  const queryClient = useQueryClient();
+  const ready = !!SERVER_URL && !!courseId && !!quizId && !!userEmail;
+  const quizKey = queryKeys.courseSection(courseId, `quizzes/${quizId}`);
+  const quizQuery = useQuery({ queryKey: quizKey, queryFn: () => apiFetch(`/courses/${courseId}/quizzes/${quizId}`), enabled: ready });
+  const modulesQuery = useQuery({ queryKey: queryKeys.courseSection(courseId, "modules"), queryFn: () => apiFetch(`/courses/${courseId}/modules`), enabled: ready });
+  const tagsQuery = useQuery({ queryKey: queryKeys.courseSection(courseId, "item-outcomes"), queryFn: () => apiFetch(`/courses/${courseId}/item-outcomes`), enabled: ready });
+  const quiz = quizQuery.data || null;
+  const modules = Array.isArray(modulesQuery.data) ? modulesQuery.data : [];
+  const itemOutcomes = (Array.isArray(tagsQuery.data) ? tagsQuery.data : []).filter((tag) => tag.item_type === "quiz" && Number(tag.item_id) === Number(quizId));
+  const loading = quizQuery.isPending;
+  const reloadQuiz = () => queryClient.invalidateQueries({ queryKey: quizKey });
   const [answers, setAnswers] = useState({});
-  const [loading, setLoading] = useState(true);
   const [submitted, setSubmitted] = useState(null);
   const [submitError, setSubmitError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [granting, setGranting] = useState(null);
   const { showToast } = useToast();
 
-  const load = async () => {
-    if (!SERVER_URL || !courseId || !quizId) return;
-    try {
-      setLoading(true);
-      const [quizRes, modRes, itemOutRes] = await Promise.all([
-        fetch(`${SERVER_URL}/courses/${courseId}/quizzes/${quizId}`),
-        fetch(`${SERVER_URL}/courses/${courseId}/modules`),
-        fetch(`${SERVER_URL}/courses/${courseId}/item-outcomes`),
-      ]);
-
-      if (quizRes.ok) setQuiz(await quizRes.json());
-      if (modRes.ok) setModules(await modRes.json());
-      if (itemOutRes.ok) {
-        const allTags = await itemOutRes.json();
-        const myTags = allTags.filter(t => t.item_type === 'quiz' && Number(t.item_id) === Number(quizId));
-        setItemOutcomes(myTags);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    load();
-  }, [SERVER_URL, courseId, quizId, userEmail]);
-
   const submitQuiz = async () => {
     setSubmitError("");
     setSubmitting(true);
     try {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/quizzes/${quizId}/submit`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ answers }),
-      });
-      const payload = await res.json().catch(() => ({}));
-      if (res.ok) {
-        setSubmitted(payload);
-      } else {
+      try {
+        setSubmitted(await apiFetch(`/courses/${courseId}/quizzes/${quizId}/submit`, { method: "POST", json: { answers } }));
+        // A result changes the learner's grades, progress and what's left to do.
+        for (const queryKey of [queryKeys.courseSection(courseId, "grades"), queryKeys.courseSection(courseId, "my-progress"), queryKeys.assignmentSummary, queryKeys.dashboard]) {
+          queryClient.invalidateQueries({ queryKey });
+        }
+      } catch (err) {
         // 409 codes: NO_ATTEMPTS_LEFT, CLOSED, NOT_OPEN_YET each come with a readable message.
         const fallback = {
           NO_ATTEMPTS_LEFT: t("quiz.noAttemptsLeft"),
           CLOSED: t("quiz.closed"),
           NOT_OPEN_YET: t("quiz.notOpenYet"),
-        }[payload.code];
-        setSubmitError(payload.message || fallback || t("quiz.submitFailed"));
+        }[err?.code];
+        setSubmitError(err?.status === 0 ? getErrorMessage(err) : err?.body?.message || fallback || t("quiz.submitFailed"));
       }
-      load();
+      reloadQuiz();
     } finally {
       setSubmitting(false);
     }
@@ -100,20 +80,14 @@ export default function QuizDetailPage() {
     if (reason === null) return;
     setGranting(sub.scholar_email);
     try {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/quizzes/${quizId}/grant-attempt`, {
+      const payload = await apiFetch(`/courses/${courseId}/quizzes/${quizId}/grant-attempt`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scholarEmail: sub.scholar_email, extra: 1, ...(reason.trim() ? { reason: reason.trim() } : {}) }),
+        json: { scholarEmail: sub.scholar_email, extra: 1, ...(reason.trim() ? { reason: reason.trim() } : {}) },
       });
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        showToast(payload.message || t("quiz.grantFailed"), "error");
-        return;
-      }
-      showToast(payload.message || t("quiz.granted"), "success");
-      load();
+      showToast(payload?.message || t("quiz.granted"), "success");
+      reloadQuiz();
     } catch (err) {
-      showToast(err.message || t("quiz.grantFailed"), "error");
+      showToast(err?.status === 0 ? getErrorMessage(err) : err?.body?.message || t("quiz.grantFailed"), "error");
     } finally {
       setGranting(null);
     }

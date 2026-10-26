@@ -10,6 +10,7 @@ import { useToast } from "@/context/ToastContext";
 import { renewMediaSession, safeNext, setSessionToken, takeNext } from "@/lib/session";
 import { fill } from "@/lib/fill";
 import { startRouteLoading } from "@/components/global/RouteLoader";
+import { apiFetch } from "@/lib/api";
 
 export default function SignupPage() {
   const { t } = useLanguage();
@@ -68,15 +69,16 @@ export default function SignupPage() {
     try {
       setLoading(true);
       // Self-registration always creates a learner account and returns a session.
-      const response = await fetch(`${SERVER_URL}/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: normalizedEmail, fullName: formData.name, password: formData.password }),
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        const msg = data.message || t('shell.signup.createFailed');
+      let data;
+      try {
+        data = await apiFetch("/auth/register", {
+          method: "POST",
+          json: { email: normalizedEmail, fullName: formData.name, password: formData.password },
+          allowUnauthenticated: true,
+        });
+      } catch (err) {
+        if (err?.status === 0) throw err;
+        const msg = err?.body?.message || t('shell.signup.createFailed');
         setError(msg);
         showToast(fill(t('shell.signup.failedToast'), { message: msg }), 'error');
         return;
@@ -85,7 +87,7 @@ export default function SignupPage() {
       setSessionToken(data.token);
       // Registration set the media cookie (credentials: "include"); renew it once more so
       // files open straight away.
-      await renewMediaSession(SERVER_URL);
+      await renewMediaSession();
       // Learners get a code they can sign in with instead of their email: show it and let
       // them note it down before going on.
       if (data.user?.learner_code) {

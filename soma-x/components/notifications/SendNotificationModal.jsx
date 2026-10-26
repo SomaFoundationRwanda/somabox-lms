@@ -1,13 +1,12 @@
 "use client";
 
-import { useContext, useState } from "react";
+import { useState } from "react";
 import { BellRing, Megaphone, Send, ShieldAlert, X } from "lucide-react";
-import DataContext from "@/context/DataContext";
 import { useToast } from "@/context/ToastContext";
 import { useLanguage } from "@/context/LanguageContext";
+import { apiFetch, getErrorMessage } from "@/lib/api";
 
 export default function SendNotificationModal({ isOpen, onClose }) {
-    const { SERVER_URL } = useContext(DataContext);
     const { showToast } = useToast();
     const { t } = useLanguage();
 
@@ -30,21 +29,17 @@ export default function SendNotificationModal({ isOpen, onClose }) {
 
         try {
             setSending(true);
-            const res = await fetch(`${SERVER_URL}/notifications/send`, {
+            const data = await apiFetch("/notifications/send", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
+                json: {
                     targetRole,
                     targetEmail: targetRole === "specific" ? targetEmail : undefined,
                     title: title.trim(),
                     message: message.trim(),
                     type,
                     link: link.trim() || null
-                })
+                },
             });
-
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.message || t("shell.broadcast.sendFailed"));
 
             showToast(data.message || t("shell.broadcast.sent"), "success");
             setTitle("");
@@ -53,7 +48,7 @@ export default function SendNotificationModal({ isOpen, onClose }) {
             setTargetEmail("");
             onClose();
         } catch (err) {
-            showToast(err.message || t("shell.broadcast.sendFailed"), "error");
+            showToast(err?.body?.message || (err?.status === 0 ? getErrorMessage(err, t) : t("shell.broadcast.sendFailed")), "error");
         } finally {
             setSending(false);
         }

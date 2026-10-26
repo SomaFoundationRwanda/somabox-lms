@@ -1,10 +1,13 @@
 "use client"
-import { useContext, useEffect, useMemo, useState } from "react"
+import { useContext, useMemo, useState } from "react"
 import Link from "next/link"
 import DataContext from "@/context/DataContext"
 import { useLanguage } from "@/context/LanguageContext"
 import { folderTitle, serverAsset } from "@/components/explore/FolderCard"
 import Loader from "@/components/ui/Loader";
+import { useQuery } from "@tanstack/react-query"
+import { apiFetch } from "@/lib/api"
+import { queryKeys } from "@/lib/queryKeys"
 
 const CATEGORY_IMAGES = {
   math: "/images/math.webp",
@@ -78,34 +81,14 @@ export default function TeacherExplorePage() {
   const { SERVER_URL, mainCategories } = useContext(DataContext)
   const { t } = useLanguage()
 
-  const [books, setBooks] = useState([])
-  const [booksError, setBooksError] = useState("")
+  // The box's books, kept with the rest of the catalogue (same copy as the Library pages).
+  const library = useQuery({ queryKey: queryKeys.libraryBooks, queryFn: () => apiFetch("/library/books") })
+  const books = Array.isArray(library.data) ? library.data : library.data?.books || []
+  const booksError = library.isError ? (library.error?.body?.message || t("explore.teacher.booksFailed")) : ""
+  const loading = library.isPending
   const [search, setSearch] = useState("")
-  const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("categories")
 
-  useEffect(() => {
-    if (!SERVER_URL) return
-    const load = async () => {
-      try {
-        const res = await fetch(`${SERVER_URL}/library/books`)
-        if (res.ok) {
-          const data = await res.json()
-          setBooks(Array.isArray(data) ? data : data?.books || [])
-        } else {
-          let message = ""
-          try { message = (await res.json())?.message || "" } catch { /* not JSON */ }
-          setBooksError(message || t("explore.teacher.booksFailed"))
-        }
-      } catch (err) {
-        console.error(err)
-        setBooksError(t("explore.teacher.booksFailed"))
-      } finally {
-        setLoading(false)
-      }
-    }
-    load()
-  }, [SERVER_URL, t])
 
   const query = search.trim().toLowerCase()
   const filteredBooks = books.filter((b) => !query || String(b.name || "").toLowerCase().includes(query))

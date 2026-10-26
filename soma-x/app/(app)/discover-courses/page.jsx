@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Compass, KeyRound, Users } from "lucide-react";
 import DataContext from "@/context/DataContext";
@@ -9,15 +9,23 @@ import { useGuestGate } from "@/components/guest/GuestGate";
 import { useLanguage } from "@/context/LanguageContext";
 import { fill } from "@/lib/fill";
 import { startRouteLoading } from "@/components/global/RouteLoader";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiFetch, getErrorMessage } from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
 
 export default function DiscoverCoursesPage() {
   const router = useRouter();
   const { SERVER_URL, user } = useContext(DataContext);
-  const [courses, setCourses] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [joiningId, setJoiningId] = useState(null);
   const { t } = useLanguage();
+  const queryClient = useQueryClient();
+  // The public catalogue, kept until the app reloads (open to guests too).
+  const catalogue = useQuery({ queryKey: queryKeys.publicCourses(1), queryFn: () => apiFetch("/courses/public") });
+  const courses = catalogue.data ? catalogue.data.courses || [] : null;
+  const loading = catalogue.isPending;
+  const [joinFailure, setError] = useState("");
+  const error = catalogue.isError ? (catalogue.error?.body?.message || t("learner.discover.loadFailed")) : joinFailure;
+  const load = () => catalogue.refetch();
+  const [joiningId, setJoiningId] = useState(null);
   // Guests can see public courses; joining one needs an account.
   const { isGuest, requireAccount } = useGuestGate();
   // Back from signing up to join a course: ?join=<id> points it out (joining stays a click).
@@ -25,23 +33,6 @@ export default function DiscoverCoursesPage() {
 
   const userEmail = user?.email || "";
 
-  const load = useCallback(async () => {
-    if (!SERVER_URL) return;
-    try {
-      setLoading(true);
-      setError("");
-      const res = await fetch(`${SERVER_URL}/courses/public`);
-      const payload = await res.json();
-      if (!res.ok) throw new Error(payload.message || t("learner.discover.loadFailed"));
-      setCourses(payload.courses || []);
-    } catch (err) {
-      setError(err.message || t("learner.discover.loadFailed"));
-    } finally {
-      setLoading(false);
-    }
-  }, [SERVER_URL, t]);
-
-  useEffect(() => { load(); }, [load]);
 
   useEffect(() => {
     if (isGuest || !courses?.length) return;
@@ -65,13 +56,11 @@ export default function DiscoverCoursesPage() {
     setCodeBusy(true);
     setCodeError("");
     try {
-      const res = await fetch(`${SERVER_URL}/courses/join-by-code`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: joinCode }),
+      const payload = await apiFetch("/courses/join-by-code", { method: "POST", json: { code: joinCode } }).catch((err) => {
+        throw new Error((err?.code && t(`learner.discover.code.errors.${err.code}`)) || err?.body?.message || (err?.status === 0 ? getErrorMessage(err, t) : t("learner.discover.joinFailed")));
       });
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error((payload.code && t(`learner.discover.code.errors.${payload.code}`)) || payload.message || t("learner.discover.joinFailed"));
+      queryClient.invalidateQueries({ queryKey: queryKeys.courses });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard });
       startRouteLoading();
       router.push(`/course/${payload.courseId}/home`);
     } catch (err) {
@@ -85,12 +74,11 @@ export default function DiscoverCoursesPage() {
     if (!userEmail) return;
     setJoiningId(courseId);
     try {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/join`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+      await apiFetch(`/courses/${courseId}/join`, { method: "POST", json: {} }).catch((err) => {
+        throw new Error(err?.body?.message || (err?.status === 0 ? getErrorMessage(err, t) : t("learner.discover.joinFailed")));
       });
-      if (!res.ok) throw new Error((await res.json()).message || t("learner.discover.joinFailed"));
+      queryClient.invalidateQueries({ queryKey: queryKeys.courses });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard });
       startRouteLoading();
       router.push(`/course/${courseId}/home`);
     } catch (err) {

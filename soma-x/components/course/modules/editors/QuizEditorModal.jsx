@@ -1,12 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { X, Plus, Trash2, Check } from "lucide-react";
 import InfoTooltip from "@/components/ui/InfoTooltip";
 import { useCourse } from "@/context/CourseContext";
 import Explainer from "@/components/help/Explainer";
 import ScheduleFields, { initialScheduleValues, scheduleError, schedulePayload } from "./ScheduleFields";
 import { useCourseText } from "@/components/course/useCourseText";
+import { useQuery } from "@tanstack/react-query";
+import { apiFetch } from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
 
 function QuestionBuilder({ question, index, onChange, onRemove, outcomes }) {
   const { t, tf } = useCourseText();
@@ -138,20 +141,14 @@ export default function QuizEditorModal({ open, onClose, onSave, initialData, in
   const { SERVER_URL, courseId } = useCourse();
   const isEdit = Boolean(initialData?.id);
   const { t, tf } = useCourseText();
-  const [outcomes, setOutcomes] = useState([]);
-
-  useEffect(() => {
-    if (!open || !SERVER_URL || !courseId) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch(`${SERVER_URL}/courses/${courseId}/outcomes`);
-        const payload = await res.json().catch(() => []);
-        if (!cancelled && res.ok && Array.isArray(payload)) setOutcomes(payload);
-      } catch { /* the select just offers "No outcome" */ }
-    })();
-    return () => { cancelled = true; };
-  }, [open, SERVER_URL, courseId]);
+  // The course's outcomes (the same kept list as the Outcomes page); if they can't be loaded the
+  // select just offers "No outcome".
+  const outcomesQuery = useQuery({
+    queryKey: queryKeys.courseSection(courseId, "outcomes"),
+    queryFn: () => apiFetch(`/courses/${courseId}/outcomes`),
+    enabled: !!open && !!SERVER_URL && !!courseId,
+  });
+  const outcomes = Array.isArray(outcomesQuery.data) ? outcomesQuery.data : [];
   const [title, setTitle] = useState(initialData?.title || "");
   const [description, setDescription] = useState(initialData?.description || "");
   const [schedule, setSchedule] = useState(() => initialScheduleValues(initialDays));

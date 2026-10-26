@@ -5,7 +5,8 @@ import { ChevronDown, ChevronRight, Clock, Sparkles } from "lucide-react";
 import { useToast } from "@/context/ToastContext";
 import { rubricGradePreview, fmtPoints, pctOf } from "@/lib/rubric";
 import useAiStatus from "@/lib/useAiStatus";
-import { aiFetch, startAiJob, rejectDraft, useAiJob } from "@/lib/ai";
+import { startAiJob, rejectDraft, useAiJob } from "@/lib/ai";
+import { apiFetch, getErrorMessage } from "@/lib/api";
 import { AiDraftLabel, JobProgress } from "@/components/ai/AiBits";
 import { trackEvent } from "@/lib/usage";
 import { useProgressText, fmtDateTime } from "@/components/progress/text";
@@ -33,7 +34,9 @@ const initialScores = (rubric, submission) => {
 
 // One learner's row in the teacher's submissions list. Collapsed: name, date, late badge,
 // grade. Expanded: the submission body plus rubric scoring (or a plain total without one).
-export default function SubmissionGrader({ SERVER_URL, courseId, assignmentId, submission, rubric, pointsPossible, onSaved, defaultOpen = false }) {
+export default function SubmissionGrader({ courseId, assignmentId, submission, rubric, pointsPossible, onSaved, defaultOpen = false }) {
+  // Still passed to the AI helpers (lib/ai.js).
+  const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL;
   const { showToast } = useToast();
   const { tp, locale } = useProgressText();
   const s = submission;
@@ -61,12 +64,17 @@ export default function SubmissionGrader({ SERVER_URL, courseId, assignmentId, s
   const [aiJob, setAiJob] = useState(null);
   const [aiError, setAiError] = useState("");
   const [aiBusy, setAiBusy] = useState(false);
-  const suggestionUrl = `${SERVER_URL}/courses/${courseId}/ai/grading-suggestion?assignmentId=${encodeURIComponent(assignmentId)}&scholarEmail=${encodeURIComponent(s.scholar_email)}`;
+  const suggestionPath = `/courses/${courseId}/ai/grading-suggestion?assignmentId=${encodeURIComponent(assignmentId)}&scholarEmail=${encodeURIComponent(s.scholar_email)}`;
 
   const fetchSuggestion = async () => {
-    const r = await aiFetch(suggestionUrl);
-    if (!r.ok) { setAiError(r.message); return null; }
-    const sug = r.data && r.data.status === "pending" ? r.data : null;
+    let data;
+    try {
+      data = await apiFetch(suggestionPath);
+    } catch (err) {
+      setAiError(getErrorMessage(err));
+      return null;
+    }
+    const sug = data && data.status === "pending" ? data : null;
     setSuggestion(sug);
     return sug;
   };
@@ -137,7 +145,7 @@ export default function SubmissionGrader({ SERVER_URL, courseId, assignmentId, s
   const preview = rubric ? rubricGradePreview(criteria, scores, pointsPossible) : null;
   const pct = pctOf(s.grade, pointsPossible);
   const panelId = `grade-panel-${s.scholar_email.replace(/[^a-z0-9]/gi, "-")}`;
-  const gradeUrl = `${SERVER_URL}/courses/${courseId}/assignments/${assignmentId}/grade/${encodeURIComponent(s.scholar_email)}`;
+  const gradePath = `/courses/${courseId}/assignments/${assignmentId}/grade/${encodeURIComponent(s.scholar_email)}`;
 
   const save = async () => {
     setError("");
@@ -151,29 +159,23 @@ export default function SubmissionGrader({ SERVER_URL, courseId, assignmentId, s
         if (v < 0 || v > Number(c.points)) { setError(tp("grader.outOfRange", { title: c.title, max: fmtPoints(c.points) })); return; }
         payloadScores.push({ criterionId: c.id, points: v });
       }
-      req = fetch(`${gradeUrl}/rubric`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scores: payloadScores, feedback, ...(aiApplied ? { aiDraftId: aiApplied.draftId } : {}) }),
-      });
+      req = () => apiFetch(`${gradePath}/rubric`, { method: "PUT", json: { scores: payloadScores, feedback, ...(aiApplied ? { aiDraftId: aiApplied.draftId } : {}) } });
     } else {
       const v = Number(grade);
       if (grade === "" || !Number.isFinite(v)) { setError(tp("grader.enterGrade")); return; }
-      req = fetch(gradeUrl, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ grade: v, feedback }),
-      });
+      req = () => apiFetch(gradePath, { method: "PATCH", json: { grade: v, feedback } });
     }
     setSaving(true);
     try {
-      const res = await req;
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(payload.code === "RUBRIC_REQUIRED"
-          ? payload.message || tp("grader.rubricRequired")
-          : payload.message || tp("grader.saveFailed"));
-        if (payload.code === "RUBRIC_REQUIRED") onSaved?.();
+      const refused = await req().then(() => null).catch((err) => {
+        if (err?.status === 0) throw new Error(getErrorMessage(err));
+        return err?.body || {};
+      });
+      if (refused) {
+        setError(refused.code === "RUBRIC_REQUIRED"
+          ? refused.message || tp("grader.rubricRequired")
+          : refused.message || tp("grader.saveFailed"));
+        if (refused.code === "RUBRIC_REQUIRED") onSaved?.();
         return;
       }
       showToast(tp("grader.savedFor", { name: s.fullName || s.scholar_email }), "success");

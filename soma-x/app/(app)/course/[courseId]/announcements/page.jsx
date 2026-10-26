@@ -9,32 +9,36 @@ import AsyncListState from "@/components/course/AsyncListState";
 import { PageHeader, List } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { useCourseText } from "@/components/course/useCourseText";
+import { useToast } from "@/context/ToastContext";
+import { apiFetch, getErrorMessage } from "@/lib/api";
 
 export default function AnnouncementsPage() {
-  const { SERVER_URL, courseId, isTeacher } = useCourse();
+  const { courseId, isTeacher } = useCourse();
   const { t, fmtDate } = useCourseText();
+  const { showToast } = useToast();
   const { data: announcements, loading, error, refetch } = useCourseSection("announcements");
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({ title: "", body: "" });
 
   const create = async () => {
     if (!form.title.trim()) return;
-    await fetch(`${SERVER_URL}/courses/${courseId}/announcements`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: form.title.trim(), body: form.body }),
-    });
+    try {
+      await apiFetch(`/courses/${courseId}/announcements`, { method: "POST", json: { title: form.title.trim(), body: form.body } });
+    } catch (err) {
+      showToast(getErrorMessage(err), "error");
+      return;
+    }
     setForm({ title: "", body: "" });
     setCreating(false);
     refetch();
   };
 
   const togglePin = async (a) => {
-    await fetch(`${SERVER_URL}/courses/${courseId}/announcements/${a.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ pinned: !a.pinned }),
-    });
+    try {
+      await apiFetch(`/courses/${courseId}/announcements/${a.id}`, { method: "PATCH", json: { pinned: !a.pinned } });
+    } catch (err) {
+      showToast(getErrorMessage(err), "error");
+    }
     refetch();
   };
 

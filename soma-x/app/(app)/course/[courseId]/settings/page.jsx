@@ -1,9 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowRight, ChevronDown, ChevronUp, Eye, EyeOff, ListChecks, X } from "lucide-react";
 import { compareDates, isDateString } from "@somabox/timeline";
+import { useQueryClient } from "@tanstack/react-query";
 import { useCourse } from "@/context/CourseContext";
+import { useCourseSection } from "@/lib/useCourseSection";
+import { apiFetch, getErrorMessage } from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
 import { useToast } from "@/context/ToastContext";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
 import { PageHeader, Section } from "@/components/layout";
@@ -18,10 +22,13 @@ import ShareCourseSection from "@/components/course/ShareCourseSection";
 import CourseStatusSection from "@/components/course/CourseStatusSection";
 
 // Settings > Course setup (teachers): the setup checklist, the Week 0 baseline and the guided wizard.
-function CourseSetupSection({ SERVER_URL, courseId, course, userEmail, onCourseChanged }) {
+function CourseSetupSection({ courseId, course, userEmail, onCourseChanged }) {
   const { t } = useCourseText();
-  const [status, setStatus] = useState(null);
-  const [statusError, setStatusError] = useState("");
+  // The same kept setup status as the course's Home page.
+  const statusQuery = useCourseSection("setup-status");
+  const status = statusQuery.data;
+  const statusError = statusQuery.error ? statusQuery.error || t("settings.setupStatusFailed") : "";
+  const loadStatus = statusQuery.refetch;
   // "#guided-setup" (e.g. right after creating a course) opens the wizard straight away.
   const [showWizard, setShowWizard] = useState(() => typeof window !== "undefined" && window.location.hash === "#guided-setup");
   useEffect(() => {
@@ -30,21 +37,6 @@ function CourseSetupSection({ SERVER_URL, courseId, course, userEmail, onCourseC
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [baselineKey, setBaselineKey] = useState(0); // remounts the baseline panel after the wizard changes things
-
-  const loadStatus = useCallback(async () => {
-    if (!SERVER_URL || !courseId) return;
-    try {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/setup-status`);
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(payload?.message || t("settings.setupStatusFailed"));
-      setStatus(payload);
-      setStatusError("");
-    } catch (err) {
-      setStatusError(err.message || t("settings.setupStatusFailed"));
-    }
-  }, [SERVER_URL, courseId, t]);
-
-  useEffect(() => { loadStatus(); }, [loadStatus]);
 
   const isDraft = status ? !status.isOpened : (!course?.lifecycle || course.lifecycle === "draft");
 
@@ -55,7 +47,6 @@ function CourseSetupSection({ SERVER_URL, courseId, course, userEmail, onCourseC
       {status && (
         <SetupChecklist
           courseId={courseId}
-          SERVER_URL={SERVER_URL}
           status={status}
           showSettingsLink={false}
           onChanged={() => { loadStatus(); onCourseChanged(); }}
@@ -65,7 +56,6 @@ function CourseSetupSection({ SERVER_URL, courseId, course, userEmail, onCourseC
       <Section divided title={t("settings.baseline")} actions={<Explainer k="pages.baseline" />}>
         <BaselinePanel
           key={baselineKey}
-          SERVER_URL={SERVER_URL}
           courseId={courseId}
           isDraft={isDraft}
           onChanged={loadStatus}
@@ -94,7 +84,6 @@ function CourseSetupSection({ SERVER_URL, courseId, course, userEmail, onCourseC
       {showWizard && (
         <div id="guided-setup" className="scroll-mt-4">
         <CourseSetupWizard
-          SERVER_URL={SERVER_URL}
           courseId={courseId}
           userEmail={userEmail}
           course={course}
@@ -113,32 +102,21 @@ function CourseSetupSection({ SERVER_URL, courseId, course, userEmail, onCourseC
 
 // "Shift timeline": preview moving dates by N days (whole course or from one module on),
 // then apply exactly what was previewed.
-function ShiftTimelinePanel({ SERVER_URL, courseId, startDate, onApplied }) {
+function ShiftTimelinePanel({ courseId, startDate, onApplied }) {
   const hasStartDate = Boolean(startDate);
   const { showToast } = useToast();
   const { t, tf, weekLabel, fmtDay } = useCourseText();
   const formatDate = (d) => fmtDay(d);
-  const [modules, setModules] = useState([]);
+  // The kept weeks (shared with the Modules page), in date order, without the "unassigned" bucket.
+  const { data: weeks } = useCourseSection("modules");
+  const modules = (Array.isArray(weeks) ? weeks : [])
+    .filter((m) => m.kind !== "unassigned")
+    .sort((a, b) => compareDates(a.startDate || "9999-12-31", b.startDate || "9999-12-31") || (a.position ?? 0) - (b.position ?? 0));
   const [days, setDays] = useState("7");
   const [fromModuleId, setFromModuleId] = useState("");
   const [preview, setPreview] = useState(null); // { key, result }
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-
-  const loadModules = useCallback(async () => {
-    try {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/modules`);
-      const payload = await res.json().catch(() => []);
-      if (!res.ok || !Array.isArray(payload)) return;
-      setModules(
-        payload
-          .filter((m) => m.kind !== "unassigned")
-          .sort((a, b) => compareDates(a.startDate || "9999-12-31", b.startDate || "9999-12-31") || (a.position ?? 0) - (b.position ?? 0))
-      );
-    } catch { /* the select just lists fewer options */ }
-  }, [SERVER_URL, courseId]);
-
-  useEffect(() => { loadModules(); }, [loadModules, startDate]);
 
   const n = Number(days);
   const validDays = days.trim() !== "" && Number.isInteger(n) && n !== 0;
@@ -150,27 +128,24 @@ function ShiftTimelinePanel({ SERVER_URL, courseId, startDate, onApplied }) {
     setBusy(true);
     setError("");
     try {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/shift-timeline`, {
+      const payload = await apiFetch(`/courses/${courseId}/shift-timeline`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        json: {
           days: n,
           ...(fromModuleId ? { fromModuleId: Number(fromModuleId) } : {}),
           preview: isPreview,
-        }),
+        },
       });
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(payload?.message || t("settings.shift.failed"));
       if (isPreview) {
         setPreview({ key, result: payload });
       } else {
         showToast(payload?.message || t("settings.shift.done"), "success");
         setPreview(null);
-        loadModules();
+        // New dates everywhere in the course (refresh marks it all out of date).
         onApplied();
       }
     } catch (err) {
-      setError(err.message || t("settings.shift.failed"));
+      setError(err?.body?.message || t("settings.shift.failed"));
       if (isPreview) setPreview(null);
     } finally {
       setBusy(false);
@@ -286,7 +261,8 @@ function ShiftTimelinePanel({ SERVER_URL, courseId, startDate, onApplied }) {
 }
 
 export default function CourseSettingsPage() {
-  const { SERVER_URL, courseId, course, nav, refresh, isTeacher, userEmail } = useCourse();
+  const { courseId, course, nav, refresh, isTeacher, userEmail } = useCourse();
+  const queryClient = useQueryClient();
   const { showToast } = useToast();
   const { t, tf, navLabel } = useCourseText();
   const [detailsError, setDetailsError] = useState("");
@@ -337,30 +313,24 @@ export default function CourseSettingsPage() {
     }
     setSaving(true);
     try {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}`, {
+      await apiFetch(`/courses/${courseId}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        json: {
           ...form,
           startDate: isDateString(form.startDate) ? form.startDate : null,
           endDate: isDateString(form.endDate) ? form.endDate : null,
-        }),
-      });
-      if (!res.ok) {
-        const payload = await res.json().catch(() => ({}));
-        throw new Error(payload?.message || t("settings.saveFailed"));
-      }
+        },
+      }).catch((err) => { throw new Error(err?.body?.message || t("settings.saveFailed")); });
       if (coverFile) {
         const formData = new FormData();
         formData.append("image", coverFile);
-        const coverRes = await fetch(`${SERVER_URL}/courses/${courseId}/cover-image`, { method: "POST", body: formData });
-        if (!coverRes.ok) {
-          const payload = await coverRes.json().catch(() => ({}));
-          throw new Error(payload?.message || t("settings.bannerFailed"));
-        }
+        await apiFetch(`/courses/${courseId}/cover-image`, { method: "POST", body: formData })
+          .catch((err) => { throw new Error(err?.body?.message || t("settings.bannerFailed")); });
       }
       showToast(t("settings.saved"), "success");
       refresh();
+      // Title, grade and cover show on the course lists too.
+      queryClient.invalidateQueries({ queryKey: queryKeys.courses });
     } catch (err) {
       setDetailsError(err.message || t("settings.saveFailed"));
     } finally {
@@ -411,11 +381,11 @@ export default function CourseSettingsPage() {
       position: index,
       visible_to_students: item.visibleToStudents,
     }));
-    await fetch(`${SERVER_URL}/courses/${courseId}/nav`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ items }),
-    });
+    try {
+      await apiFetch(`/courses/${courseId}/nav`, { method: "PATCH", json: { items } });
+    } catch (err) {
+      showToast(getErrorMessage(err), "error");
+    }
     setSaving(false);
     refresh();
   };
@@ -438,10 +408,9 @@ export default function CourseSettingsPage() {
         </div>
 
         {tab === "share" && isTeacher ? (
-          <ShareCourseSection SERVER_URL={SERVER_URL} courseId={courseId} />
+          <ShareCourseSection courseId={courseId} />
         ) : tab === "setup" && isTeacher ? (
           <CourseSetupSection
-            SERVER_URL={SERVER_URL}
             courseId={courseId}
             course={course}
             userEmail={userEmail}
@@ -470,7 +439,6 @@ export default function CourseSettingsPage() {
 
             <Section divided>
             <ShiftTimelinePanel
-              SERVER_URL={SERVER_URL}
               courseId={courseId}
               startDate={toDateInput(course?.start_date)}
               onApplied={refresh}
@@ -512,7 +480,7 @@ export default function CourseSettingsPage() {
             <button onClick={saveDetails} disabled={saving} className="text-xs font-semibold text-white bg-[var(--brand-primary)] rounded-lg px-4 py-2 disabled:opacity-50">
               {saving ? t("common.saving") : t("editors.saveChanges")}
             </button>
-            {isTeacher ? <CourseStatusSection SERVER_URL={SERVER_URL} courseId={courseId} course={course} refresh={refresh} /> : null}
+            {isTeacher ? <CourseStatusSection courseId={courseId} course={course} refresh={refresh} /> : null}
           </div>
         ) : (
           <div className="space-y-6">

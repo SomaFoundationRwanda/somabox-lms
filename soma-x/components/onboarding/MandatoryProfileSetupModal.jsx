@@ -18,6 +18,7 @@ import {
 import DataContext from '@/context/DataContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/queryKeys';
+import { apiFetch, getErrorMessage } from '@/lib/api';
 import { useLanguage } from '@/context/LanguageContext';
 import { useToast } from '@/context/ToastContext';
 import LanguageSwitcher from '@/components/global/LanguageSwitcher';
@@ -89,8 +90,6 @@ export default function MandatoryProfileSetupModal() {
         setPreferredLanguage(lang);
     }, [lang]);
 
-    const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3002';
-
     const userEmail = user?.email || "";
 
     const currentRole = role || 'scholar';
@@ -105,12 +104,8 @@ export default function MandatoryProfileSetupModal() {
 
         const checkProfileCompleteness = async () => {
             try {
-                const res = await fetch(`${SERVER_URL}/users/profile/view`);
-                if (!res.ok) {
-                    setCheckingStatus(false);
-                    return;
-                }
-                const data = await res.json();
+                // The same kept profile as the account page (one request for both).
+                const data = await queryClient.fetchQuery({ queryKey: queryKeys.profile, queryFn: () => apiFetch("/users/profile/view") });
 
                 // Populate existing data
                 if (data.full_name) setFullName(data.full_name);
@@ -133,7 +128,7 @@ export default function MandatoryProfileSetupModal() {
         };
 
         checkProfileCompleteness();
-    }, [authenticated, userEmail, currentRole, SERVER_URL, user?.mustChangePassword]);
+    }, [authenticated, userEmail, currentRole, user?.mustChangePassword]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const variant = VARIANTS[currentRole] || VARIANTS.scholar;
     // Text that differs per variant (title, step names); the field labels are shared.
@@ -207,10 +202,9 @@ export default function MandatoryProfileSetupModal() {
         setErrors({});
 
         try {
-            const res = await fetch(`${SERVER_URL}/users/profile/update`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
+            await apiFetch("/users/profile/update", {
+                method: "PATCH",
+                json: {
                     ...(asked.has("fullName") ? { fullName: fullName.trim() } : {}),
                     ...(asked.has("phone") ? { phone: phone.trim() } : {}),
                     ...(asked.has("grade") ? { gradeLevel } : {}),
@@ -218,13 +212,10 @@ export default function MandatoryProfileSetupModal() {
                     disabilityStatus,
                     preferredLanguage,
                     completeProfile: true
-                })
+                },
+            }).catch((err) => {
+                throw new Error(err?.body?.message || (err?.status === 0 ? getErrorMessage(err, t) : t("learner.profileSetup.saveFailed")));
             });
-
-            if (!res.ok) {
-                const errData = await res.json();
-                throw new Error(errData.message || t("learner.profileSetup.saveFailed"));
-            }
 
             // Pick up the new name in the header and menus; the profile reminder goes.
             await refreshUser();

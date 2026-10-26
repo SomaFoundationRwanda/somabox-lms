@@ -8,6 +8,9 @@ import Explainer from "@/components/help/Explainer";
 import { useLanguage } from "@/context/LanguageContext";
 import { fill } from "@/lib/fill";
 import useSetupText from "@/lib/useSetupText";
+import { useQueryClient } from "@tanstack/react-query";
+import { ApiError, apiFetch } from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
 
 /** True when a teacher still has something to look at: a draft course, an unfinished checklist item, or warnings. */
 export function setupNeedsAttention(status) {
@@ -20,8 +23,9 @@ export function setupNeedsAttention(status) {
  * Teacher "Course setup" section (flat, not a card): checklist, warnings and (for drafts) the Open course button.
  * status: the teacher shape of GET /courses/:id/setup-status. onChanged: called after the course opens.
  */
-export default function SetupChecklist({ courseId, SERVER_URL, status, onChanged, showSettingsLink = true }) {
+export default function SetupChecklist({ courseId, status, onChanged, showSettingsLink = true }) {
   const { showToast } = useToast();
+  const queryClient = useQueryClient();
   const { t } = useLanguage();
   const { checklistLabel, blockingText, warningText } = useSetupText();
   const [opening, setOpening] = useState(false);
@@ -41,20 +45,18 @@ export default function SetupChecklist({ courseId, SERVER_URL, status, onChanged
     setOpening(true);
     setOpenErrors([]);
     try {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/open-course`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ publishWeeks: hiddenWeeks > 0 && publishWeeks }),
-      });
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok) {
+      await apiFetch(`/courses/${courseId}/open-course`, { method: "POST", json: { publishWeeks: hiddenWeeks > 0 && publishWeeks } });
+      showToast(t("teacher.setup.opened"), "success");
+      // Opening changes the whole course (status, published weeks) and the course lists.
+      queryClient.invalidateQueries({ queryKey: queryKeys.courses });
+      onChanged?.();
+    } catch (err) {
+      if (err instanceof ApiError && err.status !== 0) {
+        const payload = err.body;
         const blocking = Array.isArray(payload?.blocking) ? payload.blocking.map(blockingText).filter(Boolean) : [];
         setOpenErrors(blocking.length > 0 ? blocking : [payload?.message || t("teacher.setup.cantOpenYet")]);
         return;
       }
-      showToast(t("teacher.setup.opened"), "success");
-      onChanged?.();
-    } catch {
       setOpenErrors([t("teacher.setup.openFailed")]);
     } finally {
       setOpening(false);

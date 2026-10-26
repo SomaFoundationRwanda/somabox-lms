@@ -6,6 +6,7 @@ import { useCourse } from "@/context/CourseContext";
 import { useToast } from "@/context/ToastContext";
 import { formatDate } from "@/lib/dates";
 import { useAttendanceText, STATUSES, STATUS_STYLE, statusKey, letterKey } from "./text";
+import { apiFetch } from "@/lib/api";
 
 const NOTE_MAX = 300;
 
@@ -131,7 +132,7 @@ const toMarks = (roster) => Object.fromEntries((roster || []).map((r) => [r.user
 
 // The register for one session. Keeps edits locally until Save, then sends only changed rows.
 export default function Register({ session, readOnly = false, onClose, onSaved, onDirtyChange }) {
-  const { SERVER_URL, courseId } = useCourse();
+  const { courseId } = useCourse();
   const { showToast } = useToast();
   const { tx, txn } = useAttendanceText();
   const [original, setOriginal] = useState(() => toMarks(session.roster));
@@ -225,13 +226,8 @@ export default function Register({ session, readOnly = false, onClose, onSaved, 
         const m = marks[r.userId];
         return m.status ? { userId: r.userId, status: m.status, note: m.note.trim() } : { userId: r.userId, status: null };
       });
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/attendance/sessions/${session.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ records }),
-      });
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(payload.message || tx("saveFailed"));
+      await apiFetch(`/courses/${courseId}/attendance/sessions/${session.id}`, { method: "PUT", json: { records } })
+        .catch((err) => { throw new Error(err?.body?.message || tx("saveFailed")); });
       setOriginal(marks);
       setJustSaved(true);
       showToast(tx("saved"), "success");

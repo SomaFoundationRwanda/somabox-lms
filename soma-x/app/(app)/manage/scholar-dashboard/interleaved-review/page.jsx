@@ -8,6 +8,7 @@ import PracticeLabel from "@/components/sol/PracticeLabel";
 import { useLanguage } from "@/context/LanguageContext";
 import { fill } from "@/lib/fill";
 import Loader from "@/components/ui/Loader";
+import { apiFetch } from "@/lib/api";
 
 export default function InterleavedReviewPage() {
     const { SERVER_URL, user } = useContext(DataContext);
@@ -26,11 +27,8 @@ export default function InterleavedReviewPage() {
         if (!SERVER_URL || !scholarEmail) return;
         const load = async () => {
             try {
-                const res = await fetch(`${SERVER_URL}/sol/interleaving/session`);
-                if (res.ok) {
-                    const data = await res.json();
-                    setSessionData(data);
-                }
+                // A practice session is dealt once per visit and never reloaded behind the learner.
+                setSessionData(await apiFetch("/sol/interleaving/session"));
             } catch {
                 /* leave sessionData null, handled below */
             } finally {

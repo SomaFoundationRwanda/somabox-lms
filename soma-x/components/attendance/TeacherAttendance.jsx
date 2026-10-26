@@ -1,8 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { ClipboardCheck, Loader2, Pencil, Trash2 } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
+import { useCourseSection } from "@/lib/useCourseSection";
+import { apiFetch } from "@/lib/api";
 import { useToast } from "@/context/ToastContext";
 import { PageHeader, Section, List, DataTable, EmptyState } from "@/components/layout";
 import { LoadingRows, ErrorNote } from "@/components/insights/bits";
@@ -39,13 +41,16 @@ function FlagChips({ flags }) {
 // Teachers: take the register, see past registers, and see each learner's attendance.
 // Admins (readOnly) can look at everything but not mark.
 export default function TeacherAttendance({ readOnly = false }) {
-  const { SERVER_URL, courseId } = useCourse();
+  const { courseId } = useCourse();
   const { showToast } = useToast();
   const { tx, txn } = useAttendanceText();
 
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  // The register overview (sessions and rates); the session being taken is a working copy below.
+  const overview = useCourseSection("attendance");
+  const data = overview.data;
+  const loading = overview.loading;
+  const error = overview.error ? overview.error || tx("loadFailed") : "";
+  const load = overview.refetch;
 
   const [date, setDate] = useState("");
   const [title, setTitle] = useState("");
@@ -65,23 +70,6 @@ export default function TeacherAttendance({ readOnly = false }) {
   const chosenDate = date || today;
   const chosenTitle = title || defaultTitle;
 
-  const load = useCallback(async () => {
-    if (!SERVER_URL || !courseId) return;
-    setError("");
-    try {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/attendance`);
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(payload.message || tx("loadFailed"));
-      setData(payload);
-    } catch (err) {
-      setError(err.message || tx("loadFailed"));
-    } finally {
-      setLoading(false);
-    }
-  }, [SERVER_URL, courseId, tx]);
-
-  useEffect(() => { load(); }, [load]);
-
   const confirmDiscard = () => !dirty || window.confirm(tx("discardConfirm"));
 
   const openById = async (id, { skipConfirm = false } = {}) => {
@@ -93,9 +81,8 @@ export default function TeacherAttendance({ readOnly = false }) {
     if (!skipConfirm && openSession?.id !== id && !confirmDiscard()) return;
     setSessionLoadingId(id);
     try {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/attendance/sessions/${id}`);
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(payload.message || tx("openFailed"));
+      const payload = await apiFetch(`/courses/${courseId}/attendance/sessions/${id}`)
+        .catch((err) => { throw new Error(err?.body?.message || tx("openFailed")); });
       setOpenSession(payload);
       scrollToRegister();
     } catch (err) {
@@ -114,18 +101,18 @@ export default function TeacherAttendance({ readOnly = false }) {
     if (!confirmDiscard()) return;
     setOpening(true);
     try {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/attendance/sessions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date: chosenDate, title: chosenTitle.trim() || defaultTitle }),
-      });
-      const payload = await res.json().catch(() => ({}));
-      if (res.status === 409 && payload.sessionId) {
-        showToast(`${payload.message || tx("alreadyExists")}. ${tx("openedExisting")}`, "info");
-        await openById(payload.sessionId, { skipConfirm: true });
-        return;
+      let payload;
+      try {
+        payload = await apiFetch(`/courses/${courseId}/attendance/sessions`, { method: "POST", json: { date: chosenDate, title: chosenTitle.trim() || defaultTitle } });
+      } catch (err) {
+        // 409: there's already a register for that day; open it instead.
+        if (err?.status === 409 && err.body?.sessionId) {
+          showToast(`${err.body.message || tx("alreadyExists")}. ${tx("openedExisting")}`, "info");
+          await openById(err.body.sessionId, { skipConfirm: true });
+          return;
+        }
+        throw new Error(err?.body?.message || tx("openFailed"));
       }
-      if (!res.ok) throw new Error(payload.message || tx("openFailed"));
       await openById(payload.id, { skipConfirm: true });
       load();
     } catch (err) {
@@ -149,13 +136,8 @@ export default function TeacherAttendance({ readOnly = false }) {
     }
     setBusyId(editing.id);
     try {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/attendance/sessions/${editing.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date: editing.date, title: editing.title.trim() }),
-      });
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(payload.message || tx("updateFailed"));
+      const payload = await apiFetch(`/courses/${courseId}/attendance/sessions/${editing.id}`, { method: "PATCH", json: { date: editing.date, title: editing.title.trim() } })
+        .catch((err) => { throw new Error(err?.body?.message || tx("updateFailed")); });
       if (openSession?.id === editing.id) setOpenSession((s) => ({ ...s, date: payload.date ?? editing.date, title: payload.title ?? editing.title.trim() }));
       showToast(tx("updated"), "success");
       setEditing(null);
@@ -171,11 +153,8 @@ export default function TeacherAttendance({ readOnly = false }) {
     if (!window.confirm(tx("deleteConfirm", { title: s.title, date: formatDate(s.date) }))) return;
     setBusyId(s.id);
     try {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/attendance/sessions/${s.id}`, { method: "DELETE" });
-      if (!res.ok) {
-        const payload = await res.json().catch(() => ({}));
-        throw new Error(payload.message || tx("deleteFailed"));
-      }
+      await apiFetch(`/courses/${courseId}/attendance/sessions/${s.id}`, { method: "DELETE" })
+        .catch((err) => { throw new Error(err?.body?.message || tx("deleteFailed")); });
       if (openSession?.id === s.id) {
         setDirty(false);
         setOpenSession(null);

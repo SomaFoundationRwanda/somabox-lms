@@ -2,7 +2,7 @@
 import { createContext, useEffect, useState, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { X, AlertCircle, CheckCircle2, Loader2, ChevronDown, ChevronUp } from "lucide-react";
-import { clearSession, getSessionToken, installAuthFetch, startMediaSessionKeepAlive } from "@/lib/session";
+import { clearSession, getSessionToken, startMediaSessionKeepAlive } from "@/lib/session";
 import { clearUserQueue, pendingCount } from "@/lib/submissionQueue";
 import { apiFetch, apiUpload } from "@/lib/api";
 import { queryKeys } from "@/lib/queryKeys";
@@ -22,8 +22,6 @@ async function loadMe() {
     };
 }
 
-// Attach the session token (and the media cookie) to every backend request from the first render on.
-installAuthFetch(process.env.NEXT_PUBLIC_SERVER_URL);
 
 const DataContext = createContext();
 
@@ -175,7 +173,7 @@ export function DataProvider({ children }) {
     // token. Renew it on load for people who signed in earlier, then every 6 hours.
     useEffect(() => {
         if (!authenticated) return undefined;
-        return startMediaSessionKeepAlive(SERVER_URL);
+        return startMediaSessionKeepAlive();
     }, [authenticated, SERVER_URL]);
 
     const logout = useCallback(async () => {
@@ -190,9 +188,9 @@ export function DataProvider({ children }) {
         }
         clearUserQueue(userId);
         try {
-            await fetch(`${SERVER_URL}/auth/logout`, { method: "POST" });
+            await apiFetch("/auth/logout", { method: "POST", allowUnauthenticated: true });
         } catch {
-            // offline: the local session is still cleared below
+            // offline, or already signed out on the box: the local session is still cleared below
         }
         clearSession();
         // Nothing of this person's stays in memory for the next one on this device.

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { CheckCircle2, AlertTriangle, X } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
+import { useCourseSection } from "@/lib/useCourseSection";
 import { DataTable, Section, List, EmptyState } from "@/components/layout";
 import { formatDate } from "@/lib/dates";
 import { useProgressText, weekLabel } from "@/components/progress/text";
@@ -13,32 +14,16 @@ const LOW_CORRECT_PCT = 40;
 const MIN_ANSWERED = 3;
 
 function QuizAnalysis({ quizId, title, onClose }) {
-  const { SERVER_URL, courseId } = useCourse();
   const { tp, tpn } = useProgressText();
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const query = useCourseSection(`insights/quizzes/${quizId}`);
+  const data = query.data;
+  const loading = query.loading;
+  const error = query.error ? query.error || tp("insights.items.loadFailed") : "";
+  const load = query.refetch;
   const headingRef = useRef(null);
 
-  const load = async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/insights/quizzes/${quizId}`);
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(payload.message || tp("insights.items.loadFailed"));
-      setData(payload);
-    } catch (err) {
-      setError(err.message || tp("insights.items.loadFailed"));
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    load();
     headingRef.current?.focus();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quizId]);
 
   const questions = Array.isArray(data?.questions) ? data.questions : [];

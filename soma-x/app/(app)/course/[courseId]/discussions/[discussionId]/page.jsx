@@ -2,7 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCourse } from "@/context/CourseContext";
+import { apiFetch, getErrorMessage } from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
 import { PageHeader, Section, List } from "@/components/layout";
 import { useItemOpened } from "@/lib/usage";
@@ -12,55 +15,57 @@ import Loader from "@/components/ui/Loader";
 export default function DiscussionThreadPage() {
   const { courseId, discussionId } = useParams();
   useItemOpened("discussion", discussionId, courseId);
-  const { SERVER_URL, userEmail, isTeacher, isObserver } = useCourse();
+  const { userEmail, isTeacher, isObserver } = useCourse();
   const { t, tf } = useCourseText();
-  const [discussion, setDiscussion] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const threadKey = queryKeys.courseSection(courseId, `discussions/${discussionId}`);
+  const thread = useQuery({
+    queryKey: threadKey,
+    queryFn: () => apiFetch(`/courses/${courseId}/discussions/${discussionId}`),
+    enabled: !!courseId && !!discussionId && !!userEmail,
+  });
+  const discussion = thread.data || null;
+  const loading = thread.isPending;
   const [reply, setReply] = useState("");
   const [pointsInput, setPointsInput] = useState("");
   const [savingGraded, setSavingGraded] = useState(false);
   const [gradedError, setGradedError] = useState("");
+  const [replyError, setReplyError] = useState("");
 
-  const load = async () => {
-    setLoading(true);
-    const res = await fetch(`${SERVER_URL}/courses/${courseId}/discussions/${discussionId}`);
-    const payload = await res.json();
-    if (res.ok) {
-      setDiscussion(payload);
-      setPointsInput(payload.points_possible ? String(payload.points_possible) : "");
-    }
-    setLoading(false);
-  };
+  useEffect(() => {
+    if (discussion) setPointsInput(discussion.points_possible ? String(discussion.points_possible) : "");
+  }, [discussion?.points_possible]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const load = () => queryClient.invalidateQueries({ queryKey: threadKey });
 
   const toggleGraded = async () => {
     setSavingGraded(true);
     setGradedError("");
-    const res = await fetch(`${SERVER_URL}/courses/${courseId}/discussions/${discussionId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        graded: !discussion.graded,
-        pointsPossible: Number(pointsInput) || 0,
-      }),
-    });
-    if (!res.ok) {
-      const payload = await res.json().catch(() => ({}));
-      setGradedError(payload.message || t("discussions.updateFailed"));
+    try {
+      await apiFetch(`/courses/${courseId}/discussions/${discussionId}`, {
+        method: "PATCH",
+        json: { graded: !discussion.graded, pointsPossible: Number(pointsInput) || 0 },
+      });
+      // Grading a discussion adds or removes its assignment in the weeks and gradebook.
+      queryClient.invalidateQueries({ queryKey: queryKeys.course(courseId) });
+    } catch (err) {
+      setGradedError(err?.body?.message || t("discussions.updateFailed"));
+      load();
     }
     setSavingGraded(false);
-    load();
   };
-
-  useEffect(() => { if (SERVER_URL && userEmail) load(); }, [SERVER_URL, userEmail]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const postReply = async () => {
     if (!reply.trim()) return;
-    await fetch(`${SERVER_URL}/courses/${courseId}/discussions/${discussionId}/replies`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ body: reply.trim() }),
-    });
-    setReply("");
+    setReplyError("");
+    try {
+      await apiFetch(`/courses/${courseId}/discussions/${discussionId}/replies`, { method: "POST", json: { body: reply.trim() } });
+      setReply("");
+      queryClient.invalidateQueries({ queryKey: queryKeys.assignmentSummary });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard });
+    } catch (err) {
+      setReplyError(getErrorMessage(err, t));
+    }
     load();
   };
 
@@ -129,6 +134,7 @@ export default function DiscussionThreadPage() {
             <input value={reply} onChange={(e) => setReply(e.target.value)} placeholder={t("discussions.replyPlaceholder")} aria-label={t("discussions.replyPlaceholder")} className="flex-1 min-w-0 text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[var(--brand-primary)]" />
             <button onClick={postReply} className="text-xs font-semibold text-white bg-[var(--brand-primary)] rounded-lg px-3 py-2">{t("discussions.reply")}</button>
           </div>}
+          {replyError ? <p role="alert" className="mt-2 text-xs font-semibold text-rose-600">{replyError}</p> : null}
         </Section>
       </div>
     </div>

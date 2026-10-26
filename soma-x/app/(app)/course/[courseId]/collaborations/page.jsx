@@ -9,10 +9,13 @@ import AsyncListState from "@/components/course/AsyncListState";
 import { Button } from "@/components/ui/button";
 import { PageHeader, List } from "@/components/layout";
 import { useCourseText } from "@/components/course/useCourseText";
+import { useToast } from "@/context/ToastContext";
+import { apiFetch, getErrorMessage } from "@/lib/api";
 
 export default function CollaborationsPage() {
-  const { SERVER_URL, courseId, userEmail } = useCourse();
+  const { courseId, userEmail } = useCourse();
   const { t, tf, tOr } = useCourseText();
+  const { showToast } = useToast();
   const { data: collaborations, loading, error, refetch } = useCourseSection("collaborations");
   const { data: people } = useCourseSection("people");
   const [creating, setCreating] = useState(false);
@@ -28,26 +31,24 @@ export default function CollaborationsPage() {
     if (!form.title.trim() || !form.url.trim()) return;
     setSaving(true);
     try {
-      await fetch(`${SERVER_URL}/courses/${courseId}/collaborations`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: form.title.trim(), url: form.url.trim(), memberEmails }),
-      });
+      await apiFetch(`/courses/${courseId}/collaborations`, { method: "POST", json: { title: form.title.trim(), url: form.url.trim(), memberEmails } });
       setForm({ title: "", url: "" });
       setMemberEmails([]);
       setCreating(false);
       refetch();
+    } catch (err) {
+      showToast(getErrorMessage(err), "error");
     } finally {
       setSaving(false);
     }
   };
 
   const remove = async (id) => {
-    await fetch(`${SERVER_URL}/courses/${courseId}/collaborations/${id}`, {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({}),
-    });
+    try {
+      await apiFetch(`/courses/${courseId}/collaborations/${id}`, { method: "DELETE", json: {} });
+    } catch (err) {
+      showToast(getErrorMessage(err), "error");
+    }
     refetch();
   };
 

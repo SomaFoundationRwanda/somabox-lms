@@ -6,6 +6,9 @@ import { Archive, Loader2, Lock, RotateCcw, Trash2 } from "lucide-react";
 import { Section } from "@/components/layout";
 import { useToast } from "@/context/ToastContext";
 import { useCourseText } from "@/components/course/useCourseText";
+import { useQueryClient } from "@tanstack/react-query";
+import { apiFetch } from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
 
 // Settings (teachers): end a course. Closed: learners keep reading and see their grades but can't
 // hand in. Archived: gone from learners' course lists, results kept. Delete only works while no
@@ -19,9 +22,10 @@ const MOVES = {
 };
 const ICONS = { open: RotateCcw, closed: Lock, archived: Archive };
 
-export default function CourseStatusSection({ SERVER_URL, courseId, course, refresh }) {
+export default function CourseStatusSection({ courseId, course, refresh }) {
   const router = useRouter();
   const { showToast } = useToast();
+  const queryClient = useQueryClient();
   const { t, tf } = useCourseText();
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
@@ -32,17 +36,12 @@ export default function CourseStatusSection({ SERVER_URL, courseId, course, refr
     setBusy(to);
     setError("");
     try {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lifecycle: to }),
-      });
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(payload.message || t("settings.status.failed"));
+      await apiFetch(`/courses/${courseId}`, { method: "PATCH", json: { lifecycle: to } });
       showToast(t(`settings.status.done.${to}`), "success");
       refresh();
+      queryClient.invalidateQueries({ queryKey: queryKeys.courses });
     } catch (err) {
-      setError(err.message || t("settings.status.failed"));
+      setError(err?.body?.message || t("settings.status.failed"));
     } finally {
       setBusy("");
     }
@@ -53,12 +52,12 @@ export default function CourseStatusSection({ SERVER_URL, courseId, course, refr
     setBusy("delete");
     setError("");
     try {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}`, { method: "DELETE" });
-      if (!res.ok) {
-        const payload = await res.json().catch(() => ({}));
-        throw new Error(payload.code === "HAS_LEARNER_WORK" ? t("settings.status.hasWork") : payload.message || t("settings.status.failed"));
-      }
+      await apiFetch(`/courses/${courseId}`, { method: "DELETE" }).catch((err) => {
+        throw new Error(err?.code === "HAS_LEARNER_WORK" ? t("settings.status.hasWork") : err?.body?.message || t("settings.status.failed"));
+      });
       showToast(t("settings.status.deleted"), "success");
+      queryClient.removeQueries({ queryKey: queryKeys.course(courseId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.courses });
       router.push("/teacher/courses");
     } catch (err) {
       setError(err.message || t("settings.status.failed"));

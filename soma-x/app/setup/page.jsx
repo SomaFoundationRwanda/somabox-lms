@@ -9,6 +9,7 @@ import { AuthError, AuthField, AuthFormHeader, AuthLayout, AuthPasswordField, Au
 import Loader from "@/components/ui/Loader";
 import { renewMediaSession, setSessionToken } from "@/lib/session";
 import { startRouteLoading } from "@/components/global/RouteLoader";
+import { apiFetch, getErrorMessage } from "@/lib/api";
 
 const MIN_PASSWORD = 8;
 
@@ -24,8 +25,7 @@ export default function SetupPage() {
     const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
 
     useEffect(() => {
-        fetch(`${SERVER_URL}/setup/status`)
-            .then((res) => res.json())
+        apiFetch("/setup/status", { allowUnauthenticated: true })
             .then((status) => setMode(status.needsSetup ? "setup" : status.recovering ? "recover" : "done"))
             .catch(() => setMode("done"));
     }, [SERVER_URL]);
@@ -37,27 +37,28 @@ export default function SetupPage() {
         if (form.password !== form.confirm) return setError(t("shell.signup.passwordsDontMatch"));
         setLoading(true);
         try {
-            const res = await fetch(`${SERVER_URL}/setup`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    code: form.code,
-                    schoolName: mode === "setup" ? form.schoolName.trim() : undefined,
-                    fullName: form.fullName.trim(),
-                    email: form.email.trim().toLowerCase(),
-                    password: form.password,
-                }),
-            });
-            const data = await res.json().catch(() => ({}));
-            if (!res.ok) {
-                if (res.status === 429) setError(t("shell.login.tooManyAttempts"));
-                else if (data.code === "BAD_SETUP_CODE") setError(s("badCode"));
-                else if (data.code === "ALREADY_SET_UP") setMode("done");
-                else setError(data.message || t("shell.common.somethingWrong"));
+            let data;
+            try {
+                data = await apiFetch("/setup", {
+                    method: "POST",
+                    json: {
+                        code: form.code,
+                        schoolName: mode === "setup" ? form.schoolName.trim() : undefined,
+                        fullName: form.fullName.trim(),
+                        email: form.email.trim().toLowerCase(),
+                        password: form.password,
+                    },
+                    allowUnauthenticated: true,
+                });
+            } catch (err) {
+                if (err?.status === 429) setError(t("shell.login.tooManyAttempts"));
+                else if (err?.code === "BAD_SETUP_CODE") setError(s("badCode"));
+                else if (err?.code === "ALREADY_SET_UP") setMode("done");
+                else setError(getErrorMessage(err, t));
                 return;
             }
             setSessionToken(data.token);
-            await renewMediaSession(SERVER_URL);
+            await renewMediaSession();
             startRouteLoading();
             window.location.href = "/manage/admin";
         } catch {

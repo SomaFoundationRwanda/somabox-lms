@@ -6,6 +6,7 @@ import { useLanguage } from "@/context/LanguageContext"
 import { LANGUAGE_NAMES } from "@/components/global/LanguageSwitcher"
 import ChangePasswordForm from "@/components/account/ChangePasswordForm"
 import { useToast } from "@/context/ToastContext"
+import { apiFetch } from "@/lib/api"
 
 function Section({ title, children }) {
   return (
@@ -31,7 +32,7 @@ function Row({ label, description, children }) {
 }
 
 export default function TeacherSettingsPage() {
-  const { logout, user, SERVER_URL } = useContext(DataContext)
+  const { logout, user } = useContext(DataContext)
   const { t, lang, setLang } = useLanguage()
   const { showToast } = useToast()
   const [passwordStatus, setPasswordStatus] = useState({ type: "", message: "" })
@@ -41,8 +42,7 @@ export default function TeacherSettingsPage() {
   const signOutOthers = async () => {
     setSigningOutOthers(true)
     try {
-      const res = await fetch(`${SERVER_URL}/auth/logout-others`, { method: "POST" })
-      if (!res.ok) throw new Error()
+      await apiFetch("/auth/logout-others", { method: "POST" })
       showToast(t("teacher.settings.signedOutOthers"), "success")
     } catch {
       showToast(t("teacher.common.somethingWrong"), "error")

@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiFetch } from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, CheckCircle2 } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
@@ -11,35 +13,17 @@ export default function PrevNextNav({ courseId, itemType, contentId, moduleItemI
   const router = useRouter();
   const { SERVER_URL, userEmail } = useCourse();
   const { t, tf } = useCourseText();
-  const [positionData, setPositionData] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!SERVER_URL || !courseId || !userEmail) return;
-
-    const fetchPosition = async () => {
-      setLoading(true);
-      try {
-        const query = moduleItemId
-          ? `moduleItemId=${moduleItemId}`
-          : `itemType=${encodeURIComponent(itemType)}&contentId=${contentId}`;
-
-        const res = await fetch(
-          `${SERVER_URL}/courses/${courseId}/module-items/sequence-position?${query}`
-        );
-        if (res.ok) {
-          const data = await res.json();
-          setPositionData(data);
-        }
-      } catch (err) {
-        console.error("Failed to load sequence position:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPosition();
-  }, [SERVER_URL, courseId, itemType, contentId, moduleItemId, userEmail]);
+  const queryClient = useQueryClient();
+  const query = moduleItemId
+    ? `moduleItemId=${moduleItemId}`
+    : `itemType=${encodeURIComponent(itemType)}&contentId=${contentId}`;
+  const position = useQuery({
+    queryKey: queryKeys.courseSection(courseId, `module-items/sequence-position/${query}`),
+    queryFn: () => apiFetch(`/courses/${courseId}/module-items/sequence-position?${query}`),
+    enabled: !!SERVER_URL && !!courseId && !!userEmail,
+  });
+  const positionData = position.data || null;
+  const loading = position.isPending;
 
   if (loading || !positionData || positionData.total <= 0) return null;
 
@@ -50,11 +34,12 @@ export default function PrevNextNav({ courseId, itemType, contentId, moduleItemI
 
     // Record progress on current item when advancing
     if (current?.module_item_id && SERVER_URL && userEmail) {
-      fetch(`${SERVER_URL}/courses/${courseId}/module-items/${current.module_item_id}/progress`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      }).catch(console.error);
+      apiFetch(`/courses/${courseId}/module-items/${current.module_item_id}/progress`, { method: "POST", json: {} })
+        .then(() => {
+          queryClient.invalidateQueries({ queryKey: queryKeys.courseSection(courseId, "my-progress") });
+          queryClient.invalidateQueries({ queryKey: queryKeys.dashboard });
+        })
+        .catch(console.error);
     }
 
     startRouteLoading();

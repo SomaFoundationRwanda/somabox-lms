@@ -1,6 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ApiError, apiFetch, apiUrl, getErrorMessage } from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
 
 // Shared helpers for AI jobs and drafts. AI output is always a draft: nothing reaches learners
 // until a teacher approves the draft (which creates UNPUBLISHED items) and then publishes them.
@@ -30,18 +33,22 @@ export const DRAFT_TYPE_LABELS = {
 export const ACTIVE_STATUSES = ["queued", "running"];
 export const isActiveJob = (job) => !!job && ACTIVE_STATUSES.includes(job.status);
 
-/** fetch + JSON + server message. Returns { ok, status, data, message }. */
+// A backend path from a full URL (callers pass `${SERVER_URL}/courses/...`).
+function backendPath(url) {
+  const base = apiUrl("");
+  return base && url.startsWith(base) ? url.slice(base.length) : url;
+}
+
+/** apiFetch, answered as { ok, status, data, message } instead of throwing. */
 export async function aiFetch(url, { method = "GET", body } = {}) {
   try {
-    const res = await fetch(url, {
-      method,
-      headers: body !== undefined ? { "Content-Type": "application/json" } : undefined,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
-    });
-    const data = await res.json().catch(() => null);
-    return { ok: res.ok, status: res.status, data, message: data?.message || (res.ok ? "" : "Something went wrong. Try again.") };
+    const data = await apiFetch(backendPath(url), { method, ...(body !== undefined ? { json: body } : {}) });
+    return { ok: true, status: 200, data: data ?? null, message: "" };
   } catch (err) {
-    return { ok: false, status: 0, data: null, message: err?.message || "Couldn't reach the server." };
+    if (err instanceof ApiError && err.status !== 0) {
+      return { ok: false, status: err.status, data: err.body, message: err.body?.message || "Something went wrong. Try again." };
+    }
+    return { ok: false, status: 0, data: null, message: getErrorMessage(err) || "Couldn't reach the server." };
   }
 }
 
@@ -76,55 +83,54 @@ export function jobStatusText(job) {
 }
 
 /**
- * Follows one job: polls every 3s while queued/running. Returns { job, error, cancel, cancelling }.
- * onFinish(job) runs once when the job reaches done/failed/cancelled.
+ * Follows one job: asks every 3s while queued/running (6s after a failed check), then stops.
+ * Returns { job, error, cancel, cancelling }. onFinish(job) runs once when the job reaches
+ * done/failed/cancelled.
  */
 export function useAiJob(SERVER_URL, courseId, jobId, { initial = null, onFinish } = {}) {
-  const [job, setJob] = useState(initial);
-  const [error, setError] = useState("");
+  const queryClient = useQueryClient();
+  const queryKey = queryKeys.courseSection(courseId, `ai/jobs/${jobId}`);
   const [cancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState("");
   const finishRef = useRef(onFinish);
   finishRef.current = onFinish;
   const finishedFor = useRef(null);
 
+  const query = useQuery({
+    queryKey,
+    queryFn: async () => {
+      const r = await aiFetch(`/courses/${courseId}/ai/jobs/${jobId}`);
+      if (!r.ok) throw new Error(r.message);
+      return r.data;
+    },
+    enabled: !!SERVER_URL && !!courseId && !!jobId,
+    initialData: initial && initial.id === jobId ? initial : undefined,
+    // A running job's progress: the one kind of thing that is asked for on a timer.
+    refetchInterval: (q) => (q.state.status === "error" ? 6000 : isActiveJob(q.state.data) || !q.state.data ? 3000 : false),
+    retry: false,
+  });
+  const job = query.data ?? null;
+
   useEffect(() => {
-    setJob(initial && initial.id === jobId ? initial : null);
-    setError("");
-    if (!SERVER_URL || !courseId || !jobId) return undefined;
-    let alive = true;
-    let timer = null;
-    const tick = async () => {
-      const r = await aiFetch(`${SERVER_URL}/courses/${courseId}/ai/jobs/${jobId}`);
-      if (!alive) return;
-      if (!r.ok) {
-        setError(r.message);
-        timer = setTimeout(tick, 6000);
-        return;
-      }
-      setError("");
-      setJob(r.data);
-      if (isActiveJob(r.data)) {
-        timer = setTimeout(tick, 3000);
-      } else if (finishedFor.current !== jobId) {
-        finishedFor.current = jobId;
-        finishRef.current?.(r.data);
-      }
-    };
-    tick();
-    return () => { alive = false; if (timer) clearTimeout(timer); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [SERVER_URL, courseId, jobId]);
+    if (job && job.id === jobId && !isActiveJob(job) && finishedFor.current !== jobId) {
+      finishedFor.current = jobId;
+      finishRef.current?.(job);
+    }
+  }, [job, jobId]);
 
   const cancel = useCallback(async () => {
     if (!jobId) return { ok: false };
     setCancelling(true);
     const r = await cancelAiJob(SERVER_URL, courseId, jobId);
     setCancelling(false);
-    if (r.ok) setJob(r.data);
-    else setError(r.message);
+    if (r.ok) {
+      setCancelError("");
+      queryClient.setQueryData(queryKey, r.data);
+    } else setCancelError(r.message);
     return r;
-  }, [SERVER_URL, courseId, jobId]);
+  }, [SERVER_URL, courseId, jobId, queryClient]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const error = cancelError || (query.isError ? query.error.message : "");
   return { job, error, cancel, cancelling };
 }
 

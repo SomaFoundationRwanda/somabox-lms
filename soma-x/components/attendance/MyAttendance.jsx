@@ -1,7 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { useCourse } from "@/context/CourseContext";
+import { useCourseSection } from "@/lib/useCourseSection";
 import { PageHeader, Section, List, ListRow, EmptyState } from "@/components/layout";
 import { LoadingRows, ErrorNote } from "@/components/insights/bits";
 import { formatDate } from "@/lib/dates";
@@ -10,29 +9,12 @@ import { useAttendanceText, StatusChip, pct, attended } from "./text";
 // A learner's own attendance: encouraging words, their sessions, no class comparison.
 // A session where they weren't marked shows as "Not marked", never as absent.
 export default function MyAttendance() {
-  const { SERVER_URL, courseId } = useCourse();
   const { tx, txn } = useAttendanceText();
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  const load = useCallback(async () => {
-    if (!SERVER_URL || !courseId) return;
-    setLoading(true);
-    setError("");
-    try {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/attendance/me`);
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(payload.message || tx("loadFailed"));
-      setData(payload);
-    } catch (err) {
-      setError(err.message || tx("loadFailed"));
-    } finally {
-      setLoading(false);
-    }
-  }, [SERVER_URL, courseId, tx]);
-
-  useEffect(() => { load(); }, [load]);
+  const query = useCourseSection("attendance/me");
+  const data = query.data;
+  const loading = query.loading;
+  const error = query.error ? query.error || tx("loadFailed") : "";
+  const load = query.refetch;
 
   const s = data?.summary;
   const sessions = Array.isArray(data?.sessions) ? data.sessions : [];

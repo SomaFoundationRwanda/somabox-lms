@@ -13,6 +13,9 @@ import { downloadFile } from "@/lib/download";
 import { fill } from "@/lib/fill";
 import Loader from "@/components/ui/Loader";
 import { isInternalEmail } from "@/lib/session";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiFetch, getErrorMessage } from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
 
 // "Download my data": everything the box holds about the signed-in person, as a JSON file.
 function DownloadMyData({ SERVER_URL }) {
@@ -69,6 +72,7 @@ function getInitials(name) {
 
 export default function AccountPage() {
     const { authenticated, SERVER_URL, isDark, user } = useContext(DataContext);
+    const queryClient = useQueryClient();
     const ACCENT = isDark ? "var(--brand-secondary)" : "var(--brand-primary)";
     const pageBg = isDark ? "#080B0F" : "#F0F2F5";
     const heroFade = isDark ? "#080B0F" : "#F0F2F5";
@@ -77,7 +81,6 @@ export default function AccountPage() {
     const { t } = useLanguage();
     const currentEmail = user?.email || "";
     const currentRole = user?.role || "";
-    const [loadingProfile, setLoadingProfile] = useState(true);
     const [savingDemographics, setSavingDemographics] = useState(false);
     const [editDemographics, setEditDemographics] = useState(false);
     const [activeTab, setActiveTab] = useState("profile");
@@ -97,55 +100,43 @@ export default function AccountPage() {
         disabilityStatus: "none"
     });
 
+    // The person's own profile, kept with the rest of their data ("me").
+    const profile = useQuery({ queryKey: queryKeys.profile, queryFn: () => apiFetch("/users/profile/view"), enabled: authenticated && !!currentEmail });
+    const loadingProfile = authenticated && profile.isPending;
     useEffect(() => {
-        const load = async () => {
-            if (!SERVER_URL || !currentEmail || !currentRole || !authenticated) {
-                setLoadingProfile(false); return;
-            }
-            try {
-                setLoadingProfile(true);
-                const res  = await fetch(`${SERVER_URL}/users/profile/view`);
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.message || t("learner.account.loadFailed"));
-                setProfileView({
-                    email: data.email || "",
-                    fullName: data.full_name || "",
-                    learnerCode: data.learner_code || "",
-                    schoolName: data.school?.name || data.school_name || "",
-                    gender: data.gender || "",
-                    province: data.school?.province || data.region_province || "Not Specified",
-                    district: data.school?.district || data.region_district || "Not Specified",
-                    isRural: data.school?.isRural != null ? data.school.isRural === true : data.is_rural === 1,
-                    disability: data.disability_status || "none"
-                });
-                setDemoForm({
-                    gender: data.gender || "",
-                    disabilityStatus: data.disability_status || "none"
-                });
-            } catch (err) {
-                setStatus({ type: "error", message: err.message });
-            } finally {
-                setLoadingProfile(false);
-            }
-        };
-        load();
-    }, [SERVER_URL, currentEmail, currentRole, authenticated]);
+        const data = profile.data;
+        if (!data) return;
+        setProfileView({
+            email: data.email || "",
+            fullName: data.full_name || "",
+            learnerCode: data.learner_code || "",
+            schoolName: data.school?.name || data.school_name || "",
+            gender: data.gender || "",
+            province: data.school?.province || data.region_province || "Not Specified",
+            district: data.school?.district || data.region_district || "Not Specified",
+            isRural: data.school?.isRural != null ? data.school.isRural === true : data.is_rural === 1,
+            disability: data.disability_status || "none"
+        });
+        setDemoForm({
+            gender: data.gender || "",
+            disabilityStatus: data.disability_status || "none"
+        });
+    }, [profile.data]);
+    useEffect(() => {
+        if (profile.isError) setStatus({ type: "error", message: getErrorMessage(profile.error, t) });
+    }, [profile.isError]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleDemographicsSave = async (e) => {
         e.preventDefault();
         try {
             setSavingDemographics(true);
             setStatus({ type: "", message: "" });
-            const res = await fetch(`${SERVER_URL}/users/profile/update`, {
+            await apiFetch("/users/profile/update", {
                 method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    gender: demoForm.gender,
-                    disabilityStatus: demoForm.disabilityStatus
-                })
+                json: { gender: demoForm.gender, disabilityStatus: demoForm.disabilityStatus },
             });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.message || t("learner.account.saveFailed"));
+            queryClient.invalidateQueries({ queryKey: queryKeys.profile });
+            queryClient.invalidateQueries({ queryKey: queryKeys.notifications });
 
             setProfileView(prev => ({
                 ...prev,
@@ -161,8 +152,9 @@ export default function AccountPage() {
             setStatus({ type: "success", message: t("learner.account.saved") });
             setEditDemographics(false);
         } catch (err) {
-            showToast(err.message || t("learner.account.saveFailed"), "error");
-            setStatus({ type: "error", message: err.message });
+            const message = err?.body?.message || getErrorMessage(err, t);
+            showToast(message, "error");
+            setStatus({ type: "error", message });
         } finally {
             setSavingDemographics(false);
         }

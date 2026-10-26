@@ -1,6 +1,9 @@
 "use client";
 
-import { useCallback, useContext, useEffect, useState } from "react";
+import { useContext } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { apiFetch } from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
@@ -19,33 +22,20 @@ import { useAttendanceText, attended } from "@/components/attendance/text";
 
 export default function LearnerInsightsPage() {
   const { userId } = useParams();
-  const { SERVER_URL, courseId, isTeacher } = useCourse();
+  const { courseId, isTeacher } = useCourse();
   const { role } = useContext(DataContext);
   const allowed = isTeacher || role === "admin";
   const { tx, txn } = useAttendanceText();
   const { tp, tpn, locale } = useProgressText();
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  const load = useCallback(async () => {
-    if (!SERVER_URL || !courseId || !userId || !allowed) return;
-    setLoading(true);
-    setError("");
-    try {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/insights/learners/${encodeURIComponent(userId)}`);
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(payload.message || tp("insights.learner.loadFailed"));
-      setData(payload);
-    } catch (err) {
-      setError(err.message || tp("insights.learner.loadFailed"));
-    } finally {
-      setLoading(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [SERVER_URL, courseId, userId, allowed]);
-
-  useEffect(() => { load(); }, [load]);
+  const report = useQuery({
+    queryKey: queryKeys.courseSection(courseId, `insights/learners/${userId}`),
+    queryFn: () => apiFetch(`/courses/${courseId}/insights/learners/${encodeURIComponent(userId)}`),
+    enabled: !!courseId && !!userId && allowed,
+  });
+  const data = report.data || null;
+  const loading = report.isPending && allowed;
+  const error = report.isError ? report.error?.body?.message || tp("insights.learner.loadFailed") : "";
+  const load = report.refetch;
 
   const l = data?.learner;
   const thresholds = data?.thresholds;

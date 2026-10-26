@@ -1,6 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useCourseSection } from "@/lib/useCourseSection";
+import { apiFetch } from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
 import { Plus, Trash2, Sparkles, TrendingUp, CheckCircle2, Pencil } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
 import { useToast } from "@/context/ToastContext";
@@ -25,12 +29,15 @@ const MASTERY_LEVELS = [
 const STATUS_KEYS = { "Needs Reteach": "needsReteach", "On Track": "onTrack", "Mastery Achieved": "masteryAchieved" };
 
 export default function OutcomesPage() {
-  const { SERVER_URL, courseId, userEmail, isTeacher } = useCourse();
+  const { SERVER_URL, courseId, isTeacher } = useCourse();
   const { tp, tpn, tpOr } = useProgressText();
   const { showToast } = useToast();
-  const [outcomes, setOutcomes] = useState([]);
-  const [masteryData, setMasteryData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const outcomesQuery = useCourseSection("outcomes");
+  const masteryQuery = useCourseSection("outcome-mastery");
+  const outcomes = Array.isArray(outcomesQuery.data) ? outcomesQuery.data : [];
+  const masteryData = masteryQuery.data;
+  const loading = outcomesQuery.loading || masteryQuery.loading;
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({ title: "", description: "" });
   const [aiGoal, setAiGoal] = useState("");
@@ -44,46 +51,18 @@ export default function OutcomesPage() {
   const [aiJob, setAiJob] = useState(null);
   const [aiError, setAiError] = useState("");
 
-  const loadData = async () => {
-    if (!SERVER_URL || !courseId) return;
-    try {
-      setLoading(true);
-      const [outRes, mastRes] = await Promise.all([
-        fetch(`${SERVER_URL}/courses/${courseId}/outcomes`),
-        fetch(`${SERVER_URL}/courses/${courseId}/outcome-mastery`),
-      ]);
-
-      if (outRes.ok) setOutcomes(await outRes.json());
-      if (mastRes.ok) setMasteryData(await mastRes.json());
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadData();
-  }, [SERVER_URL, courseId, userEmail]);
+  // Outcomes are tagged on items and shown on Home, the syllabus and the weeks: reload the course.
+  const loadData = () => queryClient.invalidateQueries({ queryKey: queryKeys.course(courseId) });
 
   const createOutcome = async () => {
     if (!form.title.trim()) return;
     setSaving(true);
     try {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/outcomes`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: form.title.trim(),
-          description: form.description,
-        }),
-      });
       // Keep the form (and what the teacher typed) open when the save fails.
-      if (!res.ok) {
-        const payload = await res.json().catch(() => ({}));
-        showToast(payload?.message || tp("outcomes.saveFailed"), "error");
-        return;
-      }
+      const failed = await apiFetch(`/courses/${courseId}/outcomes`, { method: "POST", json: { title: form.title.trim(), description: form.description } })
+        .then(() => false)
+        .catch((err) => { showToast(err?.body?.message || tp("outcomes.saveFailed"), "error"); return true; });
+      if (failed) return;
       setForm({ title: "", description: "" });
       setCreating(false);
       loadData();
@@ -120,16 +99,10 @@ export default function OutcomesPage() {
     if (!editing?.title.trim()) return;
     setSaving(true);
     try {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/outcomes/${editing.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: editing.title.trim(), description: editing.description }),
-      });
-      if (!res.ok) {
-        const payload = await res.json().catch(() => ({}));
-        showToast(payload?.message || tp("outcomes.saveFailed"), "error");
-        return;
-      }
+      const failed = await apiFetch(`/courses/${courseId}/outcomes/${editing.id}`, { method: "PATCH", json: { title: editing.title.trim(), description: editing.description } })
+        .then(() => false)
+        .catch((err) => { showToast(err?.body?.message || tp("outcomes.saveFailed"), "error"); return true; });
+      if (failed) return;
       setEditing(null);
       loadData();
     } catch {
@@ -142,18 +115,10 @@ export default function OutcomesPage() {
   const removeOutcome = async (outcome) => {
     if (!window.confirm(tp("outcomes.confirmDelete", { name: [outcome.code, outcome.title].filter(Boolean).join(" ") }))) return;
     try {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/outcomes/${outcome.id}`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      });
-      if (!res.ok) {
-        const payload = await res.json().catch(() => ({}));
-        showToast(payload?.message || tp("outcomes.deleteFailed"), "error", 8000);
-        return;
-      }
-    } catch {
-      showToast(tp("outcomes.deleteFailed"), "error");
+      await apiFetch(`/courses/${courseId}/outcomes/${outcome.id}`, { method: "DELETE", json: {} });
+    } catch (err) {
+      if (err?.status === 0) showToast(tp("outcomes.deleteFailed"), "error");
+      else showToast(err?.body?.message || tp("outcomes.deleteFailed"), "error", 8000);
       return;
     }
     loadData();

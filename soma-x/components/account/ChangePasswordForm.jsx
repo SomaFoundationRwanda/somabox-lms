@@ -6,6 +6,7 @@ import { useContext, useState } from "react";
 import { Lock } from "lucide-react";
 import DataContext from "@/context/DataContext";
 import { useLanguage } from "@/context/LanguageContext";
+import { apiFetch, getErrorMessage } from "@/lib/api";
 
 const MIN_LENGTH = 6;
 
@@ -42,7 +43,7 @@ export function PasswordField({ id, label, placeholder, value, onChange, darkAwa
 
 /** `onStatus({ type: "success" | "error", message })` reports the outcome. */
 export default function ChangePasswordForm({ onStatus, accent = "var(--brand-primary)", darkAware = false }) {
-    const { SERVER_URL, user, refreshUser } = useContext(DataContext);
+    const { user, refreshUser } = useContext(DataContext);
     const { t } = useLanguage();
     const [form, setForm] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
     const [saving, setSaving] = useState(false);
@@ -57,18 +58,12 @@ export default function ChangePasswordForm({ onStatus, accent = "var(--brand-pri
         try {
             setSaving(true);
             onStatus({ type: "", message: "" });
-            const res = await fetch(`${SERVER_URL}/users/profile/password`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ currentPassword, newPassword }),
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.message || t("learner.account.pwFailed"));
+            await apiFetch("/users/profile/password", { method: "PATCH", json: { currentPassword, newPassword } });
             setForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
             onStatus({ type: "success", message: t("learner.account.pwUpdated") });
             if (user?.mustChangePassword) await refreshUser();
         } catch (err) {
-            onStatus({ type: "error", message: err.message });
+            onStatus({ type: "error", message: err?.body?.message || getErrorMessage(err, t) });
         } finally {
             setSaving(false);
         }
