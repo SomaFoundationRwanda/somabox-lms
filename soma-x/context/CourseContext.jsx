@@ -1,52 +1,42 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiFetch, getErrorMessage } from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
 import DataContext from "./DataContext";
 
 const CourseContext = createContext(null);
 
+// The course itself (title, dates, my role) and its menu, kept like every other course query
+// under ["course", id]: a teacher's change reaches open browsers through live updates.
+async function loadCourse(courseId) {
+  try {
+    return await apiFetch(`/courses/${courseId}`);
+  } catch (err) {
+    if (err?.code === "COURSE_NOT_OPEN") throw new Error("This course hasn't opened yet.");
+    throw new Error(getErrorMessage(err) || "Failed to load course");
+  }
+}
+
 export function CourseProvider({ courseId, children }) {
   const { SERVER_URL, user } = useContext(DataContext);
-  const [course, setCourse] = useState(null);
-  const [nav, setNav] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
+  const queryClient = useQueryClient();
   const userEmail = user?.email || "";
+  const ready = !!courseId && !!userEmail;
 
-  const refresh = useCallback(async () => {
-    if (!SERVER_URL || !courseId || !userEmail) return;
-    try {
-      setLoading(true);
-      setError("");
-      const [courseRes, navRes] = await Promise.all([
-        fetch(`${SERVER_URL}/courses/${courseId}`),
-        fetch(`${SERVER_URL}/courses/${courseId}/nav`),
-      ]);
-      const coursePayload = await courseRes.json().catch(() => ({}));
-      const navPayload = await navRes.json().catch(() => ({}));
+  const courseQuery = useQuery({ queryKey: queryKeys.courseSection(courseId, "info"), queryFn: () => loadCourse(courseId), enabled: ready, retry: false });
+  const navQuery = useQuery({ queryKey: queryKeys.courseSection(courseId, "nav"), queryFn: () => apiFetch(`/courses/${courseId}/nav`), enabled: ready });
+  const course = courseQuery.data || null;
+  const nav = Array.isArray(navQuery.data) ? navQuery.data : [];
+  const loading = !ready || courseQuery.isPending || navQuery.isPending;
+  const error = courseQuery.error?.message || (navQuery.isError ? getErrorMessage(navQuery.error) : "");
 
-      if (!courseRes.ok) {
-        if (courseRes.status === 403 && coursePayload?.code === "COURSE_NOT_OPEN") {
-          throw new Error("This course hasn't opened yet.");
-        }
-        throw new Error(coursePayload.message || "Failed to load course");
-      }
-      if (!navRes.ok) throw new Error(navPayload.message || "Failed to load navigation");
-
-      setCourse(coursePayload);
-      setNav(Array.isArray(navPayload) ? navPayload : []);
-    } catch (err) {
-      console.error("Load course failed:", err);
-      setError(err.message || "Failed to load course");
-    } finally {
-      setLoading(false);
-    }
-  }, [SERVER_URL, courseId, userEmail]);
-
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
+  // After a change that affects the whole course (settings, opening it): everything kept for it.
+  const refresh = useCallback(
+    () => queryClient.invalidateQueries({ queryKey: queryKeys.course(courseId) }),
+    [queryClient, courseId],
+  );
 
   const isTeacher = course?.myRole === "teacher" || course?.myRole === "ta";
   // Observers can look at everything a learner sees but can't hand in work or reply.
