@@ -107,6 +107,10 @@ export default {
         "closeMenu": "Cerrar el menú"
     },
     "toasts": {
+        "success": "Hecho",
+        "failed": "Algo salió mal",
+        "notice": "Para tu información",
+        "dismiss": "Cerrar notificación",
         "workSent": "Tu trabajo se ha enviado"
     },
     "profile": {

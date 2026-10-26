@@ -107,6 +107,10 @@ export default {
         "closeMenu": "Funga menyu"
     },
     "toasts": {
+        "success": "Imekamilika",
+        "failed": "Kuna tatizo",
+        "notice": "Kwa taarifa yako",
+        "dismiss": "Funga arifa",
         "workSent": "Kazi yako imetumwa"
     },
     "profile": {

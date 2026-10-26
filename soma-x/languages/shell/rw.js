@@ -108,6 +108,10 @@ export default {
         "closeMenu": "Funga menyu"
     },
     "toasts": {
+        "success": "Byakozwe",
+        "failed": "Hari ikitagenze neza",
+        "notice": "Ku makuru yawe",
+        "dismiss": "Funga iri tangazo",
         "workSent": "Umukoro wawe woherejwe"
     },
     "profile": {
