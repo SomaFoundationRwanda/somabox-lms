@@ -31,16 +31,19 @@ test("pages: the teacher edits a page; learners read it and are counted", async 
   const url = `/course/${c.id}/pages/${c.page.content_id}`;
   const teacher = await asRole(browser, "teacher");
   await teacher.page.goto(url);
-  await teacher.page.getByRole("button", { name: /Edit page/ }).click();
-  await teacher.page.locator("#page-title").fill("What is a fraction? (updated)");
+  // Edit opens the page editor on its own page; saving comes back to the page.
+  await teacher.page.getByRole("link", { name: ct("common.edit") }).click();
+  await teacher.page.waitForURL(/\/modules\/edit\?type=page/);
+  await teacher.page.getByLabel(ct("common.title"), { exact: true }).fill("What is a fraction? (updated)");
   await teacher.page.locator(".ProseMirror").first().fill("A fraction names part of a whole, like 1/2 of a mango.");
   await teacher.page.getByRole("button", { name: ct("editors.saveChanges") }).click();
+  await teacher.page.waitForURL(url);
   await expect(teacher.page.getByRole("heading", { level: 1, name: "What is a fraction? (updated)" })).toBeVisible();
 
   const learner = await asRole(browser, "learner");
   await learner.page.goto(url);
   await expect(learner.page.getByText("1/2 of a mango")).toBeVisible();
-  await expect(learner.page.getByRole("button", { name: /Edit page/ })).toHaveCount(0);
+  await expect(learner.page.getByRole("link", { name: ct("common.edit") })).toHaveCount(0);
 
   await teacher.page.reload();
   await expect(teacher.page.getByText(/1\/2 learners viewed/)).toBeVisible();

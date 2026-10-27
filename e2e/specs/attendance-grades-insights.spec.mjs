@@ -34,8 +34,11 @@ test.describe("attendance", () => {
     await expect(learners.getByRole("row").filter({ hasText: USERS.learner.name })).toContainText("100%");
 
     const learner = await asRole(browser, "learner2");
+    // Learners' attendance is on their Grades page; the old address leads there.
     await learner.page.goto(`/course/${c.id}/attendance`);
+    await learner.page.waitForURL(/\/grades/);
     await expect(learner.page.getByRole("heading", { name: at("myTitle") })).toBeVisible();
+    await learner.page.getByText(at("mySessions")).click();
     await expect(learner.page.getByText(at("statusAbsent")).first()).toBeVisible();
     await expect(learner.page.getByText(USERS.learner.name)).toHaveCount(0);
     await learner.close();

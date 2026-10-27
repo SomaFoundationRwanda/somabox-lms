@@ -108,7 +108,7 @@ test("warnings don't block but are reported", async () => {
 
   const res = (await status(courseId)).body;
   assert.equal(res.canOpen, true, JSON.stringify(res.blocking));
-  assert.deepEqual(ids(res.warnings), ["empty_weeks", "no_due_date", "no_end_date", "unassessed_outcomes", "unpublished_weeks"]);
+  assert.deepEqual(ids(res.warnings), ["empty_weeks", "no_due_date", "unassessed_outcomes", "unpublished_weeks"]);
 });
 
 test("learners only see whether the course is open", async () => {

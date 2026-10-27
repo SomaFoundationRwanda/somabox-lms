@@ -110,11 +110,6 @@ export default {
     yourGrades: "Vos notes",
     gradebook: "Carnet de notes",
   },
-  progressPage: {
-    teacherTitle: "« Ma progression » est destinée aux élèves",
-    teacherHint: "Les enseignants voient les progrès de chaque élève dans Analyses.",
-    openInsights: "Ouvrir Analyses",
-  },
   outcomes: {
     title: "Objectifs d'apprentissage et maîtrise",
     description: "Les compétences que ce cours enseigne. Pour chacune, voyez où les élèves ont commencé (semaine 0) et où ils en sont maintenant.",
@@ -140,6 +135,9 @@ export default {
     loading: "Chargement des objectifs...",
     empty: "Aucun objectif d'apprentissage défini pour l'instant.",
     emptyHint: "Ajoutez les compétences que ce cours enseigne, puis liez-les aux quiz et devoirs pour suivre les progrès des élèves.",
+    descriptionLearner: "Les compétences enseignées dans ce cours, et où vous en êtes pour chacune.",
+    masteryTitleLearner: "Où vous en êtes pour chaque objectif",
+    emptyHintLearner: "Votre enseignant n'a pas encore ajouté les objectifs de ce cours.",
     masteryList: "Maîtrise des objectifs",
     rewriteAria: "Réécrire l'objectif {name} avec l'IA",
     rewriteWithAi: "Réécrire avec l'IA",

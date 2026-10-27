@@ -64,8 +64,8 @@ export default {
         "adminViewLink": "Rudi kwenye lango la msimamizi",
         "lifecycle": {
             "draft": "Rasimu",
-            "open": "Iko wazi",
-            "closed": "Imefungwa",
+            "open": "Imechapishwa",
+            "closed": "Imeisha",
             "archived": "Imehifadhiwa"
         }
     },
@@ -185,9 +185,9 @@ export default {
         "inRunning": "katika kozi zinazoendelea",
         "active7": "Walio hai siku 7 zilizopita",
         "learnersLower": "wanafunzi",
-        "coursesHelp": "Kozi zilizo wazi na zilizofungwa. Chagua kozi kufungua takwimu zake.",
+        "coursesHelp": "Kozi zilizochapishwa na zilizoisha. Chagua kozi kufungua uchanganuzi wake.",
         "noRunning": "Bado hakuna kozi zinazoendelea.",
-        "noRunningHelp": "Kozi huonekana hapa zikishafunguliwa.",
+        "noRunningHelp": "Kozi zinaonekana hapa zikishachapishwa.",
         "colWithResults": "Wenye matokeo",
         "colMastery": "Umahiri wa wastani",
         "colDelta": "Mabadiliko dhidi ya awali",

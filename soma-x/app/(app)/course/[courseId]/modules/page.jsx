@@ -5,7 +5,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch, getErrorMessage } from "@/lib/api";
 import { queryKeys } from "@/lib/queryKeys";
 import Link from "next/link";
-import dynamic from "next/dynamic";
+import { useRouter, useSearchParams } from "next/navigation";
+import { editItemHref, newItemHref } from "@/components/course/modules/useItemEditor";
 import { Plus, Sparkles } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
 import { useToast } from "@/context/ToastContext";
@@ -16,20 +17,16 @@ import Explainer, { ExplainerText } from "@/components/help/Explainer";
 import WhatShouldICreate from "@/components/help/WhatShouldICreate";
 import { useLanguage } from "@/context/LanguageContext";
 import { useCourseText } from "@/components/course/useCourseText";
-import InfoTooltip from "@/components/ui/InfoTooltip";
 import ModuleCard from "@/components/course/modules/ModuleCard";
 import DeleteItemDialog from "@/components/course/modules/DeleteItemDialog";
 import useAiStatus from "@/lib/useAiStatus";
 import { AiStatusNote } from "@/components/ai/AiBits";
 import Loader from "@/components/ui/Loader";
 import { Label, TextInput } from "@/components/form";
+import { todayIn } from "@somabox/timeline";
 
 // Teacher-only code is loaded on demand so learners on low-end devices don't download it:
-// the editor modals (TipTap etc.) when one is opened, and drag-and-drop for teachers.
-const PageEditorModal = dynamic(() => import("@/components/course/modules/editors/PageEditorModal"), { ssr: false });
-const AssignmentEditorModal = dynamic(() => import("@/components/course/modules/editors/AssignmentEditorModal"), { ssr: false });
-const QuizEditorModal = dynamic(() => import("@/components/course/modules/editors/QuizEditorModal"), { ssr: false });
-const FileUploadModal = dynamic(() => import("@/components/course/modules/editors/FileUploadModal"), { ssr: false });
+// drag-and-drop for teachers (the item editors are pages of their own).
 const SortableModuleList = lazy(() => import("@/components/course/modules/sortable").then((m) => ({ default: m.SortableModuleList })));
 
 // Labels come from course.items.<value>.
@@ -42,8 +39,8 @@ const ITEM_TYPE_OPTIONS = [
   { value: "discussion" },
 ];
 
-// A module item's day offsets, for the editor modals.
-const itemDays = (item) => ({ release_day: item.release_day, due_day: item.due_day, close_day: item.close_day });
+// The kinds of item a teacher can show on their own (Weeks filter).
+const ITEM_FILTERS = ["all", "page", "assignment", "quiz", "discussion", "file"];
 
 export default function ModulesPage() {
   const { SERVER_URL, courseId, isTeacher } = useCourse();
@@ -78,12 +75,26 @@ export default function ModulesPage() {
     refetchInterval: aiActiveJobs.length ? 5000 : false,
   });
   const aiPendingCount = Array.isArray(draftsQuery.data) ? draftsQuery.data.length : 0;
+  // Learners see one week open: the one a "#module-<id>" link points to, else the week they're
+  // in, else the next one to come (or the last, once the course is over). The rest open on a tap.
+  const [openWeekId, setOpenWeekId] = useState(null);
+  useEffect(() => {
+    if (isTeacher || !modules?.length || typeof window === "undefined") return;
+    const hashId = window.location.hash.startsWith("#module-") ? window.location.hash.slice("#module-".length) : null;
+    const today = todayIn();
+    const dated = modules.filter((m) => m.kind === "regular" || m.kind === "baseline");
+    const pick = modules.find((m) => String(m.id) === hashId)
+      || dated.find((m) => m.startDate && m.endDate && m.startDate <= today && today <= m.endDate)
+      || dated.find((m) => m.endDate && m.endDate >= today)
+      || dated[dated.length - 1];
+    setOpenWeekId(pick ? String(pick.id) : "none");
+  }, [isTeacher, modules]);
   // "#module-<id>" links (from the Home timeline) scroll to that week once the list has loaded.
   useEffect(() => {
-    if (!modules?.length || typeof window === "undefined") return;
+    if (!modules?.length || typeof window === "undefined" || (!isTeacher && !openWeekId)) return;
     const id = window.location.hash.slice(1);
     if (id.startsWith("module-")) document.getElementById(id)?.scrollIntoView({ block: "start" });
-  }, [modules]);
+  }, [modules, isTeacher, openWeekId]);
   const aiProps = { status: aiStatus, activeJobs: aiActiveJobs, onStarted: (job) => queryClient.setQueryData(activeJobsKey, (list) => [...(list || []), job]) };
 
   // Sends a change; on failure shows the server message and throws so editor modals stay open.
@@ -104,6 +115,10 @@ export default function ModulesPage() {
 
   // Module creation
   const [creating, setCreating] = useState(false);
+  // Teachers find a kind of item here (the separate Pages/Assignments/Quizzes/Discussions lists
+  // aren't in their menu); ?type=assignment opens the page filtered.
+  const searchParams = useSearchParams();
+  const [typeFilter, setTypeFilter] = useState(() => (ITEM_FILTERS.includes(searchParams?.get("type")) ? searchParams.get("type") : "all"));
   const [newTitle, setNewTitle] = useState("");
 
   // Add item flow
@@ -113,11 +128,7 @@ export default function ModulesPage() {
   const { explain } = useLanguage();
   const [subHeaderTitle, setSubHeaderTitle] = useState("");
 
-  // Editor modals
-  const [pageModal, setPageModal] = useState({ open: false, moduleId: null, data: null, itemId: null });
-  const [assignmentModal, setAssignmentModal] = useState({ open: false, moduleId: null, data: null, itemId: null });
-  const [quizModal, setQuizModal] = useState({ open: false, moduleId: null, data: null, itemId: null });
-  const [fileModal, setFileModal] = useState({ open: false, moduleId: null });
+  const router = useRouter();
 
   // Delete flow
   const [deleteTarget, setDeleteTarget] = useState({ open: false, module: null, item: null });
@@ -166,86 +177,15 @@ export default function ModulesPage() {
       return;
     }
 
-    if (selectedItemType === "file") {
-      setFileModal({ open: true, moduleId });
-      setAddingItemFor(null);
-      return;
-    }
-
-    if (selectedItemType === "page") {
-      setPageModal({ open: true, moduleId, data: null, itemId: null });
-      setAddingItemFor(null);
-      return;
-    }
-
-    if (selectedItemType === "assignment") {
-      setAssignmentModal({ open: true, moduleId, data: null, itemId: null, days: null, startDate: moduleRow.startDate || null });
-      setAddingItemFor(null);
-      return;
-    }
-
-    if (selectedItemType === "quiz") {
-      setQuizModal({ open: true, moduleId, data: quizKind ? { kind: quizKind } : null, itemId: null, days: null, startDate: moduleRow.startDate || null });
-      setAddingItemFor(null);
-      return;
-    }
-
-    if (selectedItemType === "discussion") {
-      // Simple discussion creation
-      createSimpleItem(moduleId, "discussion", t("modules.newDiscussion"));
-      return;
-    }
+    // Everything else is written on its own page, with room for it (and a real Back).
+    setAddingItemFor(null);
+    router.push(newItemHref(courseId, moduleId, selectedItemType, selectedItemType === "quiz" ? quizKind : undefined));
   };
 
   const createSubHeader = async (moduleId, title) => {
     try { await request(`/courses/${courseId}/modules/${moduleId}/items`, { method: "POST", json: { itemType: "sub_header", title } }, t("modules.errors.addSubHeader")); } catch { return; }
     setAddingItemFor(null);
     setSubHeaderTitle("");
-    refetch();
-  };
-
-  const createSimpleItem = async (moduleId, itemType, title) => {
-    try { await request(`/courses/${courseId}/modules/${moduleId}/items`, { method: "POST", json: { itemType, title } }, t("modules.errors.addItem")); } catch { return; }
-    setAddingItemFor(null);
-    refetch();
-  };
-
-  // ===== Save handlers for editor modals =====
-  const handlePageSave = async (data) => {
-    if (pageModal.itemId) {
-      // Edit existing
-      await request(`/courses/${courseId}/modules/${pageModal.moduleId}/items/${pageModal.itemId}/content`, { method: "PATCH", json: { ...data } }, t("modules.errors.savePage"));
-    } else {
-      // Create new
-      await request(`/courses/${courseId}/modules/${pageModal.moduleId}/items`, { method: "POST", json: { itemType: "page", ...data } }, t("modules.errors.savePage"));
-    }
-    refetch();
-  };
-
-  const handleAssignmentSave = async ({ outcomeIds = [], ...data }) => {
-    if (assignmentModal.itemId) {
-      await request(`/courses/${courseId}/modules/${assignmentModal.moduleId}/items/${assignmentModal.itemId}/content`, { method: "PATCH", json: { ...data } }, t("modules.errors.saveAssignment"));
-      // Outcome tags are saved separately; only when they changed.
-      const before = [...(assignmentModal.outcomeIds || [])].sort().join(",");
-      if ([...outcomeIds].sort().join(",") !== before) {
-        try {
-          await request(`/courses/${courseId}/item-outcomes`, { method: "POST", json: { itemType: "assignment", itemId: assignmentModal.data?.id, outcomeIds } }, t("modules.errors.saveAssignment"));
-        } finally { refetch(); }
-        return;
-      }
-      refetch();
-      return;
-    }
-    await request(`/courses/${courseId}/modules/${assignmentModal.moduleId}/items`, { method: "POST", json: { itemType: "assignment", ...data, outcomeIds } }, t("modules.errors.saveAssignment"));
-    refetch();
-  };
-
-  const handleQuizSave = async (data) => {
-    if (quizModal.itemId) {
-      await request(`/courses/${courseId}/modules/${quizModal.moduleId}/items/${quizModal.itemId}/content`, { method: "PATCH", json: { ...data } }, t("modules.errors.saveQuiz"));
-    } else {
-      await request(`/courses/${courseId}/modules/${quizModal.moduleId}/items`, { method: "POST", json: { itemType: "quiz", ...data } }, t("modules.errors.saveQuiz"));
-    }
     refetch();
   };
 
@@ -262,25 +202,9 @@ export default function ModulesPage() {
       return;
     }
 
-    // For content types, fetch the content data first
-    const contentId = item.content_id;
-    if (!contentId) return;
-
-    // The item as it is now (also kept for its own page), fresh for editing.
-    const load = (path) => queryClient.fetchQuery({
-      queryKey: queryKeys.courseSection(courseId, path),
-      queryFn: () => apiFetch(`/courses/${courseId}/${path}`),
-      staleTime: 0,
-    });
-    if (item.item_type === "page") {
-      const data = await load(`pages/${contentId}`);
-      setPageModal({ open: true, moduleId: moduleRow.id, data, itemId: item.id });
-    } else if (item.item_type === "assignment") {
-      const data = await load(`assignments/${contentId}`);
-      setAssignmentModal({ open: true, moduleId: moduleRow.id, data, itemId: item.id, days: itemDays(item), startDate: moduleRow.startDate || null, outcomeIds: (item.outcomes || []).map((o) => Number(o.id)) });
-    } else if (item.item_type === "quiz") {
-      const data = await load(`quizzes/${contentId}`);
-      setQuizModal({ open: true, moduleId: moduleRow.id, data, itemId: item.id, days: itemDays(item), startDate: moduleRow.startDate || null });
+    // Everything else is edited on its own page.
+    if (item.content_id && ["page", "assignment", "quiz", "discussion"].includes(item.item_type)) {
+      router.push(editItemHref(courseId, item.item_type, item.content_id));
     }
   }, [courseId, queryClient, refetch, showToast, t]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -323,7 +247,9 @@ export default function ModulesPage() {
       onEditItem={handleEditItem}
       onDeleteItem={handleDeleteItem}
       ai={aiProps}
-      dnd={dnd}
+      dnd={typeFilter === "all" ? dnd : null}
+      itemFilter={typeFilter}
+      weeks={modules || []}
     />
   );
 
@@ -333,7 +259,7 @@ export default function ModulesPage() {
       <div className="p-4 md:p-6 space-y-6">
         <PageHeader help="pages.modules"
           title={t("modules.title")}
-          description={t("modules.description")}
+          description={isTeacher ? t("modules.description") : undefined}
           actions={isTeacher ? (
             <>
             <Link
@@ -369,6 +295,22 @@ export default function ModulesPage() {
 
         {isTeacher ? <AiStatusNote status={aiStatus} /> : null}
 
+        {isTeacher && modules && modules.length > 0 ? (
+          <div className="flex items-center gap-1.5 flex-wrap" role="group" aria-label={t("modules.filterLabel")}>
+            {ITEM_FILTERS.map((key) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setTypeFilter(key)}
+                aria-pressed={typeFilter === key}
+                className={`text-caption font-semibold px-2.5 py-1 rounded-full border ${typeFilter === key ? "bg-brand-strong text-on-brand-strong border-brand-strong" : "border-line text-fg-muted hover:bg-surface-hover"}`}
+              >
+                {key === "all" ? t("modules.filterAll") : t(`modules.filter.${key}`)}
+              </button>
+            ))}
+          </div>
+        ) : null}
+
         {/* Create module form */}
         {creating && (
           <div className="flex flex-wrap items-center gap-2">
@@ -397,24 +339,27 @@ export default function ModulesPage() {
         {modules && modules.length > 0 && (
           isTeacher ? (
             <div className="space-y-10">
-              <Suspense fallback={modules.map((moduleRow) => renderTeacherModule(moduleRow))}>
+              {/* Until drag-and-drop has loaded: a loader, not cards that would be replaced (a
+                  menu opened on one would vanish with it). */}
+              <Suspense fallback={<Loader variant="page" size={48} className="min-h-[20vh]" label={t("modules.loading")} />}>
                 <SortableModuleList modules={modules} onReorder={handleModuleReorder} renderModule={renderTeacherModule} />
               </Suspense>
             </div>
           ) : (
-            <div className="space-y-10">
-              {modules.map((moduleRow) => (
+            <div className="space-y-6">
+              {openWeekId ? modules.map((moduleRow) => (
                 <ModuleCard
                   key={moduleRow.id}
                   module={moduleRow}
                   courseId={courseId}
                   isTeacher={false}
+                  defaultCollapsed={(moduleRow.kind === "regular" || moduleRow.kind === "baseline") && String(moduleRow.id) !== openWeekId}
                   onRefetch={refetch}
                   onAddItem={() => {}}
                   onEditItem={() => {}}
                   onDeleteItem={() => {}}
                 />
-              ))}
+              )) : <Loader variant="page" size={48} className="min-h-[20vh]" label={t("modules.loading")} />}
             </div>
           )
         )}
@@ -490,43 +435,7 @@ export default function ModulesPage() {
         onChoose={chooseFromHelper}
       />
 
-      {/* ===== Modals ===== */}
-      {pageModal.open && <PageEditorModal
-        key={`page-${pageModal.open}-${pageModal.moduleId}-${pageModal.itemId}`}
-        open={pageModal.open}
-        onClose={() => setPageModal({ open: false, moduleId: null, data: null, itemId: null })}
-        onSave={handlePageSave}
-        initialData={pageModal.data}
-      />}
 
-      {assignmentModal.open && <AssignmentEditorModal
-        key={`assignment-${assignmentModal.open}-${assignmentModal.moduleId}-${assignmentModal.itemId}`}
-        open={assignmentModal.open}
-        onClose={() => setAssignmentModal({ open: false, moduleId: null, data: null, itemId: null })}
-        onSave={handleAssignmentSave}
-        initialData={assignmentModal.data}
-        initialDays={assignmentModal.days}
-        moduleStartDate={assignmentModal.startDate}
-        initialOutcomeIds={assignmentModal.outcomeIds || []}
-      />}
-
-      {quizModal.open && <QuizEditorModal
-        key={`quiz-${quizModal.open}-${quizModal.moduleId}-${quizModal.itemId}`}
-        open={quizModal.open}
-        onClose={() => setQuizModal({ open: false, moduleId: null, data: null, itemId: null })}
-        onSave={handleQuizSave}
-        initialData={quizModal.data}
-        initialDays={quizModal.days}
-        moduleStartDate={quizModal.startDate}
-      />}
-
-      {fileModal.open && <FileUploadModal
-        open={fileModal.open}
-        onClose={() => setFileModal({ open: false, moduleId: null })}
-        onUpload={() => refetch()}
-        courseId={courseId}
-        moduleId={fileModal.moduleId}
-      />}
 
       <DeleteItemDialog
         open={deleteTarget.open}

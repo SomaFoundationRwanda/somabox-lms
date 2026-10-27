@@ -3,8 +3,10 @@
 import { useState, lazy, Suspense } from "react";
 import Link from "next/link";
 import {
-  Eye, EyeOff, Trash2, GripVertical, Plus, ChevronDown, ChevronRight, Pencil, Sparkles, Check,
+  EyeOff, Trash2, GripVertical, Plus, ChevronDown, ChevronRight, Pencil, Sparkles, Check, BookOpenText,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import ActionMenu from "@/components/ui/ActionMenu";
 import ModuleItemRow from "./ModuleItemRow";
 import { useToast } from "@/context/ToastContext";
 import { isUnassignedModule } from "@/lib/moduleLabels";
@@ -12,7 +14,8 @@ import { useCourseText } from "@/components/course/useCourseText";
 import Explainer from "@/components/help/Explainer";
 import { formatRange } from "@/lib/dates";
 import { apiFetch, getErrorMessage } from "@/lib/api";
-import { Label, TextInput } from "@/components/form";
+import { Field, Label, Select, TextInput } from "@/components/form";
+import Modal from "@/components/ui/Modal";
 
 // Teacher-only drag-and-drop, loaded on demand so learners never download dnd-kit.
 const SortableItemList = lazy(() => import("./sortable").then((m) => ({ default: m.SortableItemList })));
@@ -38,19 +41,28 @@ export default function ModuleCard({
   onDeleteItem,
   ai,
   dnd = null, // from SortableModuleList (teachers only): makes the module draggable
+  itemFilter = "all", // Weeks filter: show only this kind of item ("all" = everything, draggable)
+  weeks = [], // every week of the course (to move an item to another one)
+  defaultCollapsed = false, // learners: only the week they're in starts open
 }) {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState(moduleRow.title);
   const { showToast } = useToast();
-  const { t, tf, weekLabel } = useCourseText();
+  const { t, tf, weekLabel, ownWeekTitle } = useCourseText();
   const isUnassigned = isUnassignedModule(moduleRow);
   // The holding module's stored title is English ("Unassigned (fix me)"); its translated label says it all.
-  const heading = isUnassigned ? weekLabel(moduleRow) : `${weekLabel(moduleRow)} - ${moduleRow.title}`;
+  // A title that only repeats the week ("Week 1", "Week 1: ...") isn't shown twice.
+  const ownTitle = ownWeekTitle(moduleRow);
+  const heading = isUnassigned || !ownTitle ? weekLabel(moduleRow) : `${weekLabel(moduleRow)} · ${ownTitle}`;
+  const filtering = itemFilter !== "all";
+  const shownItems = filtering ? moduleRow.items.filter((i) => i.item_type === itemFilter) : moduleRow.items;
   const [aiBusy, setAiBusy] = useState("");
   const [aiNote, setAiNote] = useState("");
   const [storyOpen, setStoryOpen] = useState(false);
   const [storyIdea, setStoryIdea] = useState("");
+  const [moving, setMoving] = useState(null); // the item being moved to another week
+  const [moveTo, setMoveTo] = useState("");
   const moduleJobs = (ai?.activeJobs || []).filter((j) => Number(j.moduleId) === Number(moduleRow.id));
   const fillRunning = moduleJobs.some((j) => j.kind === "fill_week");
   const storyRunning = moduleJobs.some((j) => j.kind === "story");
@@ -93,6 +105,25 @@ export default function ModuleCard({
     onRefetch();
   };
 
+  // Publishing a week offers to publish its draft items too: a published week of drafts shows
+  // learners nothing.
+  const publishWeek = async () => {
+    const drafts = moduleRow.items.filter((i) => i.item_type !== "sub_header" && !i.published);
+    const error = await send(`/courses/${courseId}/modules/${moduleRow.id}`, { method: "PATCH", json: { published: true } }, t("modules.errors.updateModule"));
+    if (error) {
+      showToast(error, "error");
+      onRefetch();
+      return;
+    }
+    if (drafts.length > 0 && window.confirm(tf(drafts.length === 1 ? "modules.publishItemsTooOne" : "modules.publishItemsTooMany", { n: drafts.length }))) {
+      for (const item of drafts) {
+        const itemError = await send(`/courses/${courseId}/modules/${moduleRow.id}/items/${item.id}`, { method: "PATCH", json: { published: true } }, t("modules.errors.publishItem"));
+        if (itemError) showToast(`${item.title}: ${itemError}`, "error");
+      }
+    }
+    onRefetch();
+  };
+
   const deleteModule = async () => {
     if (!confirm(tf("modules.confirmDeleteModule", { title: moduleRow.title }))) return;
     const error = await send(`/courses/${courseId}/modules/${moduleRow.id}`, { method: "DELETE", json: {} }, t("modules.errors.deleteModule"));
@@ -119,6 +150,16 @@ export default function ModuleCard({
     onRefetch();
   };
 
+  const moveItem = async () => {
+    if (!moving || !moveTo) return;
+    const error = await send(`/courses/${courseId}/modules/${moduleRow.id}/items/${moving.id}`, { method: "PATCH", json: { moduleId: Number(moveTo) } }, t("modules.errors.moveItem"));
+    if (error) showToast(error, "error");
+    else showToast(t("modules.moved"), "success");
+    setMoving(null);
+    onRefetch();
+  };
+  const otherWeeks = weeks.filter((w) => w.id !== moduleRow.id && w.kind !== "unassigned");
+
   const handleItemReorder = async (itemIds) => {
     await send(`/courses/${courseId}/modules/${moduleRow.id}/items/reorder`, { method: "PATCH", json: { itemIds } }, "");
     onRefetch();
@@ -140,9 +181,11 @@ export default function ModuleCard({
       isTeacher={isTeacher}
       grouped={groupedIds.has(item.id)}
       dnd={itemDnd}
+      weekPublished={Boolean(moduleRow.published) || isUnassigned}
       onTogglePublish={() => toggleItemPublish(item)}
       onEdit={() => onEditItem(moduleRow, item)}
       onDelete={() => onDeleteItem(moduleRow, item)}
+      onMove={otherWeeks.length > 0 ? () => { setMoving(item); setMoveTo(String(otherWeeks[0].id)); } : undefined}
     />
   );
 
@@ -170,7 +213,6 @@ export default function ModuleCard({
       style={dnd?.style}
       aria-label={heading}
       className={`rounded-md border overflow-hidden ${listBorder} ${dnd?.isDragging ? "opacity-50" : ""}`}
-      {...(dnd?.attributes || {})}
     >
       {/* Module header bar */}
       <div
@@ -181,7 +223,9 @@ export default function ModuleCard({
       >
         <div className="flex items-center gap-2 min-w-0 flex-1">
           {isTeacher && (
-            <button {...(dnd?.listeners || {})} aria-label={t("modules.dragModule")} className="cursor-grab active:cursor-grabbing p-0.5 text-fg-subtle hover:text-fg-subtle shrink-0 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">
+            // The drag handle carries dnd-kit's attributes too (not the whole week), so the week's
+            // own buttons and menus work as usual.
+            <button {...(dnd?.attributes || {})} {...(dnd?.listeners || {})} aria-label={t("modules.dragModule")} className="cursor-grab active:cursor-grabbing p-0.5 text-fg-subtle hover:text-fg-subtle shrink-0 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">
               <GripVertical className="w-4 h-4" />
             </button>
           )}
@@ -225,52 +269,36 @@ export default function ModuleCard({
           {!isUnassigned && moduleRow.status === "past" ? (
             <span className="text-caption text-fg-subtle">{t("modules.past")}</span>
           ) : null}
-          {!moduleRow.published && isTeacher ? (
-            <span className="text-caption font-semibold text-warning-fg">{t("common.draft")}</span>
+          {isTeacher && !isUnassigned ? (
+            <span className={`text-caption font-semibold px-2 py-0.5 rounded-full border ${moduleRow.published ? "bg-success-soft text-success-fg border-success/30" : "bg-surface text-fg-muted border-line"}`}>
+              {moduleRow.published ? t("common.published") : t("common.draft")}
+            </span>
           ) : null}
           {isComplete ? <Check className="w-4 h-4 text-success-fg" aria-label={t("modules.complete")} /> : null}
+          {(fillRunning || storyRunning) && isTeacher ? (
+            <span className="text-caption text-brand-fg flex items-center gap-1"><Sparkles className="w-3 h-3" aria-hidden="true" /> {fillRunning ? t("modules.ai.filling") : t("modules.ai.writingStoryShort")}</span>
+          ) : null}
 
           {isTeacher && (
-            <div className="flex items-center gap-1.5 flex-wrap">
-              {isUnassigned ? null : ai?.status?.allowed ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={startFillWeek}
-                    disabled={aiBusy === "fill_week" || fillRunning}
-                    className="flex items-center gap-1 text-caption font-semibold text-brand-fg bg-brand-soft border border-brand/40 hover:bg-brand-soft disabled:opacity-50 px-2.5 py-1 rounded-lg transition-colors"
-                    title={fillRunning ? t("modules.ai.fillRunningHint") : t("modules.ai.fillHint")}
-                  >
-                    <Sparkles className="w-3 h-3 text-brand-fg" /> {fillRunning ? t("modules.ai.filling") : t("modules.ai.fillWeek")}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setStoryOpen((v) => !v)}
-                    aria-expanded={storyOpen}
-                    disabled={storyRunning}
-                    className="flex items-center gap-1 text-caption font-semibold text-fg-muted bg-surface-sunken hover:bg-surface-hover disabled:opacity-50 px-2.5 py-1 rounded-lg transition-colors"
-                    title={storyRunning ? t("modules.ai.storyRunningHint") : t("modules.ai.storyHint")}
-                  >
-                    <Sparkles className="w-3 h-3 text-fg-subtle" /> {storyRunning ? t("modules.ai.writingStoryShort") : t("modules.ai.story")}
-                  </button>
-                </>
-              ) : ai?.status && !ai.status.loading && ai.status.reason ? (
-                <span className="text-caption text-fg-subtle" title={ai.status.reason}>
-                  <Sparkles className="inline w-3 h-3 mr-0.5" aria-hidden="true" />{t("modules.ai.off")}
-                  <span className="sr-only">: {ai.status.reason}</span>
-                </span>
+            <div className="flex items-center gap-1">
+              {!isUnassigned && !moduleRow.published ? (
+                <Button type="button" size="sm" onClick={publishWeek} aria-label={tf("modules.publishWeekNamed", { title: moduleRow.title })}>
+                  {t("modules.publishModule")}
+                </Button>
               ) : null}
-              {!editingTitle && (
-                <button onClick={() => { setTitleDraft(moduleRow.title); setEditingTitle(true); }} className="p-1.5 rounded-md hover:bg-surface-hover text-fg-subtle" title={t("modules.rename")} aria-label={t("modules.renameModule")}>
-                  <Pencil className="w-3.5 h-3.5" />
-                </button>
-              )}
-              <button onClick={togglePublish} className="p-1.5 rounded-md hover:bg-surface-hover text-fg-subtle" title={moduleRow.published ? t("modules.unpublish") : t("modules.publish")} aria-label={moduleRow.published ? t("modules.unpublishModule") : t("modules.publishModule")}>
-                {moduleRow.published ? <Eye className="w-4 h-4 text-success-fg" /> : <EyeOff className="w-4 h-4" />}
-              </button>
-              <button onClick={deleteModule} className="p-1.5 rounded-md hover:bg-danger-soft text-danger-fg" title={t("modules.deleteModule")} aria-label={t("modules.deleteModule")}>
-                <Trash2 className="w-4 h-4" />
-              </button>
+              <ActionMenu
+                label={tf("modules.weekActions", { title: isUnassigned ? heading : moduleRow.title })}
+                items={[
+                  isUnassigned ? null : { key: "rename", label: t("modules.renameModule"), icon: Pencil, onSelect: () => { setTitleDraft(moduleRow.title); setEditingTitle(true); } },
+                  isUnassigned ? null : ai?.status?.allowed
+                    ? { key: "fill", label: fillRunning ? t("modules.ai.filling") : t("modules.ai.fillWeekMenu"), icon: Sparkles, onSelect: startFillWeek, disabled: aiBusy === "fill_week" || fillRunning }
+                    : ai?.status && !ai.status.loading && ai.status.reason ? { key: "ai-off", label: t("modules.ai.off"), icon: Sparkles, disabled: true } : null,
+                  isUnassigned || !ai?.status?.allowed ? null : { key: "story", label: storyRunning ? t("modules.ai.writingStoryShort") : t("modules.ai.storyMenu"), icon: BookOpenText, onSelect: () => setStoryOpen(true), disabled: storyRunning },
+                  !isUnassigned && moduleRow.published ? { key: "unpublish", label: t("modules.unpublishModule"), icon: EyeOff, onSelect: togglePublish } : null,
+                  { separator: true },
+                  { key: "delete", label: t("modules.deleteModule"), icon: Trash2, onSelect: deleteModule, danger: true },
+                ]}
+              />
             </div>
           )}
         </div>
@@ -316,11 +344,11 @@ export default function ModuleCard({
             isUnassigned ? "bg-warning-soft/40" : "bg-surface"
           }`}
         >
-          {moduleRow.items.length === 0 && (
-            <li className="text-caption text-fg-subtle px-5 py-3.5 italic">{t("modules.noItems")}</li>
+          {shownItems.length === 0 && (
+            <li className="text-caption text-fg-subtle px-5 py-3.5 italic">{filtering ? t("modules.noMatchingItems") : t("modules.noItems")}</li>
           )}
 
-          {isTeacher ? (
+          {filtering ? shownItems.map((item) => renderItem(item)) : isTeacher ? (
             <Suspense fallback={moduleRow.items.map((item) => renderItem(item))}>
               <SortableItemList items={moduleRow.items} onReorder={handleItemReorder} renderItem={renderItem} />
             </Suspense>
@@ -341,6 +369,21 @@ export default function ModuleCard({
           )}
         </ul>
       )}
+      {moving ? (
+        <Modal title={tf("modules.moveTitle", { title: moving.title })} onClose={() => setMoving(null)}>
+          <div className="space-y-4">
+            <Field id={`move-to-${moduleRow.id}`} label={t("modules.moveToLabel")}>
+              <Select id={`move-to-${moduleRow.id}`} value={moveTo} onChange={(e) => setMoveTo(e.target.value)} className="w-full">
+                {otherWeeks.map((w) => <option key={w.id} value={w.id}>{weekLabel(w)}{w.title ? ` · ${w.title}` : ""}</option>)}
+              </Select>
+            </Field>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="ghost" onClick={() => setMoving(null)}>{t("common.cancel")}</Button>
+              <Button type="button" onClick={moveItem}>{t("modules.move")}</Button>
+            </div>
+          </div>
+        </Modal>
+      ) : null}
     </section>
   );
 }

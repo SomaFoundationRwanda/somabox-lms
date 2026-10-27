@@ -14,7 +14,7 @@ const KIND_ICONS = { assignment: ClipboardList, quiz: HelpCircle, discussion: Me
 
 export default function AssignmentsPage() {
   const { courseId, isTeacher } = useCourse();
-  const { t, tf, fmtDate } = useCourseText();
+  const { t, tf, fmtDate, tpts } = useCourseText();
   const query = useCourseSection("assignments");
   const items = Array.isArray(query.data) ? query.data : [];
   const loading = query.loading;
@@ -25,7 +25,7 @@ export default function AssignmentsPage() {
       <div className="p-4 md:p-6 space-y-6 max-w-4xl">
         <PageHeader help="pages.assignments"
           title={t("nav.assignments")}
-          description={t("lists.assignmentsDescription")}
+          description={isTeacher ? t("lists.assignmentsDescription") : undefined}
           actions={isTeacher ? (
             <Link
               href={`/course/${courseId}/modules`}
@@ -37,7 +37,7 @@ export default function AssignmentsPage() {
         />
 
         {items.length === 0 ? (
-          loading ? <Loader variant="page" size={48} className="min-h-[25vh]" label={t("lists.loadingAssignments")} /> : <EmptyState compact title={t("lists.noAssignments")} description={<ExplainerText k="pages.assignments" />} />
+          loading ? <Loader variant="page" size={48} className="min-h-[25vh]" label={t("lists.loadingAssignments")} /> : <EmptyState compact title={t("lists.noAssignments")} description={isTeacher ? <ExplainerText k="pages.assignments" /> : null} />
         ) : (
           <List label={t("nav.assignments")}>
             {items.map((item) => {
@@ -52,7 +52,7 @@ export default function AssignmentsPage() {
                   title={item.title}
                   href={href}
                   subtitle={item.dueAt ? tf("common.dueOn", { date: fmtDate(item.dueAt) }) : t("lists.weekSlot")}
-                  meta={item.pointsPossible != null ? <span className="font-semibold text-fg-muted">{tf("common.points", { n: item.pointsPossible })}</span> : null}
+                  meta={item.pointsPossible != null ? <span className="font-semibold text-fg-muted">{tpts(item.pointsPossible)}</span> : null}
                 />
               );
             })}

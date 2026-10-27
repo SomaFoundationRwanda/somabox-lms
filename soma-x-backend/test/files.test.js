@@ -75,17 +75,30 @@ test("signing in sets a media cookie that opens files; a forged or expired cooki
   assert.equal((await fetch(`${ctx.baseUrl}/auth/media-session`, { method: "POST" })).status, 401);
 });
 
-test("course files open only for that course's members", async () => {
+test("course files open only for that course's members, and for learners only where the course shows them", async () => {
   const courseId = await ctx.createCourse("Files");
   const dir = path.join(config.paths.courseFiles, courseId);
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(dir, "sheet.txt"), "worksheet");
   created.push(dir);
+  const file = await ctx.db.prepare("INSERT INTO course_files (course_id, folder, filename, original_name, content_type, uploaded_by_teacher_email) VALUES (?, '', 'sheet.txt', 'sheet.txt', 'text/plain', ?) RETURNING id").get(courseId, USERS.teacher.email);
   const url = `/course-files/${courseId}/sheet.txt`;
-  assert.equal((await get(url, await mediaCookie(USERS.student.email))).status, 200, "an enrolled learner");
   assert.equal((await get(url, await mediaCookie(USERS.teacher.email))).status, 200, "its teacher");
-  assert.equal((await get(url, await mediaCookie(USERS.outsider.email))).status, 403, "someone else on the box");
   assert.equal((await get(url, await mediaCookie(USERS.admin.email))).status, 200, "an admin");
+  assert.equal((await get(url, await mediaCookie(USERS.outsider.email))).status, 403, "someone else on the box");
+  // Files is hidden from learners by default: a file used nowhere they can see stays closed.
+  assert.equal((await get(url, await mediaCookie(USERS.student.email))).status, 403, "an unused file in a hidden section");
+  // Used in a published page, it opens.
+  const week = (await ctx.api("POST", `/courses/${courseId}/modules`, { token: ctx.tokens.teacher, body: { title: "Week 1" } })).body;
+  await ctx.db.prepare("UPDATE modules SET published = 1 WHERE id = ?").run(week.id);
+  const page = await ctx.db.prepare("INSERT INTO course_pages (course_id, module_id, title, body, published) VALUES (?, ?, 'Reading', '', 1) RETURNING id").get(courseId, week.id);
+  await ctx.db.prepare("INSERT INTO page_file_references (page_id, file_id) VALUES (?, ?)").run(page.id, file.id);
+  assert.equal((await get(url, await mediaCookie(USERS.student.email))).status, 200, "a file in a published page");
+  await ctx.db.prepare("UPDATE course_pages SET published = 0 WHERE id = ?").run(page.id);
+  assert.equal((await get(url, await mediaCookie(USERS.student.email))).status, 403, "the page is unpublished again");
+  // Showing Files to learners opens all of them.
+  await ctx.db.prepare("UPDATE course_nav_items SET visible_to_students = 1 WHERE course_id = ? AND nav_key = 'files'").run(courseId);
+  assert.equal((await get(url, await mediaCookie(USERS.student.email))).status, 200, "Files shown to learners");
 });
 
 test("the profile step only completes with explicit answers; the gap report counts only those", async () => {

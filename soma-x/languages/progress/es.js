@@ -110,11 +110,6 @@ export default {
     yourGrades: "Tus calificaciones",
     gradebook: "Libro de calificaciones",
   },
-  progressPage: {
-    teacherTitle: "«Mi progreso» es para los estudiantes",
-    teacherHint: "Los docentes pueden ver el progreso de cada estudiante en Análisis.",
-    openInsights: "Abrir Análisis",
-  },
   outcomes: {
     title: "Resultados de aprendizaje y dominio",
     description: "Las habilidades que enseña este curso. Para cada una, mira dónde empezaron los estudiantes (semana 0) y dónde están ahora.",
@@ -140,6 +135,9 @@ export default {
     loading: "Cargando resultados de aprendizaje...",
     empty: "Aún no hay resultados de aprendizaje definidos.",
     emptyHint: "Añade las habilidades que enseña este curso y vincúlalas a cuestionarios y tareas para seguir el progreso de los estudiantes.",
+    descriptionLearner: "Las habilidades que enseña este curso, y cómo vas en cada una.",
+    masteryTitleLearner: "Cómo vas en cada resultado",
+    emptyHintLearner: "Tu docente aún no ha añadido los resultados de este curso.",
     masteryList: "Dominio de los resultados",
     rewriteAria: "Reescribir el resultado {name} con IA",
     rewriteWithAi: "Reescribir con IA",

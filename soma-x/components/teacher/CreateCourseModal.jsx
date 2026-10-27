@@ -39,7 +39,8 @@ export default function CreateCourseModal({ onClose, onCreated }) {
       queryClient.invalidateQueries({ queryKey: queryKeys.courses })
       onCreated?.(data)
       // Straight into the guided setup: a new course is a draft that needs outcomes, dates and weeks.
-      if (data?.id) router.push(`/course/${data.id}/settings#guided-setup`)
+      // A new course starts on its setup steps.
+      if (data?.id) router.push(`/course/${data.id}/setup`)
     } catch {
       setError(t("teacher.common.somethingWrong"))
     } finally {

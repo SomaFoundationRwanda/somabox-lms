@@ -74,7 +74,8 @@ test("drafts from a job that finishes at once show up without a reload", async (
 test("writes a story for a week from the Weeks page", async ({ page }) => {
   const c = await seedCourse({ learners: [] });
   await page.goto(`/course/${c.id}/modules`);
-  await page.getByRole("button", { name: ct("modules.ai.story") }).first().click();
+  await page.getByRole("button", { name: ct("modules.weekActions", { title: c.modules[0].title }) }).click();
+  await page.getByRole("menuitem", { name: ct("modules.ai.storyMenu") }).click();
   await page.getByPlaceholder(ct("modules.ai.storyPlaceholder")).fill("A girl who shares mangoes at the market");
   await page.getByRole("button", { name: ct("modules.ai.writeStoryDraft") }).click();
   await page.goto(`/course/${c.id}/ai`);
@@ -84,7 +85,8 @@ test("writes a story for a week from the Weeks page", async ({ page }) => {
 test("AI fill week from the Weeks page drafts the week's items", async ({ page }) => {
   const c = await seedCourse({ learners: [] });
   await page.goto(`/course/${c.id}/modules`);
-  await page.getByRole("button", { name: ct("modules.ai.fillWeek") }).nth(1).click();
+  await page.getByRole("button", { name: ct("modules.weekActions", { title: c.modules[1].title }) }).click();
+  await page.getByRole("menuitem", { name: ct("modules.ai.fillWeekMenu") }).click();
   await page.goto(`/course/${c.id}/ai`);
   await expect(card(page, "Fractions around us")).toBeVisible({ timeout: 60_000 });
 });
@@ -113,12 +115,12 @@ test("drafts a rubric for an assignment and adds it", async ({ page }) => {
   await expect.poll(async () => JSON.stringify(await api("GET", `/courses/${c.id}/assignments/${c.assignment.content_id}/rubric`, { as: "teacher" }))).toContain("Method");
 });
 
-test("the guided setup proposes outcomes from a topic", async ({ page }) => {
+test("the setup screen suggests outcomes with AI", async ({ page }) => {
   const c = await seedCourse({ open: false, learners: [] });
-  await page.goto(`/course/${c.id}/settings#guided-setup`);
-  await page.getByRole("button", { name: t("teacher.wizard.toOutcomes") }).click();
-  await page.getByLabel(t("teacher.wizard.aiTopic")).fill("Fractions for Primary 4");
-  await page.getByRole("button", { name: t("teacher.wizard.aiPropose") }).click();
+  await page.goto(`/course/${c.id}/setup?step=2`);
+  const started = page.waitForResponse((r) => r.url().endsWith(`/courses/${c.id}/ai/jobs`) && r.request().method() === "POST");
+  await page.getByRole("button", { name: t("course.setup.aiOutcomes") }).click();
+  expect((await started).ok()).toBe(true);
   await page.goto(`/course/${c.id}/ai`);
   await expect(page.getByText(/What is a fraction\?/).first()).toBeVisible({ timeout: 60_000 });
 });

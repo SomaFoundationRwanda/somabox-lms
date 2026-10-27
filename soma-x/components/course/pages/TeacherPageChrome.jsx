@@ -1,12 +1,14 @@
 "use client";
 
 import PageContent from "./PageContent";
-import { Eye, EyeOff, Edit, Users, CheckCircle } from "lucide-react";
+import { Users, CheckCircle } from "lucide-react";
+import ItemStatusActions from "@/components/course/modules/ItemStatusActions";
 import { PageHeader } from "@/components/layout";
 import { useCourseText } from "@/components/course/useCourseText";
 
-export default function TeacherPageChrome({ page, onEdit, onTogglePublish }) {
-  const { t, tf } = useCourseText();
+// Status, Publish, Edit and the rest: ItemStatusActions (the same on every item page).
+export default function TeacherPageChrome({ page }) {
+  const { tf } = useCourseText();
   const stats = page?.teacherStats || null;
 
   return (
@@ -16,27 +18,6 @@ export default function TeacherPageChrome({ page, onEdit, onTogglePublish }) {
         title={page.title}
         meta={
           <>
-            <button
-              type="button"
-              onClick={onTogglePublish}
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-caption font-semibold border transition-colors ${
-                page.published
-                  ? "bg-success-soft text-success-fg border-success/30 hover:bg-success-soft"
-                  : "bg-warning-soft text-warning-fg border-warning/30 hover:bg-warning-soft"
-              }`}
-            >
-              {page.published ? (
-                <>
-                  <Eye className="w-3.5 h-3.5 text-success-fg" />
-                  <span>{t("common.published")}</span>
-                </>
-              ) : (
-                <>
-                  <EyeOff className="w-3.5 h-3.5 text-warning-fg" />
-                  <span>{t("pageView.draftUnpublished")}</span>
-                </>
-              )}
-            </button>
             {stats && (
               <span className="inline-flex items-center gap-1.5 text-caption text-fg-muted">
                 <Users className="w-3.5 h-3.5 text-brand-fg" />
@@ -52,16 +33,7 @@ export default function TeacherPageChrome({ page, onEdit, onTogglePublish }) {
             )}
           </>
         }
-        actions={
-          <button
-            type="button"
-            onClick={onEdit}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-caption font-semibold text-on-brand-strong bg-brand-strong hover:bg-brand-strong/90 rounded-lg transition-colors"
-          >
-            <Edit className="w-3.5 h-3.5" />
-            <span>{t("editors.editPage")}</span>
-          </button>
-        }
+        actions={<ItemStatusActions type="page" contentId={page.id} published={Boolean(page.published)} title={page.title} />}
       />
 
       {/* Shared Page Content Renderer */}

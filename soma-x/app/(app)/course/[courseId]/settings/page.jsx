@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowRight, ChevronDown, ChevronUp, Eye, EyeOff, ListChecks, X, ImageUp } from "lucide-react";
+import Link from "next/link";
+import { NOT_IN_LEARNER_MENU } from "@/components/course/CourseSidebar";
+import { ArrowRight, ChevronDown, ChevronUp, Eye, EyeOff, ListChecks, ImageUp } from "lucide-react";
 import { compareDates, isDateString } from "@somabox/timeline";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCourse } from "@/context/CourseContext";
@@ -15,88 +17,36 @@ import { toDateInput } from "@/lib/dates";
 import { useCourseText } from "@/components/course/useCourseText";
 import SetupChecklist from "@/components/teacher/SetupChecklist";
 import BaselinePanel from "@/components/teacher/BaselinePanel";
-import CourseSetupWizard from "@/components/teacher/CourseSetupWizard";
 import GradeSelect from "@/components/teacher/GradeSelect";
 import Explainer from "@/components/help/Explainer";
 import ShareCourseSection from "@/components/course/ShareCourseSection";
 import CourseStatusSection from "@/components/course/CourseStatusSection";
 import { Fieldset, FileButton, Label, Select, TextInput, Textarea } from "@/components/form";
 
-// Settings > Course setup (teachers): the setup checklist, the Week 0 baseline and the guided wizard.
-function CourseSetupSection({ courseId, course, userEmail, onCourseChanged }) {
+// Settings > Course setup (teachers): the setup checklist, the optional Week 0 check, and the way
+// back to the course's setup steps.
+function CourseSetupSection({ courseId, course }) {
   const { t } = useCourseText();
   // The same kept setup status as the course's Home page.
   const statusQuery = useCourseSection("setup-status");
   const status = statusQuery.data;
   const statusError = statusQuery.error ? statusQuery.error || t("settings.setupStatusFailed") : "";
   const loadStatus = statusQuery.refetch;
-  // "#guided-setup" (e.g. right after creating a course) opens the wizard straight away.
-  const [showWizard, setShowWizard] = useState(() => typeof window !== "undefined" && window.location.hash === "#guided-setup");
-  useEffect(() => {
-    if (showWizard && window.location.hash === "#guided-setup") {
-      requestAnimationFrame(() => document.getElementById("guided-setup")?.scrollIntoView({ block: "start" }));
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  const [baselineKey, setBaselineKey] = useState(0); // remounts the baseline panel after the wizard changes things
-
   const isDraft = status ? !status.isOpened : (!course?.lifecycle || course.lifecycle === "draft");
 
   return (
     <section id="course-setup" aria-labelledby="course-setup-title" className="space-y-6 scroll-mt-4">
       <h2 id="course-setup-title" className="sr-only">{t("settings.tabs.setup")}</h2>
       {statusError && <p className="text-caption text-danger-fg" role="alert">{statusError}</p>}
-      {status && (
-        <SetupChecklist
-          courseId={courseId}
-          status={status}
-          showSettingsLink={false}
-          onChanged={() => { loadStatus(); onCourseChanged(); }}
-        />
-      )}
+      {status && <SetupChecklist courseId={courseId} status={status} showSettingsLink={false} />}
 
-      <Section divided title={t("settings.baseline")} actions={<Explainer k="pages.baseline" />}>
-        <BaselinePanel
-          key={baselineKey}
-          courseId={courseId}
-          isDraft={isDraft}
-          onChanged={loadStatus}
-        />
-      </Section>
-
-      <Section
-        divided
-        title={t("settings.guided")}
-        description={t("settings.guidedHelp")}
-        actions={
-          <button
-            type="button"
-            onClick={() => {
-              if (showWizard) { setBaselineKey((k) => k + 1); loadStatus(); onCourseChanged(); }
-              setShowWizard(!showWizard);
-            }}
-            aria-expanded={showWizard}
-            className="inline-flex items-center gap-1.5 text-caption font-semibold text-brand-fg bg-brand-soft border border-brand/40 px-3 py-2 rounded-lg hover:bg-brand-soft transition-colors"
-          >
-            {showWizard ? <><X className="w-3.5 h-3.5" aria-hidden="true" /> {t("settings.closeGuided")}</> : <><ListChecks className="w-3.5 h-3.5" aria-hidden="true" /> {t("settings.guided")}</>}
-          </button>
-        }
+      <Section divided title={t("setup.title")} description={t("setup.settingsHelp")}
+        actions={<Link href={`/course/${courseId}/setup`} className="inline-flex items-center gap-1.5 text-caption font-semibold text-brand-fg bg-brand-soft border border-brand/40 px-3 py-2 rounded-lg"><ListChecks className="w-3.5 h-3.5" aria-hidden="true" /> {t("setup.open")}</Link>}
       />
 
-      {showWizard && (
-        <div id="guided-setup" className="scroll-mt-4">
-        <CourseSetupWizard
-          courseId={courseId}
-          userEmail={userEmail}
-          course={course}
-          onCompleted={() => {
-            setShowWizard(false);
-            setBaselineKey((k) => k + 1);
-            loadStatus();
-            onCourseChanged();
-          }}
-        />
-        </div>
-      )}
+      <Section divided title={t("settings.baseline")} actions={<Explainer k="pages.baseline" />}>
+        <BaselinePanel courseId={courseId} isDraft={isDraft} onChanged={loadStatus} />
+      </Section>
     </section>
   );
 }
@@ -249,7 +199,7 @@ function ShiftTimelinePanel({ courseId, startDate, onApplied }) {
 }
 
 export default function CourseSettingsPage() {
-  const { courseId, course, nav, refresh, isTeacher, userEmail } = useCourse();
+  const { courseId, course, nav, refresh, isTeacher } = useCourse();
   const queryClient = useQueryClient();
   const { showToast } = useToast();
   const { t, tf, navLabel } = useCourseText();
@@ -371,11 +321,12 @@ export default function CourseSettingsPage() {
     }));
     try {
       await apiFetch(`/courses/${courseId}/nav`, { method: "PATCH", json: { items } });
+      showToast(t("settings.navSaved"), "success");
+      refresh();
     } catch (err) {
       showToast(getErrorMessage(err), "error");
     }
     setSaving(false);
-    refresh();
   };
 
   return (
@@ -398,12 +349,7 @@ export default function CourseSettingsPage() {
         {tab === "share" && isTeacher ? (
           <ShareCourseSection courseId={courseId} />
         ) : tab === "setup" && isTeacher ? (
-          <CourseSetupSection
-            courseId={courseId}
-            course={course}
-            userEmail={userEmail}
-            onCourseChanged={refresh}
-          />
+          <CourseSetupSection courseId={courseId} course={course} />
         ) : tab === "details" ? (
           <div className="space-y-8">
             <Section title={t("settings.dates")} description={t("settings.datesHelp")}>
@@ -478,7 +424,11 @@ export default function CourseSettingsPage() {
               <ul aria-label={t("settings.enabledItems")} className="border border-line rounded-xl divide-y divide-line">
                 {enabled.map((item, idx) => (
                   <li key={item.navKey} className="flex items-center justify-between gap-2 px-3 py-2">
-                    <span className="text-ui text-fg-muted">{navLabel(item.navKey, item.label)}</span>
+                    <span className="text-ui text-fg-muted">
+                      {navLabel(item.navKey, item.label)}
+                      {/* Learners can open it, but find it elsewhere than their menu. */}
+                      {NOT_IN_LEARNER_MENU.has(item.navKey) ? <span className="block text-caption text-fg-subtle">{t(`settings.learnersFind.${item.navKey}`)}</span> : null}
+                    </span>
                     <div className="flex items-center gap-1">
                       <button onClick={() => moveEnabled(item.navKey, -1)} disabled={idx === 0} aria-label={tf("settings.moveUp", { name: navLabel(item.navKey, item.label) })} className="p-1 rounded hover:bg-surface-hover disabled:opacity-30"><ChevronUp className="w-3.5 h-3.5" /></button>
                       <button onClick={() => moveEnabled(item.navKey, 1)} disabled={idx === enabled.length - 1} aria-label={tf("settings.moveDown", { name: navLabel(item.navKey, item.label) })} className="p-1 rounded hover:bg-surface-hover disabled:opacity-30"><ChevronDown className="w-3.5 h-3.5" /></button>
@@ -497,7 +447,12 @@ export default function CourseSettingsPage() {
                     <div className="flex items-center gap-1">
                       <button onClick={() => moveHidden(item.navKey, -1)} disabled={idx === 0} aria-label={tf("settings.moveUp", { name: navLabel(item.navKey, item.label) })} className="p-1 rounded hover:bg-surface disabled:opacity-30"><ChevronUp className="w-3.5 h-3.5" /></button>
                       <button onClick={() => moveHidden(item.navKey, 1)} disabled={idx === hidden.length - 1} aria-label={tf("settings.moveDown", { name: navLabel(item.navKey, item.label) })} className="p-1 rounded hover:bg-surface disabled:opacity-30"><ChevronDown className="w-3.5 h-3.5" /></button>
-                      <button onClick={() => toggleVisibility(item.navKey)} className="p-1 rounded hover:bg-surface text-fg-subtle" title={t("settings.show")} aria-label={tf("settings.showNamed", { name: navLabel(item.navKey, item.label) })}><EyeOff className="w-3.5 h-3.5" /></button>
+                      {/* Settings, Insights and Rubrics are for the course's staff only: never shown to learners. */}
+                      {item.staffOnly ? (
+                        <span className="px-1 text-caption font-semibold text-fg-subtle">{t("settings.staffOnly")}</span>
+                      ) : (
+                        <button onClick={() => toggleVisibility(item.navKey)} className="p-1 rounded hover:bg-surface text-fg-subtle" title={t("settings.show")} aria-label={tf("settings.showNamed", { name: navLabel(item.navKey, item.label) })}><EyeOff className="w-3.5 h-3.5" /></button>
+                      )}
                     </div>
                   </li>
                 ))}

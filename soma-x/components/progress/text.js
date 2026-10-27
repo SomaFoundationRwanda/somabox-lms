@@ -25,7 +25,8 @@ export const plural = (tp, key, n, vars = {}) => tp(`${key}${Number(n) === 1 ? "
 
 /** A locale Intl can format with for the UI language ("rw" falls back to "en-RW", then "en"). */
 export function intlLocale(lang) {
-  const wanted = lang === "rw" ? ["rw", "en-RW", "en"] : [lang || "en", "en"];
+  // English as written in Rwanda: day before month, like en-GB (same as the course screens).
+  const wanted = lang === "rw" ? ["rw", "en-RW", "en-GB", "en"] : !lang || lang === "en" ? ["en-GB", "en"] : [lang, "en"];
   try {
     return Intl.DateTimeFormat.supportedLocalesOf(wanted)[0] || "en";
   } catch {
@@ -33,8 +34,11 @@ export function intlLocale(lang) {
   }
 }
 
-/** Date/time string in the UI language; falls back to the browser default if Intl refuses. */
-export function fmtDateTime(value, locale, opts) {
+/**
+ * Date/time string in the UI language, to the minute unless opts say otherwise; falls back to
+ * the browser default if Intl refuses.
+ */
+export function fmtDateTime(value, locale, opts = { dateStyle: "medium", timeStyle: "short" }) {
   const d = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(d.getTime())) return "";
   try {

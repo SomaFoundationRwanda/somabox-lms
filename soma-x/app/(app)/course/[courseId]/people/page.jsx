@@ -23,7 +23,11 @@ import { Select, TextInput } from "@/components/form";
 const ROLE_OPTIONS = ["teacher", "ta", "student", "observer"];
 
 export default function PeoplePage() {
-  const { courseId, isTeacher, course } = useCourse();
+  const { courseId, isTeacher, isCourseTeacher, course } = useCourse();
+  // Assistants add and remove learners and observers; only the course's teacher changes staff.
+  const addableRoles = isCourseTeacher ? ROLE_OPTIONS : ROLE_OPTIONS.filter((r) => r === "student" || r === "observer");
+  // Learners don't see observers in the class list, so there's nothing to filter them by.
+  const filterRoles = isTeacher ? ROLE_OPTIONS : ROLE_OPTIONS.filter((r) => r !== "observer");
   const { t, tf, tOr } = useCourseText();
   const roleLabel = (r) => tOr(`people.roles.${r}`, r);
   const { data: people, loading, error, refetch } = useCourseSection("people");
@@ -64,7 +68,9 @@ export default function PeoplePage() {
     peopleChanged();
   };
 
-  const removePerson = async (enrollmentId) => {
+  const removePerson = async (person) => {
+    if (!window.confirm(tf("people.removeConfirm", { name: person.fullName || person.email || "" }))) return;
+    const enrollmentId = person.id;
     const done = await attempt(() => apiFetch(`/courses/${courseId}/people/${enrollmentId}`, { method: "DELETE", json: {} }).then(() => true), t("people.removeFailed"));
     if (!done) return;
     peopleChanged();
@@ -95,20 +101,20 @@ export default function PeoplePage() {
         />
 
         {/* Learners join with the code; email is for the few who have one (and for staff). */}
-        {isTeacher ? <JoinCodePanel courseId={courseId} isDraft={course?.lifecycle === "draft"} /> : null}
+        {isCourseTeacher ? <JoinCodePanel courseId={courseId} isDraft={course?.lifecycle === "draft"} /> : null}
 
         {adding ? (
           <div className="flex flex-wrap items-center gap-2">
             <TextInput value={form.email} onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))} placeholder={t("people.email")} aria-label={t("people.email")} className="flex-1 min-w-[200px]" />
             <Select value={form.role} onChange={(e) => setForm((p) => ({ ...p, role: e.target.value }))} aria-label={t("people.role")} >
-              {ROLE_OPTIONS.map((r) => <option key={r} value={r}>{roleLabel(r)}</option>)}
+              {addableRoles.map((r) => <option key={r} value={r}>{roleLabel(r)}</option>)}
             </Select>
             <button onClick={addPerson} className="text-caption font-semibold text-on-brand-strong bg-brand-strong rounded-lg px-3 py-2">{t("common.add")}</button>
           </div>
         ) : null}
 
         <div className="flex items-center gap-1.5 flex-wrap" role="group" aria-label={t("people.filterByRole")}>
-          {["all", ...ROLE_OPTIONS].map((r) => (
+          {["all", ...filterRoles].map((r) => (
             <button key={r} onClick={() => setRoleFilter(r)} aria-pressed={roleFilter === r} className={`text-caption font-semibold px-2.5 py-1 rounded-full border ${roleFilter === r ? "bg-brand-strong text-on-brand-strong border-brand-strong" : "border-line text-fg-muted"}`}>
               {r === "all" ? t("people.all") : roleLabel(r)}
             </button>
@@ -127,7 +133,9 @@ export default function PeoplePage() {
                   { key: "email", header: t("people.emailCol"), hideOnMobile: true, className: "text-fg-muted", render: (p) => p.email || "—" },
                 ] : []),
                 { key: "role", header: t("people.role"), className: "text-fg-muted", render: (p) => roleLabel(p.role) },
-                { key: "status", header: t("people.status"), className: "text-fg-muted", render: (p) => tOr(`people.statuses.${p.status}`, p.status) },
+                ...(isTeacher ? [
+                  { key: "status", header: t("people.status"), className: "text-fg-muted", render: (p) => tOr(`people.statuses.${p.status}`, p.status) },
+                ] : []),
                 ...(isTeacher ? [{
                   key: "manage",
                   header: t("people.manage"),
@@ -139,9 +147,11 @@ export default function PeoplePage() {
                           <KeyRound className="w-3.5 h-3.5" />
                         </button>
                       )}
-                      <button onClick={() => removePerson(person.id)} aria-label={tf("people.removeNamed", { name: person.fullName || person.email || "" })} className="p-1.5 rounded-md hover:bg-surface-hover text-danger-fg">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      {isCourseTeacher || person.role === "student" || person.role === "observer" ? (
+                        <button onClick={() => removePerson(person)} aria-label={tf("people.removeNamed", { name: person.fullName || person.email || "" })} className="p-1.5 rounded-md hover:bg-surface-hover text-danger-fg">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      ) : null}
                     </div>
                   ),
                 }] : []),

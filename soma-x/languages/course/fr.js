@@ -26,7 +26,8 @@ export default {
     "courseMenu": "Menu du cours",
     "more": "Plus",
     "hiddenFromStudents": "Masqué aux élèves",
-    "course": "Cours"
+    "course": "Cours",
+    "teachersOnly": "Enseignants seulement"
   },
   "weeks": {
     "baseline": "Semaine 0 · Point de départ",
@@ -35,8 +36,8 @@ export default {
   },
   "lifecycle": {
     "draft": "Brouillon",
-    "open": "Ouvert",
-    "closed": "Fermé",
+    "open": "Publié",
+    "closed": "Terminé",
     "archived": "Archivé"
   },
   "common": {
@@ -67,7 +68,8 @@ export default {
     "download": "Télécharger",
     "open": "Ouvrir",
     "yes": "Oui",
-    "no": "Non"
+    "no": "Non",
+    "point": "{n} pt"
   },
   "home": {
     "eyebrow": "Accueil du cours",
@@ -89,9 +91,12 @@ export default {
       "toGrade": "Travaux en attente de notation : {n}",
       "startsOn": "{week} commence le {date}",
       "unpublishedSoon": "{week} : éléments qui s'ouvrent d'ici le {date} sans être publiés : {n}",
-      "openNow": "{week} : éléments ouverts : {n}, prochaine échéance le {date}",
+      "openNow": "{week} : choses à faire : {n}, prochaine échéance {date}",
       "finished": "{week} est terminée : faites le point avant la semaine suivante",
-      "live": "{week} est en cours"
+      "live": "{week} est en cours",
+      "notScheduled": "Votre enseignant n'a pas encore fixé les dates du cours",
+      "nothingYet": "Rien n'a encore été ajouté à ce cours",
+      "weekDone": "{week} est terminée"
     },
     "loopActions": {
       "openModules": "Ouvrir Semaines",
@@ -103,7 +108,8 @@ export default {
       "setStartDate": "Fixer la date de début",
       "tagOutcomes": "Lier des objectifs",
       "reviewItems": "Vérifier les éléments",
-      "moveItems": "Déplacer les éléments"
+      "moveItems": "Déplacer les éléments",
+      "openProgress": "Ma progression"
     },
     "attention": {
       "noStartDate": "Le cours n'a pas de date de début, donc rien n'est encore daté",
@@ -112,11 +118,11 @@ export default {
       "unassigned": "Éléments pas encore dans une semaine : {n}"
     },
     "beatHelp": {
-      "prepare": "Préparer : vérifiez les éléments de la semaine et leurs objectifs, et validez les brouillons IA avant que les élèves ne commencent.",
-      "release": "Publier : les éléments de la semaine sont en ligne et ouverts aux élèves.",
-      "collect": "Recueillir : suivez la progression des élèves, leurs rendus et leur participation aux discussions.",
-      "grade": "Noter : corrigez les rendus des élèves avec des grilles liées aux objectifs, avec l'aide de l'IA.",
-      "review": "Revoir : comparez la maîtrise des objectifs au point de départ et ajustez la semaine suivante."
+      "prepare": "Vérifiez les éléments de la semaine et leurs objectifs, et approuvez les brouillons IA avant que les apprenants commencent.",
+      "release": "Les éléments de la semaine sont en ligne et ouverts aux apprenants.",
+      "collect": "Suivez la progression, les travaux rendus et la participation aux discussions.",
+      "grade": "Notez les travaux avec des grilles liées aux objectifs, avec l'aide de l'IA.",
+      "review": "Comparez la maîtrise des objectifs avec le point de départ et ajustez la semaine suivante."
     },
     "needsAttention": "À traiter",
     "allTagged": "Rien ne demande votre attention pour le moment.",
@@ -132,7 +138,20 @@ export default {
     "courseTimeline": "Chronologie du cours",
     "current": "En cours",
     "defaultModuleDescription": "Supports d'étude et devoirs de la semaine.",
-    "openModuleItems": "Ouvrir cette semaine"
+    "openModuleItems": "Ouvrir cette semaine",
+    "ready": {
+      "title": "Préparation",
+      "todo": "Les apprenants ne voient pas encore ce cours. Terminez ceci, puis publiez-le depuis la barre du haut.",
+      "done": "Tout est prêt. Publiez le cours depuis la barre du haut quand vous voulez que les apprenants le voient."
+    },
+    "baselineCard": {
+      "title": "Mesurer le point de départ des apprenants (facultatif)",
+      "text": "Un court test non noté avant la semaine 1 montre le point de départ de chaque apprenant, pour voir combien il progresse.",
+      "build": "Créer un test de semaine 0",
+      "notNow": "Pas cette fois",
+      "skipReason": "Pas cette fois",
+      "failed": "Impossible d'enregistrer. Réessayez."
+    }
   },
   "items": {
     "page": "Page",
@@ -181,7 +200,8 @@ export default {
       "deleteModule": "Impossible de supprimer la semaine",
       "renameModule": "Impossible de renommer la semaine",
       "publishItem": "Impossible de publier l'élément",
-      "unpublishItem": "Impossible de dépublier l'élément"
+      "unpublishItem": "Impossible de dépublier l'élément",
+      "moveItem": "Impossible de déplacer l'élément."
     },
     "confirmDeleteModule": "Supprimer la semaine « {title} » ? Seules les semaines vides peuvent être supprimées.",
     "dragModule": "Glisser pour réordonner la semaine",
@@ -253,8 +273,33 @@ export default {
       "starting": "Démarrage…",
       "writeStoryDraft": "Rédiger un brouillon d'histoire",
       "beingWritten": "Les brouillons IA de cette semaine sont en cours d'écriture. Cela peut prendre quelques minutes.",
-      "openDrafts": "Ouvrir les brouillons IA"
-    }
+      "openDrafts": "Ouvrir les brouillons IA",
+      "fillWeekMenu": "IA : remplir cette semaine",
+      "storyMenu": "IA : écrire une histoire"
+    },
+    "descriptionLearner": "Votre cours semaine par semaine : les dates de chaque semaine et ce qu'il faut faire, dans l'ordre.",
+    "hiddenByWeek": "Masqué : la semaine est un brouillon",
+    "itemActions": "Actions pour {title}",
+    "weekActions": "Actions pour {title}",
+    "publishWeekNamed": "Publier la semaine {title}",
+    "publishItemsTooOne": "Cette semaine a 1 élément en brouillon. Le publier aussi, pour que les apprenants le voient ?",
+    "publishItemsTooMany": "Cette semaine a {n} éléments en brouillon. Les publier aussi, pour que les apprenants les voient ?",
+    "renameSubHeader": "Renommer",
+    "filterLabel": "Afficher",
+    "filterAll": "Tout",
+    "filter": {
+      "page": "Pages",
+      "assignment": "Devoirs",
+      "quiz": "Quiz",
+      "discussion": "Discussions",
+      "file": "Fichiers"
+    },
+    "noMatchingItems": "Aucun dans cette semaine.",
+    "moveToWeek": "Déplacer vers une autre semaine…",
+    "moveTitle": "Déplacer {title}",
+    "moveToLabel": "Déplacer vers",
+    "move": "Déplacer",
+    "moved": "Déplacé"
   },
   "quizKinds": {
     "graded": "Noté",
@@ -352,7 +397,18 @@ export default {
       "uploading": "Téléversement...",
       "done": "Terminé !",
       "uploadAdd": "Téléverser et ajouter"
-    }
+    },
+    "backToWeeks": "Retour aux semaines",
+    "notFound": "Cet élément n'est plus dans le cours.",
+    "saved": "Enregistré",
+    "added": "Ajouté à la semaine",
+    "editDiscussion": "Modifier la discussion",
+    "newDiscussion": "Nouvelle discussion",
+    "discussionTitle": "Titre de la discussion",
+    "discussionTitlePlaceholder": "ex. Où voyez-vous des fractions à la maison ?",
+    "discussionPrompt": "Question ou consigne",
+    "discussionPromptHint": "Ce à quoi les apprenants répondent ou dont ils discutent. Vous pouvez noter la discussion depuis sa page.",
+    "createDiscussion": "Créer la discussion"
   },
   "editor": {
     "heading1": "Titre 1",
@@ -498,7 +554,9 @@ export default {
     "noQuizzes": "Aucun quiz pour l'instant.",
     "oneQuestion": "{n} question",
     "manyQuestions": "{n} questions",
-    "relativeTiming": "Dates selon la semaine"
+    "relativeTiming": "Dates selon la semaine",
+    "assignmentsDescriptionLearner": "Le travail à rendre ou à faire pour une note, semaine par semaine.",
+    "quizzesDescriptionLearner": "Les quiz à faire, semaine par semaine. Les quiz d'entraînement ne comptent pas dans votre note."
   },
   "assignment": {
     "closed": "Ce devoir est fermé.",
@@ -526,7 +584,7 @@ export default {
     "rubric": "Grille d'évaluation",
     "rubricHelp": "Votre travail est noté selon ces critères puis converti en note sur {n}.",
     "yourSubmission": "Votre rendu",
-    "observerNote": "Vous observez ce cours : vous pouvez lire le devoir, mais pas rendre de travail.",
+    "observerNote": "Vous consultez ce cours sans y participer : vous pouvez lire le devoir mais pas le rendre.",
     "opens": "Ouverture",
     "due": "À rendre",
     "closes": "Clôture",
@@ -546,11 +604,12 @@ export default {
     "dismiss": "Fermer",
     "submitting": "Envoi...",
     "resubmit": "Rendre à nouveau",
-    "submit": "Rendre le devoir"
+    "submit": "Rendre le devoir",
+    "courseEnded": "Ce cours est terminé : le travail ne peut plus être rendu."
   },
   "quiz": {
     "noAttemptsLeft": "Vous avez utilisé toutes vos tentatives pour ce quiz.",
-    "observerNote": "Vous observez ce cours : vous pouvez lire le quiz, mais pas y répondre.",
+    "observerNote": "Vous consultez ce cours sans y participer : vous pouvez lire le quiz mais pas le faire.",
     "closed": "Ce quiz est fermé.",
     "notOpenYet": "Ce quiz n'est pas encore ouvert.",
     "submitFailed": "Impossible d'envoyer le quiz.",
@@ -585,7 +644,9 @@ export default {
     "unlimitedAttempts": "Tentatives illimitées",
     "allUsed": "Les {n} tentatives sont utilisées",
     "attemptOf": "Tentative {n} sur {total}",
-    "submit": "Envoyer les réponses"
+    "submit": "Envoyer les réponses",
+    "courseEnded": "Ce cours est terminé : le quiz ne peut plus être fait.",
+    "correctAnswer": "Bonne réponse"
   },
   "discussions": {
     "chooseModuleError": "Choisissez une semaine pour cette discussion.",
@@ -604,13 +665,14 @@ export default {
     "notFound": "Discussion introuvable.",
     "grading": "Notation",
     "removeGrading": "Retirer la notation",
-    "markGraded": "Rendre notée",
+    "markGraded": "Noter cette discussion",
     "syncs": "apparaît dans Devoirs et Notes",
     "repliesCount": "Réponses ({n})",
     "replies": "Réponses",
     "noReplies": "Aucune réponse pour l'instant. Soyez le premier.",
     "replyPlaceholder": "Écrire une réponse...",
-    "reply": "Répondre"
+    "reply": "Répondre",
+    "gradeHint": "Notée, elle est évaluée sur ces points et apparaît dans Devoirs et Notes."
   },
   "announcements": {
     "new": "Nouvelle annonce",
@@ -636,7 +698,8 @@ export default {
     "grade": "Note",
     "schedule": "Calendrier semaine par semaine",
     "loadingSchedule": "Chargement du calendrier...",
-    "noSchedule": "Aucune semaine pour l'instant."
+    "noSchedule": "Aucune semaine pour l'instant.",
+    "eyebrowLearner": "Programme"
   },
   "files": {
     "empty": "Aucun fichier téléversé pour l'instant."
@@ -669,7 +732,7 @@ export default {
       "turnOff": "Désactiver",
       "confirmNew": "Créer un nouveau code ? L'actuel ne fonctionnera plus.",
       "failed": "Impossible de modifier le code d'accès",
-      "draftNote": "Les élèves pourront s'inscrire une fois le cours ouvert.",
+      "draftNote": "Les apprenants pourront rejoindre le cours une fois qu'il sera publié.",
       "orEmail": "Ou ajoutez quelqu'un par e-mail"
     },
     "all": "Tous",
@@ -679,7 +742,8 @@ export default {
     "emailCol": "E-mail",
     "status": "Statut",
     "manage": "Gérer",
-    "removeNamed": "Retirer {name}"
+    "removeNamed": "Retirer {name}",
+    "removeConfirm": "Retirer {name} de ce cours ?"
   },
   "collab": {
     "description": "Partagez un lien vers un document, un tableur ou un tableau externe avec certains membres du cours.",
@@ -764,10 +828,10 @@ export default {
     "bannerChoose": "Choisir une image",
     "bannerChange": "Choisir une autre image",
     "banner": "Image de bannière",
-    "visibility": "Visibilité",
-    "private": "Privé : sur invitation",
-    "public": "Public : visible dans Découvrir des cours",
-    "publicHelp": "Les cours publics apparaissent dans le catalogue et chacun peut les rejoindre sans invitation.",
+    "visibility": "Qui peut rejoindre ce cours ?",
+    "private": "Seulement les personnes que j'ajoute, ou qui ont le code",
+    "public": "Tout le monde sur ce boîtier : il figure dans Découvrir des cours",
+    "publicHelp": "C'est distinct de la publication : personne ne peut rejoindre un cours en brouillon avant qu'il soit publié.",
     "navHelp": "Les éléments activés apparaissent dans le menu pour tous. Les éléments masqués restent visibles pour vous (grisés) mais pas pour les élèves.",
     "enabled": "Activés",
     "enabledItems": "Éléments de navigation activés",
@@ -782,31 +846,38 @@ export default {
     "status": {
       "title": "Statut du cours",
       "now": {
-        "draft": "Ce cours est un brouillon. Ouvrez-le depuis la configuration du cours quand il est prêt.",
-        "open": "Ouvert : les élèves voient le cours et peuvent rendre leurs travaux.",
-        "closed": "Fermé : les élèves peuvent encore lire le cours et voir leurs notes, mais ne peuvent plus rendre de travail ni faire de quiz.",
+        "draft": "Ce cours est un brouillon. Publiez-le depuis la barre du haut quand il est prêt.",
+        "open": "Publié : les apprenants voient le cours et peuvent rendre leur travail.",
+        "closed": "Terminé : les apprenants peuvent encore lire le cours et voir leurs notes, mais ne peuvent plus rendre de travail ni faire de quiz.",
         "archived": "Archivé : les élèves ne voient plus ce cours dans leur liste. Les notes et résultats sont conservés."
       },
       "action": {
         "open": "Rouvrir le cours",
-        "closed": "Fermer le cours",
+        "closed": "Terminer le cours",
         "archived": "Archiver le cours",
         "delete": "Supprimer le cours"
       },
       "confirm": {
         "open": "Rouvrir ce cours ? Les élèves pourront de nouveau rendre leurs travaux.",
-        "closed": "Fermer ce cours ? Les élèves pourront encore le lire et voir leurs notes, mais plus rendre de travail.",
+        "closed": "Terminer ce cours ? Les apprenants peuvent encore le lire et voir leurs notes, mais ne peuvent plus rendre de travail.",
         "archived": "Archiver ce cours ? Il disparaît de la liste des élèves. Les notes et résultats sont conservés.",
         "delete": "Supprimer « {title} » définitivement ? Impossible d'annuler."
       },
       "done": {
         "open": "Cours rouvert",
-        "closed": "Cours fermé",
+        "closed": "Cours terminé",
         "archived": "Cours archivé"
       },
       "deleted": "Cours supprimé",
       "hasWork": "Des élèves ont rendu des travaux dans ce cours : il ne peut pas être supprimé. Archivez-le plutôt : il quitte leur liste et leurs résultats sont conservés.",
       "failed": "Impossible de changer le statut du cours."
+    },
+    "navSaved": "Navigation enregistrée",
+    "staffOnly": "Équipe seulement",
+    "learnersFind": {
+      "pages": "Les apprenants trouvent les pages dans Semaines, pas dans leur menu",
+      "outcomes": "Les apprenants voient leurs objectifs dans Ma progression, pas dans leur menu",
+      "attendance": "Les apprenants voient leurs présences dans Notes, pas dans leur menu"
     }
   },
   "calendar": {
@@ -863,5 +934,105 @@ export default {
     "nothingPeriod": "Rien de prévu sur cette période.",
     "nothingAhead": "Rien de prévu à partir d'aujourd'hui.",
     "showLater": "Afficher les dates suivantes"
+  },
+  "access": {
+    "sectionTitle": "Cette partie du cours ne vous est pas ouverte",
+    "sectionText": "{section} est réservé aux enseignants de ce cours, ou votre enseignant ne l'a pas encore ouvert à la classe.",
+    "backToCourse": "Retour au cours",
+    "publicText": "Tout le monde sur ce boîtier peut rejoindre ce cours.",
+    "join": "Rejoindre ce cours",
+    "joining": "Inscription...",
+    "joinFailed": "Impossible de rejoindre le cours. Réessayez.",
+    "discover": "Voir d'autres cours",
+    "privateTitle": "Vous n'êtes pas inscrit à ce cours",
+    "privateText": "Demandez à votre enseignant de vous ajouter, ou rejoignez-le avec le code que votre enseignant donne à la classe.",
+    "removedTitle": "Vous n'êtes plus inscrit à ce cours",
+    "removedText": "Votre place dans ce cours a été retirée. Demandez à votre enseignant de vous ajouter à nouveau.",
+    "joinWithCode": "Rejoindre avec un code"
+  },
+  "status": {
+    "publish": "Publier le cours",
+    "more": "Autres actions du cours",
+    "note": {
+      "draft": "Les apprenants ne voient pas ce cours tant que vous ne l'avez pas publié.",
+      "open": "Les apprenants du cours le voient et peuvent rendre leur travail.",
+      "closed": "Les apprenants peuvent encore le lire et voir leurs notes, mais ne peuvent plus rendre de travail.",
+      "archived": "Retiré des listes de cours des apprenants. Les notes et résultats sont conservés."
+    },
+    "published": "Cours publié",
+    "publishFailed": "Impossible de publier le cours. Réessayez.",
+    "missingTitle": "Avant de publier",
+    "missingText": "Terminez d'abord ceci :",
+    "fix": "Corriger",
+    "publishTitle": "Publier ce cours ?",
+    "publishText": "Les apprenants du cours le verront et pourront commencer son travail.",
+    "joinPublic": "Tout le monde sur ce boîtier peut le trouver et le rejoindre dans Découvrir des cours.",
+    "joinPrivate": "Seules les personnes que vous ajoutez, ou qui ont le code, peuvent le rejoindre.",
+    "weeksAskOne": "1 semaine avec du contenu est encore un brouillon. La publier aussi, pour que les apprenants la voient ?",
+    "weeksAskMany": "{n} semaines avec du contenu sont encore des brouillons. Les publier aussi, pour que les apprenants les voient ?",
+    "publishWithWeekOne": "Publier le cours et 1 semaine",
+    "publishWithWeeksMany": "Publier le cours et {n} semaines",
+    "publishOnly": "Publier seulement le cours",
+    "unarchive": "Restaurer (comme terminé)"
+  },
+  "setup": {
+    "title": "Configurer votre cours",
+    "intro": "Trois courtes étapes. Vous pouvez revenir à chacune et tout modifier plus tard.",
+    "progress": "Étapes de configuration",
+    "steps": {
+      "when": "Quand",
+      "outcomes": "Ce que vous enseignez",
+      "firstWeek": "Première semaine",
+      "ready": "Prêt"
+    },
+    "whenTitle": "Quand a lieu le cours ?",
+    "whenText": "Choisissez le premier jour de la semaine 1 et le nombre de semaines. Toutes les semaines et échéances en découlent.",
+    "startDate": "Premier jour de la semaine 1",
+    "startHint": "Les dates de chaque semaine suivent ce jour.",
+    "weekCount": "Nombre de semaines",
+    "endsOn": "Se termine actuellement le {date}",
+    "chooseStart": "Choisissez le premier jour de la semaine 1.",
+    "saveFailed": "Impossible d'enregistrer. Réessayez.",
+    "continue": "Continuer",
+    "back": "Retour",
+    "outcomesTitle": "Que sauront faire les apprenants ?",
+    "outcomesText": "Ce sont les objectifs d'apprentissage du cours : des compétences courtes et vérifiables, comme « Additionner des fractions de dénominateurs différents ». Le travail noté y est lié, pour suivre la progression de chacun.",
+    "outcomeLabel": "Un objectif",
+    "outcomePlaceholder": "ex. Additionner des fractions de dénominateurs différents",
+    "addOutcome": "Ajouter",
+    "aiOutcomesText": "L'IA peut proposer des objectifs (et un plan des semaines) à partir de la description du cours. Rien ne change tant que vous ne les acceptez pas.",
+    "aiOutcomes": "Proposer des objectifs avec l'IA",
+    "outcomesLater": "Vous pouvez passer cette étape, mais le travail noté a besoin d'un objectif avant que les apprenants le voient.",
+    "firstWeekTitle": "Quelque chose pour la {week}",
+    "firstWeekNoWeeks": "Votre première semaine",
+    "firstWeekText": "Ajoutez ce que les apprenants lisent, font ou répondent la première semaine. Vous pourrez en ajouter à toute semaine plus tard depuis Semaines.",
+    "weekEmpty": "Rien dans {week} pour l'instant.",
+    "aiWeekText": "Ou laissez l'IA préparer la semaine : une page, un quiz et un devoir, à vérifier.",
+    "aiWeek": "Laisser l'IA préparer la {week}",
+    "aiWeekStarted": "L'IA prépare la semaine. Vérifiez les brouillons dans Brouillons IA avant de les ajouter.",
+    "addWeeksFirst": "Ajoutez d'abord les semaines",
+    "readyTitle": "Votre cours est prêt",
+    "readyText": "Publiez-le quand vous voulez que les apprenants le voient, ou gardez-le en brouillon pour plus tard.",
+    "publishedText": "Votre cours est publié.",
+    "almostTitle": "Presque fini",
+    "almostText": "Terminez ceci avant de pouvoir publier :",
+    "keepDraft": "Garder en brouillon pour l'instant",
+    "toCourse": "Aller au cours",
+    "teacherOnly": "Seul l'enseignant du cours peut le configurer.",
+    "open": "Configurer pas à pas",
+    "settingsHelp": "Dates et semaines, objectifs et première semaine, une étape à la fois."
+  },
+  "learnerHome": {
+    "nextUp": "À faire ensuite",
+    "allDone": "Vous êtes à jour. Rien à faire pour l'instant.",
+    "more": "Plus sur ce cours",
+    "work": "Tout votre travail",
+    "weeks": "Toutes les semaines",
+    "comingUp": "À venir",
+    "openGrades": "Ouvrir Notes",
+    "openWeeks": "Ouvrir Semaines",
+    "openProgress": "Ouvrir Ma progression",
+    "openAnnouncements": "Toutes les annonces",
+    "noNews": "Pas encore d'annonces."
   }
 };

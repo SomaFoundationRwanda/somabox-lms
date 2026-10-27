@@ -112,11 +112,6 @@ export default {
     yourGrades: "Your grades",
     gradebook: "Gradebook",
   },
-  progressPage: {
-    teacherTitle: "My progress is for learners",
-    teacherHint: "Teachers can see every learner's progress in Insights.",
-    openInsights: "Open Insights",
-  },
   outcomes: {
     title: "Learning outcomes & mastery",
     description: "The skills this course teaches. For each one, see where learners started (Week 0) and where they are now.",
@@ -142,6 +137,9 @@ export default {
     loading: "Loading outcomes...",
     empty: "No learning outcomes defined yet.",
     emptyHint: "Add the skills this course teaches, then link them to quizzes and assignments to follow learners' progress.",
+    descriptionLearner: "The skills this course teaches, and how you're doing on each one.",
+    masteryTitleLearner: "How you're doing on each outcome",
+    emptyHintLearner: "Your teacher hasn't added this course's outcomes yet.",
     masteryList: "Outcome mastery",
     rewriteAria: "Rewrite outcome {name} with AI",
     rewriteWithAi: "Rewrite with AI",

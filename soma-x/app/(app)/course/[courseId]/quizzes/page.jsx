@@ -23,7 +23,7 @@ export default function QuizzesListPage() {
       <div className="p-4 md:p-6 space-y-6 max-w-4xl">
         <PageHeader help="pages.quizzes"
           title={t("nav.quizzes")}
-          description={t("lists.quizzesDescription")}
+          description={isTeacher ? t("lists.quizzesDescription") : undefined}
           actions={isTeacher ? (
             <Link
               href={`/course/${courseId}/modules`}
@@ -35,7 +35,7 @@ export default function QuizzesListPage() {
         />
 
         {quizzes.length === 0 ? (
-          loading ? <Loader variant="page" size={48} className="min-h-[25vh]" label={t("lists.loadingQuizzes")} /> : <EmptyState compact title={t("lists.noQuizzes")} description={<ExplainerText k="pages.quizzes" />} />
+          loading ? <Loader variant="page" size={48} className="min-h-[25vh]" label={t("lists.loadingQuizzes")} /> : <EmptyState compact title={t("lists.noQuizzes")} description={isTeacher ? <ExplainerText k="pages.quizzes" /> : null} />
         ) : (
           <List label={t("nav.quizzes")}>
             {quizzes.map((q) => (

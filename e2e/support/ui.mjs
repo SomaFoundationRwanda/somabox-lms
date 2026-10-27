@@ -20,3 +20,16 @@ export async function expectToast(page, text) {
 export async function skipTour(page) {
   await page.addInitScript(() => localStorage.setItem("somabox_tour_seen_v1", "1"));
 }
+
+// Publishes a draft course from the status bar: the dialog either publishes the weeks that have
+// content too (withWeeks, the default) or the course only.
+export async function publishCourse(page, { withWeeks = true } = {}) {
+  await page.getByRole("button", { name: t("course.status.publish"), exact: true }).first().click();
+  const dialog = page.getByRole("dialog", { name: t("course.status.publishTitle") });
+  await expect(dialog).toBeVisible();
+  const withWeeksButton = dialog.getByRole("button", { name: /^Publish course and/ });
+  if (withWeeks && await withWeeksButton.count()) await withWeeksButton.click();
+  else if (await dialog.getByRole("button", { name: t("course.status.publishOnly") }).count()) await dialog.getByRole("button", { name: t("course.status.publishOnly") }).click();
+  else await dialog.getByRole("button", { name: t("course.status.publish"), exact: true }).click();
+  await expect(dialog).toBeHidden();
+}

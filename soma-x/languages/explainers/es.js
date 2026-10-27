@@ -104,7 +104,7 @@ export default {
     baseline: {
       title: "Evaluación inicial (semana 0)",
       what: "Una prueba corta y sin nota antes de la semana 1. Cada pregunta está vinculada a un resultado de aprendizaje, para ver desde dónde empieza cada estudiante.",
-      when: "Prepárala antes de abrir el curso. Si no la haces, anota por qué.",
+      when: "Opcional: antes de la semana 1, si quieres ver cuánto avanzan los estudiantes. Si lo omites, di por qué.",
       mistake: "Usar preguntas que no se corrigen solas. Las preguntas deben ser de opción múltiple con una respuesta correcta.",
     },
     unassigned: {
@@ -191,7 +191,7 @@ export default {
     setup: {
       title: "Preparación del curso",
       what: "Todo lo que hay que hacer antes de que el curso pueda abrirse, y lo que conviene revisar.",
-      when: "Antes de abrir el curso. Los pasos obligatorios deben hacerse; los avisos son consejos.",
+      when: "Antes de publicar el curso. Los pasos obligatorios deben estar hechos; las advertencias son consejos.",
     },
     shiftTimeline: {
       title: "Mover fechas",

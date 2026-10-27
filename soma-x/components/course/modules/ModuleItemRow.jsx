@@ -3,10 +3,12 @@
 import Link from "next/link";
 import {
   FileText, ClipboardList, HelpCircle, Upload, MessageSquare, Minus,
-  Eye, EyeOff, Pencil, Trash2, GripVertical, Check, AlertTriangle,
+  Eye, EyeOff, Pencil, Trash2, GripVertical, Check, AlertTriangle, MoveRight,
 } from "lucide-react";
 import { toLocalDate } from "@/lib/dates";
 import { useCourseText } from "@/components/course/useCourseText";
+import { Button } from "@/components/ui/button";
+import ActionMenu from "@/components/ui/ActionMenu";
 
 // Labels come from course.modules.status.<key>; shown as small plain text on the right.
 const ITEM_STATUS_HINTS = {
@@ -54,9 +56,11 @@ const ITEM_ICONS = {
 };
 
 // One item as a full-width row: type icon, title with a gray subtitle (dates, points, outcome),
-// and only its status on the right. `grouped` indents rows that sit under a group label.
+// and its status on the right. For teachers: a status chip in words, Publish as the one button on
+// a draft, and the rest in a "⋯" menu (always visible, no hover). `weekPublished` says whether
+// learners can see the week at all. `grouped` indents rows under a group label.
 // dnd: from SortableItemList (teachers only); without it the row is static.
-export default function ModuleItemRow({ item, courseId, isTeacher, onTogglePublish, onEdit, onDelete, grouped = false, dnd = null }) {
+export default function ModuleItemRow({ item, courseId, isTeacher, weekPublished = true, onTogglePublish, onEdit, onDelete, onMove, grouped = false, dnd = null }) {
   const setNodeRef = dnd?.setNodeRef;
   const attributes = dnd?.attributes || {};
   const listeners = dnd?.listeners || {};
@@ -89,11 +93,10 @@ export default function ModuleItemRow({ item, courseId, isTeacher, onTogglePubli
         ref={setNodeRef}
         style={style}
         className={`flex items-center justify-between gap-2 pr-5 py-3.5 ${isDragging ? "opacity-40 bg-warning-soft" : ""}`}
-        {...attributes}
       >
         <div className="flex items-center gap-2 min-w-0">
           {isTeacher && (
-            <button {...listeners} aria-label={t("modules.dragSubHeader")} className="cursor-grab active:cursor-grabbing p-0.5 text-fg-subtle hover:text-fg-subtle shrink-0">
+            <button {...attributes} {...listeners} aria-label={t("modules.dragSubHeader")} className="cursor-grab active:cursor-grabbing p-0.5 text-fg-subtle hover:text-fg-subtle shrink-0">
               <GripVertical className="w-3.5 h-3.5" />
             </button>
           )}
@@ -102,14 +105,13 @@ export default function ModuleItemRow({ item, courseId, isTeacher, onTogglePubli
           </span>
         </div>
         {isTeacher && (
-          <div className="flex items-center gap-0.5 shrink-0">
-            <button onClick={onEdit} className="p-1 rounded hover:bg-surface text-fg-subtle" title={t("common.edit")} aria-label={tf("modules.editNamed", { title: item.title })}>
-              <Pencil className="w-3 h-3" />
-            </button>
-            <button onClick={onDelete} className="p-1 rounded hover:bg-surface text-danger-fg" title={t("common.delete")} aria-label={tf("modules.deleteNamed", { title: item.title })}>
-              <Trash2 className="w-3 h-3" />
-            </button>
-          </div>
+          <ActionMenu
+            label={tf("modules.itemActions", { title: item.title })}
+            items={[
+              { key: "edit", label: t("modules.renameSubHeader"), icon: Pencil, onSelect: onEdit },
+              { key: "delete", label: t("common.delete"), icon: Trash2, onSelect: onDelete, danger: true },
+            ]}
+          />
         )}
       </li>
     );
@@ -150,10 +152,15 @@ export default function ModuleItemRow({ item, courseId, isTeacher, onTogglePubli
     </div>
   );
 
-  // Right edge: status only (complete, missing outcome, not open yet / past due / closed).
+  // Right edge: status (complete, missing outcome, not open yet / past due / closed) and, for
+  // teachers, whether learners can see it, in words.
+  const visibility = !isTeacher ? null
+    : !item.published ? { text: t("common.draft"), cls: "bg-surface-sunken text-fg-muted border-line" }
+    : !weekPublished ? { text: t("modules.hiddenByWeek"), cls: "bg-warning-soft text-warning-fg border-warning/30" }
+    : { text: t("common.published"), cls: "bg-success-soft text-success-fg border-success/30" };
   const Status = (
     <div className="flex items-center gap-2 shrink-0 text-caption">
-      {needsOutcome && !hasOutcomeTag ? (
+      {isTeacher && needsOutcome && !hasOutcomeTag ? (
         <span className="inline-flex items-center gap-1 text-warning-fg">
           <AlertTriangle className="w-3.5 h-3.5" aria-hidden="true" />
           {t("modules.missingOutcome")}
@@ -161,6 +168,7 @@ export default function ModuleItemRow({ item, courseId, isTeacher, onTogglePubli
       ) : null}
       {statusHint ? <span className={statusHint.cls}>{t(`modules.status.${item.status}`)}</span> : null}
       {isComplete ? <Check className="w-4 h-4 text-success-fg" aria-label={t("modules.complete")} /> : null}
+      {visibility ? <span className={`font-semibold px-2 py-0.5 rounded-full border whitespace-nowrap ${visibility.cls}`}>{visibility.text}</span> : null}
     </div>
   );
 
@@ -169,11 +177,10 @@ export default function ModuleItemRow({ item, courseId, isTeacher, onTogglePubli
       ref={setNodeRef}
       style={style}
       className={`flex items-center justify-between gap-3 pr-5 py-3.5 group ${isDragging ? "opacity-40 bg-info-soft" : "hover:bg-surface-hover/80"}`}
-      {...attributes}
     >
       <div className="flex items-center gap-1.5 min-w-0 flex-1">
         {isTeacher && (
-          <button {...listeners} className="cursor-grab active:cursor-grabbing p-0.5 text-line-strong hover:text-fg-subtle opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity shrink-0" aria-label={t("modules.dragItem")}>
+          <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing p-0.5 text-fg-subtle hover:text-fg-muted shrink-0" aria-label={t("modules.dragItem")}>
             <GripVertical className="w-3.5 h-3.5" />
           </button>
         )}
@@ -189,16 +196,22 @@ export default function ModuleItemRow({ item, courseId, isTeacher, onTogglePubli
       {Status}
 
       {isTeacher && (
-        <div className="flex items-center gap-0.5 shrink-0 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100 transition-opacity">
-          <button onClick={onTogglePublish} className="p-1 rounded hover:bg-surface" title={item.published ? t("modules.unpublish") : t("modules.publish")} aria-label={tf(item.published ? "modules.unpublishNamed" : "modules.publishNamed", { title: item.title })}>
-            {item.published ? <Eye className="w-3.5 h-3.5 text-success-fg" /> : <EyeOff className="w-3.5 h-3.5 text-fg-subtle" />}
-          </button>
-          <button onClick={onEdit} className="p-1 rounded hover:bg-surface text-fg-subtle" title={t("common.edit")} aria-label={tf("modules.editNamed", { title: item.title })}>
-            <Pencil className="w-3.5 h-3.5" />
-          </button>
-          <button onClick={onDelete} className="p-1 rounded hover:bg-surface text-danger-fg" title={t("common.delete")} aria-label={tf("modules.deleteNamed", { title: item.title })}>
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
+        <div className="flex items-center gap-1 shrink-0">
+          {!item.published ? (
+            <Button type="button" size="sm" variant="outline" onClick={onTogglePublish} aria-label={tf("modules.publishNamed", { title: item.title })}>
+              {t("modules.publish")}
+            </Button>
+          ) : null}
+          <ActionMenu
+            label={tf("modules.itemActions", { title: item.title })}
+            items={[
+              { key: "edit", label: t("common.edit"), icon: Pencil, onSelect: onEdit },
+              item.published ? { key: "unpublish", label: t("modules.unpublish"), icon: EyeOff, onSelect: onTogglePublish } : { key: "publish", label: t("modules.publish"), icon: Eye, onSelect: onTogglePublish },
+              onMove ? { key: "move", label: t("modules.moveToWeek"), icon: MoveRight, onSelect: onMove } : null,
+              { separator: true },
+              { key: "delete", label: t("common.delete"), icon: Trash2, onSelect: onDelete, danger: true },
+            ]}
+          />
         </div>
       )}
     </li>

@@ -110,11 +110,6 @@ export default {
     yourGrades: "Alama zako",
     gradebook: "Daftari la alama",
   },
-  progressPage: {
-    teacherTitle: "Maendeleo yangu ni kwa ajili ya wanafunzi",
-    teacherHint: "Walimu wanaweza kuona maendeleo ya kila mwanafunzi katika Uchambuzi.",
-    openInsights: "Fungua Uchambuzi",
-  },
   outcomes: {
     title: "Malengo ya kujifunza na umahiri",
     description: "Ujuzi ambao kozi hii inafundisha. Kwa kila mmoja, ona wanafunzi walipoanzia (Wiki 0) na walipo sasa.",
@@ -140,6 +135,9 @@ export default {
     loading: "Inapakia malengo...",
     empty: "Bado hakuna malengo ya kujifunza yaliyowekwa.",
     emptyHint: "Ongeza ujuzi ambao kozi hii inafundisha, kisha uuunganishe na majaribio na kazi ili kufuatilia maendeleo ya wanafunzi.",
+    descriptionLearner: "Ujuzi unaofundishwa katika kozi hii, na unavyoendelea katika kila mmoja.",
+    masteryTitleLearner: "Unavyoendelea katika kila lengo",
+    emptyHintLearner: "Mwalimu wako bado hajaongeza malengo ya kozi hii.",
     masteryList: "Umahiri wa malengo",
     rewriteAria: "Andika upya lengo {name} kwa AI",
     rewriteWithAi: "Andika upya kwa AI",

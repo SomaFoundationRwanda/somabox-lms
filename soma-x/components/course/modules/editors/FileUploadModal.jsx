@@ -1,13 +1,14 @@
 "use client";
 
+import EditorFrame from "./EditorFrame";
 import { useState } from "react";
-import { X, Upload, FileIcon, CheckCircle } from "lucide-react";
+import { Upload, FileIcon, CheckCircle } from "lucide-react";
 import { useCourseText } from "@/components/course/useCourseText";
 import { apiFetch } from "@/lib/api";
 import { Label, TextInput } from "@/components/form";
 import { FileDrop } from "@/components/form";
 
-export default function FileUploadModal({ open, onClose, onUpload, courseId, moduleId }) {
+export default function FileUploadModal({ asPage = false, open, onClose, onUpload, courseId, moduleId }) {
   const { t } = useCourseText();
   const [file, setFile] = useState(null);
   const [title, setTitle] = useState("");
@@ -50,17 +51,10 @@ export default function FileUploadModal({ open, onClose, onUpload, courseId, mod
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  if (!open) return null;
+  if (!open && !asPage) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 backdrop-blur-sm overflow-auto py-8">
-      <div className="bg-surface rounded-2xl w-full max-w-md shadow-2xl mx-4 animate-in fade-in slide-in-from-bottom-2 duration-200">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-line">
-          <h2 className="text-item font-bold text-fg">{t("editors.file.title")}</h2>
-          <button aria-label={t("common.close")} onClick={onClose} className="p-1.5 rounded-lg hover:bg-surface-hover text-fg-subtle">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
+    <EditorFrame asPage={asPage} title={t("editors.file.title")} onClose={onClose} maxWidth="max-w-md">
 
         <div className="px-6 py-4 space-y-4">
           {/* Drop zone */}
@@ -105,7 +99,6 @@ export default function FileUploadModal({ open, onClose, onUpload, courseId, mod
             {uploading ? t("editors.file.uploading") : done ? t("editors.file.done") : t("editors.file.uploadAdd")}
           </button>
         </div>
-      </div>
-    </div>
+    </EditorFrame>
   );
 }

@@ -5,6 +5,7 @@ import { api, uid } from "../support/api.mjs";
 import { authFile } from "../support/env.mjs";
 import { t } from "../support/i18n.mjs";
 import { seedCourse } from "../support/seed.mjs";
+import { publishCourse } from "../support/ui.mjs";
 
 const bt = (key) => t(`teacher.baseline.${key}`);
 const lt = (key) => t(`shell.courseLibrary.${key}`);
@@ -22,7 +23,7 @@ test.describe("baseline", () => {
     await expect(page.getByText(bt("approvedToast")).first()).toBeVisible();
     await expect(page.getByText(bt("approved")).first()).toBeVisible();
 
-    await page.getByRole("button", { name: "Open course" }).click();
+    await publishCourse(page);
     await expect.poll(async () => (await api("GET", `/courses/${c.id}/setup-status`, { as: "teacher" })).isOpened).toBe(true);
     await api("POST", `/courses/${c.id}/people`, { as: "teacher", body: { email: "learner2@e2e.test", role: "student" } });
 

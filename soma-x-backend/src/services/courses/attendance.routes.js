@@ -194,6 +194,7 @@ router.get("/:id/attendance/me", async (req, res) => {
     const auth = await requireNavVisible(req, res, courseId, "attendance");
     if (!auth) return;
     if (isTeacherRole(auth.enrollment.role)) return res.status(400).json({ message: "This shows a learner's own attendance. Teachers see everyone's on the Attendance page." });
+    if (auth.enrollment.role === "observer") return res.status(403).json({ message: "Observers don't have attendance in this course", code: "OBSERVER" });
     const records = await localDb.prepare(`
       SELECT s.session_date::text AS date, s.title, r.status, r.note
       FROM attendance_sessions s LEFT JOIN attendance_records r ON r.session_id = s.id AND r.user_id = ?

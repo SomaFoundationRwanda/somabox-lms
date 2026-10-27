@@ -5,9 +5,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch, getErrorMessage } from "@/lib/api";
 import { queryKeys } from "@/lib/queryKeys";
 import { useParams } from "next/navigation";
-import { Target, CheckCircle2, Clock, RotateCcw } from "lucide-react";
+import { Target, Check, CheckCircle2, Clock, RotateCcw } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
+import ItemStatusActions from "@/components/course/modules/ItemStatusActions";
 import { PageHeader, Section, DataTable, EmptyState } from "@/components/layout";
 import { useToast } from "@/context/ToastContext";
 import PrevNextNav from "@/components/course/navigation/PrevNextNav";
@@ -31,8 +32,8 @@ function getOptionId(opt, idx) {
 export default function QuizDetailPage() {
   const { courseId, quizId } = useParams();
   useItemOpened("quiz", quizId, courseId);
-  const { SERVER_URL, userEmail, isTeacher, isObserver } = useCourse();
-  const { t, tf, weekLabel, fmtDate, fmtDateTime } = useCourseText();
+  const { SERVER_URL, userEmail, isTeacher, readOnly, canTakePart } = useCourse();
+  const { t, tf, weekLabel, fmtDate, fmtDateTime, tpts } = useCourseText();
   const queryClient = useQueryClient();
   const ready = !!SERVER_URL && !!courseId && !!quizId && !!userEmail;
   const quizKey = queryKeys.courseSection(courseId, `quizzes/${quizId}`);
@@ -95,7 +96,7 @@ export default function QuizDetailPage() {
   };
 
   if (loading) return <Loader variant="page" label={t("quiz.loading")} />;
-  if (!quiz) return <div className="p-6"><p className="text-ui text-danger-fg">{t("quiz.notFound")}</p></div>;
+  if (!quiz) return <div className="p-6"><p className="text-ui text-fg-muted">{t("quiz.notFound")}</p></div>;
 
   const currentModule = quiz.module || modules.find(m => m.id === quiz.module_id) || null;
   const attemptsAllowed = quiz.attempts_allowed ?? null;
@@ -112,6 +113,7 @@ export default function QuizDetailPage() {
         <PageHeader help="items.quiz"
           title={quiz.title}
           description={quiz.description || undefined}
+          actions={isTeacher && quiz.kind !== "baseline" ? <ItemStatusActions type="quiz" contentId={quiz.id} published={Boolean(quiz.published)} title={quiz.title} /> : null}
           meta={
             <>
             <span className="text-caption font-bold text-brand-fg bg-brand-soft border border-brand/40 px-2.5 py-1 rounded-full">
@@ -182,7 +184,7 @@ export default function QuizDetailPage() {
                     align: "right",
                     className: "whitespace-nowrap",
                     render: (r) => (
-                      <span className="font-semibold">{r.score_pct != null ? `${r.score_pct}%` : r.score != null ? tf("common.points", { n: r.score }) : "—"}</span>
+                      <span className="font-semibold">{r.score_pct != null ? `${r.score_pct}%` : r.score != null ? tpts(r.score) : "—"}</span>
                     ),
                   },
                   { key: "attempt", header: t("quiz.attempt"), align: "center", render: (r) => r.attempt_number ?? "—" },
@@ -224,12 +226,29 @@ export default function QuizDetailPage() {
                 <h3 className="text-ui font-bold text-fg">
                   {tf("editors.quiz.questionN", { n: idx + 1 })}: {q.prompt}
                 </h3>
-                <span className="text-caption font-semibold text-fg-subtle bg-surface-sunken px-2.5 py-0.5 rounded-full shrink-0">
-                  {tf("common.points", { n: q.points })}
-                </span>
+                {/* A practice quiz doesn't count, so its questions show no points. */}
+                {quiz.kind !== "practice" ? (
+                  <span className="text-caption font-semibold text-fg-subtle bg-surface-sunken px-2.5 py-0.5 rounded-full shrink-0">
+                    {tpts(q.points)}
+                  </span>
+                ) : null}
               </div>
 
-              {q.question_type === "multiple_choice" ? (
+              {(isTeacher || readOnly) && q.question_type === "multiple_choice" ? (
+                // Staff read the answer key; observers and admins just read. Neither answers.
+                <ul aria-label={tf("quiz.optionsFor", { n: idx + 1 })} className="space-y-1.5">
+                  {(Array.isArray(q.options) ? q.options : []).map((opt, i) => {
+                    const text = getOptionText(opt);
+                    const correct = q.correctOption != null && (q.correctOption === text || q.correctOption === getOptionId(opt, i));
+                    return (
+                      <li key={`${text}-${i}`} className={`flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-ui ${correct ? "border-success/40 bg-success-soft text-success-fg font-semibold" : "border-line text-fg-muted"}`}>
+                        <span>{text}</span>
+                        {correct ? <span className="flex items-center gap-1 text-caption"><Check className="w-3.5 h-3.5" aria-hidden="true" /> {t("quiz.correctAnswer")}</span> : null}
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : isTeacher || readOnly ? null : q.question_type === "multiple_choice" ? (
                 <ChoiceGroup
                   layout="list"
                   aria-label={tf("quiz.optionsFor", { n: idx + 1 })}
@@ -253,10 +272,13 @@ export default function QuizDetailPage() {
           ))}
           </ol>
 
-          {isObserver && (
+          {readOnly && (
             <p className="pt-4 text-ui text-fg-subtle">{t("quiz.observerNote")}</p>
           )}
-          {!isTeacher && !isObserver && (
+          {!isTeacher && !readOnly && !canTakePart && (
+            <p className="pt-4 text-ui text-fg-subtle">{t("quiz.courseEnded")}</p>
+          )}
+          {!isTeacher && canTakePart && (
             <div className="pt-4 flex flex-col items-end gap-2">
               <span className="text-caption font-semibold text-fg-subtle">
                 {attemptsAllowed == null

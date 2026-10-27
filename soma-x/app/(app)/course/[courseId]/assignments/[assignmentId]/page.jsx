@@ -6,13 +6,14 @@ import { useCourseSection } from "@/lib/useCourseSection";
 import { apiFetch } from "@/lib/api";
 import { queryKeys } from "@/lib/queryKeys";
 import { useParams } from "next/navigation";
-import { Pencil, Target, Clock, Lock, CalendarClock, CloudOff, AlertTriangle } from "lucide-react";
+import { Target, Clock, Lock, CalendarClock, CloudOff, AlertTriangle } from "lucide-react";
 import DataContext from "@/context/DataContext";
 import {
   QUEUE_EVENT, clearNotice, clearPendingSubmission, getNotice, getPendingSubmission, isNetworkFailure, queueSubmission,
 } from "@/lib/submissionQueue";
 import { useCourse } from "@/context/CourseContext";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
+import ItemStatusActions from "@/components/course/modules/ItemStatusActions";
 import { PageHeader, Section, List, EmptyState } from "@/components/layout";
 import { useToast } from "@/context/ToastContext";
 import RubricSection, { RubricTable } from "@/components/course/grading/RubricSection";
@@ -20,17 +21,14 @@ import SubmissionGrader, { LateBadge } from "@/components/course/grading/Submiss
 import { fmtPoints, pctOf } from "@/lib/rubric";
 import PrevNextNav from "@/components/course/navigation/PrevNextNav";
 import { useCourseText } from "@/components/course/useCourseText";
-import ScheduleFields, { initialScheduleValues, scheduleError, schedulePayload } from "@/components/course/modules/editors/ScheduleFields";
 import { useItemOpened } from "@/lib/usage";
 import Loader from "@/components/ui/Loader";
-import { CheckboxList, Fieldset, Label, Select, TextInput, Textarea } from "@/components/form";
-
-const itemDaysOf = (item) => ({ release_day: item.release_day, due_day: item.due_day, close_day: item.close_day });
+import { Label, Select, Textarea } from "@/components/form";
 
 export default function AssignmentDetailPage() {
   const { courseId, assignmentId } = useParams();
   useItemOpened("assignment", assignmentId, courseId);
-  const { userEmail, isTeacher, isObserver } = useCourse();
+  const { userEmail, isTeacher, readOnly, canTakePart } = useCourse();
   const { t, tf, weekLabel, fmtDay, fmtDate, fmtDateTime } = useCourseText();
   const formatDate = (d) => fmtDay(d);
   const queryClient = useQueryClient();
@@ -73,10 +71,6 @@ export default function AssignmentDetailPage() {
   // the server when it was re-sent later (shown until dismissed). See lib/submissionQueue.js.
   const [pendingSubmission, setPendingSubmission] = useState(null);
   const [queueNotice, setQueueNotice] = useState(null);
-  const [editing, setEditing] = useState(false);
-  const [editForm, setEditForm] = useState(null);
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState("");
 
   // This assignment again (its submissions, my submission, grades, rubric).
   const loadData = () => queryClient.invalidateQueries({ queryKey: assignmentKey });
@@ -165,76 +159,8 @@ export default function AssignmentDetailPage() {
     .flatMap((m) => (Array.isArray(m.items) ? m.items : []))
     .find((i) => i.item_type === "assignment" && Number(i.content_id) === Number(assignmentId)) || null;
 
-  const startEditing = () => {
-    setEditForm({
-      title: assignment.title || "",
-      description: assignment.description || "",
-      moduleId: assignment.module?.id ?? assignment.module_id ?? "",
-      schedule: initialScheduleValues(listing ? itemDaysOf(listing) : null),
-      pointsPossible: assignment.points_possible ?? 100,
-      published: !!assignment.published,
-      selectedOutcomeIds: itemOutcomes.map(o => o.outcome_id),
-    });
-    setSaveError("");
-    setEditing(true);
-  };
-
-  const saveEdit = async () => {
-    if (!editForm.title.trim()) return;
-    const timingError = scheduleError(editForm.schedule, t);
-    if (timingError) { setSaveError(timingError); return; }
-    setSaving(true);
-    setSaveError("");
-    try {
-      const saveOutcomes = async () => {
-        if (!editForm.selectedOutcomeIds) return true;
-        return apiFetch(`/courses/${courseId}/item-outcomes`, {
-          method: "POST",
-          json: { itemType: "assignment", itemId: Number(assignmentId), outcomeIds: editForm.selectedOutcomeIds },
-        }).then(() => true).catch((err) => {
-          setSaveError(err?.body?.message || t("assignment.outcomeTagsFailed"));
-          return false;
-        });
-      };
-
-      const saveAssignment = async () => {
-        return apiFetch(`/courses/${courseId}/assignments/${assignmentId}`, {
-          method: "PATCH",
-          json: {
-            title: editForm.title.trim(),
-            description: editForm.description,
-            moduleId: editForm.moduleId,
-            ...schedulePayload(editForm.schedule),
-            pointsPossible: Number(editForm.pointsPossible) || 100,
-            published: editForm.published,
-          },
-        }).then(() => true).catch((err) => {
-          setSaveError(err?.body?.message || t("modules.errors.saveAssignment"));
-          return false;
-        });
-      };
-
-      // Publishing requires an outcome tag, and removing the last tag from a
-      // published item is rejected — so order the two writes accordingly.
-      const ok = editForm.published
-        ? (await saveOutcomes()) && (await saveAssignment())
-        : (await saveAssignment()) && (await saveOutcomes());
-      // Title, week, dates and tags show across the course (weeks, calendar, syllabus).
-      const courseChanged = () => queryClient.invalidateQueries({ queryKey: queryKeys.course(courseId) });
-      if (!ok) {
-        courseChanged();
-        return;
-      }
-
-      setEditing(false);
-      courseChanged();
-    } finally {
-      setSaving(false);
-    }
-  };
-
   if (loading) return <Loader variant="page" label={t("assignment.loading")} />;
-  if (!assignment) return <div className="p-6"><p className="text-ui text-danger-fg">{t("assignment.notFound")}</p></div>;
+  if (!assignment) return <div className="p-6"><p className="text-ui text-fg-muted">{t("assignment.notFound")}</p></div>;
 
   const currentModule = assignment.module || modules.find(m => m.id === assignment.module_id) || null;
   const dueText = listing?.dueDate
@@ -254,7 +180,6 @@ export default function AssignmentDetailPage() {
   const mine = assignment.mySubmission || null;
   const myScores = Object.fromEntries((mine?.rubricScores || []).map((r) => [r.criterion_id, r]));
   const deadlines = assignment.deadlines || {};
-  const editModuleStart = editForm ? modules.find((m) => Number(m.id) === Number(editForm.moduleId))?.startDate || null : null;
 
   return (
     <div>
@@ -274,17 +199,10 @@ export default function AssignmentDetailPage() {
               </span>
             </>
           }
-          actions={isTeacher && !editing ? (
-            <button
-              onClick={startEditing}
-              className="flex items-center gap-1.5 text-caption font-semibold text-fg-muted bg-surface-sunken hover:bg-surface-hover px-3 py-1.5 rounded-lg transition-colors"
-            >
-              <Pencil className="w-3.5 h-3.5" /> {t("editors.editAssignment")}
-            </button>
-          ) : null}
+          actions={isTeacher ? <ItemStatusActions type="assignment" contentId={assignment.id} published={Boolean(assignment.published)} title={assignment.title} /> : null}
         >
-          {/* Outcome Tags */}
-          <div className="flex items-center gap-2 flex-wrap pt-2">
+          {/* Outcome Tags (a missing tag is the teacher's to fix: learners just don't see the row) */}
+          {isTeacher || itemOutcomes.length > 0 ? <div className="flex items-center gap-2 flex-wrap pt-2">
             <span className="text-caption font-bold text-fg-subtle flex items-center gap-1">
               <Target className="w-3.5 h-3.5 text-brand-fg" /> {t("assignment.targetOutcomes")}
             </span>
@@ -299,65 +217,11 @@ export default function AssignmentDetailPage() {
                 </span>
               ))
             )}
-          </div>
+          </div> : null}
         </PageHeader>
 
-        {/* EDIT FORM (If Teacher Editing) */}
-        {editing ? (
-          <Section title={t("editors.editAssignment")}>
-            <div className="space-y-5">
-              <div>
-                <Label htmlFor="assignment-title">{t("common.title")} *</Label>
-                <TextInput id="assignment-title" value={editForm.title} onChange={(e) => setEditForm((p) => ({ ...p, title: e.target.value }))} className="w-full" />
-              </div>
-
-              {/* Module & relative timing */}
-              <div>
-                <Label htmlFor="assignment-module">{t("assignment.moduleWeek")} *</Label>
-                <Select size="sm" id="assignment-module" value={editForm.moduleId} onChange={(e) => setEditForm((p) => ({ ...p, moduleId: Number(e.target.value) }))} className="w-full" >
-                  {modules.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {weekLabel(m)}: {m.title}
-                    </option>
-                  ))}
-                </Select>
-              </div>
-
-              <ScheduleFields
-                values={editForm.schedule}
-                onChange={(schedule) => setEditForm((p) => ({ ...p, schedule }))}
-                moduleStartDate={editModuleStart}
-              />
-
-              {/* Outcome Selection */}
-              <Fieldset legend={t("assignment.taggedOutcomes")}>
-                <CheckboxList
-                  items={outcomes.map((o) => ({ value: o.id, label: `${o.code || `OUT-${o.id}`}: ${o.title}` }))}
-                  selected={editForm.selectedOutcomeIds}
-                  onChange={(selectedOutcomeIds) => setEditForm((p) => ({ ...p, selectedOutcomeIds }))}
-                />
-              </Fieldset>
-
-              <div>
-                <Label htmlFor="assignment-instructions">{t("assignment.instructions")}</Label>
-                <Textarea id="assignment-instructions" value={editForm.description} onChange={(e) => setEditForm((p) => ({ ...p, description: e.target.value }))} rows={4} className="w-full" />
-              </div>
-
-              {saveError && (
-                <p className="text-caption font-semibold text-danger-fg">{saveError}</p>
-              )}
-
-              <div className="flex justify-end gap-2 pt-2">
-                <button onClick={() => setEditing(false)} className="text-caption font-semibold text-fg-subtle px-4 py-2">{t("common.cancel")}</button>
-                <button onClick={saveEdit} disabled={saving} className="text-caption font-bold text-on-brand bg-brand hover:bg-brand/90 px-5 py-2.5 rounded-lg">
-                  {saving ? t("common.saving") : t("editors.saveChanges")}
-                </button>
-              </div>
-            </div>
-          </Section>
-        ) : (
-          /* DISPLAY VIEW (BOTH TEACHER & STUDENT) */
-          <>
+        {/* The assignment as everyone sees it (teachers edit it on its own editor page). */}
+        <>
             <Section title={t("assignment.instructionsTitle")}>
               <p className="text-ui text-fg-muted whitespace-pre-wrap">{assignment.description || t("assignment.defaultInstructions")}</p>
             </Section>
@@ -434,8 +298,10 @@ export default function AssignmentDetailPage() {
                   </Section>
                 ) : null}
 
-                {isObserver ? (
+                {readOnly ? (
                   <p className="text-ui text-fg-subtle">{t("assignment.observerNote")}</p>
+                ) : !canTakePart && !mine ? (
+                  <p className="text-ui text-fg-subtle">{t("assignment.courseEnded")}</p>
                 ) : (
                 <Section divided title={t("assignment.yourSubmission")}>
                   <div className="space-y-4">
@@ -476,9 +342,9 @@ export default function AssignmentDetailPage() {
                       <p className="text-ui font-semibold text-fg-muted flex items-center gap-1.5">
                         <CalendarClock className="w-4 h-4 text-fg-subtle" /> {tf("assignment.opensOn", { date: formatDate(deadlines.releaseDate) || deadlines.releaseDate })}
                       </p>
-                    ) : deadlines.isClosed ? (
+                    ) : deadlines.isClosed || !canTakePart ? (
                       <p className="text-ui font-semibold text-fg-muted flex items-center gap-1.5">
-                        <Lock className="w-4 h-4 text-fg-subtle" /> {t("assignment.closed")}
+                        <Lock className="w-4 h-4 text-fg-subtle" /> {!canTakePart ? t("assignment.courseEnded") : t("assignment.closed")}
                       </p>
                     ) : (
                       <>
@@ -508,7 +374,8 @@ export default function AssignmentDetailPage() {
 
                     <button
                       onClick={submitAssignment}
-                      disabled={submitting || deadlines.notOpenYet || deadlines.isClosed}
+                      disabled={submitting || deadlines.notOpenYet || deadlines.isClosed || !canTakePart}
+                      hidden={!canTakePart}
                       className="px-6 py-2.5 bg-brand hover:bg-brand/90 disabled:opacity-50 disabled:hover:bg-brand text-on-brand font-bold text-caption rounded-lg transition-colors"
                     >
                       {submitting ? t("assignment.submitting") : mine?.submitted_at ? t("assignment.resubmit") : t("assignment.submit")}
@@ -518,8 +385,7 @@ export default function AssignmentDetailPage() {
                 )}
               </>
             )}
-          </>
-        )}
+        </>
 
         <PrevNextNav courseId={courseId} itemType="assignment" contentId={assignmentId} />
       </div>

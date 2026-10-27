@@ -14,7 +14,7 @@ import { apiFetch } from "@/lib/api";
 import { Select, TextInput, Textarea } from "@/components/form";
 
 export default function DiscussionsListPage() {
-  const { courseId } = useCourse();
+  const { courseId, canTakePart } = useCourse();
   const { t, tf, weekLabel } = useCourseText();
   const { data: discussions, loading, error, refetch } = useCourseSection("discussions");
   const [creating, setCreating] = useState(false);
@@ -55,14 +55,14 @@ export default function DiscussionsListPage() {
       <div className="p-4 md:p-6 space-y-6 max-w-2xl">
         <PageHeader help="pages.discussions"
           title={t("nav.discussions")}
-          actions={
+          actions={canTakePart ? (
             <Button onClick={() => setCreating((v) => !v)} className="h-9 gap-1.5">
               <Plus className="w-3.5 h-3.5" /> {t("modules.newDiscussion")}
             </Button>
-          }
+          ) : null}
         />
 
-        {creating ? (
+        {creating && canTakePart ? (
           <div className="space-y-2">
             <Select value={form.moduleId} onChange={(e) => setForm((p) => ({ ...p, moduleId: e.target.value }))} aria-label={t("discussions.module")} className="w-full" >
               <option value="" disabled>{modules.length === 0 ? t("discussions.noModules") : `${t("discussions.chooseModule")} *`}</option>

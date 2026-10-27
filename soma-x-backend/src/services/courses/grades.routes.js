@@ -84,9 +84,13 @@ router.get("/:id/grades", async (req, res) => {
     const auth = await requireNavVisible(req, res, courseId, "grades");
     if (!auth) return;
     const isTeacher = isTeacherRole(auth.enrollment.role);
+    // Observers have no grades of their own; an admin reading the course sees the class's.
+    if (auth.enrollment.role === "observer" && !auth.enrollment.adminView) {
+      return res.status(403).json({ message: "Observers don't have grades in this course", code: "OBSERVER" });
+    }
     const columns = await gradebookColumns(courseId, { includeUnpublished: isTeacher });
 
-    if (!isTeacher) {
+    if (!isTeacher && !auth.enrollment.adminView) {
       const cells = {};
       for (const c of columns) cells[c.key] = await cellFor(c, auth.email);
       return res.json({

@@ -1,13 +1,14 @@
 "use client";
 
+import EditorFrame from "./EditorFrame";
 import { useState, useRef } from "react";
-import { X, AlertCircle } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import RichTextEditor from "@/components/course/editor/RichTextEditor";
 import AIAssistantWidget from "@/components/course/editor/AIAssistantWidget";
 import { useCourseText } from "@/components/course/useCourseText";
 import { Label, TextInput } from "@/components/form";
 
-export default function PageEditorModal({ open, onClose, onSave, initialData }) {
+export default function PageEditorModal({ asPage = false, open, onClose, onSave, initialData }) {
   const isEdit = Boolean(initialData?.id);
   const { t, tf } = useCourseText();
   const [title, setTitle] = useState(initialData?.title || "");
@@ -48,20 +49,10 @@ export default function PageEditorModal({ open, onClose, onSave, initialData }) 
     }
   };
 
-  if (!open) return null;
+  if (!open && !asPage) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 backdrop-blur-sm overflow-auto py-8">
-      <div className="bg-surface rounded-2xl w-full max-w-3xl shadow-2xl mx-4 animate-in fade-in slide-in-from-bottom-2 duration-200">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-line">
-          <h2 className="text-item font-bold text-fg">
-            {isEdit ? t("editors.editPage") : t("editors.newPage")}
-          </h2>
-          <button aria-label={t("common.close")} onClick={onClose} className="p-1.5 rounded-lg hover:bg-surface-hover text-fg-subtle">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
+    <EditorFrame asPage={asPage} title={isEdit ? t("editors.editPage") : t("editors.newPage")} onClose={onClose} maxWidth="max-w-3xl">
 
         {/* Body */}
         <div className="px-6 py-4 space-y-4">
@@ -108,7 +99,6 @@ export default function PageEditorModal({ open, onClose, onSave, initialData }) 
             {saving ? t("common.saving") : isEdit ? t("editors.saveChanges") : t("editors.createPage")}
           </button>
         </div>
-      </div>
-    </div>
+    </EditorFrame>
   );
 }

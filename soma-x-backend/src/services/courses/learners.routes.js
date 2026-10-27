@@ -12,7 +12,8 @@ import { localDb } from "../../helpers/db-manager.js";
 import { revokeUserSessions } from "../../helpers/auth.js";
 import { hashPassword, logAdminAuditAction } from "../users.service.js";
 import { applySchoolToUser, assignLearnerCode } from "../school.js";
-import { courseExists, requireTeacher } from "./shared.js";
+import { courseExists, requireTeacher,
+  requireCourseTeacher, } from "./shared.js";
 import { LEARNER_EMAIL_DOMAIN } from "../../helpers/identity.js";
 import { membershipChanged } from "../../helpers/live.js";
 
@@ -168,7 +169,7 @@ router.post("/:id/people/:enrollmentId/reset-password", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
     if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
-    const auth = await requireTeacher(req, res, courseId);
+    const auth = await requireCourseTeacher(req, res, courseId);
     if (!auth) return;
     const learner = await localDb.prepare(`
       SELECT u.id, u.email, u.full_name, u.learner_code, u.role FROM enrollments e

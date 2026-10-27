@@ -31,9 +31,6 @@ export function usePageScrollTracker({ SERVER_URL, courseId, pageId, userEmail, 
       }
     };
 
-    // Initial page load report (e.g. 5% viewed)
-    reportView(Math.max(5, maxScrollRef.current));
-
     const handleScroll = () => {
       const docHeight = document.documentElement.scrollHeight - window.innerHeight;
       if (docHeight <= 0) {
@@ -58,9 +55,21 @@ export function usePageScrollTracker({ SERVER_URL, courseId, pageId, userEmail, 
       }
     };
 
+    // Once the page has laid out: a page that fits on the screen is read in full; a longer one
+    // counts what's visible (at least 5%, so opening it is recorded).
+    const firstLook = setTimeout(() => {
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      const visible = docHeight <= 0 ? 100
+        : Math.min(100, Math.round(((window.scrollY + window.innerHeight) / document.documentElement.scrollHeight) * 100));
+      maxScrollRef.current = Math.max(maxScrollRef.current, visible, 5);
+      setScrollPct(maxScrollRef.current);
+      reportView(maxScrollRef.current);
+    }, 600);
+
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => {
       window.removeEventListener("scroll", handleScroll);
+      clearTimeout(firstLook);
       if (timeoutId) clearTimeout(timeoutId);
     };
   }, [SERVER_URL, courseId, pageId, userEmail]);

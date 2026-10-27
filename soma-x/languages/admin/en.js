@@ -64,8 +64,8 @@ export default {
         "adminViewLink": "Back to the admin portal",
         "lifecycle": {
             "draft": "Draft",
-            "open": "Open",
-            "closed": "Closed",
+            "open": "Published",
+            "closed": "Ended",
             "archived": "Archived"
         }
     },
@@ -185,9 +185,9 @@ export default {
         "inRunning": "in running courses",
         "active7": "Active last 7 days",
         "learnersLower": "learners",
-        "coursesHelp": "Open and closed courses. Select a course to open its Insights.",
+        "coursesHelp": "Published and ended courses. Select a course to open its Insights.",
         "noRunning": "No running courses yet.",
-        "noRunningHelp": "Courses appear here once they are opened.",
+        "noRunningHelp": "Courses appear here once they are published.",
         "colWithResults": "With results",
         "colMastery": "Avg mastery",
         "colDelta": "Change vs baseline",

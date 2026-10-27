@@ -335,7 +335,10 @@ export function RubricTable({ rubric, scores }) {
             return s && s.points != null ? `${fmtPoints(s.points)} / ${fmtPoints(c.points)}` : <span className="text-fg-subtle">— / {fmtPoints(c.points)}</span>;
           },
         }] : [{ key: "points", header: tp("rubric.max"), align: "right", className: "whitespace-nowrap", render: (c) => fmtPoints(c.points) }]),
-        { key: "weight", header: tp("common.weight"), align: "right", hideOnMobile: hasScores, render: (c) => fmtPoints(c.weight) },
+        // Weights only mean something when they differ.
+        ...(new Set((rubric?.criteria || []).map((c) => Number(c.weight ?? 1))).size > 1
+          ? [{ key: "weight", header: tp("common.weight"), align: "right", hideOnMobile: hasScores, render: (c) => fmtPoints(c.weight) }]
+          : []),
       ]}
     />
   );

@@ -30,7 +30,7 @@ const MASTERY_LEVELS = [
 const STATUS_KEYS = { "Needs Reteach": "needsReteach", "On Track": "onTrack", "Mastery Achieved": "masteryAchieved" };
 
 export default function OutcomesPage() {
-  const { SERVER_URL, courseId, isTeacher } = useCourse();
+  const { SERVER_URL, courseId, isTeacher, isLearner } = useCourse();
   const { tp, tpn, tpOr } = useProgressText();
   const { showToast } = useToast();
   const queryClient = useQueryClient();
@@ -137,7 +137,7 @@ export default function OutcomesPage() {
       <div className="p-4 md:p-6 space-y-8 max-w-4xl">
         <PageHeader help="pages.outcomes"
           title={tp("outcomes.title")}
-          description={tp("outcomes.description")}
+          description={isLearner ? undefined : tp("outcomes.description")}
           actions={isTeacher ? (
             <div className="flex flex-wrap items-center gap-2">
             {/* Write with AI sits next to New outcome so teachers find it without opening the form. */}
@@ -240,13 +240,13 @@ export default function OutcomesPage() {
         {/* Mastery vs baseline: one list, a row per outcome with its mastery bar */}
         <Section
           divided={creating}
-          title={<span className="flex items-center gap-2"><TrendingUp className="w-4 h-4 text-brand-fg" /> {tp("outcomes.masteryTitle")}</span>}
+          title={<span className="flex items-center gap-2"><TrendingUp className="w-4 h-4 text-brand-fg" /> {isLearner ? tp("outcomes.masteryTitleLearner") : tp("outcomes.masteryTitle")}</span>}
         >
           {masteryList.length === 0 ? (
             loading ? (
               <Loader variant="page" size={48} className="min-h-[25vh]" label={tp("outcomes.loading")} />
             ) : (
-              <EmptyState compact title={tp("outcomes.empty")} description={tp("outcomes.emptyHint")} />
+              <EmptyState compact title={tp("outcomes.empty")} description={isTeacher ? tp("outcomes.emptyHint") : tp("outcomes.emptyHintLearner")} />
             )
           ) : (
             <List label={tp("outcomes.masteryList")}>

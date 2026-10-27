@@ -64,8 +64,8 @@ export default {
         "adminViewLink": "Retour au portail administrateur",
         "lifecycle": {
             "draft": "Brouillon",
-            "open": "Ouvert",
-            "closed": "Fermé",
+            "open": "Publié",
+            "closed": "Terminé",
             "archived": "Archivé"
         }
     },
@@ -185,9 +185,9 @@ export default {
         "inRunning": "dans les cours en cours",
         "active7": "Actifs ces 7 derniers jours",
         "learnersLower": "élèves",
-        "coursesHelp": "Cours ouverts et fermés. Choisissez un cours pour voir ses analyses.",
+        "coursesHelp": "Cours publiés et terminés. Choisissez un cours pour ouvrir ses Analyses.",
         "noRunning": "Aucun cours en cours pour l'instant.",
-        "noRunningHelp": "Les cours apparaissent ici une fois ouverts.",
+        "noRunningHelp": "Les cours apparaissent ici une fois publiés.",
         "colWithResults": "Avec résultats",
         "colMastery": "Maîtrise moy.",
         "colDelta": "Écart / évaluation initiale",

@@ -17,6 +17,7 @@ import {
   requireEnrolled,
   courseExists,
   upload,
+  requireCourseTeacher,
 } from "./shared.js";
 
 const router = express.Router();
@@ -254,7 +255,7 @@ router.post("/:id/join-code", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
     if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
-    const auth = await requireTeacher(req, res, courseId);
+    const auth = await requireCourseTeacher(req, res, courseId);
     if (!auth) return;
     const action = req.body?.action;
     if (!["on", "new", "off"].includes(action)) return res.status(400).json({ message: "action must be on, new or off" });
@@ -287,11 +288,11 @@ router.post("/:id/join", async (req, res) => {
     const email = req.user.email;
 
     const existing = await getEnrollment(courseId, email);
-    if (existing) {
-      if (existing.status !== "active") {
-        await localDb.prepare("UPDATE enrollments SET status = 'active' WHERE course_id = ? AND LOWER(user_email) = LOWER(?)").run(courseId, email);
-      }
-    } else {
+    // Nobody switches back on a place a teacher switched off (as with a join code).
+    if (existing && existing.status !== "active") {
+      return res.status(403).json({ message: "Your place in this course was removed. Ask your teacher to add you again.", code: "REMOVED" });
+    }
+    if (!existing) {
       await localDb.prepare(`
         INSERT INTO enrollments (course_id, user_email, role, status)
         VALUES (?, ?, 'student', 'active')
@@ -311,6 +312,20 @@ router.get("/:id", async (req, res) => {
     const courseId = String(req.params.id || "").trim();
     const course = await courseExists(courseId);
     if (!course) return res.status(404).json({ message: "Course not found" });
+
+    // Someone signed in who isn't in the course: say so, and for a public, open course show what
+    // it is so they can join it (POST /:id/join). A private course stays a name-less refusal.
+    if (req.user && req.user.role !== "admin") {
+      const mine = await getEnrollment(courseId, req.user.email);
+      if (!mine || mine.status !== "active") {
+        const joinable = !mine && course.visibility === "public" && course.lifecycle === "open";
+        return res.status(403).json({
+          message: "Not enrolled in this course",
+          code: mine ? "REMOVED" : "NOT_ENROLLED",
+          course: joinable ? { id: course.id, title: course.title, description: course.description, grade: course.grade } : null,
+        });
+      }
+    }
 
     const auth = await requireEnrolled(req, res, courseId);
     if (!auth) return;
@@ -364,9 +379,9 @@ router.patch("/:id", async (req, res) => {
     const courseId = String(req.params.id || "").trim();
     const existingCourse = await courseExists(courseId);
     if (!existingCourse) return res.status(404).json({ message: "Course not found" });
-    if (!await requireTeacher(req, res, courseId)) return;
+    if (!await requireCourseTeacher(req, res, courseId)) return;
 
-    const { title, description, grade, lifecycle, homePageType, startDate, endDate, visibility } = req.body;
+    const { title, description, grade, lifecycle, homePageType, startDate, endDate, visibility, lengthWeeks } = req.body;
     if (lifecycle !== undefined && lifecycle !== existingCourse.lifecycle) {
       const problem = lifecycleChangeProblem(existingCourse.lifecycle, lifecycle);
       if (problem) return res.status(400).json({ message: problem });
@@ -385,6 +400,11 @@ router.patch("/:id", async (req, res) => {
     if (startDate !== undefined) { updates.push("start_date = ?"); params.push(newStart); }
     if (endDate !== undefined) { updates.push("end_date = ?"); params.push(newEnd); }
     if (visibility !== undefined && ["private", "public"].includes(visibility)) { updates.push("visibility = ?"); params.push(visibility); }
+    if (lengthWeeks !== undefined) {
+      const n = Number(lengthWeeks);
+      if (!Number.isInteger(n) || n < 1 || n > 52) return res.status(400).json({ message: "lengthWeeks must be a whole number from 1 to 52" });
+      updates.push("length_weeks = ?"); params.push(n);
+    }
 
     if (updates.length === 0) return res.status(400).json({ message: "No fields to update" });
 
@@ -407,7 +427,7 @@ router.delete("/:id", async (req, res) => {
     const courseId = String(req.params.id || "").trim();
     if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
     const isAdmin = req.user?.role === "admin";
-    if (!isAdmin && !await requireTeacher(req, res, courseId)) return;
+    if (!isAdmin && !await requireCourseTeacher(req, res, courseId)) return;
 
     // Deleting can't be undone. A course holding learners' work is archived instead, unless an
     // admin deliberately forces it.
@@ -441,7 +461,7 @@ router.post("/:id/cover-image", upload.single("image"), async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
     if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
-    if (!await requireTeacher(req, res, courseId)) return;
+    if (!await requireCourseTeacher(req, res, courseId)) return;
     if (!req.file) return res.status(400).json({ message: "No image file provided" });
 
     fs.mkdirSync(config.paths.courseCovers, { recursive: true });

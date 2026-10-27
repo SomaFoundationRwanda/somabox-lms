@@ -10,7 +10,7 @@ import { useCourseText } from "@/components/course/useCourseText";
 import Loader from "@/components/ui/Loader";
 
 export default function RubricsPage() {
-  const { t, tf } = useCourseText();
+  const { t, tf, tpts } = useCourseText();
   const { courseId } = useCourse();
   const rubricsQuery = useCourseSection("rubrics");
   const outcomesQuery = useCourseSection("outcomes");
@@ -85,7 +85,7 @@ export default function RubricsPage() {
                       </span>
                     ) : <span className="text-fg-subtle">—</span>,
                   },
-                  { key: "points", header: t("rubrics.points"), align: "right", render: (c) => <span className="font-bold text-brand-fg whitespace-nowrap">{tf("common.points", { n: c.points })}</span> },
+                  { key: "points", header: t("rubrics.points"), align: "right", render: (c) => <span className="font-bold text-brand-fg whitespace-nowrap">{tpts(c.points)}</span> },
                 ]}
               />
             </Section>
@@ -115,9 +115,9 @@ export default function RubricsPage() {
                   </div>
                 ),
               },
-              { key: "exceeds", header: t("rubrics.exceeds"), align: "center", render: () => tf("common.points", { n: 4 }) },
-              { key: "meets", header: t("rubrics.meets"), align: "center", render: () => tf("common.points", { n: 3 }) },
-              { key: "approaching", header: t("rubrics.approaching"), align: "center", render: () => tf("common.points", { n: 2 }) },
+              { key: "exceeds", header: t("rubrics.exceeds"), align: "center", render: () => tpts(4) },
+              { key: "meets", header: t("rubrics.meets"), align: "center", render: () => tpts(3) },
+              { key: "approaching", header: t("rubrics.approaching"), align: "center", render: () => tpts(2) },
               { key: "below", header: t("rubrics.below"), align: "center", render: () => t("rubrics.onePoint") },
             ]}
           />

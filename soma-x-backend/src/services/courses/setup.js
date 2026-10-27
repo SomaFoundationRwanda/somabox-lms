@@ -181,9 +181,8 @@ export async function getSetupReport(courseId) {
   if (noDue.length > 0) warnings.push({ id: "no_due_date", params: { n: noDue.length }, message: `${plural(noDue.length, "assignment or quiz")} ${noDue.length === 1 ? "has" : "have"} no due date`, href: `${base}/modules` });
   if (emptyWeeks.length > 0) warnings.push({ id: "empty_weeks", params: { n: emptyWeeks.length, ...titleParams(emptyWeeks) }, message: `${plural(emptyWeeks.length, "week")} ${emptyWeeks.length === 1 ? "has" : "have"} no content yet: ${titles(emptyWeeks)}`, href: `${base}/modules` });
   const lastEnd = regular.map((m) => m.endDate).filter(Boolean).sort().pop();
-  if (tl.startDate && !course.end_date) {
-    warnings.push({ id: "no_end_date", params: {}, message: "The course has no end date", href: `${base}/settings` });
-  } else if (lastEnd && course.end_date && course.end_date < lastEnd) {
+  // No end date is fine: the course ends with its last week. A set one mustn't cut a week short.
+  if (lastEnd && course.end_date && course.end_date < lastEnd) {
     warnings.push({ id: "end_before_last_week", params: { end: course.end_date, last: lastEnd }, message: `The course ends on ${course.end_date}, before its last week ends (${lastEnd})`, href: `${base}/settings` });
   }
   if (baseline.status === "approved" && baseline.outcomesMissing.length > 0) {

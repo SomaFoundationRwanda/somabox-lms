@@ -215,7 +215,8 @@ test("the Home loop follows real dates", async () => {
   // Keys + params let the page translate the title and button.
   assert.equal(loop.body.beatKey, "openNow");
   assert.deepEqual(loop.body.beatParams, { week: { kind: "regular", week_offset: 1 }, n: 1, date: addDays(start, 4) });
-  assert.equal(loop.body.primaryAction.key, "openCalendar");
+  // A learner's next step is the week itself.
+  assert.equal(loop.body.primaryAction.key, "openModules");
 
   const future = await course({ start: addDays(today, 10) });
   const upcoming = await asTeacher("GET", `/courses/${future.courseId}/home-loop`);

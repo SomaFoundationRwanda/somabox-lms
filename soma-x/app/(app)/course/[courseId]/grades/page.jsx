@@ -9,6 +9,7 @@ import { PageHeader, Section, DataTable, EmptyState } from "@/components/layout"
 import { formatDate } from "@/lib/dates";
 import { useProgressText, itemTypeLabel } from "@/components/progress/text";
 import Loader from "@/components/ui/Loader";
+import MyAttendance from "@/components/attendance/MyAttendance";
 
 const fmtNum = (n) => (n == null ? "" : Number.isInteger(Number(n)) ? String(Number(n)) : Number(n).toFixed(2).replace(/\.?0+$/, ""));
 
@@ -233,6 +234,9 @@ export default function GradesPage() {
         ) : (
           <EmptyState compact title={tp("grades.noData")} />
         )}
+
+        {/* Learners' attendance lives here (there's no Attendance tab for them), once it's been taken. */}
+        {data?.role === "student" ? <MyAttendance embedded /> : null}
       </div>
     </div>
   );

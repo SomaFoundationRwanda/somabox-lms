@@ -43,18 +43,25 @@ test.describe("weeks and items", () => {
     const week2 = page.getByRole("heading", { level: 2, name: /Week 2/ });
     await expect(week2).toBeVisible();
 
-    await page.getByRole("button", { name: ct("modules.renameModule") }).nth(1).click();
+    // A week's less common actions are in its "⋯" menu.
+    const weekMenu = (title) => page.getByRole("button", { name: ct("modules.weekActions", { title }) });
+    await weekMenu("Equivalent fractions").click();
+    await page.getByRole("menuitem", { name: ct("modules.renameModule") }).click();
     await page.getByLabel(ct("modules.moduleTitle")).fill("Comparing fractions");
     await page.keyboard.press("Enter");
     await expect(page.getByRole("heading", { level: 2, name: /Comparing fractions/ })).toBeVisible();
 
-    await page.getByRole("button", { name: ct("modules.unpublishModule") }).first().click();
-    await expect(page.getByRole("button", { name: ct("modules.publishModule") })).toHaveCount(2);
-    await page.getByRole("button", { name: ct("modules.publishModule") }).first().click();
-    await expect(page.getByRole("button", { name: ct("modules.unpublishModule") })).toHaveCount(1);
+    // Unpublished, a week shows "Draft" and a Publish week button.
+    await weekMenu("Fractions basics").click();
+    await page.getByRole("menuitem", { name: ct("modules.unpublishModule") }).click();
+    const publishWeek = page.getByRole("button", { name: ct("modules.publishWeekNamed", { title: "Fractions basics" }) });
+    await expect(publishWeek).toBeVisible();
+    await publishWeek.click();
+    await expect(publishWeek).toHaveCount(0);
 
     page.once("dialog", (d) => d.accept());
-    await page.getByRole("button", { name: ct("modules.deleteModule") }).nth(1).click();
+    await weekMenu("Comparing fractions").click();
+    await page.getByRole("menuitem", { name: ct("modules.deleteModule") }).click();
     await expect(page.getByRole("heading", { level: 2, name: /Comparing fractions/ })).toHaveCount(0);
   });
 
@@ -70,23 +77,32 @@ test.describe("weeks and items", () => {
   test("edits an item, hides it from learners, and deletes it", async ({ page }) => {
     const course = await seedCourse({ learners: ["learner2"] });
     await page.goto(`/course/${course.id}/modules`);
-    await page.getByRole("button", { name: "Edit Fraction poster", exact: true }).click();
+    const itemMenu = (title) => page.getByRole("button", { name: ct("modules.itemActions", { title }) });
+    await itemMenu("Fraction poster").click();
+    await page.getByRole("menuitem", { name: ct("common.edit") }).click();
     await page.getByLabel(ct("editors.assignmentTitle"), { exact: true }).fill("Fraction poster (A3)");
     await page.getByRole("button", { name: ct("editors.saveChanges") }).click();
+    // Saving goes to the assignment's own page; back on Weeks, the new title shows.
+    await expect(page.getByRole("heading", { level: 1, name: "Fraction poster (A3)" })).toBeVisible();
+    await page.goto(`/course/${course.id}/modules`);
     await expect(page.getByRole("link", { name: /Fraction poster \(A3\)/ })).toBeVisible();
 
-    await page.getByRole("button", { name: "Unpublish Fraction poster (A3)", exact: true }).click();
-    await expect(page.getByRole("button", { name: "Publish Fraction poster (A3)", exact: true })).toBeVisible();
+    await itemMenu("Fraction poster (A3)").click();
+    await page.getByRole("menuitem", { name: ct("modules.unpublish") }).click();
+    // A draft item says so, and Publish is its one button.
+    await expect(page.getByRole("button", { name: ct("modules.publishNamed", { title: "Fraction poster (A3)" }), exact: true })).toBeVisible();
     const learnerView = await api("GET", `/courses/${course.id}/modules`, { as: "learner2" });
     expect(JSON.stringify(learnerView)).not.toContain("Fraction poster (A3)");
 
     // Removing an item can park it in Unassigned (kept, but blocks a draft course from opening)...
-    await page.getByRole("button", { name: "Delete Where do you see fractions?", exact: true }).click();
+    await itemMenu("Where do you see fractions?").click();
+    await page.getByRole("menuitem", { name: ct("common.delete") }).click();
     await page.getByRole("button", { name: ct("modules.deleteDialog.moveToUnassigned") }).click();
     await expect(page.getByRole("heading", { level: 2, name: new RegExp(ct("weeks.unassigned")) })).toBeVisible();
 
     // ...or delete it for good.
-    await page.getByRole("button", { name: "Delete Reading: what is a fraction?", exact: true }).click();
+    await itemMenu("Reading: what is a fraction?").click();
+    await page.getByRole("menuitem", { name: ct("common.delete") }).click();
     await page.getByRole("button", { name: ct("modules.deleteDialog.deletePermanently") }).click();
     await expect(page.getByRole("link", { name: /Reading: what is a fraction\?/ })).toHaveCount(0);
   });
@@ -157,6 +173,7 @@ test.describe("people", () => {
     await expect(members.getByRole("row").filter({ hasText: USERS.learner2.email })).toHaveCount(0);
     await page.getByRole("group", { name: ct("people.filterByRole") }).getByRole("button", { name: "All", exact: true }).click();
 
+    // Removing someone asks first.
     page.once("dialog", (d) => d.accept());
     await page.getByRole("button", { name: ct("people.removeNamed", { name: USERS.learner2.name }) }).click();
     await expect(members.getByRole("row").filter({ hasText: USERS.learner2.email })).toHaveCount(0);

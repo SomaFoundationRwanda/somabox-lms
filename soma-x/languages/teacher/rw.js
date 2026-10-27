@@ -145,8 +145,8 @@ export default {
     },
     "setup": {
         "title": "Gutegura isomo",
-        "draftNote": "Iri somo ni umushinga. Abanyeshuri ntibarabona kugeza urifunguye.",
-        "openNote": "Isomo rirafunguye. Ibi bikiri ngombwa kurebwa.",
+        "draftNote": "Iri somo ni umushinga. Abanyeshuri ntibaribona kugeza uritangaje.",
+        "openNote": "Isomo ryatangajwe. Ibi biracyakeneye kurebwa.",
         "doneCount": "{done} kuri {total} byarangiye.",
         "draft": "Umushinga",
         "checklist": "Urutonde rwo gutegura",
@@ -155,14 +155,14 @@ export default {
         "required": "Ngombwa",
         "worthChecking": "Bikwiye kurebwa",
         "fix": "Kosora",
-        "cantOpenTitle": "Isomo ntirirashobora gufungurwa:",
-        "cantOpenYet": "Iri somo ntirirashobora gufungurwa.",
+        "cantOpenTitle": "Isomo ntirirashobora gutangazwa:",
+        "cantOpenYet": "Iri somo ntirirashobora gutangazwa.",
         "publishWeeksToo": "Tangaza n'ibyumweru bifite ibyigwa, kugira ngo abanyeshuri babibone ({n})",
-        "opened": "Isomo ryafunguwe",
-        "openFailed": "Ntibyashobotse gufungura isomo. Reba murandasi wongere ugerageze.",
+        "opened": "Isomo ryatangajwe",
+        "openFailed": "Ntibyakunze gutangaza isomo. Reba umuyoboro wongere ugerageze.",
         "inSettings": "Gutegura isomo mu igenamiterere",
-        "opening": "Birafungurwa...",
-        "openCourse": "Fungura isomo",
+        "opening": "Birimo gutangaza...",
+        "openCourse": "Tangaza isomo",
         "finishRequired": "Banza urangize ibya ngombwa.",
         "text": {
           "andMore": "n'ibindi {n}",
@@ -175,7 +175,7 @@ export default {
             "baseline": "Isuzuma ry'ibanze ryemejwe",
             "baseline_skipped": "Isuzuma ry'ibanze ryasimbuwe (impamvu yanditswe)",
             "published": "Ibyumweru bifite ibyigwa byatangajwe",
-            "open": "Isomo ryafunguwe"
+            "open": "Isomo ryatangajwe"
           },
           "blocking": {
             "outcomes": "Ongeraho intego z'isomo",
@@ -259,7 +259,7 @@ export default {
         "coreOutcome": "Intego y'ingenzi",
         "topicFirst": "Banza uvuge icyo isomo rivugaho.",
         "addWeekFailed": "Kongeraho icyumweru byanze",
-        "openFailed": "Gufungura isomo byanze",
+        "openFailed": "Ntibyakunze gutangaza isomo",
         "stepSetup": "Gutegura isomo",
         "stepOutcomes": "Intego",
         "stepBaseline": "Isuzuma ry'ibanze",
@@ -305,7 +305,7 @@ export default {
         "notSet": "Ntibirashyirwaho",
         "outcomesCount": "Intego z'imyigire ({count})",
         "timelineCount": "Ingengabihe (ibyumweru {count})",
-        "openLaunch": "Fungura isomo utangize ibyumweru",
+        "openLaunch": "Tangaza isomo",
         "back": "Subira inyuma"
     }
 };

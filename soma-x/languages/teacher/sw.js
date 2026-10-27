@@ -145,8 +145,8 @@ export default {
     },
     "setup": {
         "title": "Maandalizi ya kozi",
-        "draftNote": "Kozi hii ni rasimu. Wanafunzi hawaioni hadi uifungue.",
-        "openNote": "Kozi iko wazi. Vipengele hivi bado vinahitaji kuangaliwa.",
+        "draftNote": "Kozi hii ni rasimu. Wanafunzi hawaioni hadi uichapishe.",
+        "openNote": "Kozi imechapishwa. Vipengee hivi bado vinahitaji kuangaliwa.",
         "doneCount": "{done} kati ya {total} vimekamilika.",
         "draft": "Rasimu",
         "checklist": "Orodha ya maandalizi",
@@ -155,14 +155,14 @@ export default {
         "required": "Inahitajika",
         "worthChecking": "Inafaa kuangaliwa",
         "fix": "Rekebisha",
-        "cantOpenTitle": "Kozi bado haiwezi kufunguliwa:",
-        "cantOpenYet": "Kozi hii bado haiwezi kufunguliwa.",
+        "cantOpenTitle": "Kozi bado haiwezi kuchapishwa:",
+        "cantOpenYet": "Kozi hii bado haiwezi kuchapishwa.",
         "publishWeeksToo": "Chapisha pia wiki zenye maudhui, ili wanafunzi wazione ({n})",
-        "opened": "Kozi imefunguliwa",
-        "openFailed": "Imeshindwa kufungua kozi. Angalia muunganisho wako ujaribu tena.",
+        "opened": "Kozi imechapishwa",
+        "openFailed": "Imeshindwa kuchapisha kozi. Angalia muunganisho na ujaribu tena.",
         "inSettings": "Maandalizi ya kozi katika Mipangilio",
-        "opening": "Inafungua...",
-        "openCourse": "Fungua kozi",
+        "opening": "Inachapisha...",
+        "openCourse": "Chapisha kozi",
         "finishRequired": "Kamilisha vipengele vinavyohitajika kwanza.",
         "text": {
           "andMore": "na {n} zaidi",
@@ -175,7 +175,7 @@ export default {
             "baseline": "Jaribio la awali limeidhinishwa",
             "baseline_skipped": "Tathmini ya awali imerukwa (sababu imeandikwa)",
             "published": "Wiki zenye maudhui zimechapishwa",
-            "open": "Kozi imefunguliwa"
+            "open": "Kozi imechapishwa"
           },
           "blocking": {
             "outcomes": "Ongeza malengo ya kujifunza ya kozi",
@@ -259,7 +259,7 @@ export default {
         "coreOutcome": "Lengo kuu",
         "topicFirst": "Sema kwanza kozi inahusu nini.",
         "addWeekFailed": "Imeshindwa kuongeza wiki",
-        "openFailed": "Imeshindwa kufungua kozi",
+        "openFailed": "Imeshindwa kuchapisha kozi",
         "stepSetup": "Maandalizi",
         "stepOutcomes": "Malengo",
         "stepBaseline": "Tathmini ya awali",
@@ -305,7 +305,7 @@ export default {
         "notSet": "Haijawekwa",
         "outcomesCount": "Malengo ya ujifunzaji ({count})",
         "timelineCount": "Ratiba (wiki {count})",
-        "openLaunch": "Fungua kozi na anzisha mzunguko wa wiki",
+        "openLaunch": "Chapisha kozi",
         "back": "Rudi"
     }
 };

@@ -145,8 +145,8 @@ export default {
     },
     "setup": {
         "title": "Configuración del curso",
-        "draftNote": "Este curso es un borrador. Los estudiantes no lo ven hasta que lo abras.",
-        "openNote": "El curso está abierto. Estos elementos aún necesitan revisión.",
+        "draftNote": "Este curso es un borrador. Los estudiantes no lo ven hasta que lo publiques.",
+        "openNote": "El curso está publicado. Estos elementos aún necesitan revisión.",
         "doneCount": "{done} de {total} hechos.",
         "draft": "Borrador",
         "checklist": "Lista de configuración",
@@ -155,14 +155,14 @@ export default {
         "required": "Obligatorio",
         "worthChecking": "Conviene revisar",
         "fix": "Corregir",
-        "cantOpenTitle": "El curso aún no puede abrirse:",
-        "cantOpenYet": "Este curso aún no puede abrirse.",
+        "cantOpenTitle": "El curso aún no se puede publicar:",
+        "cantOpenYet": "Este curso aún no se puede publicar.",
         "publishWeeksToo": "Publicar también las semanas con contenido, para que los estudiantes las vean ({n})",
-        "opened": "Curso abierto",
-        "openFailed": "No se pudo abrir el curso. Revisa tu conexión e inténtalo de nuevo.",
+        "opened": "Curso publicado",
+        "openFailed": "No se pudo publicar el curso. Revisa la conexión e inténtalo de nuevo.",
         "inSettings": "Configuración del curso en Ajustes",
-        "opening": "Abriendo...",
-        "openCourse": "Abrir curso",
+        "opening": "Publicando...",
+        "openCourse": "Publicar curso",
         "finishRequired": "Primero completa los elementos obligatorios.",
         "text": {
           "andMore": "y {n} más",
@@ -175,7 +175,7 @@ export default {
             "baseline": "Cuestionario inicial aprobado",
             "baseline_skipped": "Evaluación inicial omitida (motivo registrado)",
             "published": "Las semanas con contenido están publicadas",
-            "open": "Curso abierto"
+            "open": "Curso publicado"
           },
           "blocking": {
             "outcomes": "Añade los resultados de aprendizaje del curso",
@@ -259,7 +259,7 @@ export default {
         "coreOutcome": "Resultado principal",
         "topicFirst": "Primero di de qué trata el curso.",
         "addWeekFailed": "No se pudo añadir la semana",
-        "openFailed": "No se pudo abrir el curso",
+        "openFailed": "No se pudo publicar el curso",
         "stepSetup": "Configuración",
         "stepOutcomes": "Resultados",
         "stepBaseline": "Evaluación inicial",
@@ -305,7 +305,7 @@ export default {
         "notSet": "Sin definir",
         "outcomesCount": "Resultados de aprendizaje ({count})",
         "timelineCount": "Cronograma ({count} semanas)",
-        "openLaunch": "Abrir el curso e iniciar las semanas",
+        "openLaunch": "Publicar curso",
         "back": "Atrás"
     }
 };

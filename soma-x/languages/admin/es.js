@@ -64,8 +64,8 @@ export default {
         "adminViewLink": "Volver al portal de administración",
         "lifecycle": {
             "draft": "Borrador",
-            "open": "Abierto",
-            "closed": "Cerrado",
+            "open": "Publicado",
+            "closed": "Terminado",
             "archived": "Archivado"
         }
     },
@@ -185,9 +185,9 @@ export default {
         "inRunning": "en cursos en marcha",
         "active7": "Activos en los últimos 7 días",
         "learnersLower": "estudiantes",
-        "coursesHelp": "Cursos abiertos y cerrados. Elige un curso para ver su análisis.",
+        "coursesHelp": "Cursos publicados y terminados. Elige un curso para abrir su análisis.",
         "noRunning": "Aún no hay cursos en marcha.",
-        "noRunningHelp": "Los cursos aparecen aquí cuando se abren.",
+        "noRunningHelp": "Los cursos aparecen aquí cuando se publican.",
         "colWithResults": "Con resultados",
         "colMastery": "Dominio medio",
         "colDelta": "Cambio vs. inicial",

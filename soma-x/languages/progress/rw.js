@@ -110,11 +110,6 @@ export default {
     yourGrades: "Amanota yawe",
     gradebook: "Igitabo cy'amanota",
   },
-  progressPage: {
-    teacherTitle: "\"Aho ngeze\" ni iby'abanyeshuri",
-    teacherHint: "Abarimu babona aho buri munyeshuri ageze mu Isesengura.",
-    openInsights: "Fungura Isesengura",
-  },
   outcomes: {
     title: "Intego z'isomo no kuzimenya neza",
     description: "Ubumenyi iri somo ryigisha. Kuri buri bumwe, reba aho abanyeshuri batangiriye (Icyumweru 0) n'aho bageze ubu.",
@@ -140,6 +135,9 @@ export default {
     loading: "Intego zirimo gufunguka...",
     empty: "Nta ntego z'isomo zirashyirwaho.",
     emptyHint: "Ongeraho ubumenyi iri somo ryigisha, hanyuma ubuhuze n'amasuzuma n'inshingano kugira ngo ukurikirane iterambere ry'abanyeshuri.",
+    descriptionLearner: "Ubumenyi iri somo ryigisha, n'aho ugeze kuri buri bumwe.",
+    masteryTitleLearner: "Aho ugeze kuri buri ntego",
+    emptyHintLearner: "Mwarimu wawe ntarashyiraho intego z'iri somo.",
     masteryList: "Uko intego zimenywa",
     rewriteAria: "Ongera wandike intego {name} ukoresheje AI",
     rewriteWithAi: "Ongera wandike ukoresheje AI",

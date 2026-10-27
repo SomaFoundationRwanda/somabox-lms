@@ -1,8 +1,9 @@
 "use client";
 
+import EditorFrame from "./EditorFrame";
 import { useState } from "react";
 import Link from "next/link";
-import { X, Target } from "lucide-react";
+import { Target } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
 import ScheduleFields, { initialScheduleValues, scheduleError, schedulePayload } from "./ScheduleFields";
 import { useCourseText } from "@/components/course/useCourseText";
@@ -14,7 +15,7 @@ import { CheckboxList, Fieldset, Label, TextInput, Textarea } from "@/components
 // initialDays: the module item's { release_day, due_day, close_day } when editing.
 // moduleStartDate: the module's first day ('YYYY-MM-DD'), for previewing dates.
 // initialOutcomeIds: the outcomes the assignment is tagged with when editing.
-export default function AssignmentEditorModal({ open, onClose, onSave, initialData, initialDays, moduleStartDate, initialOutcomeIds = [] }) {
+export default function AssignmentEditorModal({ asPage = false, open, onClose, onSave, initialData, initialDays, moduleStartDate, initialOutcomeIds = [] }) {
   const { SERVER_URL, courseId } = useCourse();
   const isEdit = Boolean(initialData?.id);
   const { t } = useCourseText();
@@ -53,19 +54,10 @@ export default function AssignmentEditorModal({ open, onClose, onSave, initialDa
     }
   };
 
-  if (!open) return null;
+  if (!open && !asPage) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 backdrop-blur-sm overflow-auto py-8">
-      <div className="bg-surface rounded-2xl w-full max-w-xl shadow-2xl mx-4 animate-in fade-in slide-in-from-bottom-2 duration-200">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-line">
-          <h2 className="text-item font-bold text-fg">
-            {isEdit ? t("editors.editAssignment") : t("editors.newAssignment")}
-          </h2>
-          <button aria-label={t("common.close")} onClick={onClose} className="p-1.5 rounded-lg hover:bg-surface-hover text-fg-subtle">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
+    <EditorFrame asPage={asPage} title={isEdit ? t("editors.editAssignment") : t("editors.newAssignment")} onClose={onClose} maxWidth="max-w-xl">
 
         <div className="px-6 py-4 space-y-4">
           <div>
@@ -123,7 +115,6 @@ export default function AssignmentEditorModal({ open, onClose, onSave, initialDa
             {saving ? t("common.saving") : isEdit ? t("editors.saveChanges") : t("editors.createAssignment")}
           </button>
         </div>
-      </div>
-    </div>
+    </EditorFrame>
   );
 }

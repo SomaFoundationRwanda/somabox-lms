@@ -145,8 +145,8 @@ export default {
     },
     "setup": {
         "title": "Configuration du cours",
-        "draftNote": "Ce cours est un brouillon. Les élèves ne le voient pas tant que vous ne l'ouvrez pas.",
-        "openNote": "Le cours est ouvert. Ces éléments méritent encore un coup d'œil.",
+        "draftNote": "Ce cours est un brouillon. Les élèves ne le voient pas tant que vous ne l'avez pas publié.",
+        "openNote": "Le cours est publié. Ces éléments méritent encore un coup d'œil.",
         "doneCount": "{done} sur {total} terminés.",
         "draft": "Brouillon",
         "checklist": "Liste de configuration",
@@ -155,14 +155,14 @@ export default {
         "required": "Obligatoire",
         "worthChecking": "À vérifier",
         "fix": "Corriger",
-        "cantOpenTitle": "Le cours ne peut pas encore ouvrir :",
-        "cantOpenYet": "Ce cours ne peut pas encore ouvrir.",
+        "cantOpenTitle": "Le cours ne peut pas encore être publié :",
+        "cantOpenYet": "Ce cours ne peut pas encore être publié.",
         "publishWeeksToo": "Publier aussi les semaines qui ont du contenu, pour que les élèves les voient ({n})",
-        "opened": "Cours ouvert",
-        "openFailed": "Impossible d'ouvrir le cours. Vérifiez votre connexion et réessayez.",
+        "opened": "Cours publié",
+        "openFailed": "Impossible de publier le cours. Vérifiez la connexion et réessayez.",
         "inSettings": "Configuration du cours dans les paramètres",
-        "opening": "Ouverture...",
-        "openCourse": "Ouvrir le cours",
+        "opening": "Publication...",
+        "openCourse": "Publier le cours",
         "finishRequired": "Terminez d'abord les éléments obligatoires.",
         "text": {
           "andMore": "et {n} de plus",
@@ -175,7 +175,7 @@ export default {
             "baseline": "Quiz de départ validé",
             "baseline_skipped": "Évaluation de départ ignorée (raison notée)",
             "published": "Les semaines avec du contenu sont publiées",
-            "open": "Cours ouvert"
+            "open": "Cours publié"
           },
           "blocking": {
             "outcomes": "Ajoutez les objectifs d'apprentissage du cours",
@@ -259,7 +259,7 @@ export default {
         "coreOutcome": "Objectif principal",
         "topicFirst": "Indiquez d'abord le sujet du cours.",
         "addWeekFailed": "Impossible d'ajouter la semaine",
-        "openFailed": "Impossible d'ouvrir le cours",
+        "openFailed": "Impossible de publier le cours",
         "stepSetup": "Configuration",
         "stepOutcomes": "Objectifs",
         "stepBaseline": "Évaluation initiale",
@@ -305,7 +305,7 @@ export default {
         "notSet": "Non défini",
         "outcomesCount": "Objectifs d'apprentissage ({count})",
         "timelineCount": "Calendrier ({count} semaines)",
-        "openLaunch": "Ouvrir le cours et lancer les semaines",
+        "openLaunch": "Publier le cours",
         "back": "Retour"
     }
 };

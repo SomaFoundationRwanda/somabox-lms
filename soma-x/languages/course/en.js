@@ -26,7 +26,8 @@ export default {
     "courseMenu": "Course menu",
     "more": "More",
     "hiddenFromStudents": "Hidden from students",
-    "course": "Course"
+    "course": "Course",
+    "teachersOnly": "Teachers only"
   },
   "weeks": {
     "baseline": "Week 0 · Baseline",
@@ -35,8 +36,8 @@ export default {
   },
   "lifecycle": {
     "draft": "Draft",
-    "open": "Open",
-    "closed": "Closed",
+    "open": "Published",
+    "closed": "Ended",
     "archived": "Archived"
   },
   "common": {
@@ -67,7 +68,8 @@ export default {
     "download": "Download",
     "open": "Open",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "point": "{n} pt"
   },
   "home": {
     "eyebrow": "Course home",
@@ -89,9 +91,12 @@ export default {
       "toGrade": "Submissions waiting to be graded: {n}",
       "startsOn": "{week} starts on {date}",
       "unpublishedSoon": "{week}: items opening by {date} that aren't published: {n}",
-      "openNow": "{week}: items open: {n}, next due {date}",
+      "openNow": "{week}: things to do: {n}, next due {date}",
       "finished": "{week} is finished: review progress before the next week",
-      "live": "{week} is live"
+      "live": "{week} is live",
+      "notScheduled": "Your teacher hasn't set the course dates yet",
+      "nothingYet": "Nothing has been added to this course yet",
+      "weekDone": "{week} is finished"
     },
     "loopActions": {
       "openModules": "Open Weeks",
@@ -103,7 +108,8 @@ export default {
       "setStartDate": "Set start date",
       "tagOutcomes": "Tag outcomes",
       "reviewItems": "Review items",
-      "moveItems": "Move items"
+      "moveItems": "Move items",
+      "openProgress": "My progress"
     },
     "attention": {
       "noStartDate": "The course has no start date, so nothing has a date yet",
@@ -112,11 +118,11 @@ export default {
       "unassigned": "Items not in a week yet: {n}"
     },
     "beatHelp": {
-      "prepare": "Prepare: check this week's items and their outcome tags, and approve AI drafts before learners start.",
-      "release": "Release: this week's items are live and open to learners.",
-      "collect": "Collect: follow learners' progress, submissions and discussion participation.",
-      "grade": "Grade: mark learners' submissions with rubrics linked to outcomes, with help from AI.",
-      "review": "Review: compare outcome mastery with the baseline and adjust next week."
+      "prepare": "Check this week's items and their outcome tags, and approve AI drafts before learners start.",
+      "release": "This week's items are live and open to learners.",
+      "collect": "Follow learners' progress, submissions and discussion participation.",
+      "grade": "Mark learners' submissions with rubrics linked to outcomes, with help from AI.",
+      "review": "Compare outcome mastery with the baseline and adjust next week."
     },
     "needsAttention": "Needs attention",
     "allTagged": "Nothing needs your attention right now.",
@@ -132,7 +138,20 @@ export default {
     "courseTimeline": "Course timeline",
     "current": "Current",
     "defaultModuleDescription": "Weekly study material and assignments.",
-    "openModuleItems": "Open this week"
+    "openModuleItems": "Open this week",
+    "ready": {
+      "title": "Getting ready",
+      "todo": "Learners can't see this course yet. Finish these, then publish it from the bar at the top.",
+      "done": "Everything's ready. Publish the course from the bar at the top when you want learners to see it."
+    },
+    "baselineCard": {
+      "title": "Measure where learners start (optional)",
+      "text": "A short, ungraded check before Week 1 shows each learner's starting point, so you can see how much they grow.",
+      "build": "Build a Week 0 check",
+      "notNow": "Not this time",
+      "skipReason": "Not this time",
+      "failed": "Couldn't save that. Try again."
+    }
   },
   "items": {
     "page": "Page",
@@ -181,7 +200,8 @@ export default {
       "deleteModule": "Couldn't delete the week",
       "renameModule": "Couldn't rename the week",
       "publishItem": "Couldn't publish the item",
-      "unpublishItem": "Couldn't unpublish the item"
+      "unpublishItem": "Couldn't unpublish the item",
+      "moveItem": "Couldn't move the item."
     },
     "confirmDeleteModule": "Delete the week \"{title}\"? Only empty weeks can be deleted.",
     "dragModule": "Drag to reorder the week",
@@ -253,8 +273,33 @@ export default {
       "starting": "Starting…",
       "writeStoryDraft": "Write story draft",
       "beingWritten": "AI drafts for this week are being written. It can take a few minutes.",
-      "openDrafts": "Open AI drafts"
-    }
+      "openDrafts": "Open AI drafts",
+      "fillWeekMenu": "AI: fill this week",
+      "storyMenu": "AI: write a story"
+    },
+    "descriptionLearner": "Your course week by week: each week's dates and what to do, in order.",
+    "hiddenByWeek": "Hidden: week is a draft",
+    "itemActions": "Actions for {title}",
+    "weekActions": "Actions for {title}",
+    "publishWeekNamed": "Publish week {title}",
+    "publishItemsTooOne": "This week has 1 draft item. Publish it too, so learners can see it?",
+    "publishItemsTooMany": "This week has {n} draft items. Publish them too, so learners can see them?",
+    "renameSubHeader": "Rename",
+    "filterLabel": "Show",
+    "filterAll": "All",
+    "filter": {
+      "page": "Pages",
+      "assignment": "Assignments",
+      "quiz": "Quizzes",
+      "discussion": "Discussions",
+      "file": "Files"
+    },
+    "noMatchingItems": "None in this week.",
+    "moveToWeek": "Move to another week…",
+    "moveTitle": "Move {title}",
+    "moveToLabel": "Move to",
+    "move": "Move",
+    "moved": "Moved"
   },
   "quizKinds": {
     "graded": "Graded",
@@ -352,7 +397,18 @@ export default {
       "uploading": "Uploading...",
       "done": "Done!",
       "uploadAdd": "Upload and add"
-    }
+    },
+    "backToWeeks": "Back to Weeks",
+    "notFound": "This item isn't in the course any more.",
+    "saved": "Saved",
+    "added": "Added to the week",
+    "editDiscussion": "Edit discussion",
+    "newDiscussion": "New discussion",
+    "discussionTitle": "Discussion title",
+    "discussionTitlePlaceholder": "e.g. Where do you see fractions at home?",
+    "discussionPrompt": "Question or prompt",
+    "discussionPromptHint": "What learners answer or talk about. You can grade the discussion from its page.",
+    "createDiscussion": "Create discussion"
   },
   "editor": {
     "heading1": "Heading 1",
@@ -498,7 +554,9 @@ export default {
     "noQuizzes": "No quizzes yet.",
     "oneQuestion": "{n} question",
     "manyQuestions": "{n} questions",
-    "relativeTiming": "Dates follow the week"
+    "relativeTiming": "Dates follow the week",
+    "assignmentsDescriptionLearner": "Work you hand in or take for a grade, week by week.",
+    "quizzesDescriptionLearner": "Quizzes to take, week by week. Practice quizzes don't count towards your grade."
   },
   "assignment": {
     "closed": "This assignment is closed.",
@@ -526,7 +584,7 @@ export default {
     "rubric": "Rubric",
     "rubricHelp": "Your work is scored on these criteria and turned into a grade out of {n}.",
     "yourSubmission": "Your submission",
-    "observerNote": "You're observing this course, so you can read the assignment but not hand in work.",
+    "observerNote": "You're viewing this course without taking part, so you can read the assignment but not hand in work.",
     "opens": "Opens",
     "due": "Due",
     "closes": "Closes",
@@ -546,11 +604,12 @@ export default {
     "dismiss": "Dismiss",
     "submitting": "Submitting...",
     "resubmit": "Submit again",
-    "submit": "Submit assignment"
+    "submit": "Submit assignment",
+    "courseEnded": "This course has ended, so work can't be handed in any more."
   },
   "quiz": {
     "noAttemptsLeft": "You have used all your attempts for this quiz.",
-    "observerNote": "You're observing this course, so you can read the quiz but not take it.",
+    "observerNote": "You're viewing this course without taking part, so you can read the quiz but not take it.",
     "closed": "This quiz is closed.",
     "notOpenYet": "This quiz is not open yet.",
     "submitFailed": "Couldn't submit the quiz.",
@@ -585,7 +644,9 @@ export default {
     "unlimitedAttempts": "Unlimited attempts",
     "allUsed": "All {n} attempts used",
     "attemptOf": "Attempt {n} of {total}",
-    "submit": "Submit answers"
+    "submit": "Submit answers",
+    "courseEnded": "This course has ended, so the quiz can't be taken any more.",
+    "correctAnswer": "Correct answer"
   },
   "discussions": {
     "chooseModuleError": "Choose a week for this discussion.",
@@ -604,13 +665,14 @@ export default {
     "notFound": "Discussion not found.",
     "grading": "Grading",
     "removeGrading": "Remove grading",
-    "markGraded": "Mark as graded",
+    "markGraded": "Grade this discussion",
     "syncs": "shows in Assignments and Grades",
     "repliesCount": "Replies ({n})",
     "replies": "Replies",
     "noReplies": "No replies yet. Be the first.",
     "replyPlaceholder": "Write a reply...",
-    "reply": "Reply"
+    "reply": "Reply",
+    "gradeHint": "Graded, it's marked out of these points and shows in Assignments and Grades."
   },
   "announcements": {
     "new": "New announcement",
@@ -636,7 +698,8 @@ export default {
     "grade": "Grade",
     "schedule": "Week-by-week schedule",
     "loadingSchedule": "Loading the schedule...",
-    "noSchedule": "No weeks yet."
+    "noSchedule": "No weeks yet.",
+    "eyebrowLearner": "Syllabus"
   },
   "files": {
     "empty": "No files uploaded yet."
@@ -669,7 +732,7 @@ export default {
       "turnOff": "Turn off",
       "confirmNew": "Make a new code? The current one will stop working.",
       "failed": "Couldn't change the join code",
-      "draftNote": "Learners can join once the course is open.",
+      "draftNote": "Learners can join once the course is published.",
       "orEmail": "Or add someone by email"
     },
     "all": "All",
@@ -679,7 +742,8 @@ export default {
     "emailCol": "Email",
     "status": "Status",
     "manage": "Manage",
-    "removeNamed": "Remove {name}"
+    "removeNamed": "Remove {name}",
+    "removeConfirm": "Remove {name} from this course?"
   },
   "collab": {
     "description": "Share a link to an outside document, sheet or board with chosen course members.",
@@ -764,10 +828,10 @@ export default {
     "bannerChoose": "Choose an image",
     "bannerChange": "Choose another image",
     "banner": "Banner image",
-    "visibility": "Visibility",
-    "private": "Private: invite only",
-    "public": "Public: listed in Discover courses",
-    "publicHelp": "Public courses appear in the course catalogue and anyone can join them without an invite.",
+    "visibility": "Who can join this course?",
+    "private": "Only people I add, or who have the join code",
+    "public": "Anyone on this box: it's listed in Discover courses",
+    "publicHelp": "This is separate from publishing: a draft course can't be joined by anyone until it's published.",
     "navHelp": "Enabled items appear in the sidebar for everyone. Hidden items stay visible to you (greyed out) but not to learners.",
     "enabled": "Enabled",
     "enabledItems": "Enabled navigation items",
@@ -782,31 +846,38 @@ export default {
     "status": {
       "title": "Course status",
       "now": {
-        "draft": "This course is a draft. Open it from Course setup when it's ready.",
-        "open": "Open: learners can see the course and hand in work.",
-        "closed": "Closed: learners can still read the course and see their grades, but can't hand in work or take quizzes.",
+        "draft": "This course is a draft. Publish it from the bar at the top when it's ready.",
+        "open": "Published: learners can see the course and hand in work.",
+        "closed": "Ended: learners can still read the course and see their grades, but can't hand in work or take quizzes.",
         "archived": "Archived: learners no longer see this course in their list. Grades and results are kept."
       },
       "action": {
         "open": "Reopen course",
-        "closed": "Close course",
+        "closed": "End course",
         "archived": "Archive course",
         "delete": "Delete course"
       },
       "confirm": {
         "open": "Reopen this course? Learners can hand in work again.",
-        "closed": "Close this course? Learners can still read it and see their grades, but can't hand in work.",
+        "closed": "End this course? Learners can still read it and see their grades, but can't hand in work.",
         "archived": "Archive this course? It disappears from learners' course lists. Grades and results are kept.",
         "delete": "Delete \"{title}\" for good? This can't be undone."
       },
       "done": {
         "open": "Course reopened",
-        "closed": "Course closed",
+        "closed": "Course ended",
         "archived": "Course archived"
       },
       "deleted": "Course deleted",
       "hasWork": "Learners have handed in work in this course, so it can't be deleted. Archive it instead: it leaves their course lists and their results are kept.",
       "failed": "Couldn't change the course status."
+    },
+    "navSaved": "Navigation saved",
+    "staffOnly": "Staff only",
+    "learnersFind": {
+      "pages": "Learners find pages in Weeks, not in their menu",
+      "outcomes": "Learners see their outcomes on My progress, not in their menu",
+      "attendance": "Learners see their attendance on Grades, not in their menu"
     }
   },
   "calendar": {
@@ -863,5 +934,105 @@ export default {
     "nothingPeriod": "Nothing scheduled in this period.",
     "nothingAhead": "Nothing scheduled from today on.",
     "showLater": "Show later dates"
+  },
+  "access": {
+    "sectionTitle": "This part of the course isn't open to you",
+    "sectionText": "{section} is only for this course's teachers, or your teacher hasn't opened it to the class.",
+    "backToCourse": "Back to the course",
+    "publicText": "Anyone on this box can join this course.",
+    "join": "Join this course",
+    "joining": "Joining...",
+    "joinFailed": "Couldn't join the course. Try again.",
+    "discover": "See other courses",
+    "privateTitle": "You're not in this course",
+    "privateText": "Ask your teacher to add you, or join with the code your teacher gives the class.",
+    "removedTitle": "You're no longer in this course",
+    "removedText": "Your place in this course was removed. Ask your teacher to add you again.",
+    "joinWithCode": "Join with a code"
+  },
+  "status": {
+    "publish": "Publish course",
+    "more": "More course actions",
+    "note": {
+      "draft": "Learners can't see this course until you publish it.",
+      "open": "Learners in this course can see it and hand in work.",
+      "closed": "Learners can still read it and see their grades, but can't hand in work.",
+      "archived": "Gone from learners' course lists. Grades and results are kept."
+    },
+    "published": "Course published",
+    "publishFailed": "Couldn't publish the course. Try again.",
+    "missingTitle": "Before you can publish",
+    "missingText": "Finish these first:",
+    "fix": "Fix",
+    "publishTitle": "Publish this course?",
+    "publishText": "Learners in the course will see it and can start its work.",
+    "joinPublic": "Anyone on this box can find and join it in Discover courses.",
+    "joinPrivate": "Only people you add, or who have the join code, can join.",
+    "weeksAskOne": "1 week with content is still a draft. Publish it too, so learners can see it?",
+    "weeksAskMany": "{n} weeks with content are still drafts. Publish them too, so learners can see them?",
+    "publishWithWeekOne": "Publish course and 1 week",
+    "publishWithWeeksMany": "Publish course and {n} weeks",
+    "publishOnly": "Publish course only",
+    "unarchive": "Bring back (as ended)"
+  },
+  "setup": {
+    "title": "Set up your course",
+    "intro": "Three short steps. You can come back to any of them, and change everything later.",
+    "progress": "Setup steps",
+    "steps": {
+      "when": "When",
+      "outcomes": "What you'll teach",
+      "firstWeek": "First week",
+      "ready": "Ready"
+    },
+    "whenTitle": "When does it run?",
+    "whenText": "Pick the first day of Week 1 and how many weeks the course lasts. Every week and due date is worked out from these.",
+    "startDate": "First day of Week 1",
+    "startHint": "Dates for every week follow from this day.",
+    "weekCount": "Number of weeks",
+    "endsOn": "Currently ends on {date}",
+    "chooseStart": "Choose the first day of Week 1.",
+    "saveFailed": "Couldn't save that. Try again.",
+    "continue": "Continue",
+    "back": "Back",
+    "outcomesTitle": "What will learners be able to do?",
+    "outcomesText": "These are the course's learning outcomes: short, checkable skills like \"Add fractions with different denominators\". Graded work is linked to them, so you can see each learner's progress.",
+    "outcomeLabel": "An outcome",
+    "outcomePlaceholder": "e.g. Add fractions with different denominators",
+    "addOutcome": "Add",
+    "aiOutcomesText": "AI can suggest outcomes (and a plan for the weeks) from the course's description. Nothing changes until you accept them.",
+    "aiOutcomes": "Suggest outcomes with AI",
+    "outcomesLater": "You can skip this for now, but graded work needs an outcome before learners see it.",
+    "firstWeekTitle": "Something for {week}",
+    "firstWeekNoWeeks": "Your first week",
+    "firstWeekText": "Add what learners read, do or answer in the first week. You can add more to any week later from Weeks.",
+    "weekEmpty": "Nothing in {week} yet.",
+    "aiWeekText": "Or let AI draft the week: a page, a quiz and an assignment, waiting for you to check.",
+    "aiWeek": "Let AI draft {week}",
+    "aiWeekStarted": "AI is drafting the week. Check the drafts in AI drafts before adding them.",
+    "addWeeksFirst": "Add the weeks first",
+    "readyTitle": "Your course is ready",
+    "readyText": "Publish it when you want learners to see it, or keep it as a draft and come back later.",
+    "publishedText": "Your course is published.",
+    "almostTitle": "Almost there",
+    "almostText": "Finish these before you can publish:",
+    "keepDraft": "Keep as draft for now",
+    "toCourse": "Go to the course",
+    "teacherOnly": "Only the course's teacher can set it up.",
+    "open": "Set up step by step",
+    "settingsHelp": "Dates and weeks, outcomes and the first week, one step at a time."
+  },
+  "learnerHome": {
+    "nextUp": "Next up",
+    "allDone": "You're up to date. Nothing to do right now.",
+    "more": "More about this course",
+    "work": "All your work",
+    "weeks": "All weeks",
+    "comingUp": "Coming up",
+    "openGrades": "Open Grades",
+    "openWeeks": "Open Weeks",
+    "openProgress": "Open My progress",
+    "openAnnouncements": "All announcements",
+    "noNews": "No announcements yet."
   }
 };

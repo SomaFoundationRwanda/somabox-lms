@@ -56,7 +56,9 @@ router.get("/:id/people", async (req, res) => {
       LEFT JOIN users u ON LOWER(u.email) = LOWER(e.user_email)
       WHERE e.course_id = ? ORDER BY e.role ASC, e.joined_at ASC
     `).all(courseId);
-    const people = await Promise.all(rows.map(async (row) => ({
+    // Learners and observers see the class as it is now: active members, without observers.
+    const listed = staff ? rows : rows.filter((row) => row.status === "active" && row.role !== "observer");
+    const people = await Promise.all(listed.map(async (row) => ({
       id: row.id,
       // Learners without an email have an internal address: never shown.
       email: (staff || String(row.user_email).toLowerCase() === auth.email.toLowerCase()) && !isInternalEmail(row.user_email) ? row.user_email : null,
@@ -65,7 +67,8 @@ router.get("/:id/people", async (req, res) => {
       // nothing in): their address even when it's an internal one that's never shown.
       account: staff ? row.user_email : null,
       // Teachers may give a learner (a learner account) a new temporary password.
-      canResetPassword: staff && !auth.enrollment.adminView && row.role === "student" && row.account_role === "scholar",
+      // Only the course's own teacher, for a learner account.
+      canResetPassword: auth.enrollment.role === "teacher" && row.role === "student" && row.account_role === "scholar",
       fullName: await userFullName(row.user_email),
       role: row.role,
       status: row.status,

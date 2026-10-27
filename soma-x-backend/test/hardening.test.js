@@ -254,7 +254,7 @@ test("an enrolled learner never succeeds on a teacher-only course route", async 
     "GET /courses/:id/baseline", "GET /courses/:id/my-progress", "GET /courses/:id/files", "GET /courses/:id/collaborations",
     "POST /courses/:id/collaborations", "POST /courses/:id/discussions", "POST /courses/:id/modules/:moduleId/items/:itemId/progress",
     "GET /courses/:id/setup-status", "POST /courses/:id/enroll", "POST /courses/:id/join",
-    "GET /courses/:id/rubrics", "GET /courses/:id/activity", "GET /courses/:id/module-items/sequence",
+    "GET /courses/:id/rubrics",
     "GET /courses/:id/module-items/sequence-position", "POST /courses/:id/module-items/:moduleItemId/progress",
     "GET /courses/:id/attendance/me",
   ]);

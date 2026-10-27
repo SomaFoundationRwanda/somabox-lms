@@ -337,6 +337,8 @@ const USERS_STUDENT = "student@test.local";
 
 test("a learner's first submission succeeds and schedules spaced reviews", async () => {
   const { courseId, week1, outcomeId } = await setupCourse("First submission");
+  // Learners hand in work only in a released week.
+  await asTeacher("PATCH", `/courses/${courseId}/modules/${week1.id}`, { published: true });
   const item = await addItem(courseId, week1.id, { itemType: "assignment", title: "Essay", outcomeIds: [outcomeId] });
   const res = await asStudent("POST", `/courses/${courseId}/assignments/${item.body.content_id}/submit`, { body: "My essay" });
   assert.equal(res.status, 201, JSON.stringify(res.body));

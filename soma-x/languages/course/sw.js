@@ -26,7 +26,8 @@ export default {
     "courseMenu": "Menyu ya kozi",
     "more": "Zaidi",
     "hiddenFromStudents": "Imefichwa kwa wanafunzi",
-    "course": "Kozi"
+    "course": "Kozi",
+    "teachersOnly": "Walimu tu"
   },
   "weeks": {
     "baseline": "Wiki 0 · Kipimo cha awali",
@@ -35,8 +36,8 @@ export default {
   },
   "lifecycle": {
     "draft": "Rasimu",
-    "open": "Wazi",
-    "closed": "Imefungwa",
+    "open": "Imechapishwa",
+    "closed": "Imeisha",
     "archived": "Imehifadhiwa"
   },
   "common": {
@@ -67,7 +68,8 @@ export default {
     "download": "Pakua",
     "open": "Fungua",
     "yes": "Ndiyo",
-    "no": "Hapana"
+    "no": "Hapana",
+    "point": "alama {n}"
   },
   "home": {
     "eyebrow": "Ukurasa wa kozi",
@@ -89,9 +91,12 @@ export default {
       "toGrade": "Kazi zinazosubiri kusahihishwa: {n}",
       "startsOn": "{week} inaanza {date}",
       "unpublishedSoon": "{week}: vipengele vinavyofunguka kufikia {date} bila kuchapishwa: {n}",
-      "openNow": "{week}: vipengele vilivyo wazi: {n}, inayofuata ni {date}",
+      "openNow": "{week}: mambo ya kufanya: {n}, inayofuata {date}",
       "finished": "{week} imekwisha: kagua maendeleo kabla ya wiki ijayo",
-      "live": "{week} inaendelea"
+      "live": "{week} inaendelea",
+      "notScheduled": "Mwalimu wako bado hajaweka tarehe za kozi",
+      "nothingYet": "Bado hakuna kilichoongezwa kwenye kozi hii",
+      "weekDone": "{week} imekamilika"
     },
     "loopActions": {
       "openModules": "Fungua Wiki",
@@ -103,7 +108,8 @@ export default {
       "setStartDate": "Weka tarehe ya kuanza",
       "tagOutcomes": "Unganisha malengo",
       "reviewItems": "Kagua vipengele",
-      "moveItems": "Hamisha vipengele"
+      "moveItems": "Hamisha vipengele",
+      "openProgress": "Maendeleo yangu"
     },
     "attention": {
       "noStartDate": "Kozi haina tarehe ya kuanza, kwa hiyo hakuna kitu chenye tarehe bado",
@@ -112,11 +118,11 @@ export default {
       "unassigned": "Vipengele ambavyo bado haviko kwenye wiki: {n}"
     },
     "beatHelp": {
-      "prepare": "Kuandaa: kagua vipengele vya wiki hii na malengo yake, na uidhinishe rasimu za AI kabla wanafunzi hawajaanza.",
-      "release": "Kutoa: vipengele vya wiki hii viko wazi kwa wanafunzi.",
-      "collect": "Kukusanya: fuatilia maendeleo ya wanafunzi, kazi walizowasilisha na ushiriki wao kwenye majadiliano.",
-      "grade": "Kutoa alama: sahihisha kazi za wanafunzi kwa rubriki zinazohusiana na malengo, ukisaidiwa na AI.",
-      "review": "Kupitia: linganisha umilisi wa malengo na kipimo cha awali, kisha rekebisha wiki ijayo."
+      "prepare": "Kagua vipengee vya wiki hii na malengo yake, na uidhinishe rasimu za AI kabla wanafunzi hawajaanza.",
+      "release": "Vipengee vya wiki hii viko wazi kwa wanafunzi.",
+      "collect": "Fuatilia maendeleo ya wanafunzi, kazi zilizowasilishwa na ushiriki kwenye mijadala.",
+      "grade": "Weka alama kwa kazi za wanafunzi kwa rubriki zilizounganishwa na malengo, kwa msaada wa AI.",
+      "review": "Linganisha umahiri wa malengo na mahali walipoanzia, kisha rekebisha wiki ijayo."
     },
     "needsAttention": "Inahitaji kushughulikiwa",
     "allTagged": "Hakuna kinachohitaji umakini wako kwa sasa.",
@@ -132,7 +138,20 @@ export default {
     "courseTimeline": "Ratiba ya kozi",
     "current": "Sasa",
     "defaultModuleDescription": "Nyenzo za kujifunza na kazi za wiki.",
-    "openModuleItems": "Fungua wiki hii"
+    "openModuleItems": "Fungua wiki hii",
+    "ready": {
+      "title": "Maandalizi",
+      "todo": "Wanafunzi bado hawaioni kozi hii. Maliza haya, kisha uichapishe kutoka kwenye upau wa juu.",
+      "done": "Kila kitu kiko tayari. Chapisha kozi kutoka kwenye upau wa juu unapotaka wanafunzi waione."
+    },
+    "baselineCard": {
+      "title": "Pima wanafunzi wanapoanzia (si lazima)",
+      "text": "Jaribio fupi lisilo na alama kabla ya Wiki 1 linaonyesha kila mwanafunzi anapoanzia, ili uone anavyokua.",
+      "build": "Tengeneza jaribio la Wiki 0",
+      "notNow": "Si wakati huu",
+      "skipReason": "Si wakati huu",
+      "failed": "Imeshindwa kuhifadhi. Jaribu tena."
+    }
   },
   "items": {
     "page": "Ukurasa",
@@ -181,7 +200,8 @@ export default {
       "deleteModule": "Imeshindwa kufuta wiki",
       "renameModule": "Imeshindwa kubadilisha jina la wiki",
       "publishItem": "Imeshindwa kuchapisha kipengele",
-      "unpublishItem": "Imeshindwa kuondoa uchapishaji wa kipengele"
+      "unpublishItem": "Imeshindwa kuondoa uchapishaji wa kipengele",
+      "moveItem": "Imeshindwa kuhamisha kipengee."
     },
     "confirmDeleteModule": "Futa wiki \"{title}\"? Wiki tupu pekee ndizo zinaweza kufutwa.",
     "dragModule": "Buruta kupanga upya wiki",
@@ -253,8 +273,33 @@ export default {
       "starting": "Inaanza…",
       "writeStoryDraft": "Andika rasimu ya hadithi",
       "beingWritten": "Rasimu za AI za wiki hii zinaandikwa. Inaweza kuchukua dakika chache.",
-      "openDrafts": "Fungua rasimu za AI"
-    }
+      "openDrafts": "Fungua rasimu za AI",
+      "fillWeekMenu": "AI: jaza wiki hii",
+      "storyMenu": "AI: andika hadithi"
+    },
+    "descriptionLearner": "Kozi yako wiki kwa wiki: tarehe za kila wiki na cha kufanya, kwa mpangilio.",
+    "hiddenByWeek": "Imefichwa: wiki ni rasimu",
+    "itemActions": "Hatua za {title}",
+    "weekActions": "Hatua za {title}",
+    "publishWeekNamed": "Chapisha wiki {title}",
+    "publishItemsTooOne": "Wiki hii ina kipengee 1 cha rasimu. Kichapishe pia ili wanafunzi wakione?",
+    "publishItemsTooMany": "Wiki hii ina vipengee {n} vya rasimu. Vichapishe pia ili wanafunzi wavione?",
+    "renameSubHeader": "Badilisha jina",
+    "filterLabel": "Onyesha",
+    "filterAll": "Vyote",
+    "filter": {
+      "page": "Kurasa",
+      "assignment": "Kazi",
+      "quiz": "Majaribio",
+      "discussion": "Mijadala",
+      "file": "Faili"
+    },
+    "noMatchingItems": "Hakuna katika wiki hii.",
+    "moveToWeek": "Hamishia wiki nyingine…",
+    "moveTitle": "Hamisha {title}",
+    "moveToLabel": "Hamishia",
+    "move": "Hamisha",
+    "moved": "Kimehamishwa"
   },
   "quizKinds": {
     "graded": "Yenye alama",
@@ -352,7 +397,18 @@ export default {
       "uploading": "Inapakia...",
       "done": "Imekamilika!",
       "uploadAdd": "Pakia na uongeze"
-    }
+    },
+    "backToWeeks": "Rudi kwenye Wiki",
+    "notFound": "Kipengee hiki hakipo tena kwenye kozi.",
+    "saved": "Imehifadhiwa",
+    "added": "Kimeongezwa kwenye wiki",
+    "editDiscussion": "Hariri mjadala",
+    "newDiscussion": "Mjadala mpya",
+    "discussionTitle": "Kichwa cha mjadala",
+    "discussionTitlePlaceholder": "mf. Unaona sehemu wapi nyumbani?",
+    "discussionPrompt": "Swali au maelekezo",
+    "discussionPromptHint": "Wanafunzi wanachojibu au kujadili. Unaweza kuweka alama kwa mjadala kutoka kwenye ukurasa wake.",
+    "createDiscussion": "Unda mjadala"
   },
   "editor": {
     "heading1": "Kichwa 1",
@@ -498,7 +554,9 @@ export default {
     "noQuizzes": "Hakuna majaribio bado.",
     "oneQuestion": "Swali {n}",
     "manyQuestions": "Maswali {n}",
-    "relativeTiming": "Tarehe zinafuata wiki"
+    "relativeTiming": "Tarehe zinafuata wiki",
+    "assignmentsDescriptionLearner": "Kazi unayowasilisha au kufanya kwa alama, wiki kwa wiki.",
+    "quizzesDescriptionLearner": "Majaribio ya kufanya, wiki kwa wiki. Majaribio ya mazoezi hayahesabiwi kwenye alama zako."
   },
   "assignment": {
     "closed": "Kazi hii imefungwa.",
@@ -526,7 +584,7 @@ export default {
     "rubric": "Rubriki",
     "rubricHelp": "Kazi yako inapimwa kwa vigezo hivi na kugeuzwa kuwa alama kati ya {n}.",
     "yourSubmission": "Kazi yako",
-    "observerNote": "Unafuatilia kozi hii, kwa hiyo unaweza kusoma kazi lakini huwezi kuwasilisha.",
+    "observerNote": "Unatazama kozi hii bila kushiriki, kwa hivyo unaweza kusoma kazi lakini si kuiwasilisha.",
     "opens": "Inafunguliwa",
     "due": "Mwisho",
     "closes": "Inafungwa",
@@ -546,11 +604,12 @@ export default {
     "dismiss": "Ondoa",
     "submitting": "Inawasilisha...",
     "resubmit": "Wasilisha tena",
-    "submit": "Wasilisha kazi"
+    "submit": "Wasilisha kazi",
+    "courseEnded": "Kozi hii imeisha, kwa hivyo kazi haiwezi kuwasilishwa tena."
   },
   "quiz": {
     "noAttemptsLeft": "Umetumia majaribio yako yote kwa jaribio hili.",
-    "observerNote": "Unafuatilia kozi hii, kwa hiyo unaweza kusoma jaribio lakini huwezi kulifanya.",
+    "observerNote": "Unatazama kozi hii bila kushiriki, kwa hivyo unaweza kusoma jaribio lakini si kulifanya.",
     "closed": "Jaribio hili limefungwa.",
     "notOpenYet": "Jaribio hili bado halijafunguliwa.",
     "submitFailed": "Imeshindwa kuwasilisha jaribio.",
@@ -585,7 +644,9 @@ export default {
     "unlimitedAttempts": "Majaribio bila kikomo",
     "allUsed": "Majaribio yote {n} yametumika",
     "attemptOf": "Jaribio {n} kati ya {total}",
-    "submit": "Wasilisha majibu"
+    "submit": "Wasilisha majibu",
+    "courseEnded": "Kozi hii imeisha, kwa hivyo jaribio haliwezi kufanywa tena.",
+    "correctAnswer": "Jibu sahihi"
   },
   "discussions": {
     "chooseModuleError": "Chagua wiki ya majadiliano haya.",
@@ -604,13 +665,14 @@ export default {
     "notFound": "Majadiliano hayakupatikana.",
     "grading": "Utoaji wa alama",
     "removeGrading": "Ondoa alama",
-    "markGraded": "Weka iwe na alama",
+    "markGraded": "Weka alama kwa mjadala huu",
     "syncs": "inaonekana kwenye Kazi na Alama",
     "repliesCount": "Majibu ({n})",
     "replies": "Majibu",
     "noReplies": "Hakuna majibu bado. Kuwa wa kwanza.",
     "replyPlaceholder": "Andika jibu...",
-    "reply": "Jibu"
+    "reply": "Jibu",
+    "gradeHint": "Ukiwekewa alama, unapimwa kwa alama hizi na unaonekana kwenye Kazi na Alama."
   },
   "announcements": {
     "new": "Tangazo jipya",
@@ -636,7 +698,8 @@ export default {
     "grade": "Daraja",
     "schedule": "Ratiba ya wiki kwa wiki",
     "loadingSchedule": "Inapakia ratiba...",
-    "noSchedule": "Hakuna wiki bado."
+    "noSchedule": "Hakuna wiki bado.",
+    "eyebrowLearner": "Muhtasari wa kozi"
   },
   "files": {
     "empty": "Hakuna faili zilizopakiwa bado."
@@ -669,7 +732,7 @@ export default {
       "turnOff": "Zima",
       "confirmNew": "Tengeneza msimbo mpya? Msimbo wa sasa utaacha kufanya kazi.",
       "failed": "Imeshindwa kubadilisha msimbo wa kujiunga",
-      "draftNote": "Wanafunzi wanaweza kujiunga kozi ikishafunguliwa.",
+      "draftNote": "Wanafunzi wanaweza kujiunga kozi ikishachapishwa.",
       "orEmail": "Au ongeza mtu kwa barua pepe"
     },
     "all": "Wote",
@@ -679,7 +742,8 @@ export default {
     "emailCol": "Barua pepe",
     "status": "Hali",
     "manage": "Simamia",
-    "removeNamed": "Mwondoe {name}"
+    "removeNamed": "Mwondoe {name}",
+    "removeConfirm": "Ondoa {name} kwenye kozi hii?"
   },
   "collab": {
     "description": "Shiriki kiungo cha hati, lahajedwali au ubao wa nje na wanachama uliowachagua wa kozi.",
@@ -764,10 +828,10 @@ export default {
     "bannerChoose": "Chagua picha",
     "bannerChange": "Chagua picha nyingine",
     "banner": "Picha ya bango",
-    "visibility": "Mwonekano",
-    "private": "Binafsi: kwa mwaliko tu",
-    "public": "Wazi: inaonekana kwenye Gundua kozi",
-    "publicHelp": "Kozi za wazi huonekana kwenye orodha ya kozi na mtu yeyote anaweza kujiunga bila mwaliko.",
+    "visibility": "Nani anaweza kujiunga na kozi hii?",
+    "private": "Watu ninaowaongeza tu, au wenye msimbo",
+    "public": "Mtu yeyote kwenye kifaa hiki: imeorodheshwa kwenye Gundua kozi",
+    "publicHelp": "Hili ni tofauti na kuchapisha: hakuna anayeweza kujiunga na kozi iliyo rasimu hadi ichapishwe.",
     "navHelp": "Vipengele vilivyowashwa huonekana kwenye menyu kwa kila mtu. Vilivyofichwa unaviona (vimefifia) lakini wanafunzi hawavioni.",
     "enabled": "Vimewashwa",
     "enabledItems": "Vipengele vya urambazaji vilivyowashwa",
@@ -782,31 +846,38 @@ export default {
     "status": {
       "title": "Hali ya kozi",
       "now": {
-        "draft": "Kozi hii ni rasimu. Ifungue kutoka kwenye maandalizi ya kozi ikiwa tayari.",
-        "open": "Wazi: wanafunzi wanaiona kozi na wanaweza kuwasilisha kazi.",
-        "closed": "Imefungwa: wanafunzi bado wanaweza kusoma kozi na kuona alama zao, lakini hawawezi kuwasilisha kazi wala kufanya majaribio.",
+        "draft": "Kozi hii ni rasimu. Ichapishe kutoka kwenye upau wa juu ikiwa tayari.",
+        "open": "Imechapishwa: wanafunzi wanaiona kozi na wanaweza kuwasilisha kazi.",
+        "closed": "Imeisha: wanafunzi bado wanaweza kusoma kozi na kuona alama zao, lakini hawawezi kuwasilisha kazi wala kufanya majaribio.",
         "archived": "Imehifadhiwa: wanafunzi hawaioni tena kozi hii kwenye orodha yao. Alama na matokeo yanabaki."
       },
       "action": {
         "open": "Fungua kozi tena",
-        "closed": "Funga kozi",
+        "closed": "Maliza kozi",
         "archived": "Hifadhi kozi",
         "delete": "Futa kozi"
       },
       "confirm": {
         "open": "Kufungua kozi hii tena? Wanafunzi wataweza kuwasilisha kazi tena.",
-        "closed": "Kufunga kozi hii? Wanafunzi bado wataweza kuisoma na kuona alama zao, lakini si kuwasilisha kazi.",
+        "closed": "Maliza kozi hii? Wanafunzi bado wanaweza kuisoma na kuona alama zao, lakini hawawezi kuwasilisha kazi.",
         "archived": "Kuhifadhi kozi hii? Itaondoka kwenye orodha ya wanafunzi. Alama na matokeo yanabaki.",
         "delete": "Kufuta \"{title}\" kabisa? Haiwezi kurudishwa."
       },
       "done": {
         "open": "Kozi imefunguliwa tena",
-        "closed": "Kozi imefungwa",
+        "closed": "Kozi imeisha",
         "archived": "Kozi imehifadhiwa"
       },
       "deleted": "Kozi imefutwa",
       "hasWork": "Wanafunzi wamewasilisha kazi katika kozi hii, kwa hiyo haiwezi kufutwa. Ihifadhi badala yake: inaondoka kwenye orodha zao na matokeo yao yanabaki.",
       "failed": "Imeshindikana kubadilisha hali ya kozi."
+    },
+    "navSaved": "Urambazaji umehifadhiwa",
+    "staffOnly": "Walimu tu",
+    "learnersFind": {
+      "pages": "Wanafunzi hupata kurasa kwenye Wiki, si kwenye menyu yao",
+      "outcomes": "Wanafunzi huona malengo yao kwenye Maendeleo yangu, si kwenye menyu yao",
+      "attendance": "Wanafunzi huona mahudhurio yao kwenye Alama, si kwenye menyu yao"
     }
   },
   "calendar": {
@@ -863,5 +934,105 @@ export default {
     "nothingPeriod": "Hakuna kilichopangwa katika kipindi hiki.",
     "nothingAhead": "Hakuna kilichopangwa kuanzia leo.",
     "showLater": "Onyesha tarehe za baadaye"
+  },
+  "access": {
+    "sectionTitle": "Sehemu hii ya kozi haijafunguliwa kwako",
+    "sectionText": "{section} ni kwa walimu wa kozi hii tu, au mwalimu wako bado hajaifungulia darasa.",
+    "backToCourse": "Rudi kwenye kozi",
+    "publicText": "Mtu yeyote kwenye kifaa hiki anaweza kujiunga na kozi hii.",
+    "join": "Jiunge na kozi hii",
+    "joining": "Inajiunga...",
+    "joinFailed": "Imeshindwa kujiunga na kozi. Jaribu tena.",
+    "discover": "Tazama kozi nyingine",
+    "privateTitle": "Hujasajiliwa kwenye kozi hii",
+    "privateText": "Mwombe mwalimu wako akuongeze, au jiunge kwa msimbo ambao mwalimu wako anaupa darasa.",
+    "removedTitle": "Hauko tena kwenye kozi hii",
+    "removedText": "Nafasi yako kwenye kozi hii iliondolewa. Mwombe mwalimu wako akuongeze tena.",
+    "joinWithCode": "Jiunge kwa msimbo"
+  },
+  "status": {
+    "publish": "Chapisha kozi",
+    "more": "Hatua zaidi za kozi",
+    "note": {
+      "draft": "Wanafunzi hawaioni kozi hii hadi uichapishe.",
+      "open": "Wanafunzi wa kozi hii wanaiona na wanaweza kuwasilisha kazi.",
+      "closed": "Wanafunzi bado wanaweza kuisoma na kuona alama zao, lakini hawawezi kuwasilisha kazi.",
+      "archived": "Imeondolewa kwenye orodha za kozi za wanafunzi. Alama na matokeo yamehifadhiwa."
+    },
+    "published": "Kozi imechapishwa",
+    "publishFailed": "Imeshindwa kuchapisha kozi. Jaribu tena.",
+    "missingTitle": "Kabla ya kuchapisha",
+    "missingText": "Maliza haya kwanza:",
+    "fix": "Rekebisha",
+    "publishTitle": "Chapisha kozi hii?",
+    "publishText": "Wanafunzi wa kozi wataiona na wanaweza kuanza kazi yake.",
+    "joinPublic": "Mtu yeyote kwenye kifaa hiki anaweza kuipata na kujiunga kupitia Gundua kozi.",
+    "joinPrivate": "Ni watu unaowaongeza, au wenye msimbo, tu wanaoweza kujiunga.",
+    "weeksAskOne": "Wiki 1 yenye maudhui bado ni rasimu. Ichapishe pia ili wanafunzi waione?",
+    "weeksAskMany": "Wiki {n} zenye maudhui bado ni rasimu. Zichapishe pia ili wanafunzi wazione?",
+    "publishWithWeekOne": "Chapisha kozi na wiki 1",
+    "publishWithWeeksMany": "Chapisha kozi na wiki {n}",
+    "publishOnly": "Chapisha kozi tu",
+    "unarchive": "Rudisha (kama iliyoisha)"
+  },
+  "setup": {
+    "title": "Andaa kozi yako",
+    "intro": "Hatua tatu fupi. Unaweza kurudi kwa yoyote na kubadilisha kila kitu baadaye.",
+    "progress": "Hatua za maandalizi",
+    "steps": {
+      "when": "Lini",
+      "outcomes": "Utakachofundisha",
+      "firstWeek": "Wiki ya kwanza",
+      "ready": "Tayari"
+    },
+    "whenTitle": "Inaendeshwa lini?",
+    "whenText": "Chagua siku ya kwanza ya Wiki 1 na idadi ya wiki za kozi. Kila wiki na tarehe ya kuwasilisha inatokana na hizi.",
+    "startDate": "Siku ya kwanza ya Wiki 1",
+    "startHint": "Tarehe za kila wiki zinafuata siku hii.",
+    "weekCount": "Idadi ya wiki",
+    "endsOn": "Kwa sasa inaisha {date}",
+    "chooseStart": "Chagua siku ya kwanza ya Wiki 1.",
+    "saveFailed": "Imeshindwa kuhifadhi. Jaribu tena.",
+    "continue": "Endelea",
+    "back": "Rudi",
+    "outcomesTitle": "Wanafunzi wataweza kufanya nini?",
+    "outcomesText": "Haya ni malengo ya kujifunza ya kozi: ujuzi mfupi unaoweza kupimwa, kama \"Kujumlisha sehemu zenye vigawe tofauti\". Kazi zenye alama zinaunganishwa nayo ili uone maendeleo ya kila mwanafunzi.",
+    "outcomeLabel": "Lengo",
+    "outcomePlaceholder": "mf. Kujumlisha sehemu zenye vigawe tofauti",
+    "addOutcome": "Ongeza",
+    "aiOutcomesText": "AI inaweza kupendekeza malengo (na mpango wa wiki) kutoka kwenye maelezo ya kozi. Hakuna kinachobadilika hadi uyakubali.",
+    "aiOutcomes": "Pendekeza malengo kwa AI",
+    "outcomesLater": "Unaweza kuruka hatua hii kwa sasa, lakini kazi zenye alama zinahitaji lengo kabla wanafunzi hawajaziona.",
+    "firstWeekTitle": "Kitu kwa ajili ya {week}",
+    "firstWeekNoWeeks": "Wiki yako ya kwanza",
+    "firstWeekText": "Ongeza kile wanafunzi watasoma, kufanya au kujibu wiki ya kwanza. Unaweza kuongeza zaidi kwenye wiki yoyote baadaye kupitia Wiki.",
+    "weekEmpty": "Bado hakuna kitu katika {week}.",
+    "aiWeekText": "Au acha AI iandae wiki: ukurasa, jaribio na kazi, vikisubiri ukague.",
+    "aiWeek": "Acha AI iandae {week}",
+    "aiWeekStarted": "AI inaandaa wiki. Kagua rasimu kwenye Rasimu za AI kabla ya kuziongeza.",
+    "addWeeksFirst": "Ongeza wiki kwanza",
+    "readyTitle": "Kozi yako iko tayari",
+    "readyText": "Ichapishe unapotaka wanafunzi waione, au iache kama rasimu urudi baadaye.",
+    "publishedText": "Kozi yako imechapishwa.",
+    "almostTitle": "Karibu tayari",
+    "almostText": "Maliza haya kabla ya kuchapisha:",
+    "keepDraft": "Iache kama rasimu kwa sasa",
+    "toCourse": "Nenda kwenye kozi",
+    "teacherOnly": "Ni mwalimu wa kozi pekee anayeweza kuiandaa.",
+    "open": "Andaa hatua kwa hatua",
+    "settingsHelp": "Tarehe na wiki, malengo na wiki ya kwanza, hatua moja kwa wakati."
+  },
+  "learnerHome": {
+    "nextUp": "Kinachofuata",
+    "allDone": "Uko sawa. Hakuna cha kufanya kwa sasa.",
+    "more": "Zaidi kuhusu kozi hii",
+    "work": "Kazi zako zote",
+    "weeks": "Wiki zote",
+    "comingUp": "Zinazokuja",
+    "openGrades": "Fungua Alama",
+    "openWeeks": "Fungua Wiki",
+    "openProgress": "Fungua Maendeleo yangu",
+    "openAnnouncements": "Matangazo yote",
+    "noNews": "Bado hakuna matangazo."
   }
 };

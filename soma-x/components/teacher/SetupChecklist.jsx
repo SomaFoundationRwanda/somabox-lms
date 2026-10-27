@@ -1,17 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, CheckCircle2, Circle, ChevronRight, ListChecks, Rocket, Settings } from "lucide-react";
-import { useToast } from "@/context/ToastContext";
+import { AlertTriangle, CheckCircle2, Circle, ChevronRight, ListChecks, Settings } from "lucide-react";
 import Explainer from "@/components/help/Explainer";
 import { useLanguage } from "@/context/LanguageContext";
 import { fill } from "@/lib/fill";
 import useSetupText from "@/lib/useSetupText";
-import { useQueryClient } from "@tanstack/react-query";
-import { ApiError, apiFetch } from "@/lib/api";
-import { queryKeys } from "@/lib/queryKeys";
-import { CheckboxField } from "@/components/form";
 
 /** True when a teacher still has something to look at: a draft course, an unfinished checklist item, or warnings. */
 export function setupNeedsAttention(status) {
@@ -21,18 +15,12 @@ export function setupNeedsAttention(status) {
 }
 
 /**
- * Teacher "Course setup" section (flat, not a card): checklist, warnings and (for drafts) the Open course button.
- * status: the teacher shape of GET /courses/:id/setup-status. onChanged: called after the course opens.
+ * Teacher "Course setup" section (flat, not a card): checklist and warnings. Publishing is in the
+ * status bar at the top of every course page. status: the teacher shape of GET /courses/:id/setup-status.
  */
 export default function SetupChecklist({ courseId, status, onChanged, showSettingsLink = true }) {
-  const { showToast } = useToast();
-  const queryClient = useQueryClient();
   const { t } = useLanguage();
-  const { checklistLabel, blockingText, warningText } = useSetupText();
-  const [opening, setOpening] = useState(false);
-  const [openErrors, setOpenErrors] = useState([]);
-  // Opening doesn't publish anything by itself: offer to publish the hidden weeks with content.
-  const [publishWeeks, setPublishWeeks] = useState(true);
+  const { checklistLabel, warningText } = useSetupText();
 
   if (!status || !Array.isArray(status.checklist)) return null;
 
@@ -40,29 +28,6 @@ export default function SetupChecklist({ courseId, status, onChanged, showSettin
   const warnings = Array.isArray(status.warnings) ? status.warnings : [];
   const isDraft = !status.isOpened;
   const doneCount = checklist.filter((c) => c.done).length;
-  const hiddenWeeks = Array.isArray(status.hiddenWeekIds) ? status.hiddenWeekIds.length : 0;
-
-  const openCourse = async () => {
-    setOpening(true);
-    setOpenErrors([]);
-    try {
-      await apiFetch(`/courses/${courseId}/open-course`, { method: "POST", json: { publishWeeks: hiddenWeeks > 0 && publishWeeks } });
-      showToast(t("teacher.setup.opened"), "success");
-      // Opening changes the whole course (status, published weeks) and the course lists.
-      queryClient.invalidateQueries({ queryKey: queryKeys.courses });
-      onChanged?.();
-    } catch (err) {
-      if (err instanceof ApiError && err.status !== 0) {
-        const payload = err.body;
-        const blocking = Array.isArray(payload?.blocking) ? payload.blocking.map(blockingText).filter(Boolean) : [];
-        setOpenErrors(blocking.length > 0 ? blocking : [payload?.message || t("teacher.setup.cantOpenYet")]);
-        return;
-      }
-      setOpenErrors([t("teacher.setup.openFailed")]);
-    } finally {
-      setOpening(false);
-    }
-  };
 
   return (
     <section aria-labelledby="setup-checklist-title" className="space-y-4">
@@ -124,24 +89,15 @@ export default function SetupChecklist({ courseId, status, onChanged, showSettin
         </div>
       )}
 
-      {openErrors.length > 0 && (
-        <div role="alert" className="p-3 bg-danger-soft border border-danger/30 rounded-xl text-caption text-danger-fg space-y-1">
-          <p className="font-bold">{t("teacher.setup.cantOpenTitle")}</p>
-          <ul className="list-disc list-inside space-y-0.5">
-            {openErrors.map((m, i) => <li key={i}>{m}</li>)}
-          </ul>
-        </div>
-      )}
-
       <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
         {showSettingsLink ? (
           <div className="flex flex-wrap items-center gap-3">
             {isDraft && (
               <Link
-                href={`/course/${courseId}/settings#guided-setup`}
+                href={`/course/${courseId}/setup`}
                 className="inline-flex items-center gap-1.5 text-caption font-semibold text-brand-fg bg-brand-soft border border-brand/40 hover:bg-brand-soft px-3 py-2 rounded-lg transition-colors"
               >
-                <ListChecks className="w-3.5 h-3.5" aria-hidden="true" /> {t("teacher.wizard.guided")}
+                <ListChecks className="w-3.5 h-3.5" aria-hidden="true" /> {t("course.setup.open")}
               </Link>
             )}
             <Link
@@ -152,28 +108,7 @@ export default function SetupChecklist({ courseId, status, onChanged, showSettin
             </Link>
           </div>
         ) : <span />}
-        {isDraft && (
-          <div className="flex flex-col items-end gap-1">
-            {hiddenWeeks > 0 && (
-              <CheckboxField
-                label={fill(t("teacher.setup.publishWeeksToo"), { n: hiddenWeeks })}
-                checked={publishWeeks}
-                onCheckedChange={setPublishWeeks}
-              />
-            )}
-            <button
-              type="button"
-              onClick={openCourse}
-              disabled={!status.canOpen || opening}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-brand hover:bg-brand/90 text-on-brand rounded-xl text-ui font-bold transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Rocket className="w-4 h-4" aria-hidden="true" /> {opening ? t("teacher.setup.opening") : t("teacher.setup.openCourse")}
-            </button>
-            {!status.canOpen && (
-              <span className="text-caption text-fg-subtle">{t("teacher.setup.finishRequired")}</span>
-            )}
-          </div>
-        )}
+        {/* Publishing lives in the course's status bar, at the top of every page. */}
       </div>
     </section>
   );

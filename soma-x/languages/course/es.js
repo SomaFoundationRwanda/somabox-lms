@@ -26,7 +26,8 @@ export default {
     "courseMenu": "Menú del curso",
     "more": "Más",
     "hiddenFromStudents": "Oculto para los estudiantes",
-    "course": "Curso"
+    "course": "Curso",
+    "teachersOnly": "Solo docentes"
   },
   "weeks": {
     "baseline": "Semana 0 · Punto de partida",
@@ -35,8 +36,8 @@ export default {
   },
   "lifecycle": {
     "draft": "Borrador",
-    "open": "Abierto",
-    "closed": "Cerrado",
+    "open": "Publicado",
+    "closed": "Terminado",
     "archived": "Archivado"
   },
   "common": {
@@ -67,7 +68,8 @@ export default {
     "download": "Descargar",
     "open": "Abrir",
     "yes": "Sí",
-    "no": "No"
+    "no": "No",
+    "point": "{n} pt"
   },
   "home": {
     "eyebrow": "Inicio del curso",
@@ -89,9 +91,12 @@ export default {
       "toGrade": "Entregas pendientes de calificar: {n}",
       "startsOn": "{week} empieza el {date}",
       "unpublishedSoon": "{week}: elementos que se abren antes del {date} sin publicar: {n}",
-      "openNow": "{week}: elementos abiertos: {n}, próxima entrega el {date}",
+      "openNow": "{week}: cosas por hacer: {n}, próxima entrega {date}",
       "finished": "{week} terminó: revisa el progreso antes de la próxima semana",
-      "live": "{week} está en curso"
+      "live": "{week} está en curso",
+      "notScheduled": "Tu docente aún no ha fijado las fechas del curso",
+      "nothingYet": "Todavía no se ha añadido nada a este curso",
+      "weekDone": "{week} ha terminado"
     },
     "loopActions": {
       "openModules": "Abrir Semanas",
@@ -103,7 +108,8 @@ export default {
       "setStartDate": "Fijar fecha de inicio",
       "tagOutcomes": "Asociar resultados",
       "reviewItems": "Revisar elementos",
-      "moveItems": "Mover elementos"
+      "moveItems": "Mover elementos",
+      "openProgress": "Mi progreso"
     },
     "attention": {
       "noStartDate": "El curso no tiene fecha de inicio, así que nada tiene fecha todavía",
@@ -112,11 +118,11 @@ export default {
       "unassigned": "Elementos que aún no están en una semana: {n}"
     },
     "beatHelp": {
-      "prepare": "Preparar: revisa los elementos de la semana y sus objetivos, y aprueba los borradores de IA antes de que empiecen los estudiantes.",
-      "release": "Publicar: los elementos de la semana están publicados y abiertos para los estudiantes.",
-      "collect": "Recoger: sigue el progreso de los estudiantes, sus entregas y su participación en los debates.",
-      "grade": "Calificar: corrige las entregas con rúbricas vinculadas a los objetivos, con ayuda de la IA.",
-      "review": "Revisar: compara el dominio de los objetivos con el punto de partida y ajusta la próxima semana."
+      "prepare": "Revisa los elementos de la semana y sus resultados, y aprueba los borradores de IA antes de que empiecen los estudiantes.",
+      "release": "Los elementos de esta semana están publicados y abiertos.",
+      "collect": "Sigue el progreso, las entregas y la participación en discusiones.",
+      "grade": "Califica las entregas con rúbricas ligadas a los resultados, con ayuda de la IA.",
+      "review": "Compara el dominio de los resultados con el punto de partida y ajusta la próxima semana."
     },
     "needsAttention": "Requiere atención",
     "allTagged": "Nada necesita tu atención por ahora.",
@@ -132,7 +138,20 @@ export default {
     "courseTimeline": "Cronología del curso",
     "current": "Actual",
     "defaultModuleDescription": "Material de estudio y tareas de la semana.",
-    "openModuleItems": "Abrir esta semana"
+    "openModuleItems": "Abrir esta semana",
+    "ready": {
+      "title": "Preparación",
+      "todo": "Los estudiantes aún no ven este curso. Termina esto y luego publícalo desde la barra superior.",
+      "done": "Todo está listo. Publica el curso desde la barra superior cuando quieras que los estudiantes lo vean."
+    },
+    "baselineCard": {
+      "title": "Medir el punto de partida (opcional)",
+      "text": "Una prueba corta y sin nota antes de la semana 1 muestra el punto de partida de cada estudiante, para ver cuánto avanza.",
+      "build": "Crear una prueba de semana 0",
+      "notNow": "Esta vez no",
+      "skipReason": "Esta vez no",
+      "failed": "No se pudo guardar. Inténtalo de nuevo."
+    }
   },
   "items": {
     "page": "Página",
@@ -181,7 +200,8 @@ export default {
       "deleteModule": "No se pudo eliminar la semana",
       "renameModule": "No se pudo renombrar la semana",
       "publishItem": "No se pudo publicar el elemento",
-      "unpublishItem": "No se pudo despublicar el elemento"
+      "unpublishItem": "No se pudo despublicar el elemento",
+      "moveItem": "No se pudo mover el elemento."
     },
     "confirmDeleteModule": "¿Eliminar la semana «{title}»? Solo se pueden eliminar semanas vacías.",
     "dragModule": "Arrastra para reordenar la semana",
@@ -253,8 +273,33 @@ export default {
       "starting": "Iniciando…",
       "writeStoryDraft": "Escribir borrador de historia",
       "beingWritten": "Se están escribiendo los borradores de IA de esta semana. Puede tardar unos minutos.",
-      "openDrafts": "Abrir borradores de IA"
-    }
+      "openDrafts": "Abrir borradores de IA",
+      "fillWeekMenu": "IA: llenar esta semana",
+      "storyMenu": "IA: escribir una historia"
+    },
+    "descriptionLearner": "Tu curso semana a semana: las fechas de cada semana y lo que hay que hacer, en orden.",
+    "hiddenByWeek": "Oculto: la semana es un borrador",
+    "itemActions": "Acciones para {title}",
+    "weekActions": "Acciones para {title}",
+    "publishWeekNamed": "Publicar la semana {title}",
+    "publishItemsTooOne": "Esta semana tiene 1 elemento en borrador. ¿Publicarlo también para que los estudiantes lo vean?",
+    "publishItemsTooMany": "Esta semana tiene {n} elementos en borrador. ¿Publicarlos también para que los estudiantes los vean?",
+    "renameSubHeader": "Renombrar",
+    "filterLabel": "Mostrar",
+    "filterAll": "Todo",
+    "filter": {
+      "page": "Páginas",
+      "assignment": "Tareas",
+      "quiz": "Cuestionarios",
+      "discussion": "Discusiones",
+      "file": "Archivos"
+    },
+    "noMatchingItems": "Ninguno en esta semana.",
+    "moveToWeek": "Mover a otra semana…",
+    "moveTitle": "Mover {title}",
+    "moveToLabel": "Mover a",
+    "move": "Mover",
+    "moved": "Movido"
   },
   "quizKinds": {
     "graded": "Calificado",
@@ -352,7 +397,18 @@ export default {
       "uploading": "Subiendo...",
       "done": "¡Listo!",
       "uploadAdd": "Subir y añadir"
-    }
+    },
+    "backToWeeks": "Volver a Semanas",
+    "notFound": "Este elemento ya no está en el curso.",
+    "saved": "Guardado",
+    "added": "Añadido a la semana",
+    "editDiscussion": "Editar discusión",
+    "newDiscussion": "Nueva discusión",
+    "discussionTitle": "Título de la discusión",
+    "discussionTitlePlaceholder": "p. ej. ¿Dónde ves fracciones en casa?",
+    "discussionPrompt": "Pregunta o consigna",
+    "discussionPromptHint": "Lo que los estudiantes responden o comentan. Puedes calificar la discusión desde su página.",
+    "createDiscussion": "Crear discusión"
   },
   "editor": {
     "heading1": "Título 1",
@@ -498,7 +554,9 @@ export default {
     "noQuizzes": "Aún no hay cuestionarios.",
     "oneQuestion": "{n} pregunta",
     "manyQuestions": "{n} preguntas",
-    "relativeTiming": "Fechas según la semana"
+    "relativeTiming": "Fechas según la semana",
+    "assignmentsDescriptionLearner": "El trabajo que entregas o haces para una nota, semana a semana.",
+    "quizzesDescriptionLearner": "Cuestionarios para hacer, semana a semana. Los de práctica no cuentan para tu nota."
   },
   "assignment": {
     "closed": "Esta tarea está cerrada.",
@@ -526,7 +584,7 @@ export default {
     "rubric": "Rúbrica",
     "rubricHelp": "Tu trabajo se puntúa con estos criterios y se convierte en una nota sobre {n}.",
     "yourSubmission": "Tu entrega",
-    "observerNote": "Estás observando este curso: puedes leer la tarea, pero no entregar trabajos.",
+    "observerNote": "Estás viendo este curso sin participar: puedes leer la tarea pero no entregarla.",
     "opens": "Abre",
     "due": "Entrega",
     "closes": "Cierra",
@@ -546,11 +604,12 @@ export default {
     "dismiss": "Descartar",
     "submitting": "Entregando...",
     "resubmit": "Volver a entregar",
-    "submit": "Entregar tarea"
+    "submit": "Entregar tarea",
+    "courseEnded": "Este curso ha terminado: ya no se puede entregar trabajo."
   },
   "quiz": {
     "noAttemptsLeft": "Has usado todos tus intentos en este cuestionario.",
-    "observerNote": "Estás observando este curso: puedes leer el cuestionario, pero no responderlo.",
+    "observerNote": "Estás viendo este curso sin participar: puedes leer el cuestionario pero no hacerlo.",
     "closed": "Este cuestionario está cerrado.",
     "notOpenYet": "Este cuestionario aún no está abierto.",
     "submitFailed": "No se pudo enviar el cuestionario.",
@@ -585,7 +644,9 @@ export default {
     "unlimitedAttempts": "Intentos ilimitados",
     "allUsed": "Usados los {n} intentos",
     "attemptOf": "Intento {n} de {total}",
-    "submit": "Enviar respuestas"
+    "submit": "Enviar respuestas",
+    "courseEnded": "Este curso ha terminado: ya no se puede hacer el cuestionario.",
+    "correctAnswer": "Respuesta correcta"
   },
   "discussions": {
     "chooseModuleError": "Elige una semana para este debate.",
@@ -604,13 +665,14 @@ export default {
     "notFound": "Debate no encontrado.",
     "grading": "Calificación",
     "removeGrading": "Quitar calificación",
-    "markGraded": "Marcar como calificado",
+    "markGraded": "Calificar esta discusión",
     "syncs": "aparece en Tareas y Calificaciones",
     "repliesCount": "Respuestas ({n})",
     "replies": "Respuestas",
     "noReplies": "Aún no hay respuestas. Sé el primero.",
     "replyPlaceholder": "Escribe una respuesta...",
-    "reply": "Responder"
+    "reply": "Responder",
+    "gradeHint": "Calificada, se puntúa sobre estos puntos y aparece en Tareas y Calificaciones."
   },
   "announcements": {
     "new": "Nuevo anuncio",
@@ -636,7 +698,8 @@ export default {
     "grade": "Nota",
     "schedule": "Calendario semana a semana",
     "loadingSchedule": "Cargando el calendario...",
-    "noSchedule": "Aún no hay semanas."
+    "noSchedule": "Aún no hay semanas.",
+    "eyebrowLearner": "Programa"
   },
   "files": {
     "empty": "Aún no se han subido archivos."
@@ -669,7 +732,7 @@ export default {
       "turnOff": "Desactivar",
       "confirmNew": "¿Crear un código nuevo? El actual dejará de funcionar.",
       "failed": "No se pudo cambiar el código de acceso",
-      "draftNote": "Los estudiantes podrán unirse cuando el curso esté abierto.",
+      "draftNote": "Los estudiantes podrán unirse cuando el curso esté publicado.",
       "orEmail": "O añade a alguien por correo"
     },
     "all": "Todos",
@@ -679,7 +742,8 @@ export default {
     "emailCol": "Correo",
     "status": "Estado",
     "manage": "Gestionar",
-    "removeNamed": "Quitar a {name}"
+    "removeNamed": "Quitar a {name}",
+    "removeConfirm": "¿Quitar a {name} de este curso?"
   },
   "collab": {
     "description": "Comparte un enlace a un documento, hoja o tablero externo con miembros elegidos del curso.",
@@ -764,10 +828,10 @@ export default {
     "bannerChoose": "Elegir una imagen",
     "bannerChange": "Elegir otra imagen",
     "banner": "Imagen de portada",
-    "visibility": "Visibilidad",
-    "private": "Privado: solo con invitación",
-    "public": "Público: aparece en Descubrir cursos",
-    "publicHelp": "Los cursos públicos aparecen en el catálogo y cualquiera puede unirse sin invitación.",
+    "visibility": "¿Quién puede unirse a este curso?",
+    "private": "Solo las personas que añado o que tienen el código",
+    "public": "Cualquier persona en este equipo: aparece en Descubrir cursos",
+    "publicHelp": "Es distinto de publicar: nadie puede unirse a un curso en borrador hasta que se publique.",
     "navHelp": "Los elementos activados aparecen en el menú para todos. Los ocultos los ves tú (en gris) pero no los estudiantes.",
     "enabled": "Activados",
     "enabledItems": "Elementos de navegación activados",
@@ -782,31 +846,38 @@ export default {
     "status": {
       "title": "Estado del curso",
       "now": {
-        "draft": "Este curso es un borrador. Ábrelo desde la configuración del curso cuando esté listo.",
-        "open": "Abierto: los estudiantes ven el curso y pueden entregar trabajos.",
-        "closed": "Cerrado: los estudiantes aún pueden leer el curso y ver sus notas, pero no pueden entregar trabajos ni hacer cuestionarios.",
+        "draft": "Este curso es un borrador. Publícalo desde la barra superior cuando esté listo.",
+        "open": "Publicado: los estudiantes ven el curso y pueden entregar trabajo.",
+        "closed": "Terminado: los estudiantes aún pueden leer el curso y ver sus notas, pero no pueden entregar trabajo ni hacer cuestionarios.",
         "archived": "Archivado: los estudiantes ya no ven este curso en su lista. Las notas y resultados se conservan."
       },
       "action": {
         "open": "Reabrir curso",
-        "closed": "Cerrar curso",
+        "closed": "Terminar curso",
         "archived": "Archivar curso",
         "delete": "Eliminar curso"
       },
       "confirm": {
         "open": "¿Reabrir este curso? Los estudiantes podrán volver a entregar trabajos.",
-        "closed": "¿Cerrar este curso? Los estudiantes aún podrán leerlo y ver sus notas, pero no entregar trabajos.",
+        "closed": "¿Terminar este curso? Los estudiantes aún pueden leerlo y ver sus notas, pero no pueden entregar trabajo.",
         "archived": "¿Archivar este curso? Desaparece de la lista de los estudiantes. Las notas y resultados se conservan.",
         "delete": "¿Eliminar «{title}» para siempre? No se puede deshacer."
       },
       "done": {
         "open": "Curso reabierto",
-        "closed": "Curso cerrado",
+        "closed": "Curso terminado",
         "archived": "Curso archivado"
       },
       "deleted": "Curso eliminado",
       "hasWork": "Hay trabajos de estudiantes en este curso, así que no se puede eliminar. Archívalo: sale de sus listas y sus resultados se conservan.",
       "failed": "No se pudo cambiar el estado del curso."
+    },
+    "navSaved": "Navegación guardada",
+    "staffOnly": "Solo personal",
+    "learnersFind": {
+      "pages": "Los estudiantes encuentran las páginas en Semanas, no en su menú",
+      "outcomes": "Los estudiantes ven sus resultados en Mi progreso, no en su menú",
+      "attendance": "Los estudiantes ven su asistencia en Calificaciones, no en su menú"
     }
   },
   "calendar": {
@@ -863,5 +934,105 @@ export default {
     "nothingPeriod": "Nada programado en este periodo.",
     "nothingAhead": "Nada programado a partir de hoy.",
     "showLater": "Mostrar fechas posteriores"
+  },
+  "access": {
+    "sectionTitle": "Esta parte del curso no está abierta para ti",
+    "sectionText": "{section} es solo para los docentes de este curso, o tu docente aún no la ha abierto a la clase.",
+    "backToCourse": "Volver al curso",
+    "publicText": "Cualquier persona en este equipo puede unirse a este curso.",
+    "join": "Unirme a este curso",
+    "joining": "Uniéndote...",
+    "joinFailed": "No se pudo unir al curso. Inténtalo de nuevo.",
+    "discover": "Ver otros cursos",
+    "privateTitle": "No estás en este curso",
+    "privateText": "Pide a tu docente que te añada, o únete con el código que tu docente da a la clase.",
+    "removedTitle": "Ya no estás en este curso",
+    "removedText": "Tu lugar en este curso fue retirado. Pide a tu docente que te añada de nuevo.",
+    "joinWithCode": "Unirse con un código"
+  },
+  "status": {
+    "publish": "Publicar curso",
+    "more": "Más acciones del curso",
+    "note": {
+      "draft": "Los estudiantes no ven este curso hasta que lo publiques.",
+      "open": "Los estudiantes del curso lo ven y pueden entregar trabajo.",
+      "closed": "Los estudiantes aún pueden leerlo y ver sus notas, pero no pueden entregar trabajo.",
+      "archived": "Fuera de las listas de cursos de los estudiantes. Se conservan notas y resultados."
+    },
+    "published": "Curso publicado",
+    "publishFailed": "No se pudo publicar el curso. Inténtalo de nuevo.",
+    "missingTitle": "Antes de publicar",
+    "missingText": "Termina esto primero:",
+    "fix": "Arreglar",
+    "publishTitle": "¿Publicar este curso?",
+    "publishText": "Los estudiantes del curso lo verán y podrán empezar su trabajo.",
+    "joinPublic": "Cualquier persona en este equipo puede encontrarlo y unirse en Descubrir cursos.",
+    "joinPrivate": "Solo pueden unirse las personas que añadas o que tengan el código.",
+    "weeksAskOne": "1 semana con contenido sigue siendo borrador. ¿Publicarla también para que los estudiantes la vean?",
+    "weeksAskMany": "{n} semanas con contenido siguen siendo borradores. ¿Publicarlas también para que los estudiantes las vean?",
+    "publishWithWeekOne": "Publicar curso y 1 semana",
+    "publishWithWeeksMany": "Publicar curso y {n} semanas",
+    "publishOnly": "Publicar solo el curso",
+    "unarchive": "Recuperar (como terminado)"
+  },
+  "setup": {
+    "title": "Configura tu curso",
+    "intro": "Tres pasos cortos. Puedes volver a cualquiera y cambiarlo todo después.",
+    "progress": "Pasos de configuración",
+    "steps": {
+      "when": "Cuándo",
+      "outcomes": "Qué enseñarás",
+      "firstWeek": "Primera semana",
+      "ready": "Listo"
+    },
+    "whenTitle": "¿Cuándo se imparte?",
+    "whenText": "Elige el primer día de la semana 1 y cuántas semanas dura el curso. Todas las semanas y fechas de entrega se calculan a partir de esto.",
+    "startDate": "Primer día de la semana 1",
+    "startHint": "Las fechas de cada semana siguen a este día.",
+    "weekCount": "Número de semanas",
+    "endsOn": "Ahora termina el {date}",
+    "chooseStart": "Elige el primer día de la semana 1.",
+    "saveFailed": "No se pudo guardar. Inténtalo de nuevo.",
+    "continue": "Continuar",
+    "back": "Atrás",
+    "outcomesTitle": "¿Qué podrán hacer los estudiantes?",
+    "outcomesText": "Son los resultados de aprendizaje del curso: habilidades cortas y comprobables, como «Sumar fracciones con distinto denominador». El trabajo calificado se vincula a ellos para ver el progreso de cada estudiante.",
+    "outcomeLabel": "Un resultado",
+    "outcomePlaceholder": "p. ej. Sumar fracciones con distinto denominador",
+    "addOutcome": "Añadir",
+    "aiOutcomesText": "La IA puede sugerir resultados (y un plan de semanas) a partir de la descripción del curso. Nada cambia hasta que los aceptes.",
+    "aiOutcomes": "Sugerir resultados con IA",
+    "outcomesLater": "Puedes saltarlo por ahora, pero el trabajo calificado necesita un resultado antes de que los estudiantes lo vean.",
+    "firstWeekTitle": "Algo para la {week}",
+    "firstWeekNoWeeks": "Tu primera semana",
+    "firstWeekText": "Añade lo que los estudiantes leen, hacen o responden la primera semana. Puedes añadir más a cualquier semana después desde Semanas.",
+    "weekEmpty": "Aún no hay nada en {week}.",
+    "aiWeekText": "O deja que la IA prepare la semana: una página, un cuestionario y una tarea, para que los revises.",
+    "aiWeek": "Dejar que la IA prepare la {week}",
+    "aiWeekStarted": "La IA está preparando la semana. Revisa los borradores en Borradores de IA antes de añadirlos.",
+    "addWeeksFirst": "Añade primero las semanas",
+    "readyTitle": "Tu curso está listo",
+    "readyText": "Publícalo cuando quieras que los estudiantes lo vean, o guárdalo como borrador y vuelve después.",
+    "publishedText": "Tu curso está publicado.",
+    "almostTitle": "Casi listo",
+    "almostText": "Termina esto antes de poder publicar:",
+    "keepDraft": "Dejar como borrador por ahora",
+    "toCourse": "Ir al curso",
+    "teacherOnly": "Solo el docente del curso puede configurarlo.",
+    "open": "Configurar paso a paso",
+    "settingsHelp": "Fechas y semanas, resultados y primera semana, paso a paso."
+  },
+  "learnerHome": {
+    "nextUp": "Lo siguiente",
+    "allDone": "Estás al día. No hay nada que hacer ahora.",
+    "more": "Más sobre este curso",
+    "work": "Todo tu trabajo",
+    "weeks": "Todas las semanas",
+    "comingUp": "Próximamente",
+    "openGrades": "Abrir Calificaciones",
+    "openWeeks": "Abrir Semanas",
+    "openProgress": "Abrir Mi progreso",
+    "openAnnouncements": "Todos los anuncios",
+    "noNews": "Aún no hay anuncios."
   }
 };

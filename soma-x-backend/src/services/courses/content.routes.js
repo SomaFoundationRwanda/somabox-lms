@@ -1,4 +1,4 @@
-// Activity feed, announcements, syllabus, files, collaborations, pages, discussions.
+// Announcements, syllabus, files, collaborations, pages, discussions.
 import express from "express";
 import { recordEditAfterPublish } from "../insights/events.js";
 import fs from "fs";
@@ -13,6 +13,9 @@ import {
   requireParticipant,
   requireNavVisible,
   courseExists,
+  hiddenFromReader,
+  visibleToReader,
+  isReadOnly,
   linkDiscussionAssignment,
   calculateEstimatedReadMinutes,
   syncPageFileReferences,
@@ -32,56 +35,18 @@ import { refreshDueDates } from "./schedule.js";
 
 const router = express.Router();
 
-// ===== Activity feed (backs the "activity" Home page type) =====
-
-router.get("/:id/activity", async (req, res) => {
-  try {
-    const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
-    const auth = await requireEnrolled(req, res, courseId);
-    if (!auth) return;
-    const isTeacher = isTeacherRole(auth.enrollment.role);
-
-    const items = [];
-
-    const announcements = await localDb.prepare("SELECT * FROM announcements WHERE course_id = ? AND published = 1 ORDER BY created_at DESC LIMIT 10").all(courseId);
-    for (const a of announcements) {
-      items.push({ type: "announcement", id: a.id, summary: `New announcement: "${a.title}"`, createdAt: a.created_at });
-    }
-
-    const discussions = await localDb.prepare("SELECT * FROM discussions WHERE course_id = ? AND published = 1 ORDER BY created_at DESC LIMIT 10").all(courseId);
-    for (const d of discussions) {
-      items.push({ type: "discussion", id: d.id, summary: `New discussion: "${d.title}"`, createdAt: d.created_at });
-    }
-
-    if (isTeacher) {
-      const recentSubmissions = await localDb.prepare(`
-        SELECT s.*, a.title AS assignment_title FROM assignment_submissions s
-        JOIN assignments a ON a.id = s.assignment_id
-        WHERE a.course_id = ? ORDER BY s.submitted_at DESC LIMIT 10
-      `).all(courseId);
-      for (const s of recentSubmissions) {
-        items.push({ type: "grade", id: s.id, summary: `${await userFullName(s.scholar_email)} submitted "${s.assignment_title}"`, createdAt: s.submitted_at });
-      }
-    } else {
-      const myGraded = await localDb.prepare(`
-        SELECT s.*, a.title AS assignment_title FROM assignment_submissions s
-        JOIN assignments a ON a.id = s.assignment_id
-        WHERE a.course_id = ? AND LOWER(s.scholar_email) = LOWER(?) AND s.graded_at IS NOT NULL
-        ORDER BY s.graded_at DESC LIMIT 10
-      `).all(courseId, auth.email);
-      for (const s of myGraded) {
-        items.push({ type: "grade", id: s.id, summary: `"${s.assignment_title}" was graded: ${s.grade}`, createdAt: s.graded_at });
-      }
-    }
-
-    items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    return res.json(items.slice(0, 20));
-  } catch (error) {
-    console.error("Error fetching activity:", error);
-    return res.status(500).json({ message: error.message });
-  }
-});
+/** The course's files folder, plus an optional sub-folder that can't lead outside it. */
+function courseFilesDir(courseId, rawFolder) {
+  const folder = String(rawFolder || "")
+    .split(/[\\/]+/)
+    .map((part) => part.trim().replace(/[^a-zA-Z0-9 ._-]/g, "_"))
+    .filter((part) => part && part !== "." && part !== "..")
+    .join("/");
+  const base = path.resolve(config.paths.root, "local-content/course-files", String(courseId));
+  const dir = path.resolve(base, folder);
+  if (dir !== base && !dir.startsWith(base + path.sep)) throw Object.assign(new Error("Invalid folder"), { status: 400 });
+  return { folder, dir };
+}
 
 // ===== Announcements =====
 
@@ -227,8 +192,7 @@ router.post("/:id/files/upload", upload.single("file"), async (req, res) => {
     if (!auth) return;
     if (!req.file) return res.status(400).json({ message: "No file provided" });
 
-    const folder = String(req.body.folder || "").trim();
-    const dir = path.join(config.paths.root, "local-content/course-files", courseId, folder);
+    const { folder, dir } = courseFilesDir(courseId, req.body.folder);
     fs.mkdirSync(dir, { recursive: true });
 
     const safeName = req.file.originalname.replace(/[^a-zA-Z0-9._-]/g, "_");
@@ -253,6 +217,7 @@ router.post("/:id/files/upload", upload.single("file"), async (req, res) => {
       size: req.file.size || 0,
     });
   } catch (error) {
+    if (error.status === 400) return res.status(400).json({ message: error.message });
     console.error("Error uploading file to editor:", error);
     return res.status(500).json({ message: error.message });
   }
@@ -266,8 +231,7 @@ router.post("/:id/files", upload.single("file"), async (req, res) => {
     if (!auth) return;
     if (!req.file) return res.status(400).json({ message: "No file provided" });
 
-    const folder = String(req.body.folder || "").trim();
-    const dir = path.join(config.paths.root, "local-content/course-files", courseId, folder);
+    const { folder, dir } = courseFilesDir(courseId, req.body.folder);
     fs.mkdirSync(dir, { recursive: true });
 
     const safeName = req.file.originalname.replace(/[^a-zA-Z0-9._-]/g, "_");
@@ -285,6 +249,7 @@ router.post("/:id/files", upload.single("file"), async (req, res) => {
       downloadUrl: `/course-files/${courseId}/${fileRecord.filename}`,
     });
   } catch (error) {
+    if (error.status === 400) return res.status(400).json({ message: error.message });
     console.error("Error uploading file:", error);
     return res.status(500).json({ message: error.message });
   }
@@ -378,7 +343,8 @@ router.post("/:id/collaborations", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
     if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
-    const auth = await requireEnrolled(req, res, courseId);
+    if (!await requireNavVisible(req, res, courseId, "collaborations")) return;
+    const auth = await requireParticipant(req, res, courseId);
     if (!auth) return;
     const title = String(req.body.title || "").trim();
     if (!title) return res.status(400).json({ message: "title is required" });
@@ -387,12 +353,14 @@ router.post("/:id/collaborations", async (req, res) => {
       .run(courseId, title, req.body.url || "", auth.email);
     const collaborationId = Number(info.lastInsertRowid);
 
-    const memberEmails = Array.isArray(req.body.memberEmails) ? req.body.memberEmails : [];
+    // Members are chosen from the course's people, by enrollment id (learners don't see each
+    // other's email addresses) or, for staff, by email. Only people in the course are added.
+    const memberIds = (Array.isArray(req.body.memberIds) ? req.body.memberIds : []).map(Number).filter(Boolean);
+    const memberEmails = (Array.isArray(req.body.memberEmails) ? req.body.memberEmails : []).map(normalizeEmail).filter(Boolean);
+    const members = await localDb.prepare("SELECT id, user_email FROM enrollments WHERE course_id = ? AND status = 'active'").all(courseId);
+    const chosen = members.filter((m) => memberIds.includes(Number(m.id)) || memberEmails.includes(normalizeEmail(m.user_email)));
     const insertMember = await localDb.prepare("INSERT INTO collaboration_members (collaboration_id, user_email) VALUES (?, ?) ON CONFLICT DO NOTHING");
-    memberEmails.forEach((email) => {
-      const normalized = normalizeEmail(email);
-      if (normalized) insertMember.run(collaborationId, normalized);
-    });
+    for (const m of chosen) await insertMember.run(collaborationId, normalizeEmail(m.user_email));
 
     return res.status(201).json(await localDb.prepare("SELECT * FROM collaborations WHERE id = ?").get(collaborationId));
   } catch (error) {
@@ -405,7 +373,7 @@ router.delete("/:id/collaborations/:collaborationId", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
     if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
-    const auth = await requireEnrolled(req, res, courseId);
+    const auth = await requireParticipant(req, res, courseId);
     if (!auth) return;
 
     const collaboration = await localDb.prepare("SELECT * FROM collaborations WHERE id = ? AND course_id = ?").get(req.params.collaborationId, courseId);
@@ -433,10 +401,8 @@ router.get("/:id/pages", async (req, res) => {
     if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
     const auth = await requireNavVisible(req, res, courseId, "pages");
     if (!auth) return;
-    const isTeacher = isTeacherRole(auth.enrollment.role);
-
     const rawPages = await localDb.prepare("SELECT * FROM course_pages WHERE course_id = ? ORDER BY updated_at DESC").all(courseId);
-    const rows = rawPages.filter((p) => isTeacher || Number(p.published) === 1);
+    const rows = await visibleToReader(auth.enrollment, courseId, "page", rawPages);
     return res.json(rows);
   } catch (error) {
     console.error("Error fetching pages:", error);
@@ -452,7 +418,7 @@ router.get("/:id/pages/:pageId", async (req, res) => {
     if (!auth) return;
 
     const page = await localDb.prepare("SELECT * FROM course_pages WHERE id = ? AND course_id = ?").get(req.params.pageId, courseId);
-    if (!page) return res.status(404).json({ message: "Page not found" });
+    if (!page || await hiddenFromReader(auth.enrollment, courseId, "page", page)) return res.status(404).json({ message: "Page not found" });
 
     const userView = await localDb.prepare("SELECT * FROM page_views WHERE page_id = ? AND LOWER(user_email) = LOWER(?)")
       .get(page.id, auth.email);
@@ -536,7 +502,9 @@ router.post("/:id/pages/:pageId/view", async (req, res) => {
     if (!auth) return;
 
     const page = await localDb.prepare("SELECT * FROM course_pages WHERE id = ? AND course_id = ?").get(req.params.pageId, courseId);
-    if (!page) return res.status(404).json({ message: "Page not found" });
+    if (!page || await hiddenFromReader(auth.enrollment, courseId, "page", page)) return res.status(404).json({ message: "Page not found" });
+    // Observers and admins only look: their visits aren't anyone's reading progress.
+    if (isReadOnly(auth.enrollment)) return res.status(204).end();
 
     const scrollPct = Math.min(100, Math.max(0, Number(req.body.scrollPct || req.body.scroll_pct) || 0));
 
@@ -598,11 +566,8 @@ router.get("/:id/discussions", async (req, res) => {
     if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
     const auth = await requireNavVisible(req, res, courseId, "discussions");
     if (!auth) return;
-    const isTeacher = isTeacherRole(auth.enrollment.role);
-
     const rawDiscussions = await localDb.prepare("SELECT * FROM discussions WHERE course_id = ? ORDER BY created_at DESC").all(courseId);
-    const rows = await Promise.all(rawDiscussions
-      .filter((d) => isTeacher || Number(d.published) === 1)
+    const rows = await Promise.all((await visibleToReader(auth.enrollment, courseId, "discussion", rawDiscussions))
       .map(async (d) => {
         const replyCountRow = await localDb.prepare("SELECT COUNT(*) AS c FROM discussion_replies WHERE discussion_id = ?").get(d.id);
         const replyCount = Number(replyCountRow?.c || 0);
@@ -619,7 +584,8 @@ router.post("/:id/discussions", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
     if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
-    const auth = await requireEnrolled(req, res, courseId);
+    if (!await requireNavVisible(req, res, courseId, "discussions")) return;
+    const auth = await requireParticipant(req, res, courseId);
     if (!auth) return;
 
     const title = String(req.body.title || "").trim();
@@ -727,10 +693,11 @@ router.get("/:id/discussions/:discussionId", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
     if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
-    if (!await requireEnrolled(req, res, courseId)) return;
+    const auth = await requireEnrolled(req, res, courseId);
+    if (!auth) return;
 
     const discussion = await localDb.prepare("SELECT * FROM discussions WHERE id = ? AND course_id = ?").get(req.params.discussionId, courseId);
-    if (!discussion) return res.status(404).json({ message: "Discussion not found" });
+    if (!discussion || await hiddenFromReader(auth.enrollment, courseId, "discussion", discussion)) return res.status(404).json({ message: "Discussion not found" });
 
     const rawReplies = await localDb.prepare("SELECT * FROM discussion_replies WHERE discussion_id = ? ORDER BY created_at ASC").all(discussion.id);
     const replies = await Promise.all(rawReplies.map(async (r) => ({ ...r, authorName: await userFullName(r.author_email) })));
@@ -751,11 +718,18 @@ router.post("/:id/discussions/:discussionId/replies", async (req, res) => {
 
     const body = String(req.body.body || "").trim();
     if (!body) return res.status(400).json({ message: "body is required" });
+    // Only into a discussion of this course that the person can see, and only under its own replies.
+    const discussion = await localDb.prepare("SELECT * FROM discussions WHERE id = ? AND course_id = ?").get(req.params.discussionId, courseId);
+    if (!discussion || await hiddenFromReader(auth.enrollment, courseId, "discussion", discussion)) return res.status(404).json({ message: "Discussion not found" });
+    const parentId = req.body.parentReplyId ? Number(req.body.parentReplyId) : null;
+    if (parentId && !await localDb.prepare("SELECT 1 FROM discussion_replies WHERE id = ? AND discussion_id = ?").get(parentId, discussion.id)) {
+      return res.status(404).json({ message: "Reply not found" });
+    }
 
     const info = await localDb.prepare(`
       INSERT INTO discussion_replies (discussion_id, parent_reply_id, body, author_email)
       VALUES (?, ?, ?, ?)
-    `).run(req.params.discussionId, req.body.parentReplyId || null, body, auth.email);
+    `).run(discussion.id, parentId, body, auth.email);
 
     return res.status(201).json(await localDb.prepare("SELECT * FROM discussion_replies WHERE id = ?").get(info.lastInsertRowid));
   } catch (error) {

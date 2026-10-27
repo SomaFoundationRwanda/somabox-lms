@@ -25,14 +25,14 @@ function outcomeSentence(o, tp) {
   return tp("myProgress.outcomeSame", { start: fmtPct(o.baseline), now: fmtPct(o.current) });
 }
 
-const byDueDate = (a, b) => {
+export const byDueDate = (a, b) => {
   if (!a.dueDate && !b.dueDate) return 0;
   if (!a.dueDate) return 1;
   if (!b.dueDate) return -1;
   return a.dueDate < b.dueDate ? -1 : a.dueDate > b.dueDate ? 1 : 0;
 };
 
-function WorkRow({ courseId, w, showPct }) {
+export function WorkRow({ courseId, w, showPct }) {
   const { tp } = useProgressText();
   const href = itemHref(courseId, w);
   const type = itemType(tp, w.type);
@@ -85,7 +85,6 @@ export default function MyProgress({ sectionKey = "progress" }) {
       <div className="p-4 md:p-6 space-y-8 max-w-4xl">
         <PageHeader
           title={tp("common.myProgress")}
-          description={tp("myProgress.description")}
         />
 
         {loading && !data ? (
@@ -114,11 +113,11 @@ export default function MyProgress({ sectionKey = "progress" }) {
             {data.attendance?.counted > 0 ? (
               <p className="-mt-4 text-ui text-fg-muted">
                 {txn("youAttended", data.attendance.counted, { a: attended(data.attendance) })}.{" "}
-                <Link href={`/course/${courseId}/attendance`} className="font-semibold text-brand-fg hover:underline">{tx("openMyAttendance")}</Link>
+                <Link href={`/course/${courseId}/grades#attendance`} className="font-semibold text-brand-fg hover:underline">{tx("openMyAttendance")}</Link>
               </p>
             ) : null}
 
-            <Section title={tp("myProgress.yourOutcomes")} description={tp("myProgress.yourOutcomesHint")}>
+            <Section title={tp("myProgress.yourOutcomes")}>
               {outcomes.length === 0 ? (
                 <EmptyState compact title={tp("common.noOutcomesYet")} />
               ) : (
@@ -161,7 +160,7 @@ export default function MyProgress({ sectionKey = "progress" }) {
               ) : null}
             </Section>
 
-            <Section title={tp("myProgress.toDo")} description={tp("myProgress.toDoHint")}>
+            <Section title={tp("myProgress.toDo")}>
               {toDo.length === 0 ? (
                 <p className="text-ui text-fg-subtle">{tp("myProgress.nothingToDo")}</p>
               ) : (

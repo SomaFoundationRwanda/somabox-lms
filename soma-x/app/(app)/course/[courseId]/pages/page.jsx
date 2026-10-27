@@ -23,7 +23,7 @@ export default function PagesListPage() {
       <div className="p-4 md:p-6 space-y-6 max-w-4xl">
         <PageHeader help="pages.pages"
           title={t("nav.pages")}
-          description={t("lists.pagesDescription")}
+          description={isTeacher ? t("lists.pagesDescription") : undefined}
           actions={isTeacher ? (
             <Link
               href={`/course/${courseId}/modules`}

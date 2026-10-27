@@ -163,7 +163,7 @@ export const DEFAULT_NAV_ITEMS = [
     { nav_key: 'discussions', label: 'Discussions', visible_to_students: 1 },
     { nav_key: 'pages', label: 'Pages', visible_to_students: 1 },
     { nav_key: 'grades', label: 'Grades', visible_to_students: 1 },
-    { nav_key: 'rubrics', label: 'Rubrics', visible_to_students: 1 },
+    { nav_key: 'rubrics', label: 'Rubrics', visible_to_students: 0 },
     { nav_key: 'announcements', label: 'Announcements', visible_to_students: 1 },
     { nav_key: 'people', label: 'People', visible_to_students: 1 },
     { nav_key: 'files', label: 'Files', visible_to_students: 0 },

@@ -9,6 +9,7 @@ import {
   requireTeacher,
   requireEnrolled,
   courseExists,
+  requireCourseTeacher,
 } from "./shared.js";
 
 const router = express.Router();
@@ -23,7 +24,7 @@ router.patch("/:id/shift-timeline", async (req, res) => {
     const courseId = String(req.params.id || "").trim();
     const course = await courseExists(courseId);
     if (!course) return res.status(404).json({ message: "Course not found" });
-    if (!await requireTeacher(req, res, courseId)) return;
+    if (!await requireCourseTeacher(req, res, courseId)) return;
 
     const days = Number(req.body.days ?? req.body.shiftDays);
     if (!Number.isInteger(days) || days === 0) return res.status(400).json({ message: "days must be a whole number other than 0" });
@@ -124,7 +125,7 @@ router.post("/:id/open-course", async (req, res) => {
     const courseId = String(req.params.id || "").trim();
     const course = await courseExists(courseId);
     if (!course) return res.status(404).json({ message: "Course not found" });
-    if (!await requireTeacher(req, res, courseId)) return;
+    if (!await requireCourseTeacher(req, res, courseId)) return;
 
     if (course.lifecycle !== "draft") {
       return res.status(400).json({ message: `This course is already ${course.lifecycle}` });
@@ -205,13 +206,14 @@ router.get("/:id/home-loop", async (req, res) => {
     let beatParams = {};
     const action = (key, label, path) => ({ key, label, href: `/course/${courseId}/${path}` });
     let primaryAction = action("openModules", "Open Weeks", "modules");
+    // Setting dates and adding weeks are the teacher's jobs: learners are told what's coming.
     if (!tl.startDate) {
-      beatKey = "noStartDate";
-      beatTitle = "Set the course start date to place each week on the calendar";
-      primaryAction = action("openSettings", "Open Settings", "settings");
+      beatKey = isTeacher ? "noStartDate" : "notScheduled";
+      beatTitle = isTeacher ? "Set the course start date to place each week on the calendar" : "Your teacher hasn't set the course dates yet";
+      primaryAction = isTeacher ? action("openSettings", "Open Settings", "settings") : action("openModules", "Open Weeks", "modules");
     } else if (!current) {
-      beatKey = "noWeek";
-      beatTitle = "Add a week to start planning";
+      beatKey = isTeacher ? "noWeek" : "nothingYet";
+      beatTitle = isTeacher ? "Add a week to start planning" : "Nothing has been added to this course yet";
     } else if (isTeacher && ungradedCount > 0) {
       beat = "grade";
       beatKey = "toGrade";
@@ -233,13 +235,13 @@ router.get("/:id/home-loop", async (req, res) => {
       beatTitle = `${label(current)}: ${openNow.length} item${openNow.length === 1 ? "" : "s"} open, next due ${nextDue}`;
       primaryAction = isTeacher
         ? action("checkSubmissions", "Check Submissions", "grades")
-        : action("openCalendar", "Open Calendar", "calendar");
+        : action("openModules", "Open Weeks", "modules");
     } else if (today > current.endDate || (inCurrent.length > 0 && inCurrent.every((i) => !i.dueDate || i.dueDate < today))) {
       beat = "review";
-      beatKey = "finished";
+      beatKey = isTeacher ? "finished" : "weekDone";
       beatParams = { week };
-      beatTitle = `${label(current)} is finished: review progress before the next week`;
-      primaryAction = action("viewOutcomes", "View Outcomes", "outcomes");
+      beatTitle = isTeacher ? `${label(current)} is finished: review progress before the next week` : `${label(current)} is finished`;
+      primaryAction = isTeacher ? action("viewOutcomes", "View Outcomes", "outcomes") : action("openProgress", "My progress", "progress");
     } else {
       beat = "release";
       beatKey = "live";

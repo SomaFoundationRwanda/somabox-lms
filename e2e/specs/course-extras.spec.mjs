@@ -53,15 +53,20 @@ test.describe("course settings", () => {
     page.on("dialog", (d) => d.accept());
     await page.goto(`/course/${c.id}/settings`);
     await expect(page.getByText(ct("settings.status.now.open"))).toBeVisible();
-    await page.getByRole("button", { name: ct("settings.status.action.closed") }).click();
+    // Ending is in the course's "⋯" menu, in the status bar.
+    await page.getByRole("button", { name: ct("status.more") }).click();
+    await page.getByRole("menuitem", { name: ct("settings.status.action.closed") }).click();
     await expect(page.getByText(ct("settings.status.now.closed"))).toBeVisible();
 
-    // Learners can still read the course, but can't hand in.
+    // Learners can still read the course, but can't hand in: the page says so instead of offering it.
     const learner = await asRole(browser, "learner");
     await learner.page.goto(`/course/${c.id}/assignments/${c.assignment.content_id}`);
-    await learner.page.getByLabel(ct("assignment.responseLabel")).fill("Too late");
-    await learner.page.getByRole("button", { name: ct("assignment.submit") }).click();
-    await expect(learner.page.getByText(/This course has ended/).first()).toBeVisible();
+    await expect(learner.page.getByText(ct("assignment.courseEnded")).first()).toBeVisible();
+    await expect(learner.page.getByLabel(ct("assignment.responseLabel"))).toHaveCount(0);
+    await expect(learner.page.getByRole("button", { name: ct("assignment.submit") })).toBeHidden();
+    // And the server refuses it all the same.
+    const refused = await fetch(`http://localhost:3100/courses/${c.id}/assignments/${c.assignment.content_id}/submit`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${await tokenFor("learner")}` }, body: JSON.stringify({ body: "Too late" }) });
+    expect(refused.status).toBe(409);
 
     await page.getByRole("button", { name: ct("settings.status.action.open") }).click();
     await expect(page.getByText(ct("settings.status.now.open"))).toBeVisible();
@@ -76,11 +81,12 @@ test.describe("course settings", () => {
     const c = await seedCourse({ title: `Archive me ${uid()}`, learners: ["learner2"] });
     page.on("dialog", (d) => d.accept());
     await page.goto(`/course/${c.id}/settings`);
-    await page.getByRole("button", { name: ct("settings.status.action.archived") }).click();
+    await page.getByRole("button", { name: ct("status.more") }).click();
+    await page.getByRole("menuitem", { name: ct("settings.status.action.archived") }).click();
     await expect(page.getByText(ct("settings.status.now.archived"))).toBeVisible();
     expect(JSON.stringify(await api("GET", "/courses/mine", { as: "learner2" }))).not.toContain(c.title);
-    // Archived courses can come back as closed.
-    await expect(page.getByRole("button", { name: ct("settings.status.action.closed") })).toBeVisible();
+    // Archived courses can come back as ended.
+    await expect(page.getByRole("button", { name: ct("status.unarchive") })).toBeVisible();
   });
 
   test("a course without learners' work can be deleted; one with work can't", async ({ page }) => {
@@ -128,8 +134,9 @@ test.describe("reordering with the keyboard", () => {
     const itemsBefore = await items();
     // Each week's item list loads on its own too.
     await page.reload();
-    await expect(page.locator("li[aria-roledescription=\"sortable\"]").first()).toBeVisible();
+    // (The drag handles themselves are the sortable elements.)
     const itemHandle = page.getByRole("button", { name: "Drag to reorder the item", exact: true }).first();
+    await expect(itemHandle).toHaveAttribute("aria-roledescription", "sortable");
     await itemHandle.focus();
     await dragOneDown(page);
     await expect.poll(items).not.toBe(itemsBefore);

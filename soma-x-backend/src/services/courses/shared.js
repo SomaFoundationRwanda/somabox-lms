@@ -23,6 +23,10 @@ export const upload = multer({ storage: multer.memoryStorage() });
 
 export const NAV_KEYS = DEFAULT_NAV_ITEMS.map((item) => item.nav_key);
 
+// Sections only the course's staff ever see: a teacher can't show them to learners or observers.
+// (Learners see their progress on My progress, and each assignment's rubric on the assignment.)
+export const STAFF_ONLY_NAV = ["settings", "insights", "rubrics"];
+
 export function normalizeEmail(email) {
   return String(email || "").trim().toLowerCase();
 }
@@ -63,6 +67,26 @@ export async function requireTeacher(req, res, courseId) {
   }
   announceWhenDone(req, res, courseId, "course");
   return { email, enrollment };
+}
+
+/**
+ * The course's own teachers only (not assistants): for what changes the course itself — its
+ * settings, navigation, dates and timeline, opening it, its join code, deleting it — and for
+ * giving learners new passwords. Assistants teach, grade, take attendance and post.
+ */
+export async function requireCourseTeacher(req, res, courseId) {
+  const auth = await requireTeacher(req, res, courseId);
+  if (!auth) return null;
+  if (auth.enrollment.role !== "teacher") {
+    res.status(403).json({ message: "Only the course's teacher can do this", code: "TEACHER_ONLY" });
+    return null;
+  }
+  return auth;
+}
+
+/** True when the reader may only look: observers, and admins reading a course they're not in. */
+export function isReadOnly(enrollment) {
+  return enrollment?.role === "observer" || Boolean(enrollment?.adminView);
 }
 
 // For handing in work, taking quizzes and replying: enrolled, but not an observer (observers only
@@ -122,6 +146,10 @@ export async function requireNavVisible(req, res, courseId, navKey) {
   const auth = await requireEnrolled(req, res, courseId);
   if (!auth) return null;
   if (isTeacherRole(auth.enrollment.role)) return auth;
+  if (STAFF_ONLY_NAV.includes(navKey)) {
+    res.status(403).json({ message: "This section is not available" });
+    return null;
+  }
 
   const navItem = await localDb
     .prepare("SELECT visible_to_students FROM course_nav_items WHERE course_id = ? AND nav_key = ?")
@@ -131,6 +159,29 @@ export async function requireNavVisible(req, res, courseId, navKey) {
     return null;
   }
   return auth;
+}
+
+/**
+ * True when this item must stay out of sight for the reader: a learner or observer, and the item
+ * is unpublished, or listed in a week (or as a week item) that isn't published. Staff, and admins
+ * reading the course, see everything. itemType: page | assignment | quiz | discussion.
+ */
+export async function hiddenFromReader(enrollment, courseId, itemType, row) {
+  if (isTeacherRole(enrollment?.role) || enrollment?.adminView) return false;
+  if (Number(row.published) !== 1) return true;
+  const listings = await localDb.prepare(`
+    SELECT mi.published AS item_published, m.published AS module_published
+    FROM module_items mi JOIN modules m ON m.id = mi.module_id
+    WHERE mi.item_type = ? AND mi.content_id = ? AND m.course_id = ?
+  `).all(itemType, row.id, courseId);
+  return listings.length > 0 && listings.every((l) => Number(l.item_published) !== 1 || Number(l.module_published) !== 1);
+}
+
+/** The rows of one item type that the reader may see (see hiddenFromReader). */
+export async function visibleToReader(enrollment, courseId, itemType, rows) {
+  const out = [];
+  for (const row of rows) if (!await hiddenFromReader(enrollment, courseId, itemType, row)) out.push(row);
+  return out;
 }
 
 // Looks up a module item only if it belongs to the given course (prevents acting on

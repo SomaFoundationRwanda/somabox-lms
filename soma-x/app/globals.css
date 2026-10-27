@@ -218,12 +218,20 @@
   --font-mono: var(--font-poppins);
 }
 
-div *{
-  transition: all 0.3s ease;
+/* Gentle motion, only for people who haven't asked their device for less of it. */
+@media (prefers-reduced-motion: no-preference) {
+  div *{
+    transition: all 0.3s ease;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
 }
 
-html {
-  scroll-behavior: smooth;
+/* Menus and popovers place themselves next to their button: they must not glide there. */
+[data-radix-popper-content-wrapper] {
+  transition: none !important;
 }
 
 button, [role="button"] {

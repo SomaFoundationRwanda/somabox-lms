@@ -10,7 +10,7 @@ import { formatRange } from "@/lib/dates";
 import Loader from "@/components/ui/Loader";
 
 export default function SyllabusPage() {
-  const { course } = useCourse();
+  const { course, isTeacher } = useCourse();
   const { t, tf, tOr, weekLabel, fmtDate } = useCourseText();
   // The same kept weeks and outcomes as the Modules and Outcomes pages.
   const modulesQuery = useCourseSection("modules");
@@ -28,7 +28,7 @@ export default function SyllabusPage() {
       <Breadcrumbs sectionKey="syllabus" />
       <div className="p-4 md:p-6 space-y-8 max-w-4xl">
         <PageHeader help="pages.syllabus"
-          eyebrow={t("syllabus.eyebrow")}
+          eyebrow={isTeacher ? t("syllabus.eyebrow") : t("syllabus.eyebrowLearner")}
           title={course?.title || t("syllabus.title")}
           meta={
             <span>

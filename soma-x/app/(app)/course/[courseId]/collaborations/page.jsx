@@ -14,14 +14,15 @@ import { apiFetch, getErrorMessage } from "@/lib/api";
 import { CheckboxList, Fieldset, TextInput } from "@/components/form";
 
 export default function CollaborationsPage() {
-  const { courseId, userEmail } = useCourse();
+  const { courseId, userEmail, canTakePart, isTeacher } = useCourse();
   const { t, tf, tOr } = useCourseText();
   const { showToast } = useToast();
   const { data: collaborations, loading, error, refetch } = useCourseSection("collaborations");
   const { data: people } = useCourseSection("people");
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({ title: "", url: "" });
-  const [memberEmails, setMemberEmails] = useState([]);
+  // Chosen by their place in the class (enrollment id): learners don't see classmates' emails.
+  const [memberIds, setMemberIds] = useState([]);
   const [saving, setSaving] = useState(false);
 
 
@@ -29,9 +30,9 @@ export default function CollaborationsPage() {
     if (!form.title.trim() || !form.url.trim()) return;
     setSaving(true);
     try {
-      await apiFetch(`/courses/${courseId}/collaborations`, { method: "POST", json: { title: form.title.trim(), url: form.url.trim(), memberEmails } });
+      await apiFetch(`/courses/${courseId}/collaborations`, { method: "POST", json: { title: form.title.trim(), url: form.url.trim(), memberIds: memberIds.map(Number) } });
       setForm({ title: "", url: "" });
-      setMemberEmails([]);
+      setMemberIds([]);
       setCreating(false);
       refetch();
     } catch (err) {
@@ -56,23 +57,23 @@ export default function CollaborationsPage() {
       <div className="p-4 md:p-6 space-y-6 max-w-2xl">
         <PageHeader help="pages.collaborations"
           title={t("nav.collaborations")}
-          description={t("collab.description")}
-          actions={
+          description={isTeacher ? t("collab.description") : undefined}
+          actions={canTakePart ? (
             <Button onClick={() => setCreating((v) => !v)} className="h-9 gap-1.5">
               <Plus className="w-3.5 h-3.5" /> {t("collab.new")}
             </Button>
-          }
+          ) : null}
         />
 
-        {creating ? (
+        {creating && canTakePart ? (
           <div className="space-y-3">
             <TextInput value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} placeholder={t("collab.titlePlaceholder")} aria-label={t("collab.titleLabel")} className="w-full" />
             <TextInput value={form.url} onChange={(e) => setForm((p) => ({ ...p, url: e.target.value }))} placeholder="https://docs.google.com/..." aria-label={t("collab.link")} className="w-full" />
             <Fieldset legend={t("collab.whoCanAccess")}>
               <CheckboxList
-                items={(people || []).map((person) => ({ value: person.email, label: `${person.fullName} (${tOr(`people.roles.${person.role}`, person.role)})` }))}
-                selected={memberEmails}
-                onChange={setMemberEmails}
+                items={(people || []).map((person) => ({ value: String(person.id), label: `${person.fullName} (${tOr(`people.roles.${person.role}`, person.role)})` }))}
+                selected={memberIds}
+                onChange={setMemberIds}
               />
             </Fieldset>
             <div className="flex justify-end gap-2">

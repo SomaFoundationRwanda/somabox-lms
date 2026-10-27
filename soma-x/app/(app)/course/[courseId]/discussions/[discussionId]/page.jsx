@@ -7,17 +7,18 @@ import { useCourse } from "@/context/CourseContext";
 import { apiFetch, getErrorMessage } from "@/lib/api";
 import { queryKeys } from "@/lib/queryKeys";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
+import ItemStatusActions from "@/components/course/modules/ItemStatusActions";
 import { PageHeader, Section, List } from "@/components/layout";
 import { useItemOpened } from "@/lib/usage";
 import { useCourseText } from "@/components/course/useCourseText";
 import Loader from "@/components/ui/Loader";
-import { TextInput } from "@/components/form";
+import { Field, TextInput } from "@/components/form";
 
 export default function DiscussionThreadPage() {
   const { courseId, discussionId } = useParams();
   useItemOpened("discussion", discussionId, courseId);
-  const { userEmail, isTeacher, isObserver } = useCourse();
-  const { t, tf } = useCourseText();
+  const { userEmail, isTeacher, canTakePart } = useCourse();
+  const { t, tf, tpts } = useCourseText();
   const queryClient = useQueryClient();
   const threadKey = queryKeys.courseSection(courseId, `discussions/${discussionId}`);
   const thread = useQuery({
@@ -71,7 +72,7 @@ export default function DiscussionThreadPage() {
   };
 
   if (loading) return <Loader variant="page" />;
-  if (!discussion) return <div className="p-6"><p className="text-ui text-danger-fg">{t("discussions.notFound")}</p></div>;
+  if (!discussion) return <div className="p-6"><p className="text-ui text-fg-muted">{t("discussions.notFound")}</p></div>;
 
   return (
     <div>
@@ -79,6 +80,7 @@ export default function DiscussionThreadPage() {
       <div className="p-4 md:p-6 space-y-6 max-w-2xl">
         <PageHeader help="items.discussion"
           title={discussion.title}
+          actions={isTeacher ? <ItemStatusActions type="discussion" contentId={discussion.id} published={Boolean(discussion.published)} title={discussion.title} /> : null}
           meta={discussion.graded ? <span className="text-caption font-bold text-brand-fg bg-brand-soft rounded-full px-1.5 py-0.5">{t("quizKinds.graded")}</span> : null}
         >
           {discussion.body ? <p className="text-ui text-fg-muted mt-2 whitespace-pre-wrap">{discussion.body}</p> : null}
@@ -86,9 +88,12 @@ export default function DiscussionThreadPage() {
 
         {isTeacher ? (
           <Section title={t("discussions.grading")}>
-            <div className="flex flex-wrap items-center gap-2">
+            {!discussion.graded ? <p className="mb-2 text-caption text-fg-subtle">{t("discussions.gradeHint")}</p> : null}
+            <div className="flex flex-wrap items-end gap-2">
               {!discussion.graded ? (
-                <TextInput size="sm" type="number" min="0" value={pointsInput} onChange={(e) => setPointsInput(e.target.value)} placeholder={t("editors.pointsPossible")} aria-label={t("editors.pointsPossible")} className="w-28" />
+                <Field id="discussion-points" label={t("editors.pointsPossible")}>
+                  <TextInput id="discussion-points" size="sm" type="number" min="1" value={pointsInput} onChange={(e) => setPointsInput(e.target.value)} className="w-28" />
+                </Field>
               ) : null}
               <button
                 onClick={toggleGraded}
@@ -99,7 +104,7 @@ export default function DiscussionThreadPage() {
               </button>
               {discussion.graded ? (
                 <span className="text-caption text-fg-subtle">
-                  {tf("common.points", { n: discussion.points_possible })} · {t("discussions.syncs")}
+                  {tpts(discussion.points_possible)} · {t("discussions.syncs")}
                 </span>
               ) : null}
             </div>
@@ -123,7 +128,7 @@ export default function DiscussionThreadPage() {
             </List>
           )}
 
-          {isObserver ? null : <div className="mt-3 flex items-center gap-2">
+          {!canTakePart ? null : <div className="mt-3 flex items-center gap-2">
             <TextInput value={reply} onChange={(e) => setReply(e.target.value)} placeholder={t("discussions.replyPlaceholder")} aria-label={t("discussions.replyPlaceholder")} className="flex-1 min-w-0" />
             <button onClick={postReply} className="text-caption font-semibold text-on-brand-strong bg-brand-strong rounded-lg px-3 py-2">{t("discussions.reply")}</button>
           </div>}

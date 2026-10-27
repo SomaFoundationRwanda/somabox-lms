@@ -11,6 +11,8 @@ import {
   courseExists,
   scheduleSpacedReview,
   userFullName,
+  hiddenFromReader,
+  visibleToReader,
 } from "./shared.js";
 import { recordBaselineResults } from "./setup.js";
 import { recordQuizAttemptResults, recordSubmissionResults, rubricGrade, autoMarked } from "./results.js";
@@ -38,16 +40,13 @@ router.get("/:id/assignments", async (req, res) => {
     if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
     const auth = await requireNavVisible(req, res, courseId, "assignments");
     if (!auth) return;
-    const isTeacher = isTeacherRole(auth.enrollment.role);
-
     const rawAssignments = await localDb.prepare("SELECT * FROM assignments WHERE course_id = ?").all(courseId);
-    const assignments = rawAssignments
-      .filter((a) => isTeacher || Number(a.published) === 1)
+    const assignments = (await visibleToReader(auth.enrollment, courseId, "assignment", rawAssignments))
       .map((a) => ({ id: a.id, kind: "assignment", title: a.title, dueAt: a.due_at, pointsPossible: a.points_possible, published: Number(a.published) === 1 }));
 
-    const rawQuizzes = await localDb.prepare("SELECT * FROM quizzes WHERE course_id = ?").all(courseId);
-    const quizzes = await Promise.all(rawQuizzes
-      .filter((q) => isTeacher || Number(q.published) === 1)
+    // Graded work only: practice quizzes don't count, so they're listed under Quizzes alone.
+    const rawQuizzes = await localDb.prepare("SELECT * FROM quizzes WHERE course_id = ? AND COALESCE(kind, 'graded') <> 'practice'").all(courseId);
+    const quizzes = await Promise.all((await visibleToReader(auth.enrollment, courseId, "quiz", rawQuizzes))
       .map(async (q) => {
         const ptsRow = await localDb.prepare("SELECT COALESCE(SUM(points),0) AS total FROM quiz_questions WHERE quiz_id = ?").get(q.id);
         const points = Number(ptsRow?.total || 0);
@@ -55,8 +54,7 @@ router.get("/:id/assignments", async (req, res) => {
       }));
 
     const rawDiscussions = await localDb.prepare("SELECT * FROM discussions WHERE course_id = ? AND graded = 1 AND linked_assignment_id IS NULL").all(courseId);
-    const discussions = rawDiscussions
-      .filter((d) => isTeacher || Number(d.published) === 1)
+    const discussions = (await visibleToReader(auth.enrollment, courseId, "discussion", rawDiscussions))
       .map((d) => ({ id: d.id, kind: "discussion", title: d.title, dueAt: null, pointsPossible: d.points_possible, published: Number(d.published) === 1 }));
 
     const combined = [...assignments, ...quizzes, ...discussions].sort((a, b) => {
@@ -94,7 +92,7 @@ router.get("/:id/assignments/:assignmentId", async (req, res) => {
       return res.json({ ...assignment, submissions });
     }
 
-    if (Number(row.published) !== 1) return res.status(404).json({ message: "Assignment not found" });
+    if (await hiddenFromReader(auth.enrollment, courseId, "assignment", row)) return res.status(404).json({ message: "Assignment not found" });
     const mySubmission = await localDb.prepare("SELECT * FROM assignment_submissions WHERE assignment_id = ? AND LOWER(scholar_email) = LOWER(?)").get(assignment.id, auth.email);
     const rubricScores = mySubmission
       ? await localDb.prepare("SELECT criterion_id, points, level FROM submission_scores WHERE submission_id = ?").all(mySubmission.id)
@@ -180,7 +178,9 @@ router.post("/:id/assignments/:assignmentId/submit", async (req, res) => {
     const assignment = await localDb.prepare("SELECT * FROM assignments WHERE id = ? AND course_id = ?").get(req.params.assignmentId, courseId);
     if (!assignment) return res.status(404).json({ message: "Assignment not found" });
     const isLearner = !isTeacherRole(auth.enrollment.role);
-    if (isLearner && Number(assignment.published) !== 1) {
+    // Staff don't hand in work: it would count in the class's results.
+    if (!isLearner) return res.status(403).json({ message: "Teachers and assistants don't hand in work", code: "STAFF" });
+    if (await hiddenFromReader(auth.enrollment, courseId, "assignment", assignment)) {
       return res.status(404).json({ message: "Assignment not found" });
     }
     const deadlines = await contentDeadlines(courseId, "assignment", assignment.id);
@@ -368,8 +368,7 @@ router.get("/:id/quizzes", async (req, res) => {
     const isTeacher = isTeacherRole(auth.enrollment.role);
 
     const rawQuizzesList = await localDb.prepare("SELECT * FROM quizzes WHERE course_id = ? ORDER BY created_at DESC").all(courseId);
-    const rows = await Promise.all(rawQuizzesList
-      .filter((q) => isTeacher || Number(q.published) === 1)
+    const rows = await Promise.all((await visibleToReader(auth.enrollment, courseId, "quiz", rawQuizzesList))
       .map(async (q) => {
         const questionCountRow = await localDb.prepare("SELECT COUNT(*) AS c FROM quiz_questions WHERE quiz_id = ?").get(q.id);
         const questionCount = Number(questionCountRow?.c || 0);
@@ -397,7 +396,7 @@ router.get("/:id/quizzes/:quizId", async (req, res) => {
     const quiz = { ...quizRow, module: await moduleSummary(quizRow.module_id) };
 
     const isTeacher = isTeacherRole(auth.enrollment.role);
-    if (!isTeacher && Number(quizRow.published) !== 1) return res.status(404).json({ message: "Quiz not found" });
+    if (await hiddenFromReader(auth.enrollment, courseId, "quiz", quizRow)) return res.status(404).json({ message: "Quiz not found" });
     const rawQuestions = await localDb.prepare("SELECT * FROM quiz_questions WHERE quiz_id = ? ORDER BY position ASC").all(quiz.id);
     const questions = rawQuestions.map((q) => ({
       ...q,
@@ -490,7 +489,9 @@ router.post("/:id/quizzes/:quizId/submit", async (req, res) => {
     const quiz = await localDb.prepare("SELECT * FROM quizzes WHERE id = ? AND course_id = ?").get(req.params.quizId, courseId);
     if (!quiz) return res.status(404).json({ message: "Quiz not found" });
     const isLearner = !isTeacherRole(auth.enrollment.role);
-    if (isLearner && Number(quiz.published) !== 1) {
+    // Staff don't hand in work: it would count in the class's results.
+    if (!isLearner) return res.status(403).json({ message: "Teachers and assistants don't hand in work", code: "STAFF" });
+    if (await hiddenFromReader(auth.enrollment, courseId, "quiz", quiz)) {
       return res.status(404).json({ message: "Quiz not found" });
     }
     const deadlines = await contentDeadlines(courseId, "quiz", quiz.id);

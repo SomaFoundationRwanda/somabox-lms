@@ -1,7 +1,8 @@
 "use client";
 
+import EditorFrame from "./EditorFrame";
 import { useState } from "react";
-import { X, Plus, Trash2, Check } from "lucide-react";
+import { Plus, Trash2, Check } from "lucide-react";
 import InfoTooltip from "@/components/ui/InfoTooltip";
 import { useCourse } from "@/context/CourseContext";
 import Explainer from "@/components/help/Explainer";
@@ -109,7 +110,7 @@ function QuestionBuilder({ question, index, onChange, onRemove, outcomes }) {
 
 // initialDays: the module item's { release_day, due_day, close_day } when editing.
 // moduleStartDate: the module's first day ('YYYY-MM-DD'), for previewing dates.
-export default function QuizEditorModal({ open, onClose, onSave, initialData, initialDays, moduleStartDate }) {
+export default function QuizEditorModal({ asPage = false, open, onClose, onSave, initialData, initialDays, moduleStartDate }) {
   const { SERVER_URL, courseId } = useCourse();
   const isEdit = Boolean(initialData?.id);
   const { t, tf } = useCourseText();
@@ -172,19 +173,10 @@ export default function QuizEditorModal({ open, onClose, onSave, initialData, in
     }
   };
 
-  if (!open) return null;
+  if (!open && !asPage) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 backdrop-blur-sm overflow-auto py-8">
-      <div className="bg-surface rounded-2xl w-full max-w-2xl shadow-2xl mx-4 animate-in fade-in slide-in-from-bottom-2 duration-200">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-line">
-          <h2 className="text-item font-bold text-fg">
-            {isEdit ? t("editors.quiz.edit") : t("editors.quiz.new")}
-          </h2>
-          <button aria-label={t("common.close")} onClick={onClose} className="p-1.5 rounded-lg hover:bg-surface-hover text-fg-subtle">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
+    <EditorFrame asPage={asPage} title={isEdit ? t("editors.quiz.edit") : t("editors.quiz.new")} onClose={onClose} maxWidth="max-w-2xl">
 
         <div className="px-6 py-4 space-y-4 max-h-[70vh] overflow-y-auto">
           <div>
@@ -255,7 +247,6 @@ export default function QuizEditorModal({ open, onClose, onSave, initialData, in
             {saving ? t("common.saving") : isEdit ? t("editors.saveChanges") : t("editors.quiz.create")}
           </button>
         </div>
-      </div>
-    </div>
+    </EditorFrame>
   );
 }

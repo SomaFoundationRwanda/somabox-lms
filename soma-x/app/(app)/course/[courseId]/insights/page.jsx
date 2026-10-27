@@ -1,13 +1,11 @@
 "use client";
 
-import { Suspense, useContext, useEffect, useRef } from "react";
+import { Suspense, useEffect, useRef } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import DataContext from "@/context/DataContext";
 import { useCourse } from "@/context/CourseContext";
 import { useCourseSection } from "@/lib/useCourseSection";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
 import { PageHeader } from "@/components/layout";
-import MyProgress from "@/components/progress/MyProgress";
 import { trackEvent } from "@/lib/usage";
 import { LoadingRows, ErrorNote } from "@/components/insights/bits";
 import ClassTab from "@/components/insights/ClassTab";
@@ -130,13 +128,11 @@ function TeacherInsights() {
 }
 
 function InsightsRoute() {
-  const { isTeacher, course } = useCourse();
-  const { role } = useContext(DataContext);
-  // Teachers (and admins) see the class view. Learners only reach this page when the teacher
-  // shows the Insights nav item to them: they see their own progress instead.
-  if (isTeacher || role === "admin") return <TeacherInsights />;
-  if (!course) return null;
-  return <MyProgress sectionKey="insights" />;
+  const { isTeacher, adminView } = useCourse();
+  // The class view, for staff and admins reading the course. Learners have My progress (the
+  // course layout sends them there), and observers don't get either.
+  if (isTeacher || adminView) return <TeacherInsights />;
+  return null;
 }
 
 export default function InsightsPage() {

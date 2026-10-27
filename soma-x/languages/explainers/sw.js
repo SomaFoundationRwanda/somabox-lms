@@ -104,7 +104,7 @@ export default {
     baseline: {
       title: "Tathmini ya awali (Wiki ya 0)",
       what: "Jaribio fupi lisilo na alama kabla ya Wiki ya 1. Kila swali limeunganishwa na tokeo la kujifunza, ili uone kila mwanafunzi anaanzia wapi.",
-      when: "Iandae kabla ya kufungua kozi. Ukiiruka, andika sababu.",
+      when: "Si lazima: kabla ya Wiki 1, ukitaka kuona wanafunzi wanavyokua. Ukiliruka, eleza kwa nini.",
       mistake: "Kutumia maswali yasiyoweza kusahihishwa yenyewe. Maswali ya tathmini ya awali lazima yawe ya kuchagua jibu, yenye jibu moja sahihi.",
     },
     unassigned: {
@@ -191,7 +191,7 @@ export default {
     setup: {
       title: "Maandalizi ya kozi",
       what: "Kila kitu kinachotakiwa kufanywa kabla kozi haijafunguliwa, na kinachofaa kuangaliwa.",
-      when: "Kabla ya kufungua kozi. Hatua za lazima lazima zifanywe; maonyo ni ushauri.",
+      when: "Kabla ya kuchapisha kozi. Hatua za lazima lazima zikamilike; maonyo ni ushauri.",
     },
     shiftTimeline: {
       title: "Sogeza ratiba",

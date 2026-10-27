@@ -1,23 +1,23 @@
-// A teacher builds a course from nothing through the UI: create it, go through the guided setup
-// (dates, outcomes, baseline, weeks), fill a week with every kind of item, open the course,
-// and a learner then sees it.
+// A teacher builds a course from nothing through the UI: create it, go through the setup screen
+// (dates and weeks, outcomes, a first page), fill a week with every kind of item, publish the
+// course, and a learner then sees it.
 import { test, expect } from "@playwright/test";
 import { api, uid } from "../support/api.mjs";
 import { USERS, authFile } from "../support/env.mjs";
 import { t } from "../support/i18n.mjs";
 import { mondayThisWeek } from "../support/seed.mjs";
+import { publishCourse } from "../support/ui.mjs";
 
 test.use({ storageState: authFile("teacher") });
 test.describe.configure({ mode: "serial" });
 
 const ct = (key, vars) => t(`course.${key}`, vars);
-const wz = (key, vars) => t(`teacher.wizard.${key}`, vars);
 const title = `Built Course ${uid()}`;
 let courseId;
 
 const PDF = Buffer.from("%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Kids[]/Count 0>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n");
 
-test("creates a course and lands in the guided setup", async ({ page }) => {
+test("creates a course and lands on its setup screen", async ({ page }) => {
   await page.goto("/teacher/courses");
   await page.getByRole("button", { name: t("teacher.common.newCourse") }).click();
   // Title and grade are required.
@@ -27,51 +27,54 @@ test("creates a course and lands in the guided setup", async ({ page }) => {
   await page.getByLabel(t("teacher.createCourse.description")).fill("Fractions for Primary 4.");
   await page.getByLabel(t("teacher.createCourse.grade")).selectOption({ index: 1 });
   await page.getByRole("button", { name: t("teacher.createCourse.create") }).click();
-  await page.waitForURL(/\/course\/\d+\/settings/);
+  await page.waitForURL(/\/course\/\d+\/setup/);
   courseId = page.url().match(/course\/(\d+)/)[1];
-  await expect(page.getByRole("heading", { name: wz("heading") })).toBeVisible();
-  // A new course is a draft that can't open yet.
-  await expect(page.getByRole("button", { name: "Open course" })).toBeDisabled();
+  await expect(page.getByRole("heading", { name: ct("setup.title"), level: 1 })).toBeVisible();
+  // A new course is a draft; publishing it now says what's still missing.
+  await page.getByRole("button", { name: t("course.status.publish"), exact: true }).first().click();
+  await expect(page.getByRole("dialog", { name: t("course.status.missingTitle") })).toBeVisible();
+  await page.getByRole("dialog").getByRole("button", { name: t("teacher.common.close") }).click();
 });
 
-test("guided setup: dates, an outcome, skipping the baseline, and two weeks", async ({ page }) => {
-  await page.goto(`/course/${courseId}/settings#guided-setup`);
-  await page.getByLabel(wz("startDate")).fill(mondayThisWeek());
-  await page.getByLabel(wz("duration")).fill("4");
-  await page.getByRole("button", { name: wz("toOutcomes") }).click();
+test("setup: dates and weeks, an outcome, then a page for Week 1", async ({ page }) => {
+  await page.goto(`/course/${courseId}/setup`);
+  await page.getByLabel(ct("setup.startDate")).fill(mondayThisWeek());
+  await page.getByLabel(ct("setup.weekCount")).fill("4");
+  await page.getByRole("button", { name: ct("setup.continue") }).click();
+  await page.waitForURL(/step=2/);
+  const weeks = await api("GET", `/courses/${courseId}/modules`, { as: "teacher" });
+  expect(weeks.filter((m) => m.kind === "regular").length).toBe(4);
 
-  await page.getByLabel(wz("outcomePlaceholder")).fill("Add fractions with unlike denominators");
-  await page.getByRole("button", { name: wz("addOutcome") }).click();
+  await page.getByLabel(ct("setup.outcomeLabel")).fill("Add fractions with unlike denominators");
+  await page.getByRole("button", { name: ct("setup.addOutcome") }).click();
   await expect(page.getByText("Add fractions with unlike denominators").first()).toBeVisible();
-  await page.getByRole("button", { name: wz("toBaseline") }).click();
+  await page.getByRole("button", { name: ct("setup.continue") }).click();
 
-  await page.getByRole("button", { name: t("teacher.baseline.skip") }).last().click();
-  await page.getByPlaceholder(t("teacher.baseline.reasonPlaceholder")).fill("Short course, no baseline this term");
-  await page.getByRole("button", { name: t("teacher.baseline.confirmSkip") }).click();
-  await expect(page.getByText(t("teacher.baseline.skipped")).first()).toBeVisible();
-  await page.getByRole("button", { name: wz("toModules") }).click();
-
-  for (let i = 0; i < 2; i++) await page.getByRole("button", { name: wz("addWeekSlot"), exact: true }).click();
-  await page.getByRole("button", { name: wz("toSyllabus") }).click();
-  await expect(page.getByText(wz("weekN", { n: 2 })).first()).toBeVisible();
-
+  // Step 3 opens the item editor and comes back to the setup steps.
+  await expect(page.getByText(ct("setup.weekEmpty", { week: ct("weeks.week", { n: 1 }) }))).toBeVisible();
+  await page.getByRole("link", { name: ct("modules.addType.page") }).click();
+  await page.getByLabel(ct("common.title"), { exact: true }).fill("What is a fraction?");
+  await page.locator(".ProseMirror").first().fill("A fraction is part of a whole.");
+  await page.getByRole("button", { name: ct("editors.createPage") }).click();
+  await page.waitForURL(/setup\?step=3/);
+  await expect(page.getByText("What is a fraction?").first()).toBeVisible();
+  await page.getByRole("button", { name: ct("setup.continue") }).click();
+  await expect(page.getByRole("heading", { name: ct("setup.readyTitle") })).toBeVisible();
+  // "Keep as draft" leaves it unpublished.
+  await page.getByRole("link", { name: ct("setup.keepDraft") }).click();
+  await page.waitForURL(/\/home/);
   const status = await api("GET", `/courses/${courseId}/setup-status`, { as: "teacher" });
-  expect(status.blocking.map((b) => b.id)).toEqual(["content"]);
+  expect(status.blocking).toEqual([]);
+  expect(status.isOpened).toBe(false);
 });
 
-test("fills Week 1 with a page, an assignment, a quiz, a discussion, a sub-header and a file", async ({ page }) => {
+test("fills the rest of Week 1: an assignment, a quiz, a discussion, a sub-header and a file", async ({ page }) => {
   await page.goto(`/course/${courseId}/modules`);
   const addItem = async (type) => {
     await page.getByRole("button", { name: ct("modules.addItem") }).first().click();
     await page.getByRole("button", { name: ct(`items.${type}`), exact: true }).click();
     await page.getByRole("button", { name: ct(`modules.addType.${type}`) }).click();
   };
-
-  await addItem("page");
-  await page.getByLabel(ct("common.title"), { exact: true }).fill("What is a fraction?");
-  await page.locator(".ProseMirror").first().fill("A fraction is part of a whole.");
-  await page.getByRole("button", { name: ct("editors.createPage") }).click();
-  await expect(page.getByRole("link", { name: /What is a fraction\?/ })).toBeVisible();
 
   await addItem("assignment");
   await page.getByLabel(ct("editors.assignmentTitle"), { exact: true }).fill("Fraction poster");
@@ -94,8 +97,12 @@ test("fills Week 1 with a page, an assignment, a quiz, a discussion, a sub-heade
   await page.getByRole("button", { name: ct("editors.quiz.create") }).click();
   await expect(page.getByRole("link", { name: /Fractions check/ })).toBeVisible();
 
+  // A discussion is written like everything else: a title and its question.
   await addItem("discussion");
-  await expect(page.getByRole("link", { name: new RegExp(ct("modules.newDiscussion")) }).or(page.getByRole("link", { name: /discussion/i })).first()).toBeVisible();
+  await page.getByLabel(ct("editors.discussionTitle")).fill("Where do you see fractions?");
+  await page.getByLabel(ct("editors.discussionPrompt")).fill("Share one place you saw a fraction this week.");
+  await page.getByRole("button", { name: ct("editors.createDiscussion") }).click();
+  await expect(page.getByRole("link", { name: /Where do you see fractions\?/ })).toBeVisible();
 
   await page.getByRole("button", { name: ct("modules.addItem") }).first().click();
   await page.getByRole("button", { name: ct("items.sub_header"), exact: true }).click();
@@ -110,12 +117,10 @@ test("fills Week 1 with a page, an assignment, a quiz, a discussion, a sub-heade
   await expect(page.getByRole("link", { name: /Fractions worksheet/ })).toBeVisible();
 });
 
-test("opens the course; the learner it's given to can see it", async ({ page }) => {
-  await page.goto(`/course/${courseId}/settings#course-setup`);
-  await page.getByRole("button", { name: "Open course" }).click();
-  // Opening can publish the weeks that have content.
-  const publish = page.getByRole("button", { name: /publish/i }).filter({ hasText: /open/i });
-  if (await publish.count()) await publish.first().click();
+test("publishes the course; the learner it's given to can see it", async ({ page }) => {
+  await page.goto(`/course/${courseId}/home`);
+  // Publishing asks whether to publish the weeks that have content too.
+  await publishCourse(page);
   await expect.poll(async () => (await api("GET", `/courses/${courseId}/setup-status`, { as: "teacher" })).isOpened).toBe(true);
 
   await api("POST", `/courses/${courseId}/people`, { as: "teacher", body: { email: USERS.learner.email, role: "student" } });

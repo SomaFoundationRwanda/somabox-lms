@@ -15,6 +15,7 @@ import {
   calculateEstimatedReadMinutes,
   syncPageFileReferences,
   upload,
+  isReadOnly,
 } from "./shared.js";
 import {
   CONTENT_TABLES,
@@ -659,22 +660,6 @@ async function getCourseSequence(courseId, isTeacher) {
   return sequence;
 }
 
-router.get("/:id/module-items/sequence", async (req, res) => {
-  try {
-    const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
-    const auth = await requireEnrolled(req, res, courseId);
-    if (!auth) return;
-
-    const isTeacher = isTeacherRole(auth.enrollment.role);
-    const sequence = await getCourseSequence(courseId, isTeacher);
-    return res.json(sequence);
-  } catch (error) {
-    console.error("Error fetching sequence:", error);
-    return res.status(500).json({ message: error.message });
-  }
-});
-
 router.get("/:id/module-items/sequence-position", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
@@ -723,6 +708,8 @@ router.post("/:id/module-items/:moduleItemId/progress", async (req, res) => {
 
     const item = await getCourseModuleItem(courseId, req.params.moduleItemId);
     if (!item) return res.status(404).json({ message: "Module item not found" });
+    // Observers and admins only look: their visits aren't anyone's progress.
+    if (isReadOnly(auth.enrollment)) return res.json({ message: "Not recorded", module_item_id: item.id });
 
     await localDb.prepare(`
       INSERT INTO module_item_progress (module_item_id, user_email, first_viewed_at, last_viewed_at, completed_at)

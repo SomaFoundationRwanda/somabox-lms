@@ -64,8 +64,8 @@ export default {
         "adminViewLink": "Subira ku rubuga rw'umuyobozi",
         "lifecycle": {
             "draft": "Umushinga",
-            "open": "Rirafunguye",
-            "closed": "Ryafunzwe",
+            "open": "Ryatangajwe",
+            "closed": "Ryarangiye",
             "archived": "Ryabitswe mu bubiko"
         }
     },
@@ -185,9 +185,9 @@ export default {
         "inRunning": "mu masomo arimo gukorwa",
         "active7": "Bakoze mu minsi 7 ishize",
         "learnersLower": "abanyeshuri",
-        "coursesHelp": "Amasomo afunguye n'afunze. Hitamo isomo urebe isesengura ryaryo.",
+        "coursesHelp": "Amasomo yatangajwe n'ayarangiye. Hitamo isomo ufungure isesengura ryaryo.",
         "noRunning": "Nta somo rirakorwa.",
-        "noRunningHelp": "Amasomo agaragara hano iyo amaze gufungurwa.",
+        "noRunningHelp": "Amasomo agaragara hano iyo amaze gutangazwa.",
         "colWithResults": "Bafite amanota",
         "colMastery": "Ubumenyi (ikigereranyo)",
         "colDelta": "Itandukaniro n'isuzuma ry'ibanze",

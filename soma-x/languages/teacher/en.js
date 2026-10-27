@@ -145,8 +145,8 @@ export default {
     },
     "setup": {
         "title": "Course setup",
-        "draftNote": "This course is a draft. Learners can't see it until you open it.",
-        "openNote": "The course is open. These items still need a look.",
+        "draftNote": "This course is a draft. Learners can't see it until you publish it.",
+        "openNote": "The course is published. These items still need a look.",
         "doneCount": "{done} of {total} done.",
         "draft": "Draft",
         "checklist": "Setup checklist",
@@ -155,14 +155,14 @@ export default {
         "required": "Required",
         "worthChecking": "Worth checking",
         "fix": "Fix",
-        "cantOpenTitle": "The course can't open yet:",
-        "cantOpenYet": "This course can't open yet.",
+        "cantOpenTitle": "The course can't be published yet:",
+        "cantOpenYet": "This course can't be published yet.",
         "publishWeeksToo": "Also publish the weeks that have content, so learners can see them ({n})",
-        "opened": "Course opened",
-        "openFailed": "Could not open the course. Check your connection and try again.",
+        "opened": "Course published",
+        "openFailed": "Could not publish the course. Check your connection and try again.",
         "inSettings": "Course setup in Settings",
-        "opening": "Opening...",
-        "openCourse": "Open course",
+        "opening": "Publishing...",
+        "openCourse": "Publish course",
         "finishRequired": "Finish the required items first.",
         "text": {
           "andMore": "and {n} more",
@@ -175,7 +175,7 @@ export default {
             "baseline": "Baseline quiz approved",
             "baseline_skipped": "Baseline skipped (reason recorded)",
             "published": "Weeks with content are published",
-            "open": "Course opened"
+            "open": "Course published"
           },
           "blocking": {
             "outcomes": "Add the course's learning outcomes",
@@ -259,7 +259,7 @@ export default {
         "coreOutcome": "Core outcome statement",
         "topicFirst": "Say what the course is about first.",
         "addWeekFailed": "Failed to add week",
-        "openFailed": "Failed to open course",
+        "openFailed": "Couldn't publish the course",
         "stepSetup": "Course Setup",
         "stepOutcomes": "Outcomes",
         "stepBaseline": "Baseline",
@@ -305,7 +305,7 @@ export default {
         "notSet": "Not set",
         "outcomesCount": "Learning Outcomes ({count})",
         "timelineCount": "Timeline ({count} weeks)",
-        "openLaunch": "Open Course & Launch Weekly Loop",
+        "openLaunch": "Publish course",
         "back": "Back"
     }
 };

@@ -26,7 +26,8 @@ export default {
     "courseMenu": "Ibikubiye mu isomo",
     "more": "Ibindi",
     "hiddenFromStudents": "Ntibigaragara ku banyeshuri",
-    "course": "Isomo"
+    "course": "Isomo",
+    "teachersOnly": "Abarimu gusa"
   },
   "weeks": {
     "baseline": "Icyumweru 0 · Isuzuma ry'ibanze",
@@ -35,8 +36,8 @@ export default {
   },
   "lifecycle": {
     "draft": "Agateganyo",
-    "open": "Rirafunguye",
-    "closed": "Ryafunzwe",
+    "open": "Ryatangajwe",
+    "closed": "Ryarangiye",
     "archived": "Ryabitswe mu bubiko"
   },
   "common": {
@@ -67,7 +68,8 @@ export default {
     "download": "Kuramo",
     "open": "Fungura",
     "yes": "Yego",
-    "no": "Oya"
+    "no": "Oya",
+    "point": "inota {n}"
   },
   "home": {
     "eyebrow": "Ahabanza h'isomo",
@@ -89,9 +91,12 @@ export default {
       "toGrade": "Imirimo itegereje gukosorwa: {n}",
       "startsOn": "{week} gitangira ku wa {date}",
       "unpublishedSoon": "{week}: ibifungurwa bitarenze {date} bitaratangazwa: {n}",
-      "openNow": "{week}: ibifunguye: {n}, igikurikira gitangwa ku wa {date}",
+      "openNow": "{week}: ibyo gukora: {n}, igikurikiraho {date}",
       "finished": "{week} cyarangiye: suzuma iterambere mbere y'icyumweru gikurikira",
-      "live": "{week} kirakomeje"
+      "live": "{week} kirakomeje",
+      "notScheduled": "Mwarimu wawe ntarashyiraho amatariki y'isomo",
+      "nothingYet": "Nta kintu kirashyirwa muri iri somo",
+      "weekDone": "{week} cyarangiye"
     },
     "loopActions": {
       "openModules": "Fungura Ibyumweru",
@@ -103,7 +108,8 @@ export default {
       "setStartDate": "Shyiraho itariki yo gutangira",
       "tagOutcomes": "Huza n'intego",
       "reviewItems": "Genzura ibintu",
-      "moveItems": "Imura ibintu"
+      "moveItems": "Imura ibintu",
+      "openProgress": "Aho ngeze"
     },
     "attention": {
       "noStartDate": "Isomo nta tariki ritangiriraho rifite, bityo nta kintu kirabona itariki",
@@ -112,11 +118,11 @@ export default {
       "unassigned": "Ibintu bitaragera mu cyumweru: {n}"
     },
     "beatHelp": {
-      "prepare": "Gutegura: genzura ibiri muri iki cyumweru n'intego zabyo, wemeze inyandiko za AI mbere y'uko abanyeshuri batangira.",
-      "release": "Gutangaza: ibiri muri iki cyumweru byatangajwe kandi abanyeshuri barabibona.",
-      "collect": "Gukusanya: kurikirana aho abanyeshuri bageze, ibyo batanze n'uko bitabira ibiganiro.",
-      "grade": "Gutanga amanota: kosora ibyo abanyeshuri batanze ukoresheje ibipimo bijyanye n'intego, ufashijwe na AI.",
-      "review": "Gusuzuma: gereranya uko intego zagezweho n'isuzuma ry'ibanze, uhindure icyumweru gitaha."
+      "prepare": "Reba ibiri muri iki cyumweru n'intego zabyo, kandi wemeze imishinga ya AI mbere y'uko abanyeshuri batangira.",
+      "release": "Ibiri muri iki cyumweru byafunguriwe abanyeshuri.",
+      "collect": "Kurikirana aho abanyeshuri bageze, imirimo yatanzwe n'uruhare mu biganiro.",
+      "grade": "Tanga amanota ku mirimo ukoresheje imbonerahamwe zihujwe n'intego, ufashijwe na AI.",
+      "review": "Gereranya ubumenyi bw'intego n'aho batangiriye, uhindure icyumweru gikurikira."
     },
     "needsAttention": "Ibikeneye kwitabwaho",
     "allTagged": "Nta kintu gikeneye ko ukitaho ubu.",
@@ -132,7 +138,20 @@ export default {
     "courseTimeline": "Ingengabihe y'isomo",
     "current": "Ubu",
     "defaultModuleDescription": "Ibyo kwiga n'inshingano by'icyumweru.",
-    "openModuleItems": "Fungura iki cyumweru"
+    "openModuleItems": "Fungura iki cyumweru",
+    "ready": {
+      "title": "Kwitegura",
+      "todo": "Abanyeshuri ntibarabona iri somo. Rangiza ibi, hanyuma uritangaze ukoresheje umurongo wo hejuru.",
+      "done": "Byose biriteguye. Tangaza isomo ukoresheje umurongo wo hejuru igihe ushaka ko abanyeshuri baribona."
+    },
+    "baselineCard": {
+      "title": "Pima aho abanyeshuri batangiriye (si itegeko)",
+      "text": "Isuzuma rigufi ritagira amanota mbere y'Icyumweru 1 ryerekana aho buri munyeshuri atangiriye, ukabona uko atera imbere.",
+      "build": "Kora isuzuma ry'Icyumweru 0",
+      "notNow": "Si ubu",
+      "skipReason": "Si ubu",
+      "failed": "Ntibyakunze kubika. Ongera ugerageze."
+    }
   },
   "items": {
     "page": "Ipaji",
@@ -181,7 +200,8 @@ export default {
       "deleteModule": "Ntibyakunze gusiba icyumweru",
       "renameModule": "Ntibyakunze guhindura izina ry'icyumweru",
       "publishItem": "Ntibyakunze gutangaza igikoresho",
-      "unpublishItem": "Ntibyakunze guhagarika gutangaza igikoresho"
+      "unpublishItem": "Ntibyakunze guhagarika gutangaza igikoresho",
+      "moveItem": "Ntibyakunze kwimura iki kintu."
     },
     "confirmDeleteModule": "Gusiba icyumweru \"{title}\"? Ibyumweru birimo ubusa ni byo byonyine bishobora gusibwa.",
     "dragModule": "Kurura uhindure aho icyumweru kiri",
@@ -253,8 +273,33 @@ export default {
       "starting": "Biratangira…",
       "writeStoryDraft": "Andika inkuru y'agateganyo",
       "beingWritten": "Inyandiko za AI z'iki cyumweru zirimo kwandikwa. Bishobora gufata iminota mike.",
-      "openDrafts": "Fungura inyandiko za AI"
-    }
+      "openDrafts": "Fungura inyandiko za AI",
+      "fillWeekMenu": "AI: uzuza iki cyumweru",
+      "storyMenu": "AI: andika inkuru"
+    },
+    "descriptionLearner": "Isomo ryawe icyumweru ku kindi: amatariki ya buri cyumweru n'ibyo gukora, uko bikurikirana.",
+    "hiddenByWeek": "Byahishwe: icyumweru ni umushinga",
+    "itemActions": "Ibikorwa kuri {title}",
+    "weekActions": "Ibikorwa kuri {title}",
+    "publishWeekNamed": "Tangaza icyumweru {title}",
+    "publishItemsTooOne": "Iki cyumweru gifite ikintu 1 kikiri umushinga. Nacyo ukigaragaze kugira ngo abanyeshuri bakibone?",
+    "publishItemsTooMany": "Iki cyumweru gifite ibintu {n} bikiri imishinga. Nabyo ubigaragaze kugira ngo abanyeshuri babibone?",
+    "renameSubHeader": "Hindura izina",
+    "filterLabel": "Erekana",
+    "filterAll": "Byose",
+    "filter": {
+      "page": "Impapuro",
+      "assignment": "Imikoro",
+      "quiz": "Ibizamini",
+      "discussion": "Ibiganiro",
+      "file": "Amadosiye"
+    },
+    "noMatchingItems": "Nta na kimwe muri iki cyumweru.",
+    "moveToWeek": "Imurira mu kindi cyumweru…",
+    "moveTitle": "Kwimura {title}",
+    "moveToLabel": "Imurira muri",
+    "move": "Imura",
+    "moved": "Byimuwe"
   },
   "quizKinds": {
     "graded": "Bifite amanota",
@@ -352,7 +397,18 @@ export default {
       "uploading": "Birimo koherezwa...",
       "done": "Byarangiye!",
       "uploadAdd": "Ohereza wongereho"
-    }
+    },
+    "backToWeeks": "Subira ku Byumweru",
+    "notFound": "Iki kintu ntikikiri mu isomo.",
+    "saved": "Byabitswe",
+    "added": "Byongewe mu cyumweru",
+    "editDiscussion": "Hindura ikiganiro",
+    "newDiscussion": "Ikiganiro gishya",
+    "discussionTitle": "Umutwe w'ikiganiro",
+    "discussionTitlePlaceholder": "urugero: Ni hehe ubona ibice mu rugo?",
+    "discussionPrompt": "Ikibazo cyangwa amabwiriza",
+    "discussionPromptHint": "Ibyo abanyeshuri basubiza cyangwa baganiraho. Ushobora gutanga amanota ku kiganiro uri ku rupapuro rwacyo.",
+    "createDiscussion": "Kora ikiganiro"
   },
   "editor": {
     "heading1": "Umutwe wa 1",
@@ -498,7 +554,9 @@ export default {
     "noQuizzes": "Nta masuzuma arajyaho.",
     "oneQuestion": "Ikibazo {n}",
     "manyQuestions": "Ibibazo {n}",
-    "relativeTiming": "Amatariki akurikiza icyumweru"
+    "relativeTiming": "Amatariki akurikiza icyumweru",
+    "assignmentsDescriptionLearner": "Imirimo utanga cyangwa ukora ngo uhabwe amanota, icyumweru ku kindi.",
+    "quizzesDescriptionLearner": "Ibizamini byo gukora, icyumweru ku kindi. Ibizamini by'imyitozo ntibibarwa mu manota yawe."
   },
   "assignment": {
     "closed": "Iyi nshingano yarafunzwe.",
@@ -526,7 +584,7 @@ export default {
     "rubric": "Ibipimo by'amanota",
     "rubricHelp": "Umukoro wawe uhabwa amanota hakurikijwe ibi bipimo, bigahinduka amanota kuri {n}.",
     "yourSubmission": "Ibyo watanze",
-    "observerNote": "Urakurikirana iri somo gusa: ushobora gusoma umukoro ariko ntushobora kuwutanga.",
+    "observerNote": "Urareba iri somo utaririmo, ushobora gusoma umukoro ariko ntiwawutanga.",
     "opens": "Bifungurwa",
     "due": "Ntarengwa",
     "closes": "Bifungwa",
@@ -546,11 +604,12 @@ export default {
     "dismiss": "Funga",
     "submitting": "Birimo gutangwa...",
     "resubmit": "Ongera utange",
-    "submit": "Tanga inshingano"
+    "submit": "Tanga inshingano",
+    "courseEnded": "Iri somo ryarangiye, ntabwo imirimo igishobora gutangwa."
   },
   "quiz": {
     "noAttemptsLeft": "Wakoresheje inshuro zose wemerewe kuri iri suzuma.",
-    "observerNote": "Urakurikirana iri somo gusa: ushobora gusoma ikizamini ariko ntushobora kugikora.",
+    "observerNote": "Urareba iri somo utaririmo, ushobora gusoma ikizamini ariko ntiwagikora.",
     "closed": "Iri suzuma ryarafunzwe.",
     "notOpenYet": "Iri suzuma ntirarafungurwa.",
     "submitFailed": "Ntibyakunze kohereza isuzuma.",
@@ -585,7 +644,9 @@ export default {
     "unlimitedAttempts": "Nta mupaka w'inshuro",
     "allUsed": "Inshuro zose {n} zakoreshejwe",
     "attemptOf": "Inshuro ya {n} kuri {total}",
-    "submit": "Ohereza ibisubizo"
+    "submit": "Ohereza ibisubizo",
+    "courseEnded": "Iri somo ryarangiye, ntabwo ikizamini kigishobora gukorwa.",
+    "correctAnswer": "Igisubizo cy'ukuri"
   },
   "discussions": {
     "chooseModuleError": "Hitamo icyumweru cy'iki kiganiro.",
@@ -604,13 +665,14 @@ export default {
     "notFound": "Ikiganiro ntikibonetse.",
     "grading": "Gutanga amanota",
     "removeGrading": "Kuraho amanota",
-    "markGraded": "Shyiraho amanota",
+    "markGraded": "Tanga amanota kuri iki kiganiro",
     "syncs": "bigaragara mu Nshingano no mu Manota",
     "repliesCount": "Ibisubizo ({n})",
     "replies": "Ibisubizo",
     "noReplies": "Nta gisubizo kirajyaho. Ba uwa mbere.",
     "replyPlaceholder": "Andika igisubizo...",
-    "reply": "Subiza"
+    "reply": "Subiza",
+    "gradeHint": "Iyo gihawe amanota, kibarwa kuri aya manota kandi kigaragara mu Mikoro no mu Manota."
   },
   "announcements": {
     "new": "Itangazo rishya",
@@ -636,7 +698,8 @@ export default {
     "grade": "Urwego",
     "schedule": "Gahunda y'icyumweru ku cyumweru",
     "loadingSchedule": "Gahunda irimo gufunguka...",
-    "noSchedule": "Nta byumweru birajyaho."
+    "noSchedule": "Nta byumweru birajyaho.",
+    "eyebrowLearner": "Integanyanyigisho"
   },
   "files": {
     "empty": "Nta madosiye arashyirwaho."
@@ -669,7 +732,7 @@ export default {
       "turnOff": "Funga",
       "confirmNew": "Gukora kode nshya? Iyari isanzwe ntizongera gukora.",
       "failed": "Ntibyakunze guhindura kode yo kwinjira",
-      "draftNote": "Abanyeshuri bazinjira isomo nirimara gufungurwa.",
+      "draftNote": "Abanyeshuri bashobora kwinjira iyo isomo rimaze gutangazwa.",
       "orEmail": "Cyangwa wongeremo umuntu ukoresheje imeli"
     },
     "all": "Bose",
@@ -679,7 +742,8 @@ export default {
     "emailCol": "Imeli",
     "status": "Uko ahagaze",
     "manage": "Tunganya",
-    "removeNamed": "Kuramo {name}"
+    "removeNamed": "Kuramo {name}",
+    "removeConfirm": "Gukura {name} muri iri somo?"
   },
   "collab": {
     "description": "Sangiza umuyoboro w'inyandiko, imbonerahamwe cyangwa ikibaho biri hanze n'abo wahisemo bo mu isomo.",
@@ -764,10 +828,10 @@ export default {
     "bannerChoose": "Hitamo ifoto",
     "bannerChange": "Hitamo indi foto",
     "banner": "Ifoto y'ahabanza",
-    "visibility": "Abemerewe kubona",
-    "private": "Bwite: ku batumiwe gusa",
-    "public": "Rusange: rigaragara mu Gushakisha amasomo",
-    "publicHelp": "Amasomo rusange agaragara mu rutonde rw'amasomo kandi umuntu wese ashobora kuyinjiramo atatumiwe.",
+    "visibility": "Ni nde ushobora kwinjira muri iri somo?",
+    "private": "Abo nongeyemo gusa, cyangwa abafite kode",
+    "public": "Umuntu wese uri kuri iki gikoresho: rigaragara muri Shakisha amasomo",
+    "publicHelp": "Ibi bitandukanye no gutangaza: nta wushobora kwinjira mu isomo rikiri umushinga kugeza ritangajwe.",
     "navHelp": "Ibyemewe bigaragara ku ruhande kuri buri wese. Ibihishwe ubibona (byijimye) ariko abanyeshuri ntibabibona.",
     "enabled": "Byemewe",
     "enabledItems": "Ibice byemewe",
@@ -782,31 +846,38 @@ export default {
     "status": {
       "title": "Uko isomo rihagaze",
       "now": {
-        "draft": "Iri somo riracyategurwa. Rifungure muri Gutegura isomo niryuzura.",
-        "open": "Rirafunguye: abanyeshuri barabona isomo kandi bashobora gutanga imikoro.",
-        "closed": "Ryafunzwe: abanyeshuri bashobora gusoma isomo no kubona amanota yabo, ariko ntibashobora gutanga imikoro cyangwa gukora ibizamini.",
+        "draft": "Iri somo ni umushinga. Ritangaze ukoresheje umurongo wo hejuru iyo ryiteguye.",
+        "open": "Ryatangajwe: abanyeshuri barabona isomo kandi bashobora gutanga imirimo.",
+        "closed": "Ryarangiye: abanyeshuri baracyashobora gusoma isomo no kubona amanota yabo, ariko ntibashobora gutanga imirimo cyangwa gukora ibizamini.",
         "archived": "Ryabitswe: abanyeshuri ntibakibona iri somo ku rutonde rwabo. Amanota n'ibisubizo birabikwa."
       },
       "action": {
         "open": "Ongera ufungure isomo",
-        "closed": "Funga isomo",
+        "closed": "Soza isomo",
         "archived": "Bika isomo",
         "delete": "Siba isomo"
       },
       "confirm": {
         "open": "Ongera ufungure iri somo? Abanyeshuri bazongera gutanga imikoro.",
-        "closed": "Funga iri somo? Abanyeshuri bazashobora kurisoma no kubona amanota yabo, ariko ntibazatanga imikoro.",
+        "closed": "Gusoza iri somo? Abanyeshuri baracyashobora kurisoma no kubona amanota yabo, ariko ntibashobora gutanga imirimo.",
         "archived": "Bika iri somo? Rizava ku rutonde rw'abanyeshuri. Amanota n'ibisubizo birabikwa.",
         "delete": "Gusiba \"{title}\" burundu? Ntibishobora gusubizwa inyuma."
       },
       "done": {
         "open": "Isomo ryongeye gufungurwa",
-        "closed": "Isomo ryafunzwe",
+        "closed": "Isomo ryarangiye",
         "archived": "Isomo ryabitswe"
       },
       "deleted": "Isomo ryasibwe",
       "hasWork": "Abanyeshuri batanze imikoro muri iri somo, ntirishobora gusibwa. Ahubwo ribike: rivaho ku rutonde rwabo kandi ibisubizo byabo birabikwa.",
       "failed": "Ntibyakunze guhindura uko isomo rihagaze."
+    },
+    "navSaved": "Imiterere y'urutonde yabitswe",
+    "staffOnly": "Abarimu gusa",
+    "learnersFind": {
+      "pages": "Abanyeshuri babona impapuro muri Ibyumweru, si muri menu yabo",
+      "outcomes": "Abanyeshuri babona intego zabo muri Aho ngeze, si muri menu yabo",
+      "attendance": "Abanyeshuri babona uko bitabiriye muri Amanota, si muri menu yabo"
     }
   },
   "calendar": {
@@ -863,5 +934,105 @@ export default {
     "nothingPeriod": "Nta kiteganyijwe muri iki gihe.",
     "nothingAhead": "Nta kiteganyijwe uhereye uyu munsi.",
     "showLater": "Erekana amatariki ari imbere"
+  },
+  "access": {
+    "sectionTitle": "Iki gice cy'isomo ntikigufunguriye",
+    "sectionText": "{section} ni iby'abarimu b'iri somo gusa, cyangwa mwarimu wawe ntarakifungurira ishuri.",
+    "backToCourse": "Subira ku isomo",
+    "publicText": "Umuntu wese uri kuri iki gikoresho ashobora kwiyandikisha muri iri somo.",
+    "join": "Injira muri iri somo",
+    "joining": "Birimo kwinjira...",
+    "joinFailed": "Ntibyakunze kwinjira mu isomo. Ongera ugerageze.",
+    "discover": "Reba andi masomo",
+    "privateTitle": "Ntabwo uri muri iri somo",
+    "privateText": "Saba mwarimu wawe akongeremo, cyangwa winjire ukoresheje kode mwarimu aha ishuri.",
+    "removedTitle": "Ntukiri muri iri somo",
+    "removedText": "Umwanya wawe muri iri somo wakuweho. Saba mwarimu wawe akongere wongere ushyirwemo.",
+    "joinWithCode": "Injira ukoresheje kode"
+  },
+  "status": {
+    "publish": "Tangaza isomo",
+    "more": "Ibindi bikorwa by'isomo",
+    "note": {
+      "draft": "Abanyeshuri ntibabona iri somo kugeza uritangaje.",
+      "open": "Abanyeshuri bari muri iri somo barabona kandi bashobora gutanga imirimo.",
+      "closed": "Abanyeshuri baracyashobora kurisoma no kubona amanota yabo, ariko ntibashobora gutanga imirimo.",
+      "archived": "Ryakuwe ku rutonde rw'amasomo y'abanyeshuri. Amanota n'ibisubizo birabitswe."
+    },
+    "published": "Isomo ryatangajwe",
+    "publishFailed": "Ntibyakunze gutangaza isomo. Ongera ugerageze.",
+    "missingTitle": "Mbere yo gutangaza",
+    "missingText": "Banza urangize ibi:",
+    "fix": "Kosora",
+    "publishTitle": "Gutangaza iri somo?",
+    "publishText": "Abanyeshuri bari mu isomo bazaribona kandi bashobora gutangira imirimo yaryo.",
+    "joinPublic": "Umuntu wese uri kuri iki gikoresho ashobora kuribona no kuryinjiramo muri Shakisha amasomo.",
+    "joinPrivate": "Abo wongeyemo gusa, cyangwa abafite kode, ni bo bashobora kuryinjiramo.",
+    "weeksAskOne": "Icyumweru 1 gifite ibirimo kiracyari umushinga. Nacyo ukigaragaze kugira ngo abanyeshuri bakibone?",
+    "weeksAskMany": "Ibyumweru {n} bifite ibirimo biracyari imishinga. Nabyo ubigaragaze kugira ngo abanyeshuri babibone?",
+    "publishWithWeekOne": "Tangaza isomo n'icyumweru 1",
+    "publishWithWeeksMany": "Tangaza isomo n'ibyumweru {n}",
+    "publishOnly": "Tangaza isomo gusa",
+    "unarchive": "Garura (nk'iryarangiye)"
+  },
+  "setup": {
+    "title": "Tegura isomo ryawe",
+    "intro": "Intambwe eshatu ngufi. Ushobora gusubira kuri buri imwe, ugahindura byose nyuma.",
+    "progress": "Intambwe zo gutegura",
+    "steps": {
+      "when": "Ryari",
+      "outcomes": "Ibyo uzigisha",
+      "firstWeek": "Icyumweru cya mbere",
+      "ready": "Biteguye"
+    },
+    "whenTitle": "Riba ryari?",
+    "whenText": "Hitamo umunsi wa mbere w'Icyumweru 1 n'umubare w'ibyumweru isomo rimara. Buri cyumweru n'itariki yo gutanga bibarwa bivuye kuri ibi.",
+    "startDate": "Umunsi wa mbere w'Icyumweru 1",
+    "startHint": "Amatariki ya buri cyumweru akurikira uyu munsi.",
+    "weekCount": "Umubare w'ibyumweru",
+    "endsOn": "Ubu rirangira ku wa {date}",
+    "chooseStart": "Hitamo umunsi wa mbere w'Icyumweru 1.",
+    "saveFailed": "Ntibyakunze kubika. Ongera ugerageze.",
+    "continue": "Komeza",
+    "back": "Subira inyuma",
+    "outcomesTitle": "Abanyeshuri bazashobora gukora iki?",
+    "outcomesText": "Izi ni intego z'imyigire z'isomo: ubumenyi bugufi bushobora gupimwa, nka \"Guteranya ibice bifite ibishyimbo bitandukanye\". Imirimo ihabwa amanota ihuzwa nazo, ukabona aho buri munyeshuri ageze.",
+    "outcomeLabel": "Intego",
+    "outcomePlaceholder": "urugero: Guteranya ibice bifite ibishyimbo bitandukanye",
+    "addOutcome": "Ongeraho",
+    "aiOutcomesText": "AI ishobora gutanga igitekerezo cy'intego (n'igenamigambi ry'ibyumweru) ihereye ku bisobanuro by'isomo. Nta gihinduka kugeza uzemeye.",
+    "aiOutcomes": "Saba AI igitekerezo cy'intego",
+    "outcomesLater": "Ushobora gusimbuka iyi ntambwe ubu, ariko imirimo ihabwa amanota ikenera intego mbere y'uko abanyeshuri bayibona.",
+    "firstWeekTitle": "Ikintu cya {week}",
+    "firstWeekNoWeeks": "Icyumweru cyawe cya mbere",
+    "firstWeekText": "Ongeramo ibyo abanyeshuri basoma, bakora cyangwa basubiza mu cyumweru cya mbere. Ushobora kongeramo ibindi mu cyumweru icyo ari cyo cyose nyuma, muri Ibyumweru.",
+    "weekEmpty": "Nta kintu kiri muri {week} ubu.",
+    "aiWeekText": "Cyangwa reka AI itegure icyumweru: urupapuro, ikizamini n'umukoro, bigutegereje ngo ubisuzume.",
+    "aiWeek": "Reka AI itegure {week}",
+    "aiWeekStarted": "AI irimo gutegura icyumweru. Suzuma imishinga muri Imishinga ya AI mbere yo kuyongeramo.",
+    "addWeeksFirst": "Banza wongeremo ibyumweru",
+    "readyTitle": "Isomo ryawe riteguye",
+    "readyText": "Ritangaze igihe ushaka ko abanyeshuri baribona, cyangwa urireke ari umushinga ugaruke nyuma.",
+    "publishedText": "Isomo ryawe ryatangajwe.",
+    "almostTitle": "Hasigaye bike",
+    "almostText": "Rangiza ibi mbere yo gutangaza:",
+    "keepDraft": "Rireke ari umushinga ubu",
+    "toCourse": "Jya ku isomo",
+    "teacherOnly": "Umwarimu w'isomo gusa ni we ushobora kuritegura.",
+    "open": "Tegura intambwe ku yindi",
+    "settingsHelp": "Amatariki n'ibyumweru, intego n'icyumweru cya mbere, intambwe imwe imwe."
+  },
+  "learnerHome": {
+    "nextUp": "Igikurikiyeho",
+    "allDone": "Nta kintu usigaje. Nta cyo ugomba gukora ubu.",
+    "more": "Ibindi kuri iri somo",
+    "work": "Imirimo yawe yose",
+    "weeks": "Ibyumweru byose",
+    "comingUp": "Ibiri imbere",
+    "openGrades": "Fungura Amanota",
+    "openWeeks": "Fungura Ibyumweru",
+    "openProgress": "Fungura Aho ngeze",
+    "openAnnouncements": "Amatangazo yose",
+    "noNews": "Nta matangazo arahari."
   }
 };

@@ -13,6 +13,9 @@ export default defineConfig({
   expect: { timeout: 10_000 },
   reporter: [["list"], ["html", { outputFolder: "playwright-report", open: "never" }]],
   use: {
+    // Like many people's devices: no smooth scrolling or transitions, so elements are where
+    // they're drawn when a test clicks them.
+    reducedMotion: "reduce",
     baseURL: APP_URL,
     locale: "en-GB",
     timezoneId: "Africa/Kigali",

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, Loader2, Lock, RotateCcw, Trash2 } from "lucide-react";
+import { Loader2, Trash2 } from "lucide-react";
 import { Section } from "@/components/layout";
 import { useToast } from "@/context/ToastContext";
 import { useCourseText } from "@/components/course/useCourseText";
@@ -10,17 +10,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { queryKeys } from "@/lib/queryKeys";
 
-// Settings (teachers): end a course. Closed: learners keep reading and see their grades but can't
-// hand in. Archived: gone from learners' course lists, results kept. Delete only works while no
+// Settings (teachers): what the course's status means, and deleting it. Publishing, ending and
+// archiving are in the status bar at the top of every course page. Delete only works while no
 // learner has work in the course (the server says so otherwise).
 
-// The moves the server allows from each state (PATCH lifecycle); drafts open through setup.
-const MOVES = {
-  open: ["closed", "archived"],
-  closed: ["open", "archived"],
-  archived: ["closed"],
-};
-const ICONS = { open: RotateCcw, closed: Lock, archived: Archive };
 
 export default function CourseStatusSection({ courseId, course, refresh }) {
   const router = useRouter();
@@ -30,22 +23,6 @@ export default function CourseStatusSection({ courseId, course, refresh }) {
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const lifecycle = course?.lifecycle || "draft";
-
-  const move = async (to) => {
-    if (!window.confirm(t(`settings.status.confirm.${to}`))) return;
-    setBusy(to);
-    setError("");
-    try {
-      await apiFetch(`/courses/${courseId}`, { method: "PATCH", json: { lifecycle: to } });
-      showToast(t(`settings.status.done.${to}`), "success");
-      refresh();
-      queryClient.invalidateQueries({ queryKey: queryKeys.courses });
-    } catch (err) {
-      setError(err?.body?.message || t("settings.status.failed"));
-    } finally {
-      setBusy("");
-    }
-  };
 
   const remove = async () => {
     if (!window.confirm(tf("settings.status.confirm.delete", { title: course?.title || "" }))) return;
@@ -69,21 +46,6 @@ export default function CourseStatusSection({ courseId, course, refresh }) {
     <Section divided title={t("settings.status.title")} description={t(`settings.status.now.${lifecycle}`)}>
       <div className="space-y-3">
         <div className="flex flex-wrap items-center gap-2">
-          {(MOVES[lifecycle] || []).map((to) => {
-            const Icon = ICONS[to];
-            return (
-              <button
-                key={to}
-                type="button"
-                onClick={() => move(to)}
-                disabled={!!busy}
-                className="inline-flex items-center gap-1.5 text-caption font-semibold text-fg-muted border border-line hover:bg-surface-hover disabled:opacity-50 rounded-lg px-3 py-2"
-              >
-                {busy === to ? <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" /> : <Icon className="w-3.5 h-3.5" aria-hidden="true" />}
-                {t(`settings.status.action.${to}`)}
-              </button>
-            );
-          })}
           <button
             type="button"
             onClick={remove}

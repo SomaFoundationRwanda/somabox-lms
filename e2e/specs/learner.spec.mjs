@@ -81,7 +81,7 @@ test.describe("courses and course home", () => {
     const c = await seedCourse({ learners: ["learner"] });
     await page.goto(`/course/${c.id}/home`);
     await expect(page.getByRole("region", { name: /Week 1/ })).toBeVisible();
-    await expect(page.getByRole("link", { name: ct("nav.progress") })).toBeVisible();
+    await expect(page.getByRole("heading", { name: ct("learnerHome.nextUp") })).toBeVisible();
     await page.goto(`/course/${c.id}/pages/${c.page.content_id}`);
     await page.getByRole("button", { name: /^Next/ }).click();
     await page.waitForURL(`**/assignments/${c.assignment.content_id}`);
@@ -89,6 +89,53 @@ test.describe("courses and course home", () => {
     await page.waitForURL(`**/quizzes/${c.quiz.content_id}`);
     await page.getByRole("button", { name: /^Previous/ }).click();
     await page.waitForURL(`**/assignments/${c.assignment.content_id}`);
+  });
+
+  test("course home keeps the rest in a side panel: weeks, progress, work and announcements", async ({ page }) => {
+    const c = await seedCourse({ learners: ["learner"] });
+    await api("POST", `/courses/${c.id}/announcements`, { as: "teacher", body: { title: "Bring a ruler", body: "For Thursday's class." } });
+    await page.goto(`/course/${c.id}/home`);
+    // The full lists aren't on the page itself.
+    await expect(page.getByRole("list", { name: ct("home.courseTimeline") })).toHaveCount(0);
+    const more = page.getByRole("navigation", { name: ct("learnerHome.more") });
+
+    await more.getByRole("button", { name: ct("learnerHome.weeks") }).click();
+    const weeks = page.getByRole("dialog", { name: ct("learnerHome.weeks") });
+    await expect(weeks.getByRole("link", { name: /Fractions basics/ })).toBeVisible();
+    await expect(page).toHaveURL(/panel=weeks/);
+    // Back closes it, like Escape.
+    await page.goBack();
+    await expect(weeks).toBeHidden();
+
+    await more.getByRole("button", { name: new RegExp(ct("nav.announcements")) }).click();
+    await expect(page.getByRole("dialog", { name: ct("nav.announcements") }).getByText("Bring a ruler")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page).not.toHaveURL(/panel=/);
+
+    await more.getByRole("button", { name: ct("learnerHome.work") }).click();
+    await expect(page.getByRole("dialog", { name: ct("learnerHome.work") }).getByText(/Fraction poster/)).toBeVisible();
+    await page.keyboard.press("Escape");
+
+    await more.getByRole("button", { name: ct("nav.progress") }).click();
+    const progress = page.getByRole("dialog", { name: ct("nav.progress") });
+    await expect(progress.getByText("Add fractions").first()).toBeVisible();
+    await progress.getByRole("link", { name: ct("learnerHome.openProgress") }).click();
+    await page.waitForURL(`**/course/${c.id}/progress`);
+  });
+
+  test("Weeks opens the week a learner is in; the others open on a tap", async ({ page }) => {
+    const c = await seedCourse({ learners: ["learner"] });
+    // Week 2 has a published page too, so learners see it.
+    const week2 = c.modules[1].id;
+    await api("POST", `/courses/${c.id}/modules/${week2}/items`, { as: "teacher", body: { itemType: "page", title: "Equivalent fractions", body: "1/2 is the same as 2/4.", published: true } });
+    await api("PATCH", `/courses/${c.id}/modules/${week2}`, { as: "teacher", body: { published: true } });
+    await page.goto(`/course/${c.id}/modules`);
+    await expect(page.getByRole("link", { name: /Fraction poster/ })).toBeVisible();
+    await expect(page.getByRole("link", { name: /Equivalent fractions/ })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: ct("modules.expandModule") })).toHaveCount(1);
+    await page.getByRole("button", { name: ct("modules.expandModule") }).click();
+    await expect(page.getByRole("button", { name: ct("modules.collapseModule") })).toHaveCount(2);
+    await expect(page.getByRole("link", { name: /Equivalent fractions/ })).toBeVisible();
   });
 
   test("course home doesn't show learners the teacher's weekly-loop guidance", async ({ page }) => {
@@ -104,6 +151,10 @@ test.describe("courses and course home", () => {
     const nav = page.getByRole("navigation", { name: "Course navigation" });
     await expect(nav.getByRole("link", { name: ct("nav.home") })).toBeVisible();
     for (const hidden of ["settings", "ai", "insights"]) await expect(nav.getByRole("link", { name: ct(`nav.${hidden}`) })).toHaveCount(0);
+    // A short menu; the rest under More.
+    await expect(nav.getByRole("link", { name: ct("nav.syllabus") })).toHaveCount(0);
+    await nav.getByRole("button", { name: new RegExp(ct("nav.more")) }).click();
+    await expect(nav.getByRole("link", { name: ct("nav.syllabus") })).toBeVisible();
   });
 });
 

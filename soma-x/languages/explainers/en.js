@@ -106,7 +106,7 @@ export default {
     baseline: {
       title: "Baseline (Week 0)",
       what: "A short, ungraded check before Week 1. Each question is tagged with an outcome, so you see where each learner starts.",
-      when: "Set it up before opening the course. If you skip it, write down why.",
+      when: "Optional: before Week 1, if you want to see how much learners grow. If you skip it, say why.",
       mistake: "Using questions that can't be marked automatically. Baseline questions must be multiple choice with a correct answer.",
     },
     unassigned: {
@@ -193,7 +193,7 @@ export default {
     setup: {
       title: "Course setup",
       what: "Everything that must be done before the course can open, and what's worth checking.",
-      when: "Before opening the course. Required steps must be done; warnings are advice.",
+      when: "Before publishing the course. Required steps must be done; warnings are advice.",
     },
     shiftTimeline: {
       title: "Shift timeline",
