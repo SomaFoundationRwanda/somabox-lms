@@ -84,10 +84,10 @@ export default function PeoplePage() {
           title={t("nav.people")}
           actions={isTeacher ? (
             <div className="flex items-center gap-2">
-              <button onClick={() => setAddingLearners(true)} className="flex items-center gap-1.5 text-xs font-semibold text-white bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] rounded-lg px-3 py-2">
+              <button onClick={() => setAddingLearners(true)} className="flex items-center gap-1.5 text-caption font-semibold text-on-brand-strong bg-brand-strong hover:bg-brand-strong/90 rounded-lg px-3 py-2">
                 <UserPlus className="w-3.5 h-3.5" /> {t("people.addLearners")}
               </button>
-              <button onClick={() => setAdding((v) => !v)} className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg px-3 py-2">
+              <button onClick={() => setAdding((v) => !v)} className="flex items-center gap-1.5 text-caption font-semibold text-fg-muted border border-line hover:bg-surface-hover rounded-lg px-3 py-2">
                 <Plus className="w-3.5 h-3.5" /> {t("people.add")}
               </button>
             </div>
@@ -103,13 +103,13 @@ export default function PeoplePage() {
             <Select value={form.role} onChange={(e) => setForm((p) => ({ ...p, role: e.target.value }))} aria-label={t("people.role")} >
               {ROLE_OPTIONS.map((r) => <option key={r} value={r}>{roleLabel(r)}</option>)}
             </Select>
-            <button onClick={addPerson} className="text-xs font-semibold text-white bg-[var(--brand-primary)] rounded-lg px-3 py-2">{t("common.add")}</button>
+            <button onClick={addPerson} className="text-caption font-semibold text-on-brand-strong bg-brand-strong rounded-lg px-3 py-2">{t("common.add")}</button>
           </div>
         ) : null}
 
         <div className="flex items-center gap-1.5 flex-wrap" role="group" aria-label={t("people.filterByRole")}>
           {["all", ...ROLE_OPTIONS].map((r) => (
-            <button key={r} onClick={() => setRoleFilter(r)} aria-pressed={roleFilter === r} className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${roleFilter === r ? "bg-[var(--brand-primary)] text-white border-[var(--brand-primary)]" : "border-slate-200 text-slate-600"}`}>
+            <button key={r} onClick={() => setRoleFilter(r)} aria-pressed={roleFilter === r} className={`text-caption font-semibold px-2.5 py-1 rounded-full border ${roleFilter === r ? "bg-brand-strong text-on-brand-strong border-brand-strong" : "border-line text-fg-muted"}`}>
               {r === "all" ? t("people.all") : roleLabel(r)}
             </button>
           ))}
@@ -121,13 +121,13 @@ export default function PeoplePage() {
               caption={t("people.members")}
               rows={list}
               columns={[
-                { key: "fullName", header: t("people.name"), className: "font-medium text-slate-700 dark:text-slate-200" },
+                { key: "fullName", header: t("people.name"), className: "font-medium text-fg-muted" },
                 ...(isTeacher ? [
-                  { key: "learnerCode", header: l("code"), className: "font-mono text-slate-600 dark:text-slate-400", render: (p) => p.learnerCode || "—" },
-                  { key: "email", header: t("people.emailCol"), hideOnMobile: true, className: "text-slate-600 dark:text-slate-400", render: (p) => p.email || "—" },
+                  { key: "learnerCode", header: l("code"), className: "font-mono text-fg-muted", render: (p) => p.learnerCode || "—" },
+                  { key: "email", header: t("people.emailCol"), hideOnMobile: true, className: "text-fg-muted", render: (p) => p.email || "—" },
                 ] : []),
-                { key: "role", header: t("people.role"), className: "text-slate-600 dark:text-slate-400", render: (p) => roleLabel(p.role) },
-                { key: "status", header: t("people.status"), className: "text-slate-600 dark:text-slate-400", render: (p) => tOr(`people.statuses.${p.status}`, p.status) },
+                { key: "role", header: t("people.role"), className: "text-fg-muted", render: (p) => roleLabel(p.role) },
+                { key: "status", header: t("people.status"), className: "text-fg-muted", render: (p) => tOr(`people.statuses.${p.status}`, p.status) },
                 ...(isTeacher ? [{
                   key: "manage",
                   header: t("people.manage"),
@@ -135,11 +135,11 @@ export default function PeoplePage() {
                   render: (person) => (
                     <div className="flex items-center justify-end gap-1">
                       {person.canResetPassword && (
-                        <button onClick={() => resetPassword(person)} aria-label={fill(l("resetNamed"), { name: person.fullName || person.learnerCode || "" })} title={l("resetPassword")} className="p-1.5 rounded-md hover:bg-slate-100 text-slate-600">
+                        <button onClick={() => resetPassword(person)} aria-label={fill(l("resetNamed"), { name: person.fullName || person.learnerCode || "" })} title={l("resetPassword")} className="p-1.5 rounded-md hover:bg-surface-hover text-fg-muted">
                           <KeyRound className="w-3.5 h-3.5" />
                         </button>
                       )}
-                      <button onClick={() => removePerson(person.id)} aria-label={tf("people.removeNamed", { name: person.fullName || person.email || "" })} className="p-1.5 rounded-md hover:bg-slate-100 text-rose-500">
+                      <button onClick={() => removePerson(person.id)} aria-label={tf("people.removeNamed", { name: person.fullName || person.email || "" })} className="p-1.5 rounded-md hover:bg-surface-hover text-danger-fg">
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>

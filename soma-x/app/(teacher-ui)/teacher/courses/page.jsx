@@ -31,14 +31,14 @@ export default function TeacherCoursesPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white">{t("teacher.courses.title")}</h1>
-          <p className="text-xs text-slate-600 dark:text-slate-400">{t("teacher.courses.subtitle")}</p>
+          <h1 className="text-section font-bold text-fg">{t("teacher.courses.title")}</h1>
+          <p className="text-caption text-fg-muted">{t("teacher.courses.subtitle")}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Link href="/library/courses" className="flex items-center gap-1.5 text-xs font-medium text-[var(--brand-secondary)] border border-[var(--brand-secondary)]/40 hover:bg-teal-50 rounded-lg px-3 py-2 transition-colors">
+          <Link href="/library/courses" className="flex items-center gap-1.5 text-caption font-medium text-brand-fg border border-brand/40 hover:bg-brand-soft rounded-lg px-3 py-2 transition-colors">
             <Library className="w-3.5 h-3.5" aria-hidden="true" /> {t("teacher.courses.fromShared")}
           </Link>
-          <button onClick={() => setCreateOpen(true)} className="flex items-center gap-1.5 text-xs font-medium text-white bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-dark)] rounded-lg px-3 py-2 transition-colors">
+          <button onClick={() => setCreateOpen(true)} className="flex items-center gap-1.5 text-caption font-medium text-on-brand bg-brand hover:bg-brand/90 rounded-lg px-3 py-2 transition-colors">
             <Plus className="w-3.5 h-3.5" /> {t("teacher.common.newCourse")}
           </button>
         </div>
@@ -51,8 +51,8 @@ export default function TeacherCoursesPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {courses.map((course) => (
-            <Link key={course.id} href={`/course/${course.id}/home`} className="block border border-slate-200 dark:border-slate-700/50 rounded-2xl overflow-hidden bg-white dark:bg-[#0f1318] shadow-sm hover:shadow-md transition-shadow">
-              <div className="w-full h-32 bg-slate-100 relative">
+            <Link key={course.id} href={`/course/${course.id}/home`} className="block border border-line rounded-2xl overflow-hidden bg-surface shadow-sm hover:shadow-md transition-shadow">
+              <div className="w-full h-32 bg-surface-sunken relative">
                 <Image
                   src={course.coverImageUrl ? `${SERVER_URL}${course.coverImageUrl}` : "/imageFallback.png"}
                   alt={course.title}
@@ -62,9 +62,9 @@ export default function TeacherCoursesPage() {
                 />
               </div>
               <div className="p-4">
-                <p className="text-base font-semibold text-slate-700 dark:text-slate-200 mb-1">{course.title}</p>
-                <p className="text-xs text-slate-600">{course.grade} · {fill(t(course.studentCount === 1 ? "teacher.common.oneStudent" : "teacher.common.manyStudents"), { count: course.studentCount ?? 0 })}</p>
-                <p className="text-[10px] text-slate-400 mt-2">{fill(t("teacher.courses.courseCode"), { code: course.id })}</p>
+                <p className="text-item font-semibold text-fg-muted mb-1">{course.title}</p>
+                <p className="text-caption text-fg-muted">{course.grade} · {fill(t(course.studentCount === 1 ? "teacher.common.oneStudent" : "teacher.common.manyStudents"), { count: course.studentCount ?? 0 })}</p>
+                <p className="text-caption text-fg-subtle mt-2">{fill(t("teacher.courses.courseCode"), { code: course.id })}</p>
               </div>
             </Link>
           ))}

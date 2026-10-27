@@ -12,7 +12,7 @@ import { useCourseText } from "@/components/course/useCourseText";
 import Explainer from "@/components/help/Explainer";
 import { formatRange } from "@/lib/dates";
 import { apiFetch, getErrorMessage } from "@/lib/api";
-import { TextInput } from "@/components/form";
+import { Label, TextInput } from "@/components/form";
 
 // Teacher-only drag-and-drop, loaded on demand so learners never download dnd-kit.
 const SortableItemList = lazy(() => import("./sortable").then((m) => ({ default: m.SortableItemList })));
@@ -148,10 +148,10 @@ export default function ModuleCard({
 
   const hasDates = !isUnassigned && Boolean(moduleRow.startDate);
   const listBorder = isUnassigned
-    ? "border-amber-300 dark:border-amber-800"
+    ? "border-warning/30"
     : !moduleRow.published && isTeacher
-      ? "border-dashed border-slate-300 dark:border-slate-700"
-      : "border-slate-200 dark:border-slate-800";
+      ? "border-dashed border-line-strong"
+      : "border-line";
   // Prerequisites and completion are shown when the module data carries them.
   const prerequisites = Array.isArray(moduleRow.prerequisites) ? moduleRow.prerequisites.filter(Boolean) : [];
   const isComplete = moduleRow.completed === true || moduleRow.complete === true;
@@ -176,12 +176,12 @@ export default function ModuleCard({
       <div
         onClick={onHeaderClick}
         className={`flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 px-4 py-3 cursor-pointer select-none ${
-          isUnassigned ? "bg-amber-50/60 dark:bg-amber-950/20" : "bg-slate-50 dark:bg-slate-900/40"
+          isUnassigned ? "bg-warning-soft/60" : "bg-surface-sunken"
         } ${collapsed ? "" : `border-b ${listBorder}`}`}
       >
         <div className="flex items-center gap-2 min-w-0 flex-1">
           {isTeacher && (
-            <button {...(dnd?.listeners || {})} aria-label={t("modules.dragModule")} className="cursor-grab active:cursor-grabbing p-0.5 text-slate-300 hover:text-slate-500 shrink-0 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]">
+            <button {...(dnd?.listeners || {})} aria-label={t("modules.dragModule")} className="cursor-grab active:cursor-grabbing p-0.5 text-fg-subtle hover:text-fg-subtle shrink-0 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">
               <GripVertical className="w-4 h-4" />
             </button>
           )}
@@ -190,7 +190,7 @@ export default function ModuleCard({
             onClick={() => setCollapsed((v) => !v)}
             aria-expanded={!collapsed}
             aria-label={collapsed ? t("modules.expandModule") : t("modules.collapseModule")}
-            className="p-0.5 text-slate-500 hover:text-slate-700 shrink-0"
+            className="p-0.5 text-fg-subtle hover:text-fg-muted shrink-0"
           >
             {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
@@ -198,7 +198,7 @@ export default function ModuleCard({
             <TextInput size="sm" value={titleDraft} onChange={(e) => setTitleDraft(e.target.value)} onBlur={saveTitle} onKeyDown={(e) => { if (e.key === "Enter") saveTitle(); if (e.key === "Escape") setEditingTitle(false); }} aria-label={t("modules.moduleTitle")} className="flex-1 min-w-[10rem]" autoFocus />
           ) : (
             <h2
-              className={`text-base font-bold truncate ${isUnassigned ? "text-amber-800 dark:text-amber-300" : "text-slate-900 dark:text-white"}`}
+              className={`text-item font-bold truncate ${isUnassigned ? "text-warning-fg" : "text-fg"}`}
               onDoubleClick={() => isTeacher && setEditingTitle(true)}
             >
               {heading}
@@ -207,7 +207,7 @@ export default function ModuleCard({
           {isUnassigned ? <Explainer k="pages.unassigned" variant="icon" /> : null}
           {moduleRow.kind === "baseline" ? <Explainer k="pages.baseline" variant="icon" /> : null}
           {!isUnassigned && (
-            <span className={`hidden sm:inline text-xs shrink-0 ${moduleRow.status === "past" ? "text-slate-400" : "text-slate-500 dark:text-slate-400"}`}>
+            <span className={`hidden sm:inline text-caption shrink-0 ${moduleRow.status === "past" ? "text-fg-subtle" : "text-fg-subtle"}`}>
               {hasDates ? formatRange(moduleRow.startDate, moduleRow.endDate) : t("home.noDatesYet")}
             </span>
           )}
@@ -215,20 +215,20 @@ export default function ModuleCard({
 
         <div className="flex items-center gap-3 shrink-0 flex-wrap">
           {prerequisites.length > 0 ? (
-            <span className="text-xs text-slate-500 dark:text-slate-400">
+            <span className="text-caption text-fg-subtle">
               {tf("modules.prerequisites", { list: prerequisites.join(", ") })}
             </span>
           ) : null}
           {!isUnassigned && moduleRow.status === "current" ? (
-            <span className="text-xs font-semibold text-[var(--brand-secondary)]">{t("home.current")}</span>
+            <span className="text-caption font-semibold text-brand-fg">{t("home.current")}</span>
           ) : null}
           {!isUnassigned && moduleRow.status === "past" ? (
-            <span className="text-xs text-slate-400">{t("modules.past")}</span>
+            <span className="text-caption text-fg-subtle">{t("modules.past")}</span>
           ) : null}
           {!moduleRow.published && isTeacher ? (
-            <span className="text-xs font-semibold text-amber-600">{t("common.draft")}</span>
+            <span className="text-caption font-semibold text-warning-fg">{t("common.draft")}</span>
           ) : null}
-          {isComplete ? <Check className="w-4 h-4 text-emerald-600" aria-label={t("modules.complete")} /> : null}
+          {isComplete ? <Check className="w-4 h-4 text-success-fg" aria-label={t("modules.complete")} /> : null}
 
           {isTeacher && (
             <div className="flex items-center gap-1.5 flex-wrap">
@@ -238,37 +238,37 @@ export default function ModuleCard({
                     type="button"
                     onClick={startFillWeek}
                     disabled={aiBusy === "fill_week" || fillRunning}
-                    className="flex items-center gap-1 text-[11px] font-semibold text-teal-800 bg-teal-50 border border-teal-200 hover:bg-teal-100 disabled:opacity-50 px-2.5 py-1 rounded-lg transition-colors"
+                    className="flex items-center gap-1 text-caption font-semibold text-brand-fg bg-brand-soft border border-brand/40 hover:bg-brand-soft disabled:opacity-50 px-2.5 py-1 rounded-lg transition-colors"
                     title={fillRunning ? t("modules.ai.fillRunningHint") : t("modules.ai.fillHint")}
                   >
-                    <Sparkles className="w-3 h-3 text-[var(--brand-secondary)]" /> {fillRunning ? t("modules.ai.filling") : t("modules.ai.fillWeek")}
+                    <Sparkles className="w-3 h-3 text-brand-fg" /> {fillRunning ? t("modules.ai.filling") : t("modules.ai.fillWeek")}
                   </button>
                   <button
                     type="button"
                     onClick={() => setStoryOpen((v) => !v)}
                     aria-expanded={storyOpen}
                     disabled={storyRunning}
-                    className="flex items-center gap-1 text-[11px] font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 px-2.5 py-1 rounded-lg transition-colors"
+                    className="flex items-center gap-1 text-caption font-semibold text-fg-muted bg-surface-sunken hover:bg-surface-hover disabled:opacity-50 px-2.5 py-1 rounded-lg transition-colors"
                     title={storyRunning ? t("modules.ai.storyRunningHint") : t("modules.ai.storyHint")}
                   >
-                    <Sparkles className="w-3 h-3 text-slate-500" /> {storyRunning ? t("modules.ai.writingStoryShort") : t("modules.ai.story")}
+                    <Sparkles className="w-3 h-3 text-fg-subtle" /> {storyRunning ? t("modules.ai.writingStoryShort") : t("modules.ai.story")}
                   </button>
                 </>
               ) : ai?.status && !ai.status.loading && ai.status.reason ? (
-                <span className="text-[11px] text-slate-400" title={ai.status.reason}>
+                <span className="text-caption text-fg-subtle" title={ai.status.reason}>
                   <Sparkles className="inline w-3 h-3 mr-0.5" aria-hidden="true" />{t("modules.ai.off")}
                   <span className="sr-only">: {ai.status.reason}</span>
                 </span>
               ) : null}
               {!editingTitle && (
-                <button onClick={() => { setTitleDraft(moduleRow.title); setEditingTitle(true); }} className="p-1.5 rounded-md hover:bg-slate-100 text-slate-400" title={t("modules.rename")} aria-label={t("modules.renameModule")}>
+                <button onClick={() => { setTitleDraft(moduleRow.title); setEditingTitle(true); }} className="p-1.5 rounded-md hover:bg-surface-hover text-fg-subtle" title={t("modules.rename")} aria-label={t("modules.renameModule")}>
                   <Pencil className="w-3.5 h-3.5" />
                 </button>
               )}
-              <button onClick={togglePublish} className="p-1.5 rounded-md hover:bg-slate-100 text-slate-500" title={moduleRow.published ? t("modules.unpublish") : t("modules.publish")} aria-label={moduleRow.published ? t("modules.unpublishModule") : t("modules.publishModule")}>
-                {moduleRow.published ? <Eye className="w-4 h-4 text-emerald-600" /> : <EyeOff className="w-4 h-4" />}
+              <button onClick={togglePublish} className="p-1.5 rounded-md hover:bg-surface-hover text-fg-subtle" title={moduleRow.published ? t("modules.unpublish") : t("modules.publish")} aria-label={moduleRow.published ? t("modules.unpublishModule") : t("modules.publishModule")}>
+                {moduleRow.published ? <Eye className="w-4 h-4 text-success-fg" /> : <EyeOff className="w-4 h-4" />}
               </button>
-              <button onClick={deleteModule} className="p-1.5 rounded-md hover:bg-rose-50 text-rose-500" title={t("modules.deleteModule")} aria-label={t("modules.deleteModule")}>
+              <button onClick={deleteModule} className="p-1.5 rounded-md hover:bg-danger-soft text-danger-fg" title={t("modules.deleteModule")} aria-label={t("modules.deleteModule")}>
                 <Trash2 className="w-4 h-4" />
               </button>
             </div>
@@ -277,33 +277,33 @@ export default function ModuleCard({
       </div>
 
       {isTeacher && storyOpen ? (
-        <form onSubmit={startStory} className="flex flex-wrap items-end gap-2 px-5 py-3 border-b border-slate-100 dark:border-slate-800">
+        <form onSubmit={startStory} className="flex flex-wrap items-end gap-2 px-5 py-3 border-b border-line">
           <div className="flex-1 min-w-[12rem]">
-            <label htmlFor={`story-idea-${moduleRow.id}`} className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5">
+            <Label htmlFor={`story-idea-${moduleRow.id}`}>
               {tf("modules.ai.storyIdeaFor", { week: weekLabel(moduleRow) })}
-            </label>
+            </Label>
             <TextInput size="sm" id={`story-idea-${moduleRow.id}`} value={storyIdea} onChange={(e) => setStoryIdea(e.target.value)} maxLength={500} placeholder={t("modules.ai.storyPlaceholder")} className="w-full" autoFocus />
           </div>
-          <button type="submit" disabled={!storyIdea.trim() || aiBusy === "story"} className="text-xs font-bold text-white bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-dark)] disabled:opacity-50 px-3.5 py-2 rounded-lg">
+          <button type="submit" disabled={!storyIdea.trim() || aiBusy === "story"} className="text-caption font-bold text-on-brand bg-brand hover:bg-brand/90 disabled:opacity-50 px-3.5 py-2 rounded-lg">
             {aiBusy === "story" ? t("modules.ai.starting") : t("modules.ai.writeStoryDraft")}
           </button>
-          <button type="button" onClick={() => setStoryOpen(false)} className="text-xs font-semibold text-slate-500 px-2 py-2">{t("common.cancel")}</button>
+          <button type="button" onClick={() => setStoryOpen(false)} className="text-caption font-semibold text-fg-subtle px-2 py-2">{t("common.cancel")}</button>
         </form>
       ) : null}
 
       {isTeacher && (aiNote || moduleJobs.length > 0) ? (
-        <p role="status" className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-600 dark:text-slate-300 px-5 py-2.5 border-b border-slate-100 dark:border-slate-800">
-          <Sparkles className="w-3.5 h-3.5 text-[var(--brand-secondary)]" aria-hidden="true" />
+        <p role="status" className="flex flex-wrap items-center gap-x-2 gap-y-1 text-caption text-fg-muted px-5 py-2.5 border-b border-line">
+          <Sparkles className="w-3.5 h-3.5 text-brand-fg" aria-hidden="true" />
           <span>{moduleJobs.length > 0 ? t("modules.ai.beingWritten") : aiNote}</span>
-          <Link href={`/course/${courseId}/ai`} className="font-semibold text-[var(--brand-secondary)] hover:underline">{t("modules.ai.openDrafts")}</Link>
+          <Link href={`/course/${courseId}/ai`} className="font-semibold text-brand-fg hover:underline">{t("modules.ai.openDrafts")}</Link>
           {moduleJobs.length === 0 ? (
-            <button type="button" onClick={() => setAiNote("")} className="text-slate-400 hover:text-slate-600 underline">{t("modules.hide")}</button>
+            <button type="button" onClick={() => setAiNote("")} className="text-fg-subtle hover:text-fg-muted underline">{t("modules.hide")}</button>
           ) : null}
         </p>
       ) : null}
 
       {isUnassigned && moduleRow.items.length > 0 && (
-        <p className="text-xs font-medium text-amber-800 dark:text-amber-300 px-5 py-2.5 border-b border-amber-200 dark:border-amber-900">
+        <p className="text-caption font-medium text-warning-fg px-5 py-2.5 border-b border-warning/30">
           ⚠️ {t("modules.unassignedWarning")}
         </p>
       )}
@@ -312,12 +312,12 @@ export default function ModuleCard({
       {!collapsed && (
         <ul
           aria-label={tf("modules.itemsIn", { title: isUnassigned ? heading : moduleRow.title })}
-          className={`divide-y divide-slate-200 dark:divide-slate-800 ${
-            isUnassigned ? "bg-amber-50/40 dark:bg-amber-950/10" : "bg-white dark:bg-transparent"
+          className={`divide-y divide-line ${
+            isUnassigned ? "bg-warning-soft/40" : "bg-surface"
           }`}
         >
           {moduleRow.items.length === 0 && (
-            <li className="text-xs text-slate-400 px-5 py-3.5 italic">{t("modules.noItems")}</li>
+            <li className="text-caption text-fg-subtle px-5 py-3.5 italic">{t("modules.noItems")}</li>
           )}
 
           {isTeacher ? (
@@ -333,7 +333,7 @@ export default function ModuleCard({
             <li>
               <button
                 onClick={() => onAddItem(moduleRow)}
-                className="flex items-center gap-1.5 text-xs font-semibold text-[var(--brand-primary)] dark:text-teal-300 px-5 py-3.5 hover:bg-slate-50 dark:hover:bg-slate-900/40 w-full text-left transition-colors"
+                className="flex items-center gap-1.5 text-caption font-semibold text-brand-fg px-5 py-3.5 hover:bg-surface-hover w-full text-left transition-colors"
               >
                 <Plus className="w-3.5 h-3.5" /> {t("modules.addItem")}
               </button>

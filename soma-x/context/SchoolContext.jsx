@@ -4,11 +4,13 @@
 // logo, colours and whether visitors may preview Explore and Library items. Loaded once for the
 // whole app (guests too); the admin's School page calls refreshSchool() after saving so every
 // screen updates at once. The colours are set as CSS variables on <html>:
-// --brand-primary and --brand-secondary (see app/globals.css for the defaults).
+// --brand-primary and --brand-secondary, plus readable text colours worked out from them
+// (lib/brandColors.js; app/globals.css has the defaults).
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { queryKeys } from "@/lib/queryKeys";
+import { brandVariables } from "@/lib/brandColors";
 
 export const DEFAULT_PRIMARY = "#203A3A";
 export const DEFAULT_SECONDARY = "#0F766E";
@@ -48,8 +50,8 @@ function normalise(data) {
 export function applyBrandColors(primary, secondary) {
     if (typeof document === "undefined") return;
     const root = document.documentElement.style;
-    root.setProperty("--brand-primary", isHexColor(primary) ? primary : DEFAULT_PRIMARY);
-    root.setProperty("--brand-secondary", isHexColor(secondary) ? secondary : DEFAULT_SECONDARY);
+    const vars = brandVariables(isHexColor(primary) ? primary : DEFAULT_PRIMARY, isHexColor(secondary) ? secondary : DEFAULT_SECONDARY);
+    for (const [name, value] of Object.entries(vars)) root.setProperty(name, value);
 }
 
 const SchoolContext = createContext({

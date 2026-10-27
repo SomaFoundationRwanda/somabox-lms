@@ -183,7 +183,7 @@ const UniversalPlayerModal = ({
     const renderMediaPlayer = () => {
         if (!mediaItem) return null;
         // A visitor's preview of a document has ended: nothing to read behind the sign-up panel.
-        if (previewEnded && isReading) return <div className="w-full h-full bg-slate-950" />;
+        if (previewEnded && isReading) return <div className="w-full h-full bg-black" />;
         if (mediaUrl && accessState !== 'ok') {
             return (
                 <div className="w-full h-full flex items-center justify-center bg-black">
@@ -214,7 +214,7 @@ const UniversalPlayerModal = ({
                         />
                         {/* Video Controls Overlay */}
                         <div className="absolute inset-0 opacity-0 hover:opacity-100 focus-within:opacity-100 transition-opacity duration-300">
-                            <Button variant="ghost" onClick={togglePlay} aria-label={isPlaying ? t("shell.player.pause") : t("shell.player.play")} className="p-3 absolute left-1/2 -translate-x-1/2 -translate-y-1/2 top-1/2 bg-accent-light text-white border border-white/20 rounded-full transition-colors hover:bg-accent-light/80 ring-0 h-16 w-16">
+                            <Button variant="ghost" onClick={togglePlay} aria-label={isPlaying ? t("shell.player.pause") : t("shell.player.play")} className="p-3 absolute left-1/2 -translate-x-1/2 -translate-y-1/2 top-1/2 bg-brand text-on-brand border border-white/20 rounded-full transition-colors hover:bg-brand/80 ring-0 h-16 w-16">
                                 {isPlaying ? <Pause size={30} /> : <Play size={30} />}
                             </Button>
                             <div className="absolute bottom-0 left-0 right-0 p-6">
@@ -225,7 +225,7 @@ const UniversalPlayerModal = ({
                                     <div className="flex-1">
                                         <Slider tone="onDark" min={0} max={100} value={(currentTime / duration) * 100 || 0} onChange={handleSeek} aria-label={t("shell.player.seek")} className="w-full" />
                                     </div>
-                                    <span className="text-sm">{formatTime(currentTime)} / {formatTime(duration)}</span>
+                                    <span className="text-ui">{formatTime(currentTime)} / {formatTime(duration)}</span>
                                     <Button variant="ghost" onClick={toggleMute} aria-label={isMuted ? t("shell.player.unmute") : t("shell.player.mute")} aria-pressed={isMuted} className="p-2 hover:bg-white/20 rounded-full transition-colors ring-0 h-10 w-10">
                                         {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
                                     </Button>
@@ -241,7 +241,7 @@ const UniversalPlayerModal = ({
 
             case 'audio':
                 return (
-                    <div className="flex flex-col items-center justify-center h-full bg-accent-light text-white">
+                    <div className="flex flex-col items-center justify-center h-full bg-brand text-on-brand">
                         <audio
                             key={reloadKey}
                             ref={audioRef}
@@ -280,7 +280,7 @@ const UniversalPlayerModal = ({
 
                             <div className="space-y-2">
                                 <Slider tone="onDark" min={0} max={100} value={(currentTime / duration) * 100 || 0} onChange={handleSeek} aria-label={t("shell.player.seek")} className="w-full" />
-                                <div className="flex justify-between text-sm text-white/70">
+                                <div className="flex justify-between text-ui text-white/70">
                                     <span>{formatTime(currentTime)}</span>
                                     <span>{formatTime(duration)}</span>
                                 </div>
@@ -302,7 +302,7 @@ const UniversalPlayerModal = ({
                 return (
                     <div className="h-full bg-black overflow-hidden">
                         <div className="h-full flex flex-col">
-                            <div className="flex-1 bg-gray-50 flex items-center justify-center">
+                            <div className="flex-1 bg-surface-sunken flex items-center justify-center">
                                 {mediaItem.url ? (
                                     <iframe
                                         key={reloadKey}
@@ -312,23 +312,23 @@ const UniversalPlayerModal = ({
                                         title={mediaItem.title}
                                     />
                                 ) : (
-                                    <div className="text-center text-gray-500">
-                                        <div className="w-24 h-32 bg-white border-2 border-gray-300 rounded-lg flex items-center justify-center mx-auto mb-4 text-slate-600">
+                                    <div className="text-center text-fg-subtle">
+                                        <div className="w-24 h-32 bg-surface border-2 border-line-strong rounded-lg flex items-center justify-center mx-auto mb-4 text-fg-muted">
                                             <FileText size={40} />
                                         </div>
-                                        <p className="text-lg font-medium">{mediaItem.title}</p>
-                                        <p className="text-sm">{t("shell.player.pdfViewer")}</p>
+                                        <p className="text-section font-medium">{mediaItem.title}</p>
+                                        <p className="text-ui">{t("shell.player.pdfViewer")}</p>
                                         <div className="flex justify-center space-x-2 mt-4">
                                             <button
                                                 onClick={() => setPdfPage(Math.max(1, pdfPage - 1))}
-                                                className="px-3 py-1 bg-[var(--brand-secondary)] text-white rounded hover:bg-[var(--brand-secondary-dark)] transition-colors"
+                                                className="px-3 py-1 bg-brand text-on-brand rounded hover:bg-brand/90 transition-colors"
                                             >
                                                 {t("shell.player.previous")}
                                             </button>
-                                            <span className="px-3 py-1 bg-gray-200 rounded">{fill(t("shell.player.page"), { n: pdfPage })}</span>
+                                            <span className="px-3 py-1 bg-line rounded">{fill(t("shell.player.page"), { n: pdfPage })}</span>
                                             <button
                                                 onClick={() => setPdfPage(pdfPage + 1)}
-                                                className="px-3 py-1 bg-[var(--brand-secondary)] text-white rounded hover:bg-[var(--brand-secondary-dark)] transition-colors"
+                                                className="px-3 py-1 bg-brand text-on-brand rounded hover:bg-brand/90 transition-colors"
                                             >
                                                 {t("shell.player.next")}
                                             </button>
@@ -344,12 +344,12 @@ const UniversalPlayerModal = ({
             case 'link':
             case 'url':
                 return (
-                    <div className="flex items-center justify-center h-full bg-accent-dark text-white">
+                    <div className="flex items-center justify-center h-full bg-brand-strong text-on-brand-strong">
                         <div className="text-center">
                             <div className="w-32 h-32 bg-white/10 rounded-full flex items-center justify-center mb-6 mx-auto backdrop-blur-sm text-white">
                                 <ExternalLink size={48} />
                             </div>
-                            <h3 className="text-2xl font-bold mb-4">{mediaItem.title}</h3>
+                            <h3 className="text-title font-bold mb-4">{mediaItem.title}</h3>
                             <p className="text-white/70 mb-6">{t("shell.player.externalLink")}</p>
                             <a
                                 href={mediaUrl}
@@ -365,10 +365,10 @@ const UniversalPlayerModal = ({
 
             default:
                 return (
-                    <div className="flex items-center justify-center h-full text-gray-500">
+                    <div className="flex items-center justify-center h-full text-fg-subtle">
                         <div className="text-center">
-                            <p className="text-xl mb-2">{t("shell.player.unsupported")}</p>
-                            <p className="text-sm">{fill(t("shell.player.typeLabel"), { type: mediaItem.type })}</p>
+                            <p className="text-section mb-2">{t("shell.player.unsupported")}</p>
+                            <p className="text-ui">{fill(t("shell.player.typeLabel"), { type: mediaItem.type })}</p>
                         </div>
                     </div>
                 );
@@ -385,14 +385,14 @@ const UniversalPlayerModal = ({
                 role="dialog"
                 aria-modal="true"
                 aria-label={mediaItem?.title || t('shell.player.mediaPlayer')}
-                className={`bg-black border border-primary-400/50 rounded-sm shadow-2xl transition-all duration-300 ${isFullscreen ? 'w-full h-full' : 'w-full h-full sm:w-[85vw] sm:h-[85vh]'
+                className={`bg-black border border-brand/50 rounded-sm shadow-2xl transition-all duration-300 ${isFullscreen ? 'w-full h-full' : 'w-full h-full sm:w-[85vw] sm:h-[85vh]'
                     } max-w-8xl max-h-full overflow-hidden flex flex-col`}
                 style={{
                     animation: 'modalSlideIn 0.3s ease-out'
                 }}
             >
                 {/* Modal Header */}
-                <div className="bg-accent-dark text-white p-2 flex items-center justify-between rounded-t-sm shrink-0">
+                <div className="bg-brand-strong text-on-brand-strong p-2 flex items-center justify-between rounded-t-sm shrink-0">
                     <h2 className="font-semibold truncate mr-4">{mediaItem?.title || t('shell.player.mediaPlayer')}</h2>
                     <div className="flex items-center space-x-2 flex-shrink-0">
                         <SummaryToggleButton
@@ -435,7 +435,7 @@ const UniversalPlayerModal = ({
                         {preview && previewEnded ? <PreviewEndedPanel next={preview.next} reading={isReading} /> : null}
                     </div>
                     {summaryOpen && summaryPath ? (
-                        <aside id="player-summary" className="bg-white w-full md:w-[380px] max-h-[50%] md:max-h-none shrink-0 overflow-y-auto p-4 border-t md:border-t-0 md:border-l border-slate-200">
+                        <aside id="player-summary" className="bg-surface w-full md:w-[380px] max-h-[50%] md:max-h-none shrink-0 overflow-y-auto p-4 border-t md:border-t-0 md:border-l border-line">
                             <SummaryPanel
                                 pathKey={summaryPath}
                                 state={summary}

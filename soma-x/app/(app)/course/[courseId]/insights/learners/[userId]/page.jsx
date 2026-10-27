@@ -41,7 +41,7 @@ export default function LearnerInsightsPage() {
   const thresholds = data?.thresholds;
   const titles = new Map((data?.outcomes || []).map((o) => [Number(o.id), o]));
   const back = (
-    <Link href={`/course/${courseId}/insights?tab=learners`} className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-white">
+    <Link href={`/course/${courseId}/insights?tab=learners`} className="inline-flex items-center gap-1.5 text-caption font-semibold text-fg-subtle hover:text-fg">
       <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" /> {tp("insights.learner.allLearners")}
     </Link>
   );
@@ -76,10 +76,10 @@ export default function LearnerInsightsPage() {
               {l.risk?.flagged ? (
                 <div className="space-y-1">
                   <ReasonChips risk={l.risk} />
-                  <p className="text-xs text-slate-500">{tp("insights.learner.flagsNote")}</p>
+                  <p className="text-caption text-fg-subtle">{tp("insights.learner.flagsNote")}</p>
                 </div>
               ) : (
-                <p className="text-sm text-slate-500">{tp("insights.learner.noFlags")}</p>
+                <p className="text-ui text-fg-subtle">{tp("insights.learner.noFlags")}</p>
               )}
             </Section>
 
@@ -105,10 +105,10 @@ export default function LearnerInsightsPage() {
                   <Figure label={tx("statusLate")} value={l.attendance.late ?? 0} sub={txn("excusedCount", l.attendance.excused ?? 0)} />
                 </dl>
               ) : (
-                <p className="text-sm text-slate-500">{tx("detailNone")}</p>
+                <p className="text-ui text-fg-subtle">{tx("detailNone")}</p>
               )}
-              <p className="mt-2 text-xs text-slate-500">
-                <Link href={`/course/${courseId}/attendance`} className="font-semibold text-[var(--brand-secondary)] hover:underline">{tx("openAttendance")}</Link>
+              <p className="mt-2 text-caption text-fg-subtle">
+                <Link href={`/course/${courseId}/attendance`} className="font-semibold text-brand-fg hover:underline">{tx("openAttendance")}</Link>
               </p>
             </Section>
 
@@ -127,8 +127,8 @@ export default function LearnerInsightsPage() {
                       const info = titles.get(Number(o.outcomeId));
                       return (
                         <span>
-                          {info?.code ? <span className="mr-1.5 text-[11px] font-bold text-[var(--brand-secondary)]">{info.code}</span> : null}
-                          <span className="font-medium text-slate-800 dark:text-slate-100">{info?.title || tp("common.outcome")}</span>
+                          {info?.code ? <span className="mr-1.5 text-caption font-bold text-brand-fg">{info.code}</span> : null}
+                          <span className="font-medium text-fg">{info?.title || tp("common.outcome")}</span>
                         </span>
                       );
                     },
@@ -138,7 +138,7 @@ export default function LearnerInsightsPage() {
                   { key: "delta", header: tp("common.change"), align: "right", render: (o) => <DeltaText value={o.deltaPoints} /> },
                   { key: "gain", header: tp("common.gain"), align: "right", render: (o) => fmtGain(o.normalizedGain) },
                   { key: "results", header: tp("common.resultsHeader"), align: "right", hideOnMobile: true, render: (o) => o.results ?? 0 },
-                  { key: "ttm", header: tp("insights.resultsToMastery"), align: "right", render: (o) => (o.resultsToMastery ? o.resultsToMastery : <span className="text-xs text-slate-400">{tp("common.notYet")}</span>) },
+                  { key: "ttm", header: tp("insights.resultsToMastery"), align: "right", render: (o) => (o.resultsToMastery ? o.resultsToMastery : <span className="text-caption text-fg-subtle">{tp("common.notYet")}</span>) },
                 ]}
               />
             </Section>
@@ -146,9 +146,9 @@ export default function LearnerInsightsPage() {
             <Section divided title={tp("insights.recentResults")}>
               <TrajectoryBars trajectory={l.trajectory} thresholds={thresholds} />
               {Array.isArray(l.trajectory) && l.trajectory.length > 0 ? (
-                <ol className="mt-3 space-y-1 text-xs text-slate-600 dark:text-slate-300">
+                <ol className="mt-3 space-y-1 text-caption text-fg-muted">
                   {[...l.trajectory].reverse().map((t, i) => (
-                    <li key={i} className="flex flex-wrap justify-between gap-2 border-b border-slate-100 dark:border-slate-800 py-1">
+                    <li key={i} className="flex flex-wrap justify-between gap-2 border-b border-line py-1">
                       <span className="min-w-0 truncate">{t.title || tp("common.result")}{t.attempt > 1 ? tp("insights.attempt", { n: t.attempt }) : ""}</span>
                       <span className="shrink-0">{fmtPct(t.pct)}{t.at ? ` · ${formatInstantDate(t.at)}` : ""}</span>
                     </li>
@@ -170,13 +170,13 @@ export default function LearnerInsightsPage() {
                     className: "min-w-[10rem]",
                     render: (w) => {
                       const href = itemHref(courseId, w);
-                      return href ? <Link href={href} className="font-medium hover:text-[var(--brand-secondary)] hover:underline">{w.title}</Link> : w.title;
+                      return href ? <Link href={href} className="font-medium hover:text-brand-fg hover:underline">{w.title}</Link> : w.title;
                     },
                   },
-                  { key: "type", header: tp("common.type"), hideOnMobile: true, render: (w) => <span className="text-xs">{itemType(tp, w.type) || w.type}</span> },
-                  { key: "due", header: tp("common.due"), className: "whitespace-nowrap text-xs", render: (w) => (w.dueDate ? formatDate(w.dueDate) : tp("common.noDueDate")) },
+                  { key: "type", header: tp("common.type"), hideOnMobile: true, render: (w) => <span className="text-caption">{itemType(tp, w.type) || w.type}</span> },
+                  { key: "due", header: tp("common.due"), className: "whitespace-nowrap text-caption", render: (w) => (w.dueDate ? formatDate(w.dueDate) : tp("common.noDueDate")) },
                   { key: "state", header: tp("insights.state"), render: (w) => <WorkStateBadge state={w.state} /> },
-                  { key: "pct", header: tp("common.score"), align: "right", render: (w) => (w.pct == null ? <span className="text-slate-400">—</span> : <span className="font-semibold">{fmtPct(w.pct)}</span>) },
+                  { key: "pct", header: tp("common.score"), align: "right", render: (w) => (w.pct == null ? <span className="text-fg-subtle">—</span> : <span className="font-semibold">{fmtPct(w.pct)}</span>) },
                   { key: "attempts", header: tp("insights.attempts"), align: "right", hideOnMobile: true, render: (w) => w.attempts ?? "—" },
                 ]}
               />

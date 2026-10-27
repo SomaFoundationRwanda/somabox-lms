@@ -52,7 +52,7 @@ export default function ChangePasswordForm({ onStatus, accent = "var(--brand-pri
             <button
                 type="submit"
                 disabled={saving}
-                className="w-full h-10 rounded-xl text-[13px] font-bold text-white transition-opacity disabled:opacity-50 mt-1"
+                className="w-full h-10 rounded-xl text-small font-bold text-white transition-opacity disabled:opacity-50 mt-1"
                 style={{ backgroundColor: accent }}
             >
                 {saving ? t("learner.account.updating") : t("learner.account.changePassword")}

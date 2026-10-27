@@ -18,32 +18,32 @@ export default {
     },
     "tour": {
         "welcome": {
-            "tag": "KARIBU",
+            "tag": "Karibu",
             "title": "Habari, mwanafunzi!",
             "body": "Karibu SOMABOX, mahali pako pa kujifunzia! Hii ni ziara fupi ya kilichopo hapa. Inachukua sekunde 30 tu."
         },
         "stats": {
-            "tag": "TAKWIMU",
+            "tag": "Takwimu",
             "title": "Takwimu zako za kujifunza",
             "body": "Kadi hizi zinaonyesha madarasa yako, masomo unayoendelea nayo na kiasi ulichomaliza. Kadiri unavyojifunza, ndivyo namba hizi zinavyokua!"
         },
         "lessons": {
-            "tag": "MASOMO",
+            "tag": "Masomo",
             "title": "Masomo ya hivi karibuni",
             "body": "Hapa unaona masomo yako ya mwisho na ulipofikia katika kila moja. Bofya somo ili kuendelea ulipoishia."
         },
         "quick-access": {
-            "tag": "UFIKIAJI WA HARAKA",
+            "tag": "Ufikiaji wa haraka",
             "title": "Ufikiaji wa haraka",
             "body": "Nenda moja kwa moja kwenye madarasa, masomo, maktaba au kazi ulizomaliza kwa mguso mmoja."
         },
         "nav": {
-            "tag": "MENYU",
+            "tag": "Menyu",
             "title": "Menyu yako",
             "body": "Tumia menyu iliyo kushoto kuhamia Dashibodi, Kozi, Maktaba na Akaunti yako wakati wowote."
         },
         "finish": {
-            "tag": "IMEKAMILIKA",
+            "tag": "Imekamilika",
             "title": "Uko tayari!",
             "body": "Vizuri, sasa unajua kila kitu kilipo! Anza kujifunza. Kila somo linakusogeza karibu na malengo yako."
         },

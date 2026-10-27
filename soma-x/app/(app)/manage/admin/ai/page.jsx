@@ -11,7 +11,7 @@ import { PageHeader, Section, List, ListRow, DataTable, EmptyState } from "@/com
 import { aiFetch, DRAFT_TYPE_LABELS } from "@/lib/ai";
 import { fill } from "@/lib/fill";
 import Loader from "@/components/ui/Loader";
-import { Field, TextInput } from "@/components/form";
+import { Field, Switch, TextInput } from "@/components/form";
 
 // Feature and draft-type names are translated under admin.ai.features / admin.ai.draftTypes.
 const FEATURE_KEYS = ["fill_week", "story", "quiz", "outline", "outcome_rewrite", "rubric", "grading", "ask"];
@@ -124,7 +124,7 @@ export default function AdminAiSettingsPage() {
   return (
     <div className="min-h-screen pb-24 md:pb-8">
       <div className="px-4 pt-4 flex flex-col gap-8 max-w-5xl">
-        <Link href="/manage/admin" className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-slate-700">
+        <Link href="/manage/admin" className="inline-flex items-center gap-1 text-caption font-semibold text-fg-subtle hover:text-fg-muted">
           <ArrowLeft className="w-3.5 h-3.5" /> {t("admin.home.title")}
         </Link>
         <PageHeader
@@ -133,7 +133,7 @@ export default function AdminAiSettingsPage() {
           description={t("admin.ai.description")}
         />
 
-        {error ? <p role="alert" className="text-sm text-rose-600">{error}</p> : null}
+        {error ? <p role="alert" className="text-ui text-danger-fg">{error}</p> : null}
 
         {/* First load: the SOMABOX loader until the school's AI settings and use arrive. */}
         {loading && settings == null ? (
@@ -143,24 +143,15 @@ export default function AdminAiSettingsPage() {
         <Section title={t("admin.ai.schoolSwitch")}>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <Sparkles className={`w-4 h-4 ${settings?.enabled ? "text-[var(--brand-secondary)]" : "text-slate-400"}`} aria-hidden="true" />
-              <p className="text-sm text-slate-800 dark:text-slate-100" id="ai-school-label">
+              <Sparkles className={`w-4 h-4 ${settings?.enabled ? "text-brand-fg" : "text-fg-subtle"}`} aria-hidden="true" />
+              <p className="text-ui text-fg" id="ai-school-label">
                 {settings == null ? t("admin.common.loading") : settings.enabled ? t("admin.ai.isOn") : t("admin.ai.isOff")}
               </p>
             </div>
             {settings ? (
-              <button
-                type="button"
-                role="switch"
-                aria-checked={!!settings.enabled}
-                aria-labelledby="ai-school-label"
-                onClick={toggleSchool}
-                disabled={busy === "school"}
-                className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${settings.enabled ? "bg-[var(--brand-secondary)]" : "bg-slate-300 dark:bg-slate-700"}`}
-              >
-                <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${settings.enabled ? "translate-x-6" : "translate-x-1"}`} />
-                <span className="sr-only">{settings.enabled ? t("admin.ai.switchOff") : t("admin.ai.switchOn")}</span>
-              </button>
+              <Switch checked={!!settings.enabled} onChange={toggleSchool} disabled={busy === "school"} aria-labelledby="ai-school-label">
+                {settings.enabled ? t("admin.ai.switchOff") : t("admin.ai.switchOn")}
+              </Switch>
             ) : null}
           </div>
         </Section>
@@ -168,7 +159,7 @@ export default function AdminAiSettingsPage() {
         <Section divided title={t("explore.summary.admin.title")}>
           <div className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm text-slate-800 dark:text-slate-100" id="ai-summaries-label">
+              <p className="text-ui text-fg" id="ai-summaries-label">
                 {settings == null
                   ? t("explore.summary.loading")
                   : settings.learnerSummaries
@@ -176,29 +167,20 @@ export default function AdminAiSettingsPage() {
                     : t("explore.summary.admin.off")}
               </p>
               {settings ? (
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={!!settings.learnerSummaries}
-                  aria-labelledby="ai-summaries-label"
-                  aria-describedby="ai-summaries-help"
-                  onClick={toggleSummaries}
-                  disabled={busy === "summaries"}
-                  className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)] focus-visible:ring-offset-1 disabled:opacity-50 ${settings.learnerSummaries ? "bg-[var(--brand-secondary)]" : "bg-slate-300 dark:bg-slate-700"}`}
-                >
-                  <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${settings.learnerSummaries ? "translate-x-6" : "translate-x-1"}`} />
-                  <span className="sr-only">{t("explore.summary.admin.switchLabel")}</span>
-                </button>
+                <Switch checked={!!settings.learnerSummaries} onChange={toggleSummaries} disabled={busy === "summaries"}
+                  aria-labelledby="ai-summaries-label" aria-describedby="ai-summaries-help">
+                  {t("explore.summary.admin.switchLabel")}
+                </Switch>
               ) : null}
             </div>
-            <ul id="ai-summaries-help" className="list-disc pl-5 space-y-1 text-sm text-slate-600 dark:text-slate-300">
+            <ul id="ai-summaries-help" className="list-disc pl-5 space-y-1 text-ui text-fg-muted">
               <li>{t("explore.summary.admin.helpBooks")}</li>
               <li>{t("explore.summary.admin.helpVideos")}</li>
               <li>{t("explore.summary.admin.helpShared")}</li>
               <li>{t("explore.summary.admin.helpLimit")}</li>
             </ul>
             {settings && !settings.enabled ? (
-              <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">{t("explore.summary.admin.needsAi")}</p>
+              <p className="text-ui font-semibold text-warning-fg">{t("explore.summary.admin.needsAi")}</p>
             ) : null}
           </div>
         </Section>
@@ -215,7 +197,7 @@ export default function AdminAiSettingsPage() {
                     title={u.full_name || u.email}
                     subtitle={`${u.email} · ${t(`role.${u.role}`) || u.role}`}
                     actions={
-                      <button type="button" onClick={() => setUserAi(u, true)} disabled={busy === `user-${u.id}`} className="text-xs font-semibold text-[var(--brand-secondary)] border border-teal-200 hover:bg-teal-50 disabled:opacity-50 px-3 py-1.5 rounded-lg">
+                      <button type="button" onClick={() => setUserAi(u, true)} disabled={busy === `user-${u.id}`} className="text-caption font-semibold text-brand-fg border border-brand/40 hover:bg-brand-soft disabled:opacity-50 px-3 py-1.5 rounded-lg">
                         {t("admin.ai.turnBackOn")}
                       </button>
                     }
@@ -241,7 +223,7 @@ export default function AdminAiSettingsPage() {
                   ))}
                 </datalist>
               </div>
-              <button type="submit" disabled={!pickEmail.trim() || busy.startsWith("user-")} className="text-xs font-bold text-white bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] disabled:opacity-50 px-4 py-2.5 rounded-lg">
+              <button type="submit" disabled={!pickEmail.trim() || busy.startsWith("user-")} className="text-caption font-bold text-on-brand-strong bg-brand-strong hover:bg-brand-strong/90 disabled:opacity-50 px-4 py-2.5 rounded-lg">
                 {t("admin.ai.turnOff")}
               </button>
             </form>
@@ -260,13 +242,13 @@ export default function AdminAiSettingsPage() {
                 header: t("admin.ai.colPerson"),
                 render: (r) => (
                   <div className="min-w-[9rem]">
-                    <p className="font-semibold text-slate-800 dark:text-slate-100">{r.name}</p>
-                    <p className="text-[11px] text-slate-500 truncate">{[...new Set(r.features)].join(", ")}</p>
+                    <p className="font-semibold text-fg">{r.name}</p>
+                    <p className="text-caption text-fg-subtle truncate">{[...new Set(r.features)].join(", ")}</p>
                   </div>
                 ),
               },
               { key: "calls", header: t("admin.ai.colCalls"), align: "right", render: (r) => fmtInt(r.calls) },
-              { key: "failed", header: t("admin.ai.colFailed"), align: "right", render: (r) => (r.failed ? <span className="text-rose-600 font-semibold">{fmtInt(r.failed)}</span> : "0") },
+              { key: "failed", header: t("admin.ai.colFailed"), align: "right", render: (r) => (r.failed ? <span className="text-danger-fg font-semibold">{fmtInt(r.failed)}</span> : "0") },
               { key: "tokens", header: t("admin.ai.colTokens"), align: "right", hideOnMobile: true, render: (r) => fmtInt(r.tokens) },
               { key: "avg", header: t("admin.ai.colAvg"), align: "right", render: (r) => r.avgSeconds.toFixed(1) },
             ]}

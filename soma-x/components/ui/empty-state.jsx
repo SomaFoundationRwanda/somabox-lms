@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useLanguage } from "@/context/LanguageContext";
-import Typography from "@/components/ui/Typography";
+import { Text } from "@/components/typography";
 
 // Honest empty state: what's missing, why, and (optionally) the next step.
 // `message` alone keeps the older illustrated look; pass `title`/`description`/`action`
@@ -11,10 +11,10 @@ export function EmptyState({ message, title, description, action, icon, compact 
   const t = useLanguage()?.t;
   if (title || compact) {
     return (
-      <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 px-4 py-8 text-center">
-        {icon ? <span className="text-slate-300">{icon}</span> : null}
-        <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">{title || message}</p>
-        {description ? <p className="max-w-md text-xs text-slate-500">{description}</p> : null}
+      <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-line px-4 py-8 text-center">
+        {icon ? <span className="text-fg-subtle">{icon}</span> : null}
+        <p className="text-ui font-semibold text-fg-muted">{title || message}</p>
+        {description ? <p className="max-w-md text-caption text-fg-subtle">{description}</p> : null}
         {action ? <div className="pt-1">{action}</div> : null}
       </div>
     );
@@ -24,9 +24,9 @@ export function EmptyState({ message, title, description, action, icon, compact 
       <div className="relative w-48 h-48 opacity-80">
         <Image src="/images/no-contents.jpg" alt="" fill className="object-contain" />
       </div>
-      <Typography variant="muted" className="text-sm">
+      <Text tone="muted">
         {message || (t?.("shell.common.noContentYet") ?? "No content available yet")}
-      </Typography>
+      </Text>
       {action ? <div>{action}</div> : null}
     </div>
   );

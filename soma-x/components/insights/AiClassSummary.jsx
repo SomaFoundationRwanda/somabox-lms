@@ -53,13 +53,13 @@ export default function AiClassSummary({ summary, learners, onDone }) {
   return (
     <Section
       divided
-      title={<span className="flex items-center gap-2"><Sparkles className="w-4 h-4 text-violet-600" aria-hidden="true" /> {tp("ai.summary.title")}</span>}
+      title={<span className="flex items-center gap-2"><Sparkles className="w-4 h-4 text-info-fg" aria-hidden="true" /> {tp("ai.summary.title")}</span>}
       actions={canRun && !job ? (
         <button
           type="button"
           onClick={start}
           disabled={starting}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-800 dark:text-violet-200 border border-violet-200 dark:border-violet-800 hover:bg-violet-50 dark:hover:bg-violet-950/30 disabled:opacity-50 px-3 py-1.5 rounded-lg"
+          className="inline-flex items-center gap-1.5 text-caption font-semibold text-info-fg border border-info/30 hover:bg-info-soft disabled:opacity-50 px-3 py-1.5 rounded-lg"
         >
           <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
           {starting ? tp("common.starting") : summary ? tp("ai.summary.writeNew") : tp("ai.summary.summarise")}
@@ -69,37 +69,37 @@ export default function AiClassSummary({ summary, learners, onDone }) {
       <div className="space-y-3">
         <AiStatusNote status={aiStatus} />
         {job ? <JobProgress job={live} label={tp("ai.summary.writing")} onCancel={cancel} cancelling={cancelling} /> : null}
-        {error ? <p role="alert" className="text-xs text-rose-600">{error}</p> : null}
+        {error ? <p role="alert" className="text-caption text-danger-fg">{error}</p> : null}
         {aiStatus.allowed && !aiStatus.modelRunning ? (
-          <p className="text-[11px] text-amber-800 dark:text-amber-300">{tp("ai.summary.modelDown")}</p>
+          <p className="text-caption text-warning-fg">{tp("ai.summary.modelDown")}</p>
         ) : null}
 
         {summary ? (
-          <div className="space-y-2 border-l-2 border-violet-200 dark:border-violet-800 pl-3">
+          <div className="space-y-2 border-l-2 border-info/30 pl-3">
             <div className="flex flex-wrap items-center gap-2">
               <AiDraftLabel text={tp("ai.summary.label")} />
-              <span className="text-[11px] text-slate-500">
+              <span className="text-caption text-fg-subtle">
                 {tp("ai.summary.made", { when: fmtWhen(summary.createdAt, locale) })}
                 {summary.basedOn ? ` · ${basedOn(summary.basedOn.learnersWithData, summary.basedOn.learners, tp)}` : ""}
               </span>
             </div>
-            {summary.summary ? <p className="text-sm text-slate-800 dark:text-slate-100 whitespace-pre-line">{summary.summary}</p> : null}
+            {summary.summary ? <p className="text-ui text-fg whitespace-pre-line">{summary.summary}</p> : null}
             {suggestions.length > 0 ? (
               <div>
-                <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">{tp("ai.summary.suggestions")}</p>
-                <ul className="mt-1 list-disc pl-5 space-y-0.5 text-sm text-slate-700 dark:text-slate-300">
+                <p className="text-caption font-semibold text-fg-muted">{tp("ai.summary.suggestions")}</p>
+                <ul className="mt-1 list-disc pl-5 space-y-0.5 text-ui text-fg-muted">
                   {suggestions.map((s, i) => <li key={i}>{s}</li>)}
                 </ul>
               </div>
             ) : null}
           </div>
         ) : !job ? (
-          <p className="text-xs text-slate-500">
+          <p className="text-caption text-fg-subtle">
             {learners?.learnersWithData ? tp("ai.summary.none") : tp("ai.summary.needsResults")}
           </p>
         ) : null}
 
-        <p className="text-[11px] text-slate-500">
+        <p className="text-caption text-fg-subtle">
           {tp("ai.summary.privacy")}
         </p>
       </div>

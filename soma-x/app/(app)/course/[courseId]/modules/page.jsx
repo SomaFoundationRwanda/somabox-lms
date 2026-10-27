@@ -22,7 +22,7 @@ import DeleteItemDialog from "@/components/course/modules/DeleteItemDialog";
 import useAiStatus from "@/lib/useAiStatus";
 import { AiStatusNote } from "@/components/ai/AiBits";
 import Loader from "@/components/ui/Loader";
-import { TextInput } from "@/components/form";
+import { Label, TextInput } from "@/components/form";
 
 // Teacher-only code is loaded on demand so learners on low-end devices don't download it:
 // the editor modals (TipTap etc.) when one is opened, and drag-and-drop for teachers.
@@ -338,28 +338,28 @@ export default function ModulesPage() {
             <>
             <Link
               href={`/course/${courseId}/ai`}
-              className="flex items-center gap-1.5 text-xs font-semibold text-violet-800 dark:text-violet-200 border border-violet-200 dark:border-violet-800 hover:bg-violet-50 dark:hover:bg-violet-950/30 rounded-lg px-3 py-2 transition-colors"
+              className="flex items-center gap-1.5 text-caption font-semibold text-info-fg border border-info/30 hover:bg-info-soft rounded-lg px-3 py-2 transition-colors"
             >
               <Sparkles className="w-3.5 h-3.5" aria-hidden="true" /> {t("nav.ai")}
               {aiPendingCount > 0 ? (
-                <span className="rounded-full bg-violet-600 text-white text-[10px] font-bold px-1.5 py-0.5" aria-label={tf("modules.waitingForReview", { n: aiPendingCount })}>{aiPendingCount}</span>
+                <span className="rounded-full bg-info text-on-info text-caption font-bold px-1.5 py-0.5" aria-label={tf("modules.waitingForReview", { n: aiPendingCount })}>{aiPendingCount}</span>
               ) : null}
               {aiActiveJobs.length > 0 ? (
-                <span className="text-[10px] font-semibold text-violet-700 dark:text-violet-300">{tf("modules.running", { n: aiActiveJobs.length })}</span>
+                <span className="text-caption font-semibold text-info-fg">{tf("modules.running", { n: aiActiveJobs.length })}</span>
               ) : null}
             </Link>
             <button
               type="button"
               onClick={() => setHelperOpen(true)}
               disabled={!modules || modules.filter((m) => m.kind !== "unassigned").length === 0}
-              className="flex items-center gap-1.5 text-xs font-semibold text-[var(--brand-primary)] border border-slate-200 hover:bg-slate-50 disabled:opacity-40 rounded-lg px-3 py-2 transition-colors"
+              className="flex items-center gap-1.5 text-caption font-semibold text-brand-fg border border-line hover:bg-surface-hover disabled:opacity-40 rounded-lg px-3 py-2 transition-colors"
             >
               {explain("helper").entry?.button || "What should I create?"}
             </button>
             <button
               onClick={() => setCreating((v) => !v)}
               aria-expanded={creating}
-              className="flex items-center gap-1.5 text-xs font-semibold text-white bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] rounded-lg px-3 py-2 transition-colors"
+              className="flex items-center gap-1.5 text-caption font-semibold text-on-brand-strong bg-brand-strong hover:bg-brand-strong/90 rounded-lg px-3 py-2 transition-colors"
             >
               <Plus className="w-3.5 h-3.5" /> {t("modules.addModule")}
             </button>
@@ -373,10 +373,10 @@ export default function ModulesPage() {
         {creating && (
           <div className="flex flex-wrap items-center gap-2">
             <TextInput value={newTitle} onChange={(e) => setNewTitle(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") createModule(); }} placeholder={t("modules.newModulePlaceholder")} aria-label={t("modules.newModuleTitle")} className="flex-1 min-w-[12rem]" autoFocus />
-            <button onClick={createModule} className="text-xs font-semibold text-white bg-[var(--brand-primary)] rounded-lg px-3 py-2">
+            <button onClick={createModule} className="text-caption font-semibold text-on-brand-strong bg-brand-strong rounded-lg px-3 py-2">
               {t("common.create")}
             </button>
-            <button onClick={() => setCreating(false)} className="text-xs text-slate-400 hover:text-slate-600 px-2">
+            <button onClick={() => setCreating(false)} className="text-caption text-fg-subtle hover:text-fg-muted px-2">
               {t("common.cancel")}
             </button>
           </div>
@@ -384,7 +384,7 @@ export default function ModulesPage() {
 
         {/* Loading / Error */}
         {loading && <Loader variant="page" size={56} className="min-h-[30vh]" label={t("modules.loading")} />}
-        {error && <p className="text-sm text-rose-600">{error}</p>}
+        {error && <p className="text-ui text-danger-fg">{error}</p>}
         {!loading && !error && (!modules || modules.length === 0) && (
           <EmptyState
             compact
@@ -422,13 +422,13 @@ export default function ModulesPage() {
         {/* Add Item Drawer (shown inline when a module is selected) */}
         {addingItemFor && (
           <div className="fixed inset-0 z-40 flex items-end sm:items-center justify-center bg-black/30 backdrop-blur-sm">
-            <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full max-w-md shadow-2xl mx-0 sm:mx-4 p-5 animate-in slide-in-from-bottom-4 duration-200">
-              <h3 className="text-sm font-bold text-slate-900 mb-3">
-                {t("modules.addItemTo")} <span className="text-[var(--brand-primary)]">{addingItemFor.title}</span>
+            <div className="bg-surface rounded-t-2xl sm:rounded-2xl w-full max-w-md shadow-2xl mx-0 sm:mx-4 p-5 animate-in slide-in-from-bottom-4 duration-200">
+              <h3 className="text-ui font-bold text-fg mb-3">
+                {t("modules.addItemTo")} <span className="text-brand-fg">{addingItemFor.title}</span>
               </h3>
               <div className="space-y-3">
                 <div>
-                  <p className="block text-xs font-semibold text-slate-600 mb-1.5">{t("modules.itemType")}</p>
+                  <p className="block text-caption font-semibold text-fg-muted mb-1.5">{t("modules.itemType")}</p>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
                     {ITEM_TYPE_OPTIONS.map((opt) => (
                       <div key={opt.value} className="flex items-center gap-1">
@@ -436,10 +436,10 @@ export default function ModulesPage() {
                           type="button"
                           onClick={() => setSelectedItemType(opt.value)}
                           aria-pressed={selectedItemType === opt.value}
-                          className={`flex-1 text-xs font-medium py-2 rounded-lg border transition-colors ${
+                          className={`flex-1 text-caption font-medium py-2 rounded-lg border transition-colors ${
                             selectedItemType === opt.value
-                              ? "border-[var(--brand-primary)] bg-[var(--brand-primary)] text-white"
-                              : "border-slate-200 text-slate-600 hover:border-slate-300"
+                              ? "border-brand-strong bg-brand-strong text-on-brand-strong"
+                              : "border-line text-fg-muted hover:border-line-strong"
                           }`}
                         >
                           {t(`items.${opt.value}`)}
@@ -449,15 +449,15 @@ export default function ModulesPage() {
                     ))}
                   </div>
                   {selectedExplainer ? (
-                    <p className="mt-2 text-xs text-slate-500">
-                      {selectedExplainer.what} <span className="text-slate-400">{selectedExplainer.when}</span>
+                    <p className="mt-2 text-caption text-fg-subtle">
+                      {selectedExplainer.what} <span className="text-fg-subtle">{selectedExplainer.when}</span>
                     </p>
                   ) : null}
                 </div>
 
                 {selectedItemType === "sub_header" && (
                   <div>
-                    <label htmlFor="new-subheader-title" className="block text-xs font-semibold text-slate-600 mb-1.5">{t("modules.subHeaderTitle")}</label>
+                    <Label htmlFor="new-subheader-title">{t("modules.subHeaderTitle")}</Label>
                     <TextInput id="new-subheader-title" value={subHeaderTitle} onChange={(e) => setSubHeaderTitle(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") startItemCreation(); }} placeholder={t("modules.subHeaderPlaceholder")} className="w-full" autoFocus />
                   </div>
                 )}
@@ -466,13 +466,13 @@ export default function ModulesPage() {
                   <button
                     onClick={startItemCreation}
                     disabled={selectedItemType === "sub_header" && !subHeaderTitle.trim()}
-                    className="flex-1 text-xs font-semibold text-white bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] disabled:opacity-50 rounded-lg py-2.5 transition-colors"
+                    className="flex-1 text-caption font-semibold text-on-brand-strong bg-brand-strong hover:bg-brand-strong/90 disabled:opacity-50 rounded-lg py-2.5 transition-colors"
                   >
                     {t(`modules.addType.${selectedItemType}`)}
                   </button>
                   <button
                     onClick={() => setAddingItemFor(null)}
-                    className="text-xs font-medium text-slate-500 hover:text-slate-700 px-3 py-2.5"
+                    className="text-caption font-medium text-fg-subtle hover:text-fg-muted px-3 py-2.5"
                   >
                     {t("common.cancel")}
                   </button>

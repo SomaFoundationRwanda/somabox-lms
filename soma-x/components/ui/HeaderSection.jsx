@@ -4,7 +4,7 @@ import { ChevronRight } from 'lucide-react';
 import { useContext } from 'react';
 import DataContext from '@/context/DataContext';
 import { useLanguage } from '@/context/LanguageContext';
-import Typography from './Typography';
+import { Heading, Text } from '@/components/typography';
 
 import { Button } from './button';
 import NotificationBellDrawer from '../notifications/NotificationBellDrawer';
@@ -21,27 +21,25 @@ const HeaderSection = ({
 
   return (
     <div>
-      {/* Main header section */}
+      {/* Main header section: dark in both modes, tinted with the school colour */}
       <header 
-        className="relative min-h-[9rem] md:h-[9rem] py-6 md:py-[2%] flex flex-col justify-center text-white px-4 md:px-8 mt-2 rounded-2xl mb-4 shadow-2xl overflow-hidden"
+        className="dark relative min-h-[9rem] md:h-[9rem] py-6 md:py-[2%] flex flex-col justify-center text-fg border border-line-strong px-4 md:px-8 mt-2 rounded-2xl mb-4 shadow-2xl overflow-hidden"
         style={{
-          background: "linear-gradient(145deg, #0d2020 0%, #112828 50%, #0a1a1a 100%)",
-          border: "1px solid rgba(255,255,255,0.1)",
+          background: "linear-gradient(145deg, color-mix(in srgb, var(--brand-strong) 25%, var(--surface)) 0%, color-mix(in srgb, var(--brand-strong) 15%, var(--surface)) 50%, var(--surface) 100%)",
         }}
       >
         {/* Decorative dot grid */}
         <div
             className="absolute inset-0 pointer-events-none opacity-[0.06]"
             style={{
-                backgroundImage: "radial-gradient(circle, rgba(255,255,255,1) 1px, transparent 1px)",
+                backgroundImage: "radial-gradient(circle, var(--fg) 1px, transparent 1px)",
                 backgroundSize: "18px 18px",
             }}
         />
 
         {/* Glow blob */}
         <div
-            className="absolute -top-10 -right-10 w-64 h-64 rounded-full blur-3xl pointer-events-none"
-            style={{ backgroundColor: "rgba(32,58,58,0.6)" }}
+            className="absolute -top-10 -right-10 w-64 h-64 rounded-full blur-3xl pointer-events-none bg-brand-strong/30"
         />
 
         {/* Banner illustration — right side, desktop only */}
@@ -51,34 +49,34 @@ const HeaderSection = ({
           {/* Fade mask so the image blends into the gradient */}
           <div className="absolute inset-0"
             style={{
-              background: "linear-gradient(to right, #0d2020 0%, transparent 40%, transparent 80%, #0a1a1a 100%)",
+              background: "linear-gradient(to right, color-mix(in srgb, var(--brand-strong) 15%, var(--surface)) 0%, transparent 40%, transparent 80%, var(--surface) 100%)",
             }}
           />
           <img
             src="/images/header-banner.png"
             alt={t("shell.headerSection.illustrationAlt")}
             className="h-[115%] w-auto object-contain object-bottom relative z-10 opacity-90"
-            style={{ filter: "drop-shadow(0 0 20px rgba(32,180,180,0.15))" }}
+            style={{ filter: "drop-shadow(0 0 20px color-mix(in srgb, var(--brand) 15%, transparent))" }}
           />
         </div>
 
         {/* Breadcrumbs section */}
         {breadcrumbs && breadcrumbs.length > 0 && (
-          <div className="text-white/80 rounded-t-xl flex items-center mb-4 md:mb-2 overflow-x-auto scrollbar-hide pb-1">
+          <div className="text-fg-muted rounded-t-xl flex items-center mb-4 md:mb-2 overflow-x-auto scrollbar-hide pb-1">
             <nav className="flex items-center whitespace-nowrap">
               {breadcrumbs.map((crumb, index) => (
                 <div key={index} className="flex items-center shrink-0">
-                  <Typography variant="titleInv" className="text-sm md:text-base">
+                  <Text as="span" tone="inherit" className="md:text-body">
                     <Button
                       variant="ghost"
                       onClick={() => onBreadcrumbClick?.(crumb.path)}
-                      className="cursor-pointer hover:text-white p-0 h-auto font-bold underline-offset-4 hover:underline transition-all ring-0 opacity-90 hover:opacity-100"
+                      className="cursor-pointer hover:text-fg p-0 h-auto font-bold underline-offset-4 hover:underline transition-all ring-0 opacity-90 hover:opacity-100"
                     >
                       {crumb.name}
                     </Button>
-                  </Typography>
+                  </Text>
                   {index < breadcrumbs.length - 1 && (
-                    <ChevronRight className="mx-1 md:mx-2 w-4 h-4 text-white/40 shrink-0" />
+                    <ChevronRight className="mx-1 md:mx-2 w-4 h-4 text-fg-subtle shrink-0" />
                   )}
                 </div>
               ))}
@@ -91,12 +89,12 @@ const HeaderSection = ({
           <div className="flex-1">
             <div className="flex flex-col gap-4">
               <div>
-                <Typography variant="h2" color="white" className="text-xl md:text-4xl leading-tight">
+                <Heading level={2} variant="section" className="md:text-display leading-tight">
                   {title}
-                </Typography>
-                <Typography variant="caption" color="white" className="opacity-80 mt-1 max-w-2xl block text-xs md:text-sm">
+                </Heading>
+                <Text variant="caption" tone="muted" className="mt-1 max-w-2xl md:text-ui">
                   {subtitle}
-                </Typography>
+                </Text>
               </div>
 
             </div>

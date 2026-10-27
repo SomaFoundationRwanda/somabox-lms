@@ -5,7 +5,7 @@ import { X, AlertCircle } from "lucide-react";
 import RichTextEditor from "@/components/course/editor/RichTextEditor";
 import AIAssistantWidget from "@/components/course/editor/AIAssistantWidget";
 import { useCourseText } from "@/components/course/useCourseText";
-import { TextInput } from "@/components/form";
+import { Label, TextInput } from "@/components/form";
 
 export default function PageEditorModal({ open, onClose, onSave, initialData }) {
   const isEdit = Boolean(initialData?.id);
@@ -52,13 +52,13 @@ export default function PageEditorModal({ open, onClose, onSave, initialData }) 
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 backdrop-blur-sm overflow-auto py-8">
-      <div className="bg-white rounded-2xl w-full max-w-3xl shadow-2xl mx-4 animate-in fade-in slide-in-from-bottom-2 duration-200">
+      <div className="bg-surface rounded-2xl w-full max-w-3xl shadow-2xl mx-4 animate-in fade-in slide-in-from-bottom-2 duration-200">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-          <h2 className="text-base font-bold text-slate-900">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-line">
+          <h2 className="text-item font-bold text-fg">
             {isEdit ? t("editors.editPage") : t("editors.newPage")}
           </h2>
-          <button aria-label={t("common.close")} onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400">
+          <button aria-label={t("common.close")} onClick={onClose} className="p-1.5 rounded-lg hover:bg-surface-hover text-fg-subtle">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -66,7 +66,7 @@ export default function PageEditorModal({ open, onClose, onSave, initialData }) 
         {/* Body */}
         <div className="px-6 py-4 space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5">{t("common.title")}</label>
+            <Label>{t("common.title")}</Label>
             <TextInput aria-label={t("common.title")} value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("editors.pageTitle")} className="w-full" />
           </div>
 
@@ -78,14 +78,14 @@ export default function PageEditorModal({ open, onClose, onSave, initialData }) 
           />
 
           {altWarning && (
-            <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl text-xs font-semibold">
-              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+            <div className="flex items-center gap-2 p-3 bg-warning-soft border border-warning/30 text-warning-fg rounded-xl text-caption font-semibold">
+              <AlertCircle className="w-4 h-4 text-warning-fg shrink-0" />
               <span>{altWarning}</span>
             </div>
           )}
 
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5">{t("editors.content")}</label>
+            <Label>{t("editors.content")}</Label>
             <RichTextEditor
               ref={editorRef}
               content={initialContent}
@@ -96,14 +96,14 @@ export default function PageEditorModal({ open, onClose, onSave, initialData }) 
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-100">
-          <button onClick={onClose} className="text-xs font-semibold text-slate-600 hover:text-slate-800 px-4 py-2 rounded-lg hover:bg-slate-50">
+        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-line">
+          <button onClick={onClose} className="text-caption font-semibold text-fg-muted hover:text-fg px-4 py-2 rounded-lg hover:bg-surface-hover">
             {t("common.cancel")}
           </button>
           <button
             onClick={handleSave}
             disabled={saving || !title.trim()}
-            className="text-xs font-semibold text-white bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] disabled:opacity-50 rounded-lg px-4 py-2 transition-colors"
+            className="text-caption font-semibold text-on-brand-strong bg-brand-strong hover:bg-brand-strong/90 disabled:opacity-50 rounded-lg px-4 py-2 transition-colors"
           >
             {saving ? t("common.saving") : isEdit ? t("editors.saveChanges") : t("editors.createPage")}
           </button>

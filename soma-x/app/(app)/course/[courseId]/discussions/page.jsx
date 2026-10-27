@@ -74,10 +74,10 @@ export default function DiscussionsListPage() {
             </Select>
             <TextInput value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} placeholder={t("common.title")} aria-label={t("discussions.titleLabel")} className="w-full" />
             <Textarea value={form.body} onChange={(e) => setForm((p) => ({ ...p, body: e.target.value }))} rows={3} placeholder={t("discussions.promptPlaceholder")} aria-label={t("discussions.promptLabel")} className="w-full" />
-            {createError ? <p className="text-xs font-semibold text-rose-600">{createError}</p> : null}
+            {createError ? <p className="text-caption font-semibold text-danger-fg">{createError}</p> : null}
             <div className="flex justify-end gap-2">
-              <button onClick={() => setCreating(false)} className="text-xs font-medium text-slate-500 px-3 py-2">{t("common.cancel")}</button>
-              <button onClick={create} disabled={!form.title.trim() || !form.moduleId} className="text-xs font-semibold text-white bg-[var(--brand-primary)] rounded-lg px-3 py-2 disabled:opacity-50">{t("discussions.post")}</button>
+              <button onClick={() => setCreating(false)} className="text-caption font-medium text-fg-subtle px-3 py-2">{t("common.cancel")}</button>
+              <button onClick={create} disabled={!form.title.trim() || !form.moduleId} className="text-caption font-semibold text-on-brand-strong bg-brand-strong rounded-lg px-3 py-2 disabled:opacity-50">{t("discussions.post")}</button>
             </div>
           </div>
         ) : null}
@@ -93,10 +93,10 @@ export default function DiscussionsListPage() {
                   title={
                     <span className="inline-flex items-center gap-2 min-w-0">
                       <span className="truncate">{d.title}</span>
-                      {d.graded ? <span className="text-[10px] font-bold uppercase text-teal-600 bg-teal-50 rounded-full px-1.5 py-0.5 shrink-0">{t("quizKinds.graded")}</span> : null}
+                      {d.graded ? <span className="text-caption font-bold text-brand-fg bg-brand-soft rounded-full px-1.5 py-0.5 shrink-0">{t("quizKinds.graded")}</span> : null}
                     </span>
                   }
-                  actions={<span className="text-xs text-slate-400">{tf(d.replyCount === 1 ? "discussions.oneReply" : "discussions.manyReplies", { n: d.replyCount })}</span>}
+                  actions={<span className="text-caption text-fg-subtle">{tf(d.replyCount === 1 ? "discussions.oneReply" : "discussions.manyReplies", { n: d.replyCount })}</span>}
                 />
               ))}
             </List>

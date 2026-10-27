@@ -50,7 +50,7 @@ function CustomImageComponent({ node, updateAttributes, editor }) {
       <div className={`flex flex-col ${ALIGN_CLASSES[alignment] || "mx-auto"} ${SIZE_PRESETS[size] || "max-w-[50%]"}`}>
         {/* Main Image Wrapper */}
         <div className={`relative group rounded-xl overflow-hidden border transition-all ${
-          missingAlt && isEditable ? "border-amber-400 ring-2 ring-amber-300/50" : "border-slate-200"
+          missingAlt && isEditable ? "border-warning ring-2 ring-warning/50" : "border-line"
         }`}>
           {/* Rendered Image */}
           <img
@@ -61,12 +61,12 @@ function CustomImageComponent({ node, updateAttributes, editor }) {
 
           {/* Floating Controls for Teacher/Editor */}
           {isEditable && (
-            <div className="absolute top-2 right-2 flex items-center gap-1 bg-slate-900/80 backdrop-blur-md text-white p-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
+            <div className="absolute top-2 right-2 dark flex items-center gap-1 bg-surface-raised/80 backdrop-blur-md text-fg p-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
               {/* Preset Sizes */}
               <button
                 type="button"
                 onClick={() => updateAttributes({ size: "small" })}
-                className={`px-1.5 py-0.5 text-[10px] font-bold rounded ${size === "small" ? "bg-teal-500 text-white" : "hover:bg-slate-700"}`}
+                className={`px-1.5 py-0.5 text-caption font-bold rounded ${size === "small" ? "bg-brand text-on-brand" : "hover:bg-surface-hover"}`}
                 title={t("editor.image.small")}
               >
                 S
@@ -74,7 +74,7 @@ function CustomImageComponent({ node, updateAttributes, editor }) {
               <button
                 type="button"
                 onClick={() => updateAttributes({ size: "medium" })}
-                className={`px-1.5 py-0.5 text-[10px] font-bold rounded ${size === "medium" ? "bg-teal-500 text-white" : "hover:bg-slate-700"}`}
+                className={`px-1.5 py-0.5 text-caption font-bold rounded ${size === "medium" ? "bg-brand text-on-brand" : "hover:bg-surface-hover"}`}
                 title={t("editor.image.medium")}
               >
                 M
@@ -82,7 +82,7 @@ function CustomImageComponent({ node, updateAttributes, editor }) {
               <button
                 type="button"
                 onClick={() => updateAttributes({ size: "large" })}
-                className={`px-1.5 py-0.5 text-[10px] font-bold rounded ${size === "large" ? "bg-teal-500 text-white" : "hover:bg-slate-700"}`}
+                className={`px-1.5 py-0.5 text-caption font-bold rounded ${size === "large" ? "bg-brand text-on-brand" : "hover:bg-surface-hover"}`}
                 title={t("editor.image.large")}
               >
                 L
@@ -90,19 +90,19 @@ function CustomImageComponent({ node, updateAttributes, editor }) {
               <button
                 type="button"
                 onClick={() => updateAttributes({ size: "original" })}
-                className={`px-1.5 py-0.5 text-[10px] font-bold rounded ${size === "original" ? "bg-teal-500 text-white" : "hover:bg-slate-700"}`}
+                className={`px-1.5 py-0.5 text-caption font-bold rounded ${size === "original" ? "bg-brand text-on-brand" : "hover:bg-surface-hover"}`}
                 title={t("editor.image.full")}
               >
                 100%
               </button>
 
-              <div className="w-px h-3 bg-slate-700 mx-0.5" />
+              <div className="w-px h-3 bg-line-strong mx-0.5" />
 
               {/* Alignments */}
               <button
                 type="button"
                 onClick={() => updateAttributes({ alignment: "left" })}
-                className={`p-1 rounded ${alignment === "left" ? "bg-teal-500 text-white" : "hover:bg-slate-700"}`}
+                className={`p-1 rounded ${alignment === "left" ? "bg-brand text-on-brand" : "hover:bg-surface-hover"}`}
                 title={t("editor.image.alignLeft")}
               >
                 <AlignLeft className="w-3 h-3" />
@@ -110,7 +110,7 @@ function CustomImageComponent({ node, updateAttributes, editor }) {
               <button
                 type="button"
                 onClick={() => updateAttributes({ alignment: "center" })}
-                className={`p-1 rounded ${alignment === "center" ? "bg-teal-500 text-white" : "hover:bg-slate-700"}`}
+                className={`p-1 rounded ${alignment === "center" ? "bg-brand text-on-brand" : "hover:bg-surface-hover"}`}
                 title={t("editor.image.alignCenter")}
               >
                 <AlignCenter className="w-3 h-3" />
@@ -118,7 +118,7 @@ function CustomImageComponent({ node, updateAttributes, editor }) {
               <button
                 type="button"
                 onClick={() => updateAttributes({ alignment: "right" })}
-                className={`p-1 rounded ${alignment === "right" ? "bg-teal-500 text-white" : "hover:bg-slate-700"}`}
+                className={`p-1 rounded ${alignment === "right" ? "bg-brand text-on-brand" : "hover:bg-surface-hover"}`}
                 title={t("editor.image.alignRight")}
               >
                 <AlignRight className="w-3 h-3" />
@@ -135,7 +135,7 @@ function CustomImageComponent({ node, updateAttributes, editor }) {
               <TextInput aria-label={t("editor.image.alt")} type="text" value={altTextDraft} onChange={(e) => setAltTextDraft(e.target.value)} onBlur={handleAltBlur} placeholder={t("editor.image.alt")} size="sm" aria-invalid={missingAlt || undefined} className="flex-1" />
             </div>
             {missingAlt && (
-              <div className="flex items-center gap-1 text-[11px] font-semibold text-amber-600 bg-amber-50 px-2 py-1 rounded-md">
+              <div className="flex items-center gap-1 text-caption font-semibold text-warning-fg bg-warning-soft px-2 py-1 rounded-md">
                 <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                 <span>{t("editor.image.altRequired")}</span>
               </div>
@@ -147,7 +147,7 @@ function CustomImageComponent({ node, updateAttributes, editor }) {
         ) : (
           /* Read-only Caption Rendering */
           caption ? (
-            <p className="mt-1.5 text-center text-xs text-slate-500 italic">
+            <p className="mt-1.5 text-center text-caption text-fg-subtle italic">
               {caption}
             </p>
           ) : null

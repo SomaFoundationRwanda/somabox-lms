@@ -29,23 +29,23 @@ const Library = () => {
     const activeFilterCount = activeShelf !== null ? 1 : 0;
 
     return (
-        <div className="min-h-screen bg-[#F8F9FA] pb-24 md:pb-8">
+        <div className="min-h-screen bg-surface-sunken pb-24 md:pb-8">
 
             {/* Top bar */}
-            <div className="flex items-center justify-between pl-12 pr-4 md:px-6 py-3 bg-white border-b border-slate-200 sticky top-0 z-10">
+            <div className="flex items-center justify-between pl-12 pr-4 md:px-6 py-3 bg-surface border-b border-line sticky top-0 z-10">
                 <div>
-                    <h1 className="text-[17px] font-bold text-slate-900">{t("nav.library") || "Library"}</h1>
-                    <p className="text-[11px] text-slate-600 hidden sm:block">{t("learner.library.subtitle")}</p>
+                    <h1 className="text-section font-bold text-fg">{t("nav.library") || "Library"}</h1>
+                    <p className="text-caption text-fg-muted hidden sm:block">{t("learner.library.subtitle")}</p>
                 </div>
                 <button
                     type="button"
                     onClick={() => setFilterPanelOpen(v => !v)}
-                    className="relative flex items-center gap-1.5 h-8 px-3 rounded-xl text-[12px] font-semibold border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors xl:hidden"
+                    className="relative flex items-center gap-1.5 h-8 px-3 rounded-xl text-caption font-semibold border border-line text-fg-muted hover:bg-surface-hover transition-colors xl:hidden"
                 >
                     {filterPanelOpen ? <X size={13} /> : <Filter size={13} />}
                     {t("learner.library.filters")}
                     {activeFilterCount > 0 && (
-                        <span className="absolute -top-2 -right-2 min-w-5 h-5 px-1 rounded-full bg-rose-500 text-white text-[11px] font-bold flex items-center justify-center">
+                        <span className="absolute -top-2 -right-2 min-w-5 h-5 px-1 rounded-full bg-danger text-on-danger text-caption font-bold flex items-center justify-center">
                             {activeFilterCount}
                         </span>
                     )}
@@ -88,7 +88,7 @@ const Library = () => {
                     </div>
 
                     {/* Books grid */}
-                    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                    <div className="bg-surface rounded-2xl border border-line shadow-sm overflow-hidden">
                         <BooksPage books={books} loading={loading} shelf={activeShelf} searchQuery={searchQuery} />
                     </div>
                 </div>

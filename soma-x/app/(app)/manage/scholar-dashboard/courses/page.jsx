@@ -61,7 +61,7 @@ export default function ScholarCoursesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 md:bg-transparent pb-12">
+    <div className="min-h-screen bg-surface-sunken md:bg-transparent pb-12">
       <HeaderSection title={t("learner.dashboard.myCourses")} subtitle={t("learner.courses.subtitle")} />
       <div className="px-4 md:px-0 mt-6 space-y-4">
         <div className="flex justify-end">
@@ -71,19 +71,19 @@ export default function ScholarCoursesPage() {
         </div>
 
         {joining ? (
-          <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-3">
+          <div className="flex items-center gap-2 rounded-xl border border-line bg-surface p-3">
             <TextInput aria-label={t("learner.discover.code.title")}
               value={courseCode}
               onChange={(e) => setCourseCode(e.target.value)}
               placeholder={t("learner.discover.code.placeholder")}
               className="flex-1"
             />
-            <button onClick={handleJoin} disabled={joinLoading} className="text-xs font-semibold text-white bg-accent-dark rounded-lg px-3 py-2 disabled:opacity-50">
+            <button onClick={handleJoin} disabled={joinLoading} className="text-caption font-semibold text-on-brand-strong bg-brand-strong rounded-lg px-3 py-2 disabled:opacity-50">
               {joinLoading ? t("learner.discover.joining") : t("learner.courses.join")}
             </button>
           </div>
         ) : null}
-        {joinError ? <p className="text-xs text-rose-600">{joinError}</p> : null}
+        {joinError ? <p className="text-caption text-danger-fg">{joinError}</p> : null}
 
         {loading ? (
           <Loader variant="page" />
@@ -92,8 +92,8 @@ export default function ScholarCoursesPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {courses.map((course) => (
-              <Link key={course.id} href={`/course/${course.id}/home`} className="block border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow">
-                <div className="w-full h-32 bg-slate-100 relative">
+              <Link key={course.id} href={`/course/${course.id}/home`} className="block border border-line rounded-2xl overflow-hidden bg-surface shadow-sm hover:shadow-md transition-shadow">
+                <div className="w-full h-32 bg-surface-sunken relative">
                   <Image
                     src={course.coverImageUrl ? `${SERVER_URL}${course.coverImageUrl}` : "/imageFallback.png"}
                     alt={course.title}
@@ -103,8 +103,8 @@ export default function ScholarCoursesPage() {
                   />
                 </div>
                 <div className="p-4">
-                  <p className="text-base font-semibold text-slate-700 mb-1">{course.title}</p>
-                  <p className="text-xs text-slate-600">{course.grade}</p>
+                  <p className="text-item font-semibold text-fg-muted mb-1">{course.title}</p>
+                  <p className="text-caption text-fg-muted">{course.grade}</p>
                 </div>
               </Link>
             ))}

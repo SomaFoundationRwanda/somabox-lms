@@ -301,23 +301,23 @@ function UploadWidget({ uploads, cancelUpload }) {
     const activeCount = uploads.filter(u => u.status === "uploading").length;
 
     return (
-        <div className="fixed bottom-6 right-6 z-[9999] w-80 bg-slate-900/90 dark:bg-slate-950/95 text-white rounded-2xl shadow-2xl border border-slate-700/50 backdrop-blur-md overflow-hidden transition-all duration-300 animate-in fade-in slide-in-from-bottom-5">
+        <div className="fixed bottom-6 right-6 z-[9999] dark w-80 bg-surface/90 text-fg rounded-2xl shadow-2xl border border-line-strong backdrop-blur-md overflow-hidden transition-all duration-300 animate-in fade-in slide-in-from-bottom-5">
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 bg-slate-800/80 dark:bg-slate-900/80 border-b border-slate-700/50 select-none">
+            <div className="flex items-center justify-between px-4 py-3 bg-surface-raised/80 border-b border-line-strong select-none">
                 <div className="flex items-center gap-2">
                     {activeCount > 0 ? (
-                        <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
+                        <Loader2 className="w-4 h-4 text-info-fg animate-spin" />
                     ) : (
-                        <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                        <CheckCircle2 className="w-4 h-4 text-success-fg" />
                     )}
-                    <span className="font-semibold text-sm">
+                    <span className="font-semibold text-ui">
                         {activeCount > 0 ? `Uploading (${activeCount})` : "Uploads complete"}
                     </span>
                 </div>
                 <div className="flex items-center gap-1.5">
                     <button
                         onClick={() => setIsMinimized(prev => !prev)}
-                        className="p-1 hover:bg-white/10 rounded-md transition-colors"
+                        className="p-1 hover:bg-surface-hover rounded-md transition-colors"
                         title={isMinimized ? "Expand" : "Collapse"}
                     >
                         {isMinimized ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -327,15 +327,15 @@ function UploadWidget({ uploads, cancelUpload }) {
 
             {/* List */}
             {!isMinimized && (
-                <div className="max-h-60 overflow-y-auto divide-y divide-slate-850 p-3 space-y-3">
+                <div className="max-h-60 overflow-y-auto divide-y divide-line p-3 space-y-3">
                     {uploads.map((upload) => (
                         <div key={upload.id} className="space-y-2 pt-2 first:pt-0">
                             <div className="flex items-start justify-between gap-2">
                                 <div className="min-w-0 flex-1">
-                                    <p className="text-xs font-medium truncate text-slate-200" title={upload.title}>
+                                    <p className="text-caption font-medium truncate text-fg" title={upload.title}>
                                         {upload.title}
                                     </p>
-                                    <p className="text-[10px] text-slate-400 mt-0.5">
+                                    <p className="text-caption text-fg-subtle mt-0.5">
                                         {upload.status === "uploading" && `Uploading... ${upload.progress}%`}
                                         {upload.status === "success" && "Upload complete"}
                                         {upload.status === "failed" && `Failed: ${upload.error}`}
@@ -344,7 +344,7 @@ function UploadWidget({ uploads, cancelUpload }) {
                                 {upload.status === "uploading" && (
                                     <button
                                         onClick={() => cancelUpload(upload.id)}
-                                        className="text-slate-400 hover:text-red-400 p-1 hover:bg-white/5 rounded transition-all"
+                                        className="text-fg-subtle hover:text-danger-fg p-1 hover:bg-surface-hover rounded transition-all"
                                         title="Cancel Upload"
                                     >
                                         <X className="w-3.5 h-3.5" />
@@ -354,23 +354,23 @@ function UploadWidget({ uploads, cancelUpload }) {
 
                             {/* Progress Bar */}
                             {upload.status === "uploading" && (
-                                <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                                <div className="w-full h-1.5 bg-surface-raised rounded-full overflow-hidden">
                                     <div
-                                        className="h-full bg-blue-500 transition-all duration-300 rounded-full"
+                                        className="h-full bg-info transition-all duration-300 rounded-full"
                                         style={{ width: `${upload.progress}%` }}
                                     ></div>
                                 </div>
                             )}
 
                             {upload.status === "success" && (
-                                <div className="w-full h-1.5 bg-emerald-500/20 rounded-full overflow-hidden">
-                                    <div className="h-full bg-emerald-500 rounded-full w-full animate-pulse"></div>
+                                <div className="w-full h-1.5 bg-success/20 rounded-full overflow-hidden">
+                                    <div className="h-full bg-success rounded-full w-full animate-pulse"></div>
                                 </div>
                             )}
 
                             {upload.status === "failed" && (
-                                <div className="w-full h-1.5 bg-red-500/20 rounded-full overflow-hidden">
-                                    <div className="h-full bg-red-500 rounded-full w-full"></div>
+                                <div className="w-full h-1.5 bg-danger/20 rounded-full overflow-hidden">
+                                    <div className="h-full bg-danger rounded-full w-full"></div>
                                 </div>
                             )}
                         </div>

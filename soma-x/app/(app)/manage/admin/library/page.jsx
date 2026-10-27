@@ -8,7 +8,6 @@ import { useContext, useEffect, useState } from "react";
 import ManageTitle from "@/components/manage/ManageTitle";
 import { DataTable, Section } from "@/components/layout";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { BookOpen, CheckCircle2, Loader2, Trash2, X, Upload, File, AlertCircle, Eye } from "lucide-react";
 import UniversalPlayerModal from "@/components/ui/UniversalPlayerModal";
 import dynamic from "next/dynamic";
@@ -17,7 +16,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { fill } from "@/lib/fill";
 import { libraryCoverUrl, libraryFileUrl, libraryShelf, libraryViewer } from "@/components/ui/library/libraryEntry";
 import Loader from "@/components/ui/Loader";
-import { Field, TextInput } from "@/components/form";
+import { Checkbox, Field, TextInput } from "@/components/form";
 import { FileDrop } from "@/components/form";
 
 // What the library can hold: books, videos and audio.
@@ -41,7 +40,7 @@ function Modal({ onClose, children }) {
                 className="absolute inset-0 bg-black/30 backdrop-blur-[2px]"
                 onClick={onClose}
             />
-            <div className="relative z-10 bg-white rounded-[8px] border border-slate-100 shadow-2xl w-full max-w-md">
+            <div className="relative z-10 bg-surface rounded-[8px] border border-line shadow-2xl w-full max-w-md">
                 {children}
             </div>
         </div>
@@ -81,17 +80,17 @@ function LibraryUploadModal({ onClose, onSubmit }) {
 
     return (
         <Modal onClose={status === 'uploading' ? undefined : onClose}>
-            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-line">
                 <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-[5px] bg-slate-100 flex items-center justify-center shrink-0">
-                        <Upload className="w-3.5 h-3.5 text-slate-600" />
+                    <div className="w-7 h-7 rounded-[5px] bg-surface-sunken flex items-center justify-center shrink-0">
+                        <Upload className="w-3.5 h-3.5 text-fg-muted" />
                     </div>
-                    <h2 className="text-[14px] font-black text-slate-900">{t("admin.library.uploadTitle")}</h2>
+                    <h2 className="text-ui font-extrabold text-fg">{t("admin.library.uploadTitle")}</h2>
                 </div>
                 {status !== 'uploading' && (
                     <button aria-label={t("admin.library.close")}
                         onClick={onClose}
-                        className="w-7 h-7 flex items-center justify-center rounded-[5px] text-slate-600 hover:bg-slate-100 transition-colors"
+                        className="w-7 h-7 flex items-center justify-center rounded-[5px] text-fg-muted hover:bg-surface-hover transition-colors"
                     >
                         <X className="w-3.5 h-3.5" />
                     </button>
@@ -101,7 +100,7 @@ function LibraryUploadModal({ onClose, onSubmit }) {
             <form onSubmit={handleSubmit}>
                 <div className="px-5 py-5 space-y-5">
                     <div>
-                        <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest block mb-2">
+                        <p className="text-caption font-bold text-fg-subtle block mb-2">
                             {t("admin.library.file")}
                         </p>
                         <FileDrop
@@ -115,15 +114,15 @@ function LibraryUploadModal({ onClose, onSubmit }) {
                             {file ? (
                                 <>
                                     <div className="flex items-center gap-2.5">
-                                        <div className="w-9 h-9 rounded-[5px] flex items-center justify-center shrink-0 text-violet-600 bg-violet-50">
+                                        <div className="w-9 h-9 rounded-[5px] flex items-center justify-center shrink-0 text-info-fg bg-info-soft">
                                             <BookOpen className="w-4 h-4" />
                                         </div>
                                         <div className="min-w-0 text-left">
-                                            <p className="text-[12px] font-semibold text-slate-800 truncate max-w-[240px]">{file.name}</p>
-                                            <p className="text-[10px] text-slate-600 mt-0.5">{formatBytes(file.size)}</p>
+                                            <p className="text-caption font-semibold text-fg truncate max-w-[240px]">{file.name}</p>
+                                            <p className="text-caption text-fg-muted mt-0.5">{formatBytes(file.size)}</p>
                                         </div>
                                     </div>
-                                    <p className="text-[10px] text-slate-600 mt-2">{t("admin.library.changeFile")}</p>
+                                    <p className="text-caption text-fg-muted mt-2">{t("admin.library.changeFile")}</p>
                                 </>
                             ) : undefined}
                         </FileDrop>
@@ -141,26 +140,26 @@ function LibraryUploadModal({ onClose, onSubmit }) {
                     )}
 
                     {status === 'uploading' && (
-                        <div className="flex items-center gap-3 px-3 py-2.5 rounded-[5px] bg-blue-50 border border-blue-100">
-                            <Loader2 className="w-4 h-4 text-blue-500 animate-spin shrink-0" />
+                        <div className="flex items-center gap-3 px-3 py-2.5 rounded-[5px] bg-info-soft border border-info/30">
+                            <Loader2 className="w-4 h-4 text-info-fg animate-spin shrink-0" />
                             <div className="flex-1 min-w-0">
-                                <p className="text-[12px] font-semibold text-blue-700">{t("admin.library.uploading")}</p>
-                                <div className="h-1 w-full bg-blue-100 rounded-full mt-1.5 overflow-hidden">
-                                    <div className="h-full bg-blue-500 rounded-full animate-pulse w-3/4" />
+                                <p className="text-caption font-semibold text-info-fg">{t("admin.library.uploading")}</p>
+                                <div className="h-1 w-full bg-info-soft rounded-full mt-1.5 overflow-hidden">
+                                    <div className="h-full bg-info rounded-full animate-pulse w-3/4" />
                                 </div>
                             </div>
                         </div>
                     )}
                     {status === 'done' && (
-                        <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-[5px] bg-green-50 border border-green-100">
-                            <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
-                            <p className="text-[12px] font-semibold text-green-700">{t("admin.library.uploadDone")}</p>
+                        <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-[5px] bg-success-soft border border-success/30">
+                            <CheckCircle2 className="w-4 h-4 text-success-fg shrink-0" />
+                            <p className="text-caption font-semibold text-success-fg">{t("admin.library.uploadDone")}</p>
                         </div>
                     )}
                     {status === 'error' && (
-                        <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-[5px] bg-red-50 border border-red-100">
-                            <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
-                            <p className="text-[12px] font-semibold text-red-600">{errorMsg}</p>
+                        <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-[5px] bg-danger-soft border border-danger/30">
+                            <AlertCircle className="w-4 h-4 text-danger-fg shrink-0" />
+                            <p className="text-caption font-semibold text-danger-fg">{errorMsg}</p>
                         </div>
                     )}
                 </div>
@@ -171,14 +170,14 @@ function LibraryUploadModal({ onClose, onSubmit }) {
                             type="button"
                             onClick={onClose}
                             disabled={status === 'uploading'}
-                            className="flex-1 h-9 rounded-[5px] border border-slate-200 text-[12px] font-semibold text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-40"
+                            className="flex-1 h-9 rounded-[5px] border border-line text-caption font-semibold text-fg-muted hover:bg-surface-hover transition-colors disabled:opacity-40"
                         >
                             {t("admin.common.cancel")}
                         </button>
                         <Button
                             type="submit"
                             disabled={!file || status === 'uploading'}
-                            className="flex-1 h-9 rounded-[5px] text-[12px] font-semibold gap-1.5 bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-dark)] text-white"
+                            className="flex-1 h-9 rounded-[5px] text-caption font-semibold gap-1.5 bg-brand hover:bg-brand/90 text-on-brand"
                         >
                             {status === 'uploading'
                                 ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> {t("admin.library.uploading")}</>
@@ -196,12 +195,12 @@ function LibraryUploadModal({ onClose, onSubmit }) {
 const Banner = ({ type, message, onDismiss }) => {
     const { t } = useLanguage();
     const styles = {
-        error:   "bg-red-50 border-red-200 text-red-700",
-        warning: "bg-amber-50 border-amber-200 text-amber-700",
-        success: "bg-green-50 border-green-200 text-green-600",
+        error:   "bg-danger-soft border-danger/30 text-danger-fg",
+        warning: "bg-warning-soft border-warning/30 text-warning-fg",
+        success: "bg-success-soft border-success/30 text-success-fg",
     };
     return (
-        <div className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-[5px] border text-[12px] font-medium ${styles[type]}`}>
+        <div className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-[5px] border text-caption font-medium ${styles[type]}`}>
             <span className="flex-1">{message}</span>
             {onDismiss && (
                 <button aria-label={t("admin.sync.dismiss")} onClick={onDismiss} className="shrink-0 opacity-60 hover:opacity-100">
@@ -216,11 +215,11 @@ const Banner = ({ type, message, onDismiss }) => {
 const ConfirmBanner = ({ message, onConfirm, onCancel }) => {
     const { t } = useLanguage();
     return (
-    <div className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-[5px] border bg-amber-50 border-amber-200">
-        <p className="text-[12px] font-medium text-amber-800 flex-1">{message}</p>
+    <div className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-[5px] border bg-warning-soft border-warning/30">
+        <p className="text-caption font-medium text-warning-fg flex-1">{message}</p>
         <div className="flex gap-2 shrink-0">
-            <button onClick={onCancel} className="text-[11px] px-3 h-7 rounded-full border border-amber-300 text-amber-700 font-semibold hover:bg-amber-100 transition-colors">{t("admin.common.cancel")}</button>
-            <button onClick={onConfirm} className="text-[11px] px-3 h-7 rounded-full bg-amber-500 text-white font-semibold hover:bg-amber-600 transition-colors">{t("admin.common.delete")}</button>
+            <button onClick={onCancel} className="text-caption px-3 h-7 rounded-full border border-warning/30 text-warning-fg font-semibold hover:bg-warning-soft transition-colors">{t("admin.common.cancel")}</button>
+            <button onClick={onConfirm} className="text-caption px-3 h-7 rounded-full bg-warning text-on-warning font-semibold hover:bg-warning transition-colors">{t("admin.common.delete")}</button>
         </div>
     </div>
     );
@@ -342,14 +341,14 @@ const ManageLibrary = () => {
                 return (
                     <>
                         <div className="flex items-center gap-2 flex-wrap">
-                            <p className="text-[12px] font-medium text-slate-800 dark:text-slate-100">{book.book_name}</p>
+                            <p className="text-caption font-medium text-fg">{book.book_name}</p>
                             {isLocal && (
-                                <span className="text-[11px] bg-green-50 text-green-600 px-2 py-0.5 rounded-full font-bold border border-green-100">
+                                <span className="text-caption bg-success-soft text-success-fg px-2 py-0.5 rounded-full font-bold border border-success/30">
                                     {t("admin.sync.downloaded")}
                                 </span>
                             )}
                         </div>
-                        <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">{book.categories}</p>
+                        <p className="text-caption text-fg-muted mt-0.5">{book.categories}</p>
                     </>
                 );
             },
@@ -364,14 +363,14 @@ const ManageLibrary = () => {
                 const coverUrl = libraryCoverUrl(SERVER_URL, book);
                 return (
                     <div className="flex items-center gap-3">
-                        <div className="w-8 h-11 rounded-[3px] overflow-hidden bg-slate-100 dark:bg-slate-800 shrink-0 flex items-center justify-center">
+                        <div className="w-8 h-11 rounded-[3px] overflow-hidden bg-surface-sunken shrink-0 flex items-center justify-center">
                             {coverUrl
                                 ? <img src={coverUrl} alt="" loading="lazy" className="w-full h-full object-cover" />
-                                : <BookOpen className="w-3.5 h-3.5 text-slate-500" />}
+                                : <BookOpen className="w-3.5 h-3.5 text-fg-subtle" />}
                         </div>
                         <div className="min-w-0">
-                            <p className="text-[12px] font-medium text-slate-800 dark:text-slate-100">{book.name}</p>
-                            <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">{libraryShelf(book) || t("explore.library.other")}</p>
+                            <p className="text-caption font-medium text-fg">{book.name}</p>
+                            <p className="text-caption text-fg-muted mt-0.5">{libraryShelf(book) || t("explore.library.other")}</p>
                         </div>
                     </div>
                 );
@@ -385,14 +384,14 @@ const ManageLibrary = () => {
                 <div className="flex items-center justify-end gap-1">
                     <button
                         onClick={() => setViewBook(book)}
-                        className="inline-flex items-center gap-1.5 text-[11px] h-7 px-3 rounded-full text-[var(--brand-secondary)] hover:bg-teal-50 font-semibold transition-colors"
+                        className="inline-flex items-center gap-1.5 text-caption h-7 px-3 rounded-full text-brand-fg hover:bg-brand-soft font-semibold transition-colors"
                     >
                         <Eye className="w-3 h-3" />
                         {t("admin.library.open")}
                     </button>
                     <button
                         onClick={() => handleDelete(book.id, book.name)}
-                        className="inline-flex items-center gap-1.5 text-[11px] h-7 px-3 rounded-full text-red-600 hover:bg-red-50 font-semibold transition-colors"
+                        className="inline-flex items-center gap-1.5 text-caption h-7 px-3 rounded-full text-danger-fg hover:bg-danger-soft font-semibold transition-colors"
                     >
                         <Trash2 className="w-3 h-3" />
                         {t("admin.common.delete")}
@@ -411,7 +410,7 @@ const ManageLibrary = () => {
                     actions={
                         <Button
                             onClick={() => setShowUploadModal(true)}
-                            className="h-8 px-4 rounded-[5px] text-[12px] gap-1.5 flex items-center bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-dark)] text-white"
+                            className="h-8 px-4 rounded-[5px] text-caption gap-1.5 flex items-center bg-brand hover:bg-brand/90 text-on-brand"
                         >
                             <Upload className="w-3.5 h-3.5" />
                             {t("admin.library.addFromComputer")}
@@ -422,9 +421,9 @@ const ManageLibrary = () => {
 
             <div className="px-4 md:px-4 space-y-6">
 
-                <p className="text-[12px] text-slate-600 dark:text-slate-400">
+                <p className="text-caption text-fg-muted">
                     {t("explore.library.adminNote")}{" "}
-                    <Link href="/manage/admin/manage-content" className="font-semibold text-[var(--brand-secondary)] underline underline-offset-2">
+                    <Link href="/manage/admin/manage-content" className="font-semibold text-brand-fg underline underline-offset-2">
                         {t("explore.library.openContentManager")}
                     </Link>
                 </p>
@@ -457,7 +456,7 @@ const ManageLibrary = () => {
                             caption={t("admin.library.cloudCaption")}
                             columns={cloudColumns}
                             rows={fetching ? [] : books}
-                            rowClassName={(book) => (isDownloaded(book) ? "bg-green-50/60 dark:bg-green-950/20" : "")}
+                            rowClassName={(book) => (isDownloaded(book) ? "bg-success-soft/60" : "")}
                             empty={fetching ? (
                                 <Loader variant="page" size={56} className="min-h-[30vh]" label={t("admin.library.loadingBooks")} />
                             ) : t("admin.library.noBooks")}
@@ -465,10 +464,10 @@ const ManageLibrary = () => {
                         />
                         <div className="flex items-center justify-between gap-3 pt-3">
                             {downloadStatus !== 'init' ? (
-                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                                    downloadStatus === 'finished'    ? 'bg-green-50 text-green-600' :
-                                    downloadStatus === 'failed'      ? 'bg-red-50 text-red-600' :
-                                    'bg-blue-50 text-blue-600'
+                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-caption font-bold ${
+                                    downloadStatus === 'finished'    ? 'bg-success-soft text-success-fg' :
+                                    downloadStatus === 'failed'      ? 'bg-danger-soft text-danger-fg' :
+                                    'bg-info-soft text-info-fg'
                                 }`}>
                                     {downloadStatus === 'downloading' && <Loader2 className="w-3 h-3 animate-spin" />}
                                     {downloadStatus === 'finished'    && <CheckCircle2 className="w-3 h-3" />}
@@ -478,7 +477,7 @@ const ManageLibrary = () => {
                             <Button
                                 onClick={handleDownload}
                                 disabled={downloadStatus === "downloading"}
-                                className="h-8 px-4 rounded-[5px] text-[12px] gap-1.5"
+                                className="h-8 px-4 rounded-[5px] text-caption gap-1.5"
                             >
                                 {downloadStatus === "downloading" && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                                 {t("admin.library.downloadSelected")}

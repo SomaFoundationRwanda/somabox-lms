@@ -40,7 +40,7 @@ export default function AiJobPanel({ SERVER_URL, courseId, job: initialJob, labe
   const finished = job && !["queued", "running"].includes(job.status);
 
   return (
-    <div className="space-y-3 rounded-xl border border-slate-200 dark:border-slate-800 p-3">
+    <div className="space-y-3 rounded-xl border border-line p-3">
       <div className="flex items-start justify-between gap-2">
         <JobProgress
           className="flex-1"
@@ -50,16 +50,16 @@ export default function AiJobPanel({ SERVER_URL, courseId, job: initialJob, labe
           cancelling={cancelling}
         />
         {finished && onClose ? (
-          <button type="button" onClick={onClose} aria-label={tp("common.close")} className="p-1.5 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800">
+          <button type="button" onClick={onClose} aria-label={tp("common.close")} className="p-1.5 rounded-md text-fg-subtle hover:text-fg-muted hover:bg-surface-hover">
             <X className="w-4 h-4" />
           </button>
         ) : null}
       </div>
-      {error ? <p role="alert" className="text-xs text-rose-600">{error}</p> : null}
-      {loadError ? <p role="alert" className="text-xs text-rose-600">{loadError}</p> : null}
+      {error ? <p role="alert" className="text-caption text-danger-fg">{error}</p> : null}
+      {loadError ? <p role="alert" className="text-caption text-danger-fg">{loadError}</p> : null}
 
       {job?.status === "done" && drafts && drafts.length === 0 ? (
-        <p className="text-xs text-slate-500">{tp("ai.noDraft")}</p>
+        <p className="text-caption text-fg-subtle">{tp("ai.noDraft")}</p>
       ) : null}
 
       {(drafts || []).map((d) => {
@@ -68,7 +68,7 @@ export default function AiJobPanel({ SERVER_URL, courseId, job: initialJob, labe
           return <ApprovedNote key={d.id} draft={{ ...d, ...decision.draft }} courseId={courseId} message={decision.message} />;
         }
         if (decision?.status === "rejected") {
-          return <p key={d.id} className="text-xs text-slate-500">{tp("ai.rejectedNote")}</p>;
+          return <p key={d.id} className="text-caption text-fg-subtle">{tp("ai.rejectedNote")}</p>;
         }
         return (
           <DraftCard
@@ -89,8 +89,8 @@ export default function AiJobPanel({ SERVER_URL, courseId, job: initialJob, labe
       })}
 
       {job?.status === "done" && drafts?.length ? (
-        <p className="text-[11px] text-slate-500">
-          {fillNode(tp("ai.alsoWaitIn", { link: "{link}" }), { link: <Link href={`/course/${courseId}/ai`} className="font-semibold text-[var(--brand-secondary)] hover:underline">{tp("ai.draftsLink")}</Link> })}
+        <p className="text-caption text-fg-subtle">
+          {fillNode(tp("ai.alsoWaitIn", { link: "{link}" }), { link: <Link href={`/course/${courseId}/ai`} className="font-semibold text-brand-fg hover:underline">{tp("ai.draftsLink")}</Link> })}
         </p>
       ) : null}
     </div>

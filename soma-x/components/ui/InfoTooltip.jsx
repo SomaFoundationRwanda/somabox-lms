@@ -21,7 +21,7 @@ export default function InfoTooltip({ text, className = "" }) {
         onMouseLeave={() => setOpen(false)}
         onFocus={() => setOpen(true)}
         onBlur={() => setOpen(false)}
-        className="inline-flex items-center justify-center w-4 h-4 rounded-full text-slate-400 hover:text-slate-600 focus:text-slate-600 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]"
+        className="inline-flex items-center justify-center w-4 h-4 rounded-full text-fg-subtle hover:text-fg-muted focus:text-fg-muted outline-none focus-visible:ring-2 focus-visible:ring-brand"
       >
         <Info className="w-3.5 h-3.5" />
         <span className="sr-only">{t?.("shell.common.moreInfo") ?? "More info"}</span>
@@ -29,7 +29,7 @@ export default function InfoTooltip({ text, className = "" }) {
       <span
         id={id}
         role="tooltip"
-        className={`absolute z-20 top-full left-1/2 -translate-x-1/2 mt-1.5 w-56 rounded-lg bg-slate-900 text-white text-[11px] leading-snug px-2.5 py-2 shadow-lg transition-opacity ${
+        className={`absolute z-20 top-full left-1/2 -translate-x-1/2 mt-1.5 w-56 rounded-lg dark bg-surface-raised text-fg text-caption leading-snug px-2.5 py-2 shadow-lg transition-opacity ${
           open ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
       >

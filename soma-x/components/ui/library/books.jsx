@@ -14,12 +14,12 @@ const EpubReader = dynamic(() => import("./EpubReader"), { ssr: false });
 
 // Fallback gradient colors per book index
 const COVER_GRADIENTS = [
-    "from-violet-400 to-purple-600",
-    "from-blue-400 to-indigo-600",
-    "from-teal-400 to-emerald-600",
-    "from-amber-400 to-orange-500",
-    "from-rose-400 to-pink-600",
-    "from-cyan-400 to-sky-600",
+    "from-info to-info",
+    "from-info to-info",
+    "from-brand to-success",
+    "from-warning to-warning",
+    "from-danger to-info",
+    "from-info to-info",
 ];
 
 function getCoverGradient(index) {
@@ -83,11 +83,11 @@ const BooksPage = ({ books = [], loading = false, shelf = null, searchQuery }) =
     if (filteredBooks.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center py-20 text-center px-4">
-                <div className="w-14 h-14 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center mb-3">
-                    <BookOpen className="w-6 h-6 text-slate-500" />
+                <div className="w-14 h-14 rounded-2xl bg-surface-sunken border border-line flex items-center justify-center mb-3">
+                    <BookOpen className="w-6 h-6 text-fg-subtle" />
                 </div>
-                <p className="text-[13px] font-semibold text-slate-500">{t("learner.library.noBooks")}</p>
-                <p className="text-[11px] text-slate-600 mt-1">{t("learner.library.noBooksHint")}</p>
+                <p className="text-small font-semibold text-fg-subtle">{t("learner.library.noBooks")}</p>
+                <p className="text-caption text-fg-muted mt-1">{t("learner.library.noBooksHint")}</p>
             </div>
         );
     }
@@ -98,12 +98,12 @@ const BooksPage = ({ books = [], loading = false, shelf = null, searchQuery }) =
                 {/* Header row */}
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-400 to-violet-500 flex items-center justify-center">
+                        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-info to-info flex items-center justify-center">
                             <BookOpen size={13} className="text-white" />
                         </div>
-                        <p className="text-[13px] font-bold text-slate-800">{t("books") || "Books"}</p>
+                        <p className="text-small font-bold text-fg">{t("books") || "Books"}</p>
                     </div>
-                    <span className="text-[10px] font-medium px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-slate-500">
+                    <span className="text-caption font-medium px-2.5 py-1 rounded-lg bg-surface-sunken border border-line text-fg-subtle">
                         {filteredBooks.length === 1 ? t("learner.library.oneBook") : fill(t("learner.library.nBooks"), { n: filteredBooks.length })}
                     </span>
                 </div>
@@ -118,7 +118,7 @@ const BooksPage = ({ books = [], loading = false, shelf = null, searchQuery }) =
                             key={item.id ?? index}
                             type="button"
                             onClick={() => openBook(item)}
-                            className="group text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)] focus-visible:ring-offset-2 rounded-xl"
+                            className="group text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 rounded-xl"
                         >
                             {/* Cover */}
                             <div className="relative aspect-[2/3] overflow-hidden rounded-xl shadow-sm group-hover:shadow-lg transition-all duration-300 group-hover:-translate-y-0.5 mb-2.5">
@@ -133,7 +133,7 @@ const BooksPage = ({ books = [], loading = false, shelf = null, searchQuery }) =
                                 ) : (
                                     <div className={`w-full h-full bg-gradient-to-br ${getCoverGradient(index)} flex flex-col items-center justify-center p-3 text-center`}>
                                         <TypeIcon size={28} className="text-white/70 mb-2" />
-                                        <p className="text-white font-bold text-[11px] line-clamp-3 leading-snug">
+                                        <p className="text-white font-bold text-caption line-clamp-3 leading-snug">
                                             {item.name}
                                         </p>
                                     </div>
@@ -141,17 +141,17 @@ const BooksPage = ({ books = [], loading = false, shelf = null, searchQuery }) =
 
                                 {/* Read overlay on hover */}
                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-200 flex items-center justify-center">
-                                    <span className="bg-white text-slate-900 text-[11px] font-bold px-3 py-1.5 rounded-full shadow">
+                                    <span className="bg-surface text-fg text-caption font-bold px-3 py-1.5 rounded-full shadow">
                                         {actionLabel(item)} →
                                     </span>
                                 </div>
                             </div>
 
                             {/* Meta — always visible */}
-                            <p className="text-[12px] font-semibold text-slate-800 line-clamp-2 leading-snug mb-0.5">
+                            <p className="text-caption font-semibold text-fg line-clamp-2 leading-snug mb-0.5">
                                 {item.name}
                             </p>
-                            <p className="text-[10px] text-slate-600 truncate capitalize">
+                            <p className="text-caption text-fg-muted truncate capitalize">
                                 {libraryShelf(item) || t("explore.library.other")}
                             </p>
                         </button>

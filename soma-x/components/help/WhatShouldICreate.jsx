@@ -63,14 +63,14 @@ export default function WhatShouldICreate({ open, onClose, modules, defaultModul
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="w-full sm:max-w-lg max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-white dark:bg-slate-900 p-5 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]"
+        className="w-full sm:max-w-lg max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-surface p-5 outline-none focus-visible:ring-2 focus-visible:ring-brand"
       >
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h2 id={titleId} className="text-base font-bold text-slate-900 dark:text-white">{helper.title || "What should learners do?"}</h2>
-            <p className="mt-1 text-xs text-slate-500">{helper.intro}</p>
+            <h2 id={titleId} className="text-item font-bold text-fg">{helper.title || "What should learners do?"}</h2>
+            <p className="mt-1 text-caption text-fg-subtle">{helper.intro}</p>
           </div>
-          <button type="button" onClick={onClose} aria-label={helper.cancel || "Cancel"} className="text-slate-400 hover:text-slate-600">
+          <button type="button" onClick={onClose} aria-label={helper.cancel || "Cancel"} className="text-fg-subtle hover:text-fg-muted">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -101,12 +101,12 @@ export default function WhatShouldICreate({ open, onClose, modules, defaultModul
         </Field>
 
         <div className="mt-5 flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100">{helper.cancel || "Cancel"}</button>
+          <button type="button" onClick={onClose} className="rounded-lg px-4 py-2 text-ui font-semibold text-fg-muted hover:bg-surface-hover">{helper.cancel || "Cancel"}</button>
           <button
             type="button"
             onClick={create}
             disabled={!goal || !moduleId}
-            className="rounded-lg bg-[var(--brand-primary)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
+            className="rounded-lg bg-brand-strong px-4 py-2 text-ui font-semibold text-on-brand-strong disabled:opacity-40"
           >
             {helper.create || "Create it"}
           </button>

@@ -89,16 +89,16 @@ function RetentionSetting() {
                         className="w-32"
                     />
                 </Field>
-                <button type="submit" disabled={saving || !settings} className="text-xs font-bold text-white bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-dark)] disabled:opacity-60 px-4 py-2 rounded-lg">
+                <button type="submit" disabled={saving || !settings} className="text-caption font-bold text-on-brand bg-brand hover:bg-brand/90 disabled:opacity-60 px-4 py-2 rounded-lg">
                     {saving ? t("admin.analytics.saving") : t("admin.analytics.save")}
                 </button>
             </form>
-            <p id="retention-help" className="text-xs text-slate-500">
+            <p id="retention-help" className="text-caption text-fg-subtle">
                 {t("admin.analytics.retentionHelp")}
             </p>
-            {error ? <p role="alert" className="text-xs text-rose-600">{error}</p> : null}
+            {error ? <p role="alert" className="text-caption text-danger-fg">{error}</p> : null}
             {purged ? (
-                <p role="status" className="text-xs text-slate-700 dark:text-slate-200">
+                <p role="status" className="text-caption text-fg-muted">
                     {fill(t("admin.analytics.purged"), { events: purged.usageEvents ?? 0, calls: purged.aiCalls ?? 0, days: purged.days ?? settings?.usageRetentionDays })}
                 </p>
             ) : null}
@@ -133,7 +133,7 @@ export default function AdminAnalyticsPage() {
             <div className="px-4 md:px-6 pt-4 space-y-8 max-w-7xl mx-auto">
                 <Link
                     href="/manage/admin"
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                    className="inline-flex items-center gap-1.5 text-caption font-semibold text-fg-subtle hover:text-fg"
                 >
                     <ArrowLeft className="w-3.5 h-3.5" /> {t("admin.common.backToAdmin")}
                 </Link>
@@ -145,15 +145,15 @@ export default function AdminAnalyticsPage() {
                         <>
                         <Link
                             href="/manage/admin/sync"
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-line text-caption font-bold text-fg-muted hover:bg-surface-hover transition-colors"
                         >
                             {t("admin.analytics.cloudSync")}
                         </Link>
                         <Link
                             href="/manage/admin/branding"
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-line text-caption font-bold text-fg-muted hover:bg-surface-hover transition-colors"
                         >
-                            <Palette className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+                            <Palette className="w-3.5 h-3.5 text-brand-fg" />
                             {t("admin.branding.eyebrow")}
                         </Link>
                         </>
@@ -190,15 +190,15 @@ export default function AdminAnalyticsPage() {
                                             className: "min-w-[12rem]",
                                             render: (c) => (
                                                 <div>
-                                                    <Link href={`/course/${c.id}/insights`} className="font-semibold text-slate-900 dark:text-white hover:text-[var(--brand-secondary)] hover:underline">{c.title}</Link>
-                                                    <span className="block text-[10px] font-semibold uppercase text-slate-400">{t(`admin.courses.lifecycle.${LIFECYCLES.includes(c.lifecycle) ? c.lifecycle : "draft"}`)}</span>
+                                                    <Link href={`/course/${c.id}/insights`} className="font-semibold text-fg hover:text-brand-fg hover:underline">{c.title}</Link>
+                                                    <span className="block text-caption font-semibold text-fg-subtle">{t(`admin.courses.lifecycle.${LIFECYCLES.includes(c.lifecycle) ? c.lifecycle : "draft"}`)}</span>
                                                 </div>
                                             ),
                                         },
-                                        { key: "teachers", header: t("admin.analytics.teachers"), className: "min-w-[8rem] text-xs text-slate-600 dark:text-slate-300", render: (c) => (c.teachers?.length ? c.teachers.join(", ") : "—") },
+                                        { key: "teachers", header: t("admin.analytics.teachers"), className: "min-w-[8rem] text-caption text-fg-muted", render: (c) => (c.teachers?.length ? c.teachers.join(", ") : "—") },
                                         { key: "learners", header: t("admin.analytics.learners"), align: "right", render: (c) => c.learners ?? 0 },
                                         { key: "withData", header: t("admin.analytics.colWithResults"), align: "right", render: (c) => c.learnersWithData ?? 0 },
-                                        { key: "mastery", header: t("admin.analytics.colMastery"), align: "right", render: (c) => <span className={c.averageMastery == null ? "text-slate-400" : "font-semibold"}>{fmtPct(c.averageMastery)}</span> },
+                                        { key: "mastery", header: t("admin.analytics.colMastery"), align: "right", render: (c) => <span className={c.averageMastery == null ? "text-fg-subtle" : "font-semibold"}>{fmtPct(c.averageMastery)}</span> },
                                         { key: "delta", header: t("admin.analytics.colDelta"), align: "right", render: (c) => <DeltaText value={c.averageDeltaPoints} /> },
                                         { key: "onTime", header: t("admin.analytics.colOnTime"), align: "right", render: (c) => fmtRate(c.onTimeRate) },
                                         { key: "missing", header: t("admin.analytics.colMissing"), align: "right", render: (c) => c.missing ?? "—" },
@@ -214,14 +214,14 @@ export default function AdminAnalyticsPage() {
                             title={t("admin.analytics.useTitle")}
                             description={fill(t("admin.analytics.lastDays"), { days: data.days })}
                             actions={
-                                <div role="group" aria-label={t("admin.analytics.period")} className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+                                <div role="group" aria-label={t("admin.analytics.period")} className="inline-flex rounded-lg border border-line overflow-hidden">
                                     {DAY_OPTIONS.map((d) => (
                                         <button
                                             key={d}
                                             type="button"
                                             onClick={() => setDays(d)}
                                             aria-pressed={days === d}
-                                            className={`px-3 py-1.5 text-xs font-semibold ${days === d ? "bg-[var(--brand-primary)] text-white" : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"}`}
+                                            className={`px-3 py-1.5 text-caption font-semibold ${days === d ? "bg-brand-strong text-on-brand-strong" : "text-fg-muted hover:bg-surface-hover"}`}
                                         >
                                             {fill(t("admin.analytics.nDays"), { days: d })}
                                         </button>
@@ -231,7 +231,7 @@ export default function AdminAnalyticsPage() {
                         >
                             <div className="space-y-6">
                                 <div>
-                                    <h3 className="mb-2 text-xs font-semibold text-slate-700 dark:text-slate-200">{t("admin.analytics.teaching")}</h3>
+                                    <h3 className="mb-2 text-caption font-semibold text-fg-muted">{t("admin.analytics.teaching")}</h3>
                                     <dl className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
                                         <Figure
                                             label={t("admin.analytics.medianGrade")}
@@ -242,7 +242,7 @@ export default function AdminAnalyticsPage() {
                                     </dl>
                                 </div>
                                 <div>
-                                    <h3 className="mb-2 text-xs font-semibold text-slate-700 dark:text-slate-200">{t("admin.analytics.productUse")}</h3>
+                                    <h3 className="mb-2 text-caption font-semibold text-fg-muted">{t("admin.analytics.productUse")}</h3>
                                     <DataTable
                                         caption={fill(t("admin.analytics.productUseCaption"), { days: data.days })}
                                         rows={events}

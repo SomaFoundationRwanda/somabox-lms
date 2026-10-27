@@ -12,10 +12,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch, getErrorMessage } from "@/lib/api";
 import { queryKeys } from "@/lib/queryKeys";
 import { useUserList } from "@/lib/queries/users";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/context/ToastContext";
-import { Field, Select, TextInput } from "@/components/form";
+import { Checkbox, Field, Label, Select, TextInput } from "@/components/form";
 
 // Admins give a course another teacher, e.g. when its teacher left (PUT /courses/:id/teacher).
 function ChangeTeacher({ course, onClose, onDone }) {
@@ -49,7 +48,7 @@ function ChangeTeacher({ course, onClose, onDone }) {
   return (
     <Modal title={fill(t("admin.courses.changeTeacherTitle"), { course: course.title })} onClose={onClose} dirty={!!email}>
       <div className="space-y-4">
-        <p className="text-sm text-slate-600 dark:text-slate-400">
+        <p className="text-ui text-fg-muted">
           {course.teachers ? fill(t("admin.courses.currentTeachers"), { teachers: course.teachers }) : t("admin.courses.noTeacherNow")}
         </p>
         <Field id="change-teacher" label={t("admin.courses.newTeacher")}>
@@ -65,10 +64,10 @@ function ChangeTeacher({ course, onClose, onDone }) {
         {course.teachers && (
           <div className="flex items-start gap-2.5">
             <Checkbox id="remove-other-teachers" checked={removeOthers} onCheckedChange={(v) => setRemoveOthers(v === true)} className="mt-0.5" />
-            <label htmlFor="remove-other-teachers" className="text-sm text-slate-700 dark:text-slate-300 cursor-pointer">{t("admin.courses.removeOthers")}</label>
+            <Label htmlFor="remove-other-teachers">{t("admin.courses.removeOthers")}</Label>
           </div>
         )}
-        {error && <p role="alert" className="text-sm text-rose-600">{error}</p>}
+        {error && <p role="alert" className="text-ui text-danger-fg">{error}</p>}
         <Button type="button" onClick={save} disabled={!email || saving} className="w-full">
           {saving ? t("admin.addUser.saving") : t("admin.courses.saveTeacher")}
         </Button>
@@ -86,7 +85,7 @@ export default function AllCourses() {
   const [filter, setFilter] = useState("");
   const [changing, setChanging] = useState(null); // the course whose teacher is being changed
 
-  if (error) return <p className="text-sm text-rose-600">{error}</p>;
+  if (error) return <p className="text-ui text-danger-fg">{error}</p>;
   if (!courses) return <Loader variant="page" size={48} className="min-h-[8rem]" />;
   if (courses.length === 0) {
     return <EmptyState compact title={t("admin.courses.emptyTitle")} description={t("admin.courses.emptyText")} />;
@@ -117,8 +116,8 @@ export default function AllCourses() {
             header: t("admin.courses.colCourse"),
             render: (c) => (
               <div className="min-w-0">
-                <Link href={`/course/${c.id}/home`} className="font-semibold text-slate-900 hover:text-[var(--brand-secondary)] hover:underline">{c.title}</Link>
-                <div className="text-xs text-slate-500">{fill(t("admin.courses.code"), { code: c.id })}{c.grade ? ` · ${c.grade}` : ""}</div>
+                <Link href={`/course/${c.id}/home`} className="font-semibold text-fg hover:text-brand-fg hover:underline">{c.title}</Link>
+                <div className="text-caption text-fg-subtle">{fill(t("admin.courses.code"), { code: c.id })}{c.grade ? ` · ${c.grade}` : ""}</div>
               </div>
             ),
           },
@@ -127,17 +126,17 @@ export default function AllCourses() {
             render: (c) => (
               <div className="flex flex-col items-start gap-1">
                 {c.teachers
-                  ? <span className="text-xs text-slate-600">{c.teachers}</span>
-                  : <span className="text-xs font-semibold text-rose-700">{t("admin.courses.noTeacher")}</span>}
-                <button type="button" onClick={() => setChanging(c)} className="text-xs font-semibold text-[var(--brand-secondary)] hover:underline">
+                  ? <span className="text-caption text-fg-muted">{c.teachers}</span>
+                  : <span className="text-caption font-semibold text-danger-fg">{t("admin.courses.noTeacher")}</span>}
+                <button type="button" onClick={() => setChanging(c)} className="text-caption font-semibold text-brand-fg hover:underline">
                   {t("admin.courses.changeTeacher")}
                 </button>
               </div>
             ),
           },
-          { key: "lifecycle", header: t("admin.courses.colStatus"), render: (c) => <span className="text-xs font-semibold text-slate-700">{t(`admin.courses.lifecycle.${["draft", "open", "closed", "archived"].includes(c.lifecycle) ? c.lifecycle : "draft"}`)}</span> },
+          { key: "lifecycle", header: t("admin.courses.colStatus"), render: (c) => <span className="text-caption font-semibold text-fg-muted">{t(`admin.courses.lifecycle.${["draft", "open", "closed", "archived"].includes(c.lifecycle) ? c.lifecycle : "draft"}`)}</span> },
           { key: "learners", header: t("admin.courses.colLearners"), align: "right" },
-          { key: "start_date", header: t("admin.courses.colStarts"), hideOnMobile: true, render: (c) => <span className="text-xs text-slate-600">{c.start_date ? formatDate(c.start_date) : t("admin.common.notSet")}</span> },
+          { key: "start_date", header: t("admin.courses.colStarts"), hideOnMobile: true, render: (c) => <span className="text-caption text-fg-muted">{c.start_date ? formatDate(c.start_date) : t("admin.common.notSet")}</span> },
         ]}
       />
       {changing && (

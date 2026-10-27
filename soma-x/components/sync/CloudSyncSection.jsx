@@ -63,40 +63,40 @@ function StatusLine({ status }) {
 
   let icon, title, detail, tone;
   if (!status.configured) {
-    icon = <CloudOff className="w-5 h-5 text-slate-400" aria-hidden="true" />;
+    icon = <CloudOff className="w-5 h-5 text-fg-subtle" aria-hidden="true" />;
     title = t("admin.cloud.notSetUpTitle");
     detail = t("admin.cloud.notSetUpDetail");
-    tone = "text-slate-800 dark:text-slate-100";
+    tone = "text-fg";
   } else if (failing) {
-    icon = <AlertTriangle className="w-5 h-5 text-amber-600" aria-hidden="true" />;
+    icon = <AlertTriangle className="w-5 h-5 text-warning-fg" aria-hidden="true" />;
     title = t("admin.cloud.failingTitle");
     const tries = status.failedAttempts > 0 ? countText(t, status.failedAttempts, "admin.cloud.triedOne", "admin.cloud.triedMany") : t("admin.cloud.lastTryFailed");
     const when = lastRun?.startedAt ? fill(t("admin.cloud.mostRecently"), { when: formatRelative(lastRun.startedAt) }) : "";
     detail = `${tries}${when}. ${countText(t, status.pending, "admin.cloud.safeOne", "admin.cloud.safeMany")}`;
-    tone = "text-amber-800 dark:text-amber-300";
+    tone = "text-warning-fg";
   } else if (!status.pending) {
-    icon = <CheckCircle2 className="w-5 h-5 text-emerald-600" aria-hidden="true" />;
+    icon = <CheckCircle2 className="w-5 h-5 text-success-fg" aria-hidden="true" />;
     title = t("admin.cloud.upToDate");
     detail = t("admin.cloud.nothingWaiting");
-    tone = "text-emerald-800 dark:text-emerald-300";
+    tone = "text-success-fg";
   } else {
-    icon = <Clock className="w-5 h-5 text-[var(--brand-secondary)]" aria-hidden="true" />;
+    icon = <Clock className="w-5 h-5 text-brand-fg" aria-hidden="true" />;
     title = countText(t, status.pending, "admin.cloud.waitingOne", "admin.cloud.waitingMany");
     if (status.oldestPendingAt) title += ` ${fill(t("admin.cloud.since"), { when: formatRelative(status.oldestPendingAt) })}`;
     detail = status.intervalMinutes
       ? countText(t, status.intervalMinutes, "admin.cloud.everyMinute", "admin.cloud.everyMinutes")
       : t("admin.cloud.onSchedule");
-    tone = "text-slate-800 dark:text-slate-100";
+    tone = "text-fg";
   }
 
   return (
     <div className="flex items-start gap-3" role="status" aria-live="polite">
       <span className="mt-0.5 shrink-0">{icon}</span>
       <div className="min-w-0">
-        <p className={`text-sm font-bold ${tone}`}>{title}</p>
-        <p className="text-xs text-slate-500 dark:text-slate-400">{detail}</p>
+        <p className={`text-ui font-bold ${tone}`}>{title}</p>
+        <p className="text-caption text-fg-subtle">{detail}</p>
         {failing && lastRun?.details?.error ? (
-          <p className="mt-1 text-[11px] text-slate-500 break-words">{t("admin.cloud.supportDetails")} {lastRun.details.error}</p>
+          <p className="mt-1 text-caption text-fg-subtle break-words">{t("admin.cloud.supportDetails")} {lastRun.details.error}</p>
         ) : null}
       </div>
     </div>
@@ -177,7 +177,7 @@ function ScopeForm({ scope, onSaved }) {
       />
 
       {risky ? (
-        <p role="alert" className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300">
+        <p role="alert" className="flex items-start gap-2 rounded-lg border border-warning/30 bg-warning-soft px-3 py-2 text-caption font-medium text-warning-fg">
           <AlertTriangle className="w-4 h-4 shrink-0 mt-px" aria-hidden="true" />
           <span>
             {form.people === "full" && form.submissionText
@@ -190,18 +190,18 @@ function ScopeForm({ scope, onSaved }) {
         </p>
       ) : null}
 
-      {error ? <p role="alert" className="text-xs font-semibold text-rose-600">{error}</p> : null}
+      {error ? <p role="alert" className="text-caption font-semibold text-danger-fg">{error}</p> : null}
 
       <div className="flex flex-wrap items-center gap-2">
         <button
           type="submit"
           disabled={!dirty || saving}
-          className="text-xs font-semibold text-white bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] disabled:opacity-50 rounded-lg px-4 py-2"
+          className="text-caption font-semibold text-on-brand-strong bg-brand-strong hover:bg-brand-strong/90 disabled:opacity-50 rounded-lg px-4 py-2"
         >
           {saving ? t("admin.analytics.saving") : t("admin.analytics.save")}
         </button>
         {dirty ? (
-          <button type="button" onClick={() => setForm(scope)} className="text-xs font-semibold text-slate-600 hover:text-slate-900 px-2 py-2">
+          <button type="button" onClick={() => setForm(scope)} className="text-caption font-semibold text-fg-muted hover:text-fg px-2 py-2">
             {t("admin.cloud.undoChanges")}
           </button>
         ) : null}
@@ -258,19 +258,19 @@ export default function CloudSyncSection() {
             type="button"
             onClick={syncNow}
             disabled={running || !status}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] disabled:opacity-50 rounded-lg px-3 py-2"
+            className="inline-flex items-center gap-1.5 text-caption font-semibold text-on-brand-strong bg-brand-strong hover:bg-brand-strong/90 disabled:opacity-50 rounded-lg px-3 py-2"
           >
             {running ? <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" /> : <RefreshCw className="w-3.5 h-3.5" aria-hidden="true" />}
             {running ? t("admin.cloud.syncing") : t("admin.cloud.syncNow")}
           </button>
         }
       >
-        {error ? <p role="alert" className="text-sm text-rose-600">{error}</p> : null}
+        {error ? <p role="alert" className="text-ui text-danger-fg">{error}</p> : null}
         {!status && !error ? <Loader variant="page" size={40} className="min-h-[6rem]" label={t("admin.cloud.loadingStatus")} /> : null}
         {status ? (
           <div className="space-y-3">
             <StatusLine status={status} />
-            <p className="text-xs text-slate-600 dark:text-slate-300">
+            <p className="text-caption text-fg-muted">
               {t("admin.cloud.lastSuccess")}{" "}
               {status.lastSuccessAt ? (
                 <time dateTime={status.lastSuccessAt} title={formatDateTime(status.lastSuccessAt)} className="font-semibold">
@@ -281,7 +281,7 @@ export default function CloudSyncSection() {
               )}
             </p>
             {runMessage ? (
-              <p role="status" className={`text-xs font-semibold ${runMessage.ok ? "text-emerald-700 dark:text-emerald-300" : "text-rose-600"}`}>{runMessage.text}</p>
+              <p role="status" className={`text-caption font-semibold ${runMessage.ok ? "text-success-fg" : "text-danger-fg"}`}>{runMessage.text}</p>
             ) : null}
           </div>
         ) : null}
@@ -303,7 +303,7 @@ export default function CloudSyncSection() {
               ))}
             </List>
           ) : (
-            <p className="text-xs text-slate-500">{t("admin.cloud.noSyncs")}</p>
+            <p className="text-caption text-fg-subtle">{t("admin.cloud.noSyncs")}</p>
           )}
         </Section>
       ) : null}
@@ -319,7 +319,7 @@ export default function CloudSyncSection() {
       ) : null}
 
       {status?.boxId ? (
-        <p className="text-[11px] text-slate-400">
+        <p className="text-caption text-fg-subtle">
           {t("admin.cloud.boxId")} <span className="font-mono select-all">{status.boxId}</span>
           {status.transport ? ` · ${status.transport === "firestore" ? fill(t("admin.cloud.sendsBy"), { via: "Firebase" }) : fill(t("admin.cloud.sendsBy"), { via: t("admin.cloud.webAddress") })}` : ""}
         </p>

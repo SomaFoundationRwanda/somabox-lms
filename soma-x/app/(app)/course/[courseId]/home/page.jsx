@@ -55,11 +55,11 @@ export default function CourseHomePage() {
   const outcomesList = outcomePulse?.outcomes || [];
 
   const BEAT_COLORS = {
-    prepare: "bg-amber-500 text-white",
-    release: "bg-emerald-600 text-white",
-    collect: "bg-blue-600 text-white",
-    grade: "bg-[var(--brand-primary)] text-white",
-    review: "bg-teal-700 text-white",
+    prepare: "bg-warning text-on-warning",
+    release: "bg-success text-on-success",
+    collect: "bg-info text-on-info",
+    grade: "bg-brand-strong text-on-brand-strong",
+    review: "bg-brand-strong text-on-brand-strong",
   };
 
   const weekText = beatInfo.currentWeekNumber === null || beatInfo.currentWeekNumber === undefined
@@ -76,7 +76,7 @@ export default function CourseHomePage() {
 
       {/* Course banner (image only; the title lives in the PageHeader below) */}
       {course?.coverImageUrl ? (
-        <div className="w-full h-32 md:h-44 bg-slate-100 relative">
+        <div className="w-full h-32 md:h-44 bg-surface-sunken relative">
           <img src={apiUrl(course.coverImageUrl)} alt="" className="w-full h-full object-cover" />
         </div>
       ) : null}
@@ -86,14 +86,14 @@ export default function CourseHomePage() {
           eyebrow={t("home.eyebrow")}
           title={course?.title || t("nav.course")}
           meta={
-            <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-[var(--brand-secondary)] px-2.5 py-0.5 rounded-full">
+            <span className="text-caption font-bold text-on-brand bg-brand px-2.5 py-0.5 rounded-full">
               {lifecycleLabel(course)}
             </span>
           }
           actions={
             <Link
               href={`/course/${courseId}/${isTeacher ? "insights" : "progress"}`}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--brand-secondary)] border border-teal-200 dark:border-teal-900 hover:bg-teal-50 dark:hover:bg-teal-950/30 rounded-lg px-3 py-1.5"
+              className="inline-flex items-center gap-1.5 text-caption font-semibold text-brand-fg border border-brand/40 hover:bg-brand-soft rounded-lg px-3 py-1.5"
             >
               <TrendingUp className="w-3.5 h-3.5" aria-hidden="true" /> {isTeacher ? t("nav.insights") : t("nav.progress")}
             </Link>
@@ -109,27 +109,27 @@ export default function CourseHomePage() {
         )}
 
         {/* 1. NOW: a flat header band, not a card */}
-        <section aria-labelledby="now-title" className="border-l-4 border-[var(--brand-secondary)] pl-4 py-1 space-y-3">
+        <section aria-labelledby="now-title" className="border-l-4 border-brand pl-4 py-1 space-y-3">
           <div className="flex flex-wrap items-center gap-2">
             {/* The weekly beat (prepare, release, collect...) is the teacher's routine. */}
             {isTeacher && (
-              <span className={`text-xs font-bold uppercase px-3 py-1 rounded-full ${BEAT_COLORS[currentBeat] || BEAT_COLORS.prepare}`}>
+              <span className={`text-caption font-bold px-3 py-1 rounded-full ${BEAT_COLORS[currentBeat] || BEAT_COLORS.prepare}`}>
                 {tf("home.nowBeat", { beat: beatName })}
               </span>
             )}
-            <span className="text-xs font-semibold text-slate-500 flex items-center gap-1">
-              <Clock className="w-3.5 h-3.5 text-slate-400" />
+            <span className="text-caption font-semibold text-fg-subtle flex items-center gap-1">
+              <Clock className="w-3.5 h-3.5 text-fg-subtle" />
               {weekText}
             </span>
             {isTeacher && course?.lifecycle === "open" && beatInfo.startDate && (
-              <span className="text-xs font-semibold text-[var(--brand-secondary)]">· {t("home.weeklyLoopActive")}</span>
+              <span className="text-caption font-semibold text-brand-fg">· {t("home.weeklyLoopActive")}</span>
             )}
           </div>
 
           <div>
-            <h2 id="now-title" className="text-lg font-bold text-slate-900 dark:text-white">{loopText("loopTitles", beatInfo.beatKey, beatInfo.beatParams, beatInfo.beatTitle) || t("home.currentBeat")}</h2>
+            <h2 id="now-title" className="text-section font-bold text-fg">{loopText("loopTitles", beatInfo.beatKey, beatInfo.beatParams, beatInfo.beatTitle) || t("home.currentBeat")}</h2>
             {isTeacher && (
-              <p className="text-sm text-slate-500 mt-1 max-w-2xl">
+              <p className="text-ui text-fg-subtle mt-1 max-w-2xl">
                 {["prepare", "release", "collect", "grade", "review"].includes(currentBeat) ? t(`home.beatHelp.${currentBeat}`) : null}
               </p>
             )}
@@ -138,7 +138,7 @@ export default function CourseHomePage() {
           {beatInfo.primaryAction && (
             <Link
               href={beatInfo.primaryAction.href}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] text-white rounded-lg text-sm font-semibold transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-brand-strong hover:bg-brand-strong/90 text-on-brand-strong rounded-lg text-ui font-semibold transition-colors"
             >
               <Play className="w-4 h-4 fill-white" /> {loopText("loopActions", beatInfo.primaryAction.key, null, beatInfo.primaryAction.label)}
             </Link>
@@ -148,11 +148,11 @@ export default function CourseHomePage() {
         {/* 2. NEEDS ATTENTION (teachers: setup and grading to do) */}
         {isTeacher && (
         <Section
-          title={<span className="flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-amber-500" /> {t("home.needsAttention")}</span>}
+          title={<span className="flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-warning-fg" /> {t("home.needsAttention")}</span>}
         >
           {needsAttention.length === 0 ? (
-            <p className="text-xs text-emerald-800 flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" /> {t("home.allTagged")}
+            <p className="text-caption text-success-fg flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-success-fg shrink-0" /> {t("home.allTagged")}
             </p>
           ) : (
             <List label={t("home.needsAttention")}>
@@ -160,10 +160,10 @@ export default function CourseHomePage() {
                 <ListRow
                   key={item.id}
                   tone="warning"
-                  icon={<AlertTriangle className="w-4 h-4 text-amber-500" />}
+                  icon={<AlertTriangle className="w-4 h-4 text-warning-fg" />}
                   title={loopText("attention", item.key, item.params, item.title)}
                   actions={
-                    <Link href={item.href} className="text-xs font-bold text-amber-700 hover:underline">
+                    <Link href={item.href} className="text-caption font-bold text-warning-fg hover:underline">
                       {loopText("loopActions", item.actionKey, null, item.actionLabel)} &rarr;
                     </Link>
                   }
@@ -176,28 +176,28 @@ export default function CourseHomePage() {
 
         {/* 3. OUTCOME PULSE (small tiles are allowed here) */}
         <Section
-          title={<span className="flex items-center gap-2"><Target className="w-4 h-4 text-[var(--brand-secondary)]" /> {isTeacher ? t("home.outcomePulse") : t("home.outcomePulseMine")}</span>}
+          title={<span className="flex items-center gap-2"><Target className="w-4 h-4 text-brand-fg" /> {isTeacher ? t("home.outcomePulse") : t("home.outcomePulseMine")}</span>}
           actions={
-            <Link href={`/course/${courseId}/outcomes`} className="text-xs font-semibold text-[var(--brand-secondary)] hover:underline">
+            <Link href={`/course/${courseId}/outcomes`} className="text-caption font-semibold text-brand-fg hover:underline">
               {t("common.viewAll")} &rarr;
             </Link>
           }
         >
           {outcomesList.length === 0 ? (
-            <p className="text-xs text-slate-500">{t("home.noOutcomeData")}</p>
+            <p className="text-caption text-fg-subtle">{t("home.noOutcomeData")}</p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {outcomesList.slice(0, 3).map((o) => (
-                <div key={o.id} className="rounded-xl border border-slate-200 dark:border-slate-800 p-3 space-y-2">
-                  <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 truncate" title={o.title}>{o.title}</p>
-                  <p className="text-lg font-bold text-[var(--brand-secondary)] leading-none">
-                    {o.currentMastery !== null ? `${o.currentMastery}%` : <span className="text-xs font-semibold text-slate-500">{t("home.noDataYet")}</span>}
+                <div key={o.id} className="rounded-xl border border-line p-3 space-y-2">
+                  <p className="text-caption font-semibold text-fg truncate" title={o.title}>{o.title}</p>
+                  <p className="text-section font-bold text-brand-fg leading-none">
+                    {o.currentMastery !== null ? `${o.currentMastery}%` : <span className="text-caption font-semibold text-fg-subtle">{t("home.noDataYet")}</span>}
                   </p>
-                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden flex">
-                    <div className="bg-slate-300 h-full" style={{ width: `${o.baselineScore ?? 0}%` }} title={t("home.baseline")} />
-                    <div className="bg-[var(--brand-secondary)] h-full" style={{ width: `${o.currentMastery === null ? 0 : Math.max(0, o.currentMastery - (o.baselineScore ?? 0))}%` }} title={t("home.progress")} />
+                  <div className="w-full h-2 bg-surface-sunken rounded-full overflow-hidden flex">
+                    <div className="bg-line-strong h-full" style={{ width: `${o.baselineScore ?? 0}%` }} title={t("home.baseline")} />
+                    <div className="bg-brand h-full" style={{ width: `${o.currentMastery === null ? 0 : Math.max(0, o.currentMastery - (o.baselineScore ?? 0))}%` }} title={t("home.progress")} />
                   </div>
-                  <MasterySummary outcome={o} isTeacher={isTeacher} size="text-[11px]" />
+                  <MasterySummary outcome={o} isTeacher={isTeacher} size="text-caption" />
                 </div>
               ))}
             </div>
@@ -206,42 +206,42 @@ export default function CourseHomePage() {
 
         {/* 4. TIMELINE (one row per module) */}
         <Section
-          title={<span className="flex items-center gap-2"><Calendar className="w-4 h-4 text-[var(--brand-secondary)]" /> {t("home.timeline")}</span>}
+          title={<span className="flex items-center gap-2"><Calendar className="w-4 h-4 text-brand-fg" /> {t("home.timeline")}</span>}
           description={t("home.timelineHelp")}
         >
           {timeline.length === 0 ? (
-            <p className="text-xs text-slate-500">{t("home.noTimeline")}</p>
+            <p className="text-caption text-fg-subtle">{t("home.noTimeline")}</p>
           ) : (
             <List label={t("home.courseTimeline")}>
               {timeline.map((m) => {
                 const isExpanded = expandedWeek === m.id;
                 return (
-                  <li key={m.id} className={m.isCurrent ? "bg-teal-50/40 dark:bg-teal-950/20" : ""}>
+                  <li key={m.id} className={m.isCurrent ? "bg-brand-soft/40" : ""}>
                     <button
                       type="button"
                       onClick={() => setExpandedWeek(isExpanded ? null : m.id)}
                       aria-expanded={isExpanded}
-                      className="w-full px-3 py-2.5 flex items-center gap-3 text-left text-sm hover:bg-slate-50 dark:hover:bg-slate-900/40 transition-colors"
+                      className="w-full px-3 py-2.5 flex items-center gap-3 text-left text-ui hover:bg-surface-hover transition-colors"
                     >
-                      {isExpanded ? <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" /> : <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />}
-                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md shrink-0 ${m.isCurrent ? "bg-[var(--brand-secondary)] text-white" : "bg-slate-100 text-slate-700"}`}>
+                      {isExpanded ? <ChevronDown className="w-4 h-4 text-fg-subtle shrink-0" /> : <ChevronRight className="w-4 h-4 text-fg-subtle shrink-0" />}
+                      <span className={`text-caption font-bold px-2 py-0.5 rounded-md shrink-0 ${m.isCurrent ? "bg-brand text-on-brand" : "bg-surface-sunken text-fg-muted"}`}>
                         {weekLabel(m)}
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block font-semibold text-slate-900 dark:text-white truncate">{m.title}</span>
-                        <span className="block text-[11px] text-slate-500 mt-0.5">
+                        <span className="block font-semibold text-fg truncate">{m.title}</span>
+                        <span className="block text-caption text-fg-subtle mt-0.5">
                           {m.resolvedStartDate ? formatRange(m.resolvedStartDate, m.resolvedEndDate) : t("home.noDatesYet")}
                         </span>
                       </span>
-                      {m.isCurrent && <span className="text-[10px] font-bold text-teal-700 uppercase bg-teal-100 px-2 py-0.5 rounded-full shrink-0">{t("home.current")}</span>}
+                      {m.isCurrent && <span className="text-caption font-bold text-brand-fg bg-brand-soft px-2 py-0.5 rounded-full shrink-0">{t("home.current")}</span>}
                     </button>
 
                     {isExpanded && (
                       <div className="pl-10 pr-3 pb-3 space-y-2">
-                        <p className="text-xs text-slate-600 dark:text-slate-400">{m.description || t("home.defaultModuleDescription")}</p>
+                        <p className="text-caption text-fg-muted">{m.description || t("home.defaultModuleDescription")}</p>
                         <Link
                           href={`/course/${courseId}/modules#module-${m.id}`}
-                          className="inline-flex items-center gap-1.5 text-xs font-bold text-[var(--brand-secondary)] hover:underline"
+                          className="inline-flex items-center gap-1.5 text-caption font-bold text-brand-fg hover:underline"
                         >
                           {t("home.openModuleItems")} &rarr;
                         </Link>

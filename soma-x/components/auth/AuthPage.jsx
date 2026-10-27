@@ -14,13 +14,13 @@ export function AuthLayout({ title, subtitle, children }) {
         <div className="min-h-screen w-full flex flex-col md:flex-row">
 
             {/* ── Left branding panel ── */}
-            <div className="relative md:w-[45%] bg-accent-dark flex flex-col items-center justify-center py-8 md:py-0 px-8 md:px-10 overflow-hidden">
+            <div className="relative md:w-[45%] bg-brand-deep flex flex-col items-center justify-center py-8 md:py-0 px-8 md:px-10 overflow-hidden">
 
                 {/* Dot grid */}
                 <div
-                    className="absolute inset-0 opacity-[0.15]"
+                    className="absolute inset-0 opacity-[0.15] text-white/60"
                     style={{
-                        backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.6) 1px, transparent 1px)',
+                        backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)',
                         backgroundSize: '26px 26px',
                     }}
                 />
@@ -33,10 +33,10 @@ export function AuthLayout({ title, subtitle, children }) {
                 <div className="relative z-10 flex flex-col items-center text-center gap-4 md:gap-6 max-w-sm w-full">
                     <AuthPanelLogo />
                     <div className="space-y-1.5 md:space-y-2">
-                        <h1 className="text-white font-bold text-xl md:text-3xl leading-tight tracking-tight whitespace-nowrap">
+                        <h1 className="text-white font-bold text-section md:text-display leading-tight tracking-tight whitespace-nowrap">
                             {title}
                         </h1>
-                        <p className="text-white/70 text-sm md:text-base font-medium leading-relaxed max-w-xs mx-auto">
+                        <p className="text-white/70 text-ui md:text-body font-medium leading-relaxed max-w-xs mx-auto">
                             {subtitle}
                         </p>
                     </div>
@@ -44,7 +44,7 @@ export function AuthLayout({ title, subtitle, children }) {
             </div>
 
             {/* ── Right form panel ── */}
-            <div className="flex-1 flex flex-col items-center justify-center bg-white dark:bg-slate-950 px-6 py-8 md:py-14 relative">
+            <div className="flex-1 flex flex-col items-center justify-center bg-surface px-6 py-8 md:py-14 relative">
                 <div className="absolute top-6 right-6 z-10">
                     <LanguageSwitcher compact />
                 </div>
@@ -57,8 +57,8 @@ export function AuthLayout({ title, subtitle, children }) {
 export function AuthFormHeader({ title, subtitle, children }) {
     return (
         <div className="mb-6">
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight leading-tight">{title}</h2>
-            <p className="text-slate-600 dark:text-slate-300 text-[14px] font-medium mt-1">{subtitle}</p>
+            <h2 className="text-title font-bold text-fg tracking-tight leading-tight">{title}</h2>
+            <p className="text-fg-muted text-ui font-medium mt-1">{subtitle}</p>
             {children}
         </div>
     );
@@ -87,9 +87,9 @@ export function AuthPasswordField({ id, label, toggleLabel, children, ...input }
 export function AuthError({ children }) {
     if (!children) return null;
     return (
-        <div className="flex items-start gap-2.5 bg-rose-50 border border-rose-200 rounded-lg px-3.5 py-2.5">
-            <div className="w-2 h-2 mt-1.5 rounded-full bg-rose-600 shrink-0" />
-            <p className="text-rose-700 text-[13px] font-bold leading-snug">{children}</p>
+        <div className="flex items-start gap-2.5 bg-danger-soft border border-danger/30 rounded-lg px-3.5 py-2.5">
+            <div className="w-2 h-2 mt-1.5 rounded-full bg-danger shrink-0" />
+            <p className="text-danger-fg text-small font-bold leading-snug">{children}</p>
         </div>
     );
 }
@@ -102,7 +102,7 @@ export function AuthSubmit({ loading, children, ...props }) {
                 width="full"
                 disabled={loading}
                 aria-busy={loading}
-                className="w-full h-11 text-[15px] font-bold rounded-lg bg-accent-dark hover:bg-black text-white shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full h-11 text-item font-bold rounded-lg bg-brand-strong hover:bg-brand-strong/90 text-on-brand-strong shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 {...props}
             >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
@@ -116,10 +116,10 @@ export function AuthDivider({ children }) {
     return (
         <div className="relative py-2">
             <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t-2 border-slate-300" />
+                <div className="w-full border-t-2 border-line-strong" />
             </div>
             <div className="relative flex justify-center">
-                <span className="bg-white dark:bg-slate-950 px-3 text-[12px] text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wider">{children}</span>
+                <span className="bg-surface px-3 text-caption text-fg-muted font-bold">{children}</span>
             </div>
         </div>
     );

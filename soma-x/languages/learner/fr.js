@@ -18,32 +18,32 @@ export default {
     },
     "tour": {
         "welcome": {
-            "tag": "BIENVENUE",
+            "tag": "Bienvenue",
             "title": "Bonjour !",
             "body": "Bienvenue sur SOMABOX, votre espace d'apprentissage ! Voici une visite rapide. Elle ne prend qu'environ 30 secondes."
         },
         "stats": {
-            "tag": "STATISTIQUES",
+            "tag": "Statistiques",
             "title": "Vos statistiques",
             "body": "Ces cartes montrent vos classes, les leçons en cours et ce que vous avez terminé. Plus vous apprenez, plus ces chiffres grandissent !"
         },
         "lessons": {
-            "tag": "LEÇONS",
+            "tag": "Leçons",
             "title": "Leçons récentes",
             "body": "Retrouvez ici vos dernières leçons et où vous en êtes. Cliquez sur une leçon pour reprendre là où vous vous étiez arrêté."
         },
         "quick-access": {
-            "tag": "ACCÈS RAPIDE",
+            "tag": "Accès rapide",
             "title": "Accès rapide",
             "body": "Allez directement à vos classes, leçons, à la bibliothèque ou à vos travaux terminés en un clic. C'est votre tableau de raccourcis."
         },
         "nav": {
-            "tag": "MENU",
+            "tag": "Menu",
             "title": "Votre menu",
             "body": "Utilisez le menu à gauche pour passer à tout moment du Tableau de bord aux Cours, à la Bibliothèque et à votre Compte."
         },
         "finish": {
-            "tag": "TERMINÉ",
+            "tag": "Terminé",
             "title": "Vous êtes prêt !",
             "body": "Bravo, vous connaissez les lieux ! Commencez à apprendre. Chaque leçon vous rapproche de vos objectifs."
         },

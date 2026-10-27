@@ -24,7 +24,7 @@ const isExploreRoute = (pathname = "") =>
 
 // While the session is being checked: the SOMABOX logo loader, centred on the screen.
 const Spinner = () => (
-  <div className="min-h-screen w-full bg-[#EFEFEF] dark:bg-slate-950">
+  <div className="min-h-screen w-full bg-surface-sunken">
     <Loader variant="page" className="min-h-screen" />
   </div>
 );

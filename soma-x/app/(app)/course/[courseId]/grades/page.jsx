@@ -21,7 +21,7 @@ function columnHref(courseId, col) {
 function LateMarker() {
   const { tp } = useProgressText();
   return (
-    <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-amber-700" title={tp("grades.submittedLate")}>
+    <span className="inline-flex items-center gap-0.5 text-caption font-semibold text-warning-fg" title={tp("grades.submittedLate")}>
       <Clock className="w-3 h-3" aria-hidden="true" /> {tp("common.late")}
     </span>
   );
@@ -30,7 +30,7 @@ function LateMarker() {
 function SubmittedBadge() {
   const { tp } = useProgressText();
   return (
-    <span className="text-[10px] font-semibold uppercase text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-1.5 py-0.5 whitespace-nowrap">
+    <span className="text-caption font-semibold text-warning-fg bg-warning-soft border border-warning/30 rounded-full px-1.5 py-0.5 whitespace-nowrap">
       {tp("common.submitted")}
     </span>
   );
@@ -40,7 +40,7 @@ function SubmittedBadge() {
 function GradeCell({ cell, pointsPossible }) {
   const { tp } = useProgressText();
   if (!cell || cell.status === "not_submitted") {
-    return <span className="text-slate-400" aria-label={tp("common.notSubmitted")}>—</span>;
+    return <span className="text-fg-subtle" aria-label={tp("common.notSubmitted")}>—</span>;
   }
   if (cell.status === "submitted") {
     return (
@@ -52,8 +52,8 @@ function GradeCell({ cell, pointsPossible }) {
   }
   return (
     <span className="inline-flex flex-col items-center leading-tight">
-      <span className="font-semibold text-slate-800 dark:text-slate-100">{cell.pct != null ? `${fmtNum(cell.pct)}%` : "—"}</span>
-      <span className="text-[11px] text-slate-500 whitespace-nowrap">
+      <span className="font-semibold text-fg">{cell.pct != null ? `${fmtNum(cell.pct)}%` : "—"}</span>
+      <span className="text-caption text-fg-subtle whitespace-nowrap">
         {fmtNum(cell.points)}{pointsPossible ? ` / ${fmtNum(pointsPossible)}` : ""}
       </span>
       {cell.late ? <LateMarker /> : null}
@@ -65,7 +65,7 @@ function TypeLabel({ col }) {
   const { tp } = useProgressText();
   const label = itemTypeLabel(tp, col.type === "quiz" ? "quiz" : col.discussion ? "discussion" : "assignment");
   return (
-    <span className={`text-[11px] font-bold uppercase tracking-wide ${col.type === "quiz" ? "text-indigo-600" : "text-slate-400"}`}>
+    <span className={`text-caption font-bold ${col.type === "quiz" ? "text-info-fg" : "text-fg-subtle"}`}>
       {label}
     </span>
   );
@@ -84,8 +84,8 @@ export default function GradesPage() {
         <PageHeader help="pages.grades"
           title={tp("grades.title")}
           meta={data?.role === "student" && data.averagePct != null ? (
-            <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-              {tp("grades.yourAverage")} <strong className="text-[var(--brand-secondary)]">{fmtNum(data.averagePct)}%</strong>
+            <span className="text-ui font-semibold text-fg-muted">
+              {tp("grades.yourAverage")} <strong className="text-brand-fg">{fmtNum(data.averagePct)}%</strong>
             </span>
           ) : data?.role === "student" ? (
             <span>{tp("grades.yourAverage")} {tp("common.noDataYet")}</span>
@@ -93,7 +93,7 @@ export default function GradesPage() {
           actions={data?.role === "student" ? (
             <Link
               href={`/course/${courseId}/progress`}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--brand-secondary)] border border-teal-200 dark:border-teal-900 hover:bg-teal-50 dark:hover:bg-teal-950/30 rounded-lg px-3 py-1.5"
+              className="inline-flex items-center gap-1.5 text-caption font-semibold text-brand-fg border border-brand/40 hover:bg-brand-soft rounded-lg px-3 py-1.5"
             >
               <TrendingUp className="w-3.5 h-3.5" aria-hidden="true" /> {tp("common.myProgress")}
             </Link>
@@ -103,9 +103,9 @@ export default function GradesPage() {
         {loading ? (
           <Loader variant="page" size={56} className="min-h-[30vh]" />
         ) : error ? (
-          <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-4 flex items-center justify-between gap-3">
-            <p className="text-sm text-rose-700">{error}</p>
-            <button onClick={refetch} className="text-xs font-semibold text-rose-700 hover:text-rose-900">{tp("common.retry")}</button>
+          <div role="alert" className="rounded-xl border border-danger/30 bg-danger-soft p-4 flex items-center justify-between gap-3">
+            <p className="text-ui text-danger-fg">{error}</p>
+            <button onClick={refetch} className="text-caption font-semibold text-danger-fg hover:text-danger-fg">{tp("common.retry")}</button>
           </div>
         ) : !data ? (
           <EmptyState compact title={tp("grades.noData")} />
@@ -124,7 +124,7 @@ export default function GradesPage() {
                     header: tp("common.item"),
                     render: (c) => (
                       <div className="min-w-[10rem]">
-                        <Link href={columnHref(courseId, c)} className="font-medium text-slate-800 dark:text-slate-100 hover:text-[var(--brand-secondary)] hover:underline">
+                        <Link href={columnHref(courseId, c)} className="font-medium text-fg hover:text-brand-fg hover:underline">
                           {c.title}
                         </Link>
                         <div><TypeLabel col={c} /></div>
@@ -134,7 +134,7 @@ export default function GradesPage() {
                   {
                     key: "due",
                     header: tp("common.due"),
-                    className: "whitespace-nowrap text-slate-500",
+                    className: "whitespace-nowrap text-fg-subtle",
                     render: (c) => (c.dueDate ? formatDate(c.dueDate) : "—"),
                   },
                   {
@@ -145,8 +145,8 @@ export default function GradesPage() {
                       const status = cell?.status || "not_submitted";
                       return (
                         <span className="inline-flex flex-wrap items-center gap-1.5">
-                          <span className={`text-[10px] font-semibold uppercase rounded-full px-1.5 py-0.5 whitespace-nowrap ${
-                            status === "graded" ? "bg-teal-50 text-teal-800" : status === "submitted" ? "bg-amber-50 text-amber-700" : "bg-slate-100 text-slate-500"
+                          <span className={`text-caption font-semibold rounded-full px-1.5 py-0.5 whitespace-nowrap ${
+                            status === "graded" ? "bg-brand-soft text-brand-fg" : status === "submitted" ? "bg-warning-soft text-warning-fg" : "bg-surface-sunken text-fg-subtle"
                           }`}>
                             {status === "graded" ? tp("common.graded") : status === "submitted" ? tp("common.submitted") : tp("common.notSubmitted")}
                           </span>
@@ -161,11 +161,11 @@ export default function GradesPage() {
                     align: "right",
                     render: (c) => {
                       const cell = data.cells?.[c.key];
-                      if (!cell || cell.status !== "graded") return <span className="text-slate-400">—</span>;
+                      if (!cell || cell.status !== "graded") return <span className="text-fg-subtle">—</span>;
                       return (
                         <span className="inline-flex flex-col items-end leading-tight whitespace-nowrap">
-                          <span className="font-semibold text-slate-800 dark:text-slate-100">{cell.pct != null ? `${fmtNum(cell.pct)}%` : "—"}</span>
-                          <span className="text-[11px] text-slate-500">{fmtNum(cell.points)}{c.pointsPossible ? ` / ${fmtNum(c.pointsPossible)}` : ""}</span>
+                          <span className="font-semibold text-fg">{cell.pct != null ? `${fmtNum(cell.pct)}%` : "—"}</span>
+                          <span className="text-caption text-fg-subtle">{fmtNum(cell.points)}{c.pointsPossible ? ` / ${fmtNum(c.pointsPossible)}` : ""}</span>
                         </span>
                       );
                     },
@@ -174,7 +174,7 @@ export default function GradesPage() {
                     key: "feedback",
                     header: tp("common.feedback"),
                     hideOnMobile: true,
-                    className: "text-xs text-slate-600 dark:text-slate-400 max-w-xs",
+                    className: "text-caption text-fg-muted max-w-xs",
                     render: (c) => data.cells?.[c.key]?.feedback || "",
                   },
                 ]}
@@ -195,7 +195,7 @@ export default function GradesPage() {
                 {
                   key: "fullName",
                   header: tp("common.learner"),
-                  className: "sticky left-0 z-10 bg-white dark:bg-slate-950 font-medium text-slate-700 dark:text-slate-200 whitespace-nowrap shadow-[1px_0_0_0_rgb(226,232,240)] dark:shadow-[1px_0_0_0_rgb(30,41,59)]",
+                  className: "sticky left-0 z-10 bg-surface font-medium text-fg-muted whitespace-nowrap shadow-[1px_0_0_0_rgb(226,232,240)]",
                   render: (row) => row.fullName || row.email,
                 },
                 ...columns.map((col) => ({
@@ -206,16 +206,16 @@ export default function GradesPage() {
                     <span className="flex flex-col items-center gap-0.5 normal-case tracking-normal">
                       <Link
                         href={columnHref(courseId, col)}
-                        className="text-xs font-semibold text-slate-700 dark:text-slate-200 hover:text-[var(--brand-secondary)] hover:underline line-clamp-2 max-w-[10rem]"
+                        className="text-caption font-semibold text-fg-muted hover:text-brand-fg hover:underline line-clamp-2 max-w-[10rem]"
                         title={col.title}
                       >
                         {col.title}
                       </Link>
                       <span className="flex items-center gap-1">
                         <TypeLabel col={col} />
-                        {col.dueDate ? <span className="text-[10px] font-normal text-slate-400 whitespace-nowrap">{formatDate(col.dueDate, { day: "numeric", month: "short" })}</span> : null}
+                        {col.dueDate ? <span className="text-caption font-normal text-fg-subtle whitespace-nowrap">{formatDate(col.dueDate, { day: "numeric", month: "short" })}</span> : null}
                       </span>
-                      {col.pointsPossible ? <span className="text-[10px] font-normal text-slate-400">{tpn("common.points", fmtNum(col.pointsPossible))}</span> : null}
+                      {col.pointsPossible ? <span className="text-caption font-normal text-fg-subtle">{tpn("common.points", fmtNum(col.pointsPossible))}</span> : null}
                     </span>
                   ),
                   render: (row) => <GradeCell cell={row.cells?.[col.key]} pointsPossible={col.pointsPossible} />,
@@ -225,7 +225,7 @@ export default function GradesPage() {
                   header: tp("common.average"),
                   align: "right",
                   className: "font-bold whitespace-nowrap",
-                  render: (row) => (row.averagePct != null ? `${fmtNum(row.averagePct)}%` : <span className="text-slate-400">—</span>),
+                  render: (row) => (row.averagePct != null ? `${fmtNum(row.averagePct)}%` : <span className="text-fg-subtle">—</span>),
                 },
               ]}
             />

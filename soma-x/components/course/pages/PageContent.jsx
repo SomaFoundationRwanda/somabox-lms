@@ -131,7 +131,7 @@ function renderMarks(text, marks = [], key) {
       case "link": {
         const href = safeHref(mark.attrs?.href);
         return href
-          ? <a key={k} href={href} target="_blank" rel="noopener noreferrer" className="text-teal-700 underline cursor-pointer">{child}</a>
+          ? <a key={k} href={href} target="_blank" rel="noopener noreferrer" className="text-brand-fg underline cursor-pointer">{child}</a>
           : <span key={k}>{child}</span>;
       }
       default: return child;

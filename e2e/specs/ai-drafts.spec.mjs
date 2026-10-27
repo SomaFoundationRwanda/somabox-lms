@@ -62,7 +62,6 @@ test("drafts a week; the teacher adds one draft, edits and adds another, and rej
 });
 
 test("drafts from a job that finishes at once show up without a reload", async ({ page }) => {
-  test.fail(true, "Known bug: the AI drafts page reloads drafts only when it sees a job leave the running list; a job that finishes before the first poll (or fails fast) never shows until the page is reloaded.");
   const c = await seedCourse({ learners: [] });
   await page.goto(`/course/${c.id}/ai`);
   const week = page.getByLabel(pt("ai.page.chooseWeek"));

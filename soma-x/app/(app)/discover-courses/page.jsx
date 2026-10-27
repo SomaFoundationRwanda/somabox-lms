@@ -12,7 +12,7 @@ import { startRouteLoading } from "@/components/global/RouteLoader";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch, getErrorMessage } from "@/lib/api";
 import { queryKeys } from "@/lib/queryKeys";
-import { TextInput } from "@/components/form";
+import { Label, TextInput } from "@/components/form";
 
 export default function DiscoverCoursesPage() {
   const router = useRouter();
@@ -89,23 +89,23 @@ export default function DiscoverCoursesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] pb-24 md:pb-8">
-      <div className="flex items-center justify-between pl-12 pr-4 md:px-6 py-3 bg-white border-b border-slate-200 sticky top-0 z-10">
+    <div className="min-h-screen bg-surface-sunken pb-24 md:pb-8">
+      <div className="flex items-center justify-between pl-12 pr-4 md:px-6 py-3 bg-surface border-b border-line sticky top-0 z-10">
         <div className="flex items-center gap-2">
-          <Compass className="w-4 h-4 text-slate-500" />
+          <Compass className="w-4 h-4 text-fg-subtle" />
           <div>
-            <h1 className="text-[17px] font-bold text-slate-900">{t("shell.nav.discoverCourses")}</h1>
-            <p className="text-[11px] text-slate-600 hidden sm:block">{t("learner.discover.subtitle")}</p>
+            <h1 className="text-section font-bold text-fg">{t("shell.nav.discoverCourses")}</h1>
+            <p className="text-caption text-fg-muted hidden sm:block">{t("learner.discover.subtitle")}</p>
           </div>
         </div>
       </div>
 
       <div className="p-4 md:p-6 space-y-6">
-        <form onSubmit={joinByCode} className="max-w-xl rounded-xl border border-slate-200 bg-white p-4 space-y-2">
-          <label htmlFor="join-code" className="text-sm font-bold text-slate-900 flex items-center gap-2">
-            <KeyRound className="w-4 h-4 text-[var(--brand-primary)]" aria-hidden="true" /> {t("learner.discover.code.title")}
-          </label>
-          <p className="text-xs text-slate-600">{t("learner.discover.code.help")}</p>
+        <form onSubmit={joinByCode} className="max-w-xl rounded-xl border border-line bg-surface p-4 space-y-2">
+          <Label htmlFor="join-code" className="flex items-center gap-2">
+            <KeyRound className="w-4 h-4 text-brand-fg" aria-hidden="true" /> {t("learner.discover.code.title")}
+          </Label>
+          <p className="text-caption text-fg-muted">{t("learner.discover.code.help")}</p>
           <div className="flex flex-wrap gap-2">
             <TextInput
               id="join-code"
@@ -118,11 +118,11 @@ export default function DiscoverCoursesPage() {
               variant="code"
               className="flex-1 min-w-[10rem] w-auto"
             />
-            <button type="submit" disabled={codeBusy || !joinCode.trim()} className="text-sm font-semibold text-white bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] disabled:opacity-50 rounded-lg px-4 py-2">
+            <button type="submit" disabled={codeBusy || !joinCode.trim()} className="text-ui font-semibold text-on-brand-strong bg-brand-strong hover:bg-brand-strong/90 disabled:opacity-50 rounded-lg px-4 py-2">
               {codeBusy ? t("learner.discover.joining") : t("learner.discover.code.button")}
             </button>
           </div>
-          {codeError ? <p role="alert" className="text-xs text-rose-600">{codeError}</p> : null}
+          {codeError ? <p role="alert" className="text-caption text-danger-fg">{codeError}</p> : null}
         </form>
 
         <AsyncListState
@@ -138,27 +138,27 @@ export default function DiscoverCoursesPage() {
                 <div
                   key={course.id}
                   id={`course-${course.id}`}
-                  className={`rounded-xl border bg-white overflow-hidden flex flex-col ${String(course.id) === highlightId ? "border-[var(--brand-primary)] ring-2 ring-[var(--brand-primary)]/40" : "border-slate-200"}`}
+                  className={`rounded-xl border bg-surface overflow-hidden flex flex-col ${String(course.id) === highlightId ? "border-brand-strong ring-2 ring-brand-strong/40" : "border-line"}`}
                 >
                   {course.coverImageUrl ? (
                     <img src={`${SERVER_URL}${course.coverImageUrl}`} alt={course.title} className="w-full h-28 object-cover" />
                   ) : (
-                    <div className="w-full h-28 bg-slate-100 flex items-center justify-center">
-                      <Compass className="w-6 h-6 text-slate-300" />
+                    <div className="w-full h-28 bg-surface-sunken flex items-center justify-center">
+                      <Compass className="w-6 h-6 text-fg-subtle" />
                     </div>
                   )}
                   <div className="p-4 flex flex-col gap-2 flex-1">
-                    <h2 className="text-sm font-bold text-slate-900 truncate">{course.title}</h2>
-                    {course.grade ? <span className="text-[10px] font-semibold uppercase text-slate-500 bg-slate-100 rounded-full px-2 py-0.5 w-fit">{course.grade}</span> : null}
-                    {course.description ? <p className="text-xs text-slate-600 line-clamp-2">{course.description}</p> : null}
-                    <div className="flex items-center gap-1 text-xs text-slate-400 mt-auto pt-1">
+                    <h2 className="text-ui font-bold text-fg truncate">{course.title}</h2>
+                    {course.grade ? <span className="text-caption font-semibold text-fg-subtle bg-surface-sunken rounded-full px-2 py-0.5 w-fit">{course.grade}</span> : null}
+                    {course.description ? <p className="text-caption text-fg-muted line-clamp-2">{course.description}</p> : null}
+                    <div className="flex items-center gap-1 text-caption text-fg-subtle mt-auto pt-1">
                       <Users className="w-3.5 h-3.5" />
                       <span>{fill(t(course.studentCount === 1 ? "learner.discover.oneEnrolled" : "learner.discover.nEnrolled"), { n: course.studentCount })}</span>
                     </div>
                     <button
                       onClick={() => join(course.id)}
                       disabled={joiningId === course.id}
-                      className="mt-1 text-xs font-semibold text-white bg-[var(--brand-primary)] rounded-lg px-3 py-2 disabled:opacity-50"
+                      className="mt-1 text-caption font-semibold text-on-brand-strong bg-brand-strong rounded-lg px-3 py-2 disabled:opacity-50"
                     >
                       {isGuest ? t("guest.signUpToJoin") : joiningId === course.id ? t("learner.discover.joining") : t("learner.discover.join")}
                     </button>

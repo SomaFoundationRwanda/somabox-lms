@@ -26,11 +26,11 @@ const SORTS = {
 
 function FlagChips({ flags }) {
   const { tx } = useAttendanceText();
-  if (!flags.length) return <span className="text-xs text-slate-400">{tx("noFlags")}</span>;
+  if (!flags.length) return <span className="text-caption text-fg-subtle">{tx("noFlags")}</span>;
   return (
     <ul className="flex flex-wrap gap-1" aria-label={tx("flagsLabel")}>
       {flags.map((f) => (
-        <li key={f.code} className="whitespace-nowrap rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[11px] font-semibold text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
+        <li key={f.code} className="whitespace-nowrap rounded-full border border-warning/30 bg-warning-soft px-1.5 py-0.5 text-caption font-semibold text-warning-fg">
           {f.code === "absent_in_a_row" ? tx("flagAbsentInARow", { n: f.n }) : tx("flagLowAttendance", { pct: f.pct, n: f.n })}
         </li>
       ))}
@@ -211,7 +211,7 @@ export default function TeacherAttendance({ readOnly = false }) {
                 <button
                   type="submit"
                   disabled={opening}
-                  className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-[var(--brand-secondary)] px-5 text-sm font-bold text-white hover:bg-[var(--brand-secondary-dark)] disabled:opacity-60"
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-brand px-5 text-ui font-bold text-on-brand hover:bg-brand/90 disabled:opacity-60"
                 >
                   {opening ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : <ClipboardCheck aria-hidden="true" className="h-4 w-4" />}
                   {tx("openRegister")}
@@ -223,8 +223,8 @@ export default function TeacherAttendance({ readOnly = false }) {
                       type="button"
                       aria-pressed={chosenTitle === q}
                       onClick={() => setTitle(q === defaultTitle ? "" : q)}
-                      className={`inline-flex h-11 items-center rounded-full border px-4 text-sm font-semibold ${
-                        chosenTitle === q ? "border-[var(--brand-secondary)] bg-[var(--brand-secondary)]/10 text-[var(--brand-secondary)]" : "border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900"
+                      className={`inline-flex h-11 items-center rounded-full border px-4 text-ui font-semibold ${
+                        chosenTitle === q ? "border-brand bg-brand/10 text-brand-fg" : "border-line text-fg-muted hover:bg-surface-hover"
                       }`}
                     >
                       {q}
@@ -265,28 +265,28 @@ export default function TeacherAttendance({ readOnly = false }) {
                           <Field id={`att-edit-title-${s.id}`} label={tx("sessionName")}>
                             <TextInput required maxLength={80} value={editing.title} onChange={(e) => setEditing((v) => ({ ...v, title: e.target.value }))} size="lg" />
                           </Field>
-                          <button type="submit" disabled={busyId === s.id} className="inline-flex h-11 items-center justify-center rounded-lg bg-[var(--brand-secondary)] px-4 text-sm font-bold text-white hover:bg-[var(--brand-secondary-dark)] disabled:opacity-60">{tx("saveChanges")}</button>
-                          <button type="button" onClick={() => setEditing(null)} className="inline-flex h-11 items-center justify-center rounded-lg px-4 text-sm font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">{tx("cancel")}</button>
+                          <button type="submit" disabled={busyId === s.id} className="inline-flex h-11 items-center justify-center rounded-lg bg-brand px-4 text-ui font-bold text-on-brand hover:bg-brand/90 disabled:opacity-60">{tx("saveChanges")}</button>
+                          <button type="button" onClick={() => setEditing(null)} className="inline-flex h-11 items-center justify-center rounded-lg px-4 text-ui font-semibold text-fg-muted hover:bg-surface-hover">{tx("cancel")}</button>
                         </form>
                       </li>
                     );
                   }
                   return (
-                    <li key={s.id} className={`flex items-center gap-1 pr-2 ${isOpen ? "bg-[var(--brand-secondary)]/5" : ""}`}>
+                    <li key={s.id} className={`flex items-center gap-1 pr-2 ${isOpen ? "bg-brand/5" : ""}`}>
                       <button
                         type="button"
                         onClick={() => openById(s.id)}
                         aria-current={isOpen ? "true" : undefined}
-                        className="flex min-h-14 min-w-0 flex-1 flex-col items-start gap-1 px-3 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-slate-900/40 sm:flex-row sm:items-center sm:gap-3"
+                        className="flex min-h-14 min-w-0 flex-1 flex-col items-start gap-1 px-3 py-2.5 text-left hover:bg-surface-hover sm:flex-row sm:items-center sm:gap-3"
                       >
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-semibold text-slate-900 dark:text-white">
+                          <span className="block truncate text-ui font-semibold text-fg">
                             {s.title}
                             {sessionLoadingId === s.id ? <Loader2 aria-hidden="true" className="ml-2 inline h-3.5 w-3.5 animate-spin" /> : null}
                           </span>
-                          <span className="block text-xs text-slate-500">{formatDate(s.date, { weekday: "short", day: "numeric", month: "short", year: "numeric" })}</span>
+                          <span className="block text-caption text-fg-subtle">{formatDate(s.date, { weekday: "short", day: "numeric", month: "short", year: "numeric" })}</span>
                         </span>
-                        <StatusCounts counts={s.counts} unmarked={s.unmarked} className="text-xs text-slate-600 dark:text-slate-300" />
+                        <StatusCounts counts={s.counts} unmarked={s.unmarked} className="text-caption text-fg-muted" />
                       </button>
                       {!readOnly ? (
                         <>
@@ -295,7 +295,7 @@ export default function TeacherAttendance({ readOnly = false }) {
                             onClick={() => setEditing({ id: s.id, date: s.date, title: s.title })}
                             aria-label={tx("editSession", { title: s.title, date: formatDate(s.date) })}
                             title={tx("rename")}
-                            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-white"
+                            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-fg-subtle hover:bg-surface-hover hover:text-fg"
                           >
                             <Pencil aria-hidden="true" className="h-4 w-4" />
                           </button>
@@ -305,7 +305,7 @@ export default function TeacherAttendance({ readOnly = false }) {
                             disabled={busyId === s.id}
                             aria-label={tx("deleteSession", { title: s.title, date: formatDate(s.date) })}
                             title={tx("delete")}
-                            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-slate-500 hover:bg-rose-50 hover:text-rose-700 disabled:opacity-50 dark:hover:bg-rose-950/30"
+                            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-fg-subtle hover:bg-danger-soft hover:text-danger-fg disabled:opacity-50"
                           >
                             <Trash2 aria-hidden="true" className="h-4 w-4" />
                           </button>
@@ -322,7 +322,7 @@ export default function TeacherAttendance({ readOnly = false }) {
             divided
             title={tx("learnersTitle")}
             description={tx("learnersDescription", { n: rules?.consecutiveAbsences ?? 3, pct: lowRatePct })}
-            actions={flaggedCount ? <span className="text-xs font-semibold text-amber-800 dark:text-amber-300">{txn("flaggedCount", flaggedCount)}</span> : null}
+            actions={flaggedCount ? <span className="text-caption font-semibold text-warning-fg">{txn("flaggedCount", flaggedCount)}</span> : null}
           >
             <DataTable
               caption={tx("learnersTitle")}
@@ -330,25 +330,25 @@ export default function TeacherAttendance({ readOnly = false }) {
               rowKey={(l) => l.id}
               sort={sort}
               onSort={onSort}
-              rowClassName={(l) => (l.flags.length ? "bg-amber-50/60 dark:bg-amber-950/20" : "")}
+              rowClassName={(l) => (l.flags.length ? "bg-warning-soft/60" : "")}
               empty={tx("noLearners")}
               columns={[
-                { key: "name", header: tx("colLearner"), sortable: true, className: "min-w-[10rem] font-medium text-slate-800 dark:text-slate-100" },
+                { key: "name", header: tx("colLearner"), sortable: true, className: "min-w-[10rem] font-medium text-fg" },
                 {
                   key: "rate",
                   header: tx("colRate"),
                   sortable: true,
                   align: "right",
-                  render: (l) => (l.rate == null ? <span className="whitespace-nowrap text-xs text-slate-400">{tx("noneCounted")}</span> : <span className="font-semibold">{pct(l.rate)}</span>),
+                  render: (l) => (l.rate == null ? <span className="whitespace-nowrap text-caption text-fg-subtle">{tx("noneCounted")}</span> : <span className="font-semibold">{pct(l.rate)}</span>),
                 },
                 { key: "attended", header: tx("colAttended"), sortable: true, align: "right", className: "whitespace-nowrap", render: (l) => (l.counted ? tx("attendedOf", { a: attended(l), n: l.counted }) : "—") },
                 { key: "absent", header: tx("colAbsences"), sortable: true, align: "right", render: (l) => l.absent ?? 0 },
-                { key: "run", header: tx("colRun"), sortable: true, align: "right", render: (l) => <span className={l.consecutiveAbsences >= (rules?.consecutiveAbsences ?? 3) ? "font-semibold text-rose-700 dark:text-rose-400" : ""}>{l.consecutiveAbsences ?? 0}</span> },
-                { key: "lastAbsent", header: tx("colLastAbsent"), sortable: true, hideOnMobile: true, className: "whitespace-nowrap text-xs", render: (l) => (l.lastAbsentOn ? formatDate(l.lastAbsentOn) : "—") },
+                { key: "run", header: tx("colRun"), sortable: true, align: "right", render: (l) => <span className={l.consecutiveAbsences >= (rules?.consecutiveAbsences ?? 3) ? "font-semibold text-danger-fg" : ""}>{l.consecutiveAbsences ?? 0}</span> },
+                { key: "lastAbsent", header: tx("colLastAbsent"), sortable: true, hideOnMobile: true, className: "whitespace-nowrap text-caption", render: (l) => (l.lastAbsentOn ? formatDate(l.lastAbsentOn) : "—") },
                 { key: "flags", header: tx("colFlags"), className: "min-w-[11rem]", render: (l) => <FlagChips flags={l.flags} /> },
               ]}
             />
-            <p className="mt-2 text-xs text-slate-500">{tx("countingRule")}</p>
+            <p className="mt-2 text-caption text-fg-subtle">{tx("countingRule")}</p>
           </Section>
         </>
       )}

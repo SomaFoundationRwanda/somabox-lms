@@ -15,7 +15,7 @@ import { AlertCircle } from "lucide-react";
 import { useItemOpened } from "@/lib/usage";
 import { useCourseText } from "@/components/course/useCourseText";
 import Loader from "@/components/ui/Loader";
-import { Checkbox, TextInput } from "@/components/form";
+import { CheckboxField, Label, TextInput } from "@/components/form";
 
 function EditorLoading() {
   const { t } = useCourseText();
@@ -113,7 +113,7 @@ export default function PageDetailPage() {
   };
 
   if (loading) return <Loader variant="page" />;
-  if (!page) return <div className="p-6"><p className="text-sm text-rose-600">{t("pageView.notFound")}</p></div>;
+  if (!page) return <div className="p-6"><p className="text-ui text-danger-fg">{t("pageView.notFound")}</p></div>;
 
   return (
     <div>
@@ -122,20 +122,20 @@ export default function PageDetailPage() {
         {editing ? (
           <div className="space-y-4">
             <div>
-              <label htmlFor="page-title" className="block text-xs font-semibold text-slate-600 mb-1">{t("editors.pageTitle")}</label>
+              <Label htmlFor="page-title">{t("editors.pageTitle")}</Label>
               <TextInput size="lg" id="page-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("editors.pageTitle")} className="w-full" />
             </div>
 
             {/* Alt Text Validation Banner */}
             {altWarning && (
-              <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl text-xs font-semibold">
-                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+              <div className="flex items-center gap-2 p-3 bg-warning-soft border border-warning/30 text-warning-fg rounded-xl text-caption font-semibold">
+                <AlertCircle className="w-4 h-4 text-warning-fg shrink-0" />
                 <span>{altWarning}</span>
               </div>
             )}
 
             <div>
-              <p className="block text-xs font-semibold text-slate-600 mb-1">{t("editors.content")}</p>
+              <p className="block text-caption font-semibold text-fg-muted mb-1">{t("editors.content")}</p>
               <RichTextEditor
                 ref={editorRef}
                 content={getEditorContent()}
@@ -144,17 +144,14 @@ export default function PageDetailPage() {
               />
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
-              <label className="flex items-center gap-2 text-sm text-slate-700 font-medium">
-                <Checkbox checked={published} onCheckedChange={(v) => setPublished(v === true)} />
-                {t("pageView.publishedVisible")}
-              </label>
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-line">
+              <CheckboxField label={t("pageView.publishedVisible")} checked={published} onCheckedChange={setPublished} />
 
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => { setEditing(false); setAltWarning(null); }}
-                  className="text-xs font-medium text-slate-500 hover:text-slate-700 px-3 py-2"
+                  className="text-caption font-medium text-fg-subtle hover:text-fg-muted px-3 py-2"
                 >
                   {t("common.cancel")}
                 </button>
@@ -162,7 +159,7 @@ export default function PageDetailPage() {
                   type="button"
                   onClick={save}
                   disabled={saving}
-                  className="text-xs font-semibold text-white bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] disabled:opacity-50 rounded-lg px-5 py-2.5 transition-colors shadow-sm"
+                  className="text-caption font-semibold text-on-brand-strong bg-brand-strong hover:bg-brand-strong/90 disabled:opacity-50 rounded-lg px-5 py-2.5 transition-colors shadow-sm"
                 >
                   {saving ? t("common.saving") : t("editors.saveChanges")}
                 </button>

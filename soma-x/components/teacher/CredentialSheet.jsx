@@ -29,13 +29,13 @@ export default function CredentialSheet({ rows, courseTitle, onDone }) {
 
   return (
     <div className="space-y-4">
-      <p role="alert" className="px-3 py-2.5 rounded-lg border text-sm bg-amber-50 border-amber-200 text-amber-900 dark:bg-amber-500/10 dark:border-amber-500/30 dark:text-amber-100">
+      <p role="alert" className="px-3 py-2.5 rounded-lg border text-ui bg-warning-soft border-warning/30 text-warning-fg">
         {l("shownOnce")}
       </p>
       <div className="overflow-x-auto">
-        <table className="w-full text-sm" aria-label={l("sheetCaption")}>
+        <table className="w-full text-ui" aria-label={l("sheetCaption")}>
           <thead>
-            <tr className="text-left text-xs text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">
+            <tr className="text-left text-caption text-fg-subtle border-b border-line">
               <th className="py-2 pr-3 font-semibold">{l("name")}</th>
               <th className="py-2 pr-3 font-semibold">{l("code")}</th>
               <th className="py-2 font-semibold">{l("tempPassword")}</th>
@@ -43,10 +43,10 @@ export default function CredentialSheet({ rows, courseTitle, onDone }) {
           </thead>
           <tbody>
             {rows.map((r) => (
-              <tr key={r.learnerCode} className="border-b border-slate-100 dark:border-slate-800">
-                <td className="py-2 pr-3 text-slate-800 dark:text-slate-100">{r.fullName}</td>
-                <td className="py-2 pr-3 font-mono font-semibold text-slate-900 dark:text-white">{r.learnerCode}</td>
-                <td className="py-2 font-mono font-semibold text-slate-900 dark:text-white">{r.temporaryPassword}</td>
+              <tr key={r.learnerCode} className="border-b border-line">
+                <td className="py-2 pr-3 text-fg">{r.fullName}</td>
+                <td className="py-2 pr-3 font-mono font-semibold text-fg">{r.learnerCode}</td>
+                <td className="py-2 font-mono font-semibold text-fg">{r.temporaryPassword}</td>
               </tr>
             ))}
           </tbody>

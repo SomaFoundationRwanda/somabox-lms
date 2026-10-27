@@ -89,7 +89,7 @@ export default function Loader({
       <div
         role="status"
         aria-live="polite"
-        className={`fixed inset-0 z-[9999] grid place-items-center bg-white/70 dark:bg-slate-950/60 backdrop-blur-[2px] text-[var(--brand-primary)] dark:text-teal-300 ${className}`}
+        className={`fixed inset-0 z-[9999] grid place-items-center bg-surface/70 backdrop-blur-[2px] text-brand-fg ${className}`}
       >
         <div className="flex flex-col items-center gap-3">
           {icon}
@@ -104,7 +104,7 @@ export default function Loader({
     // Tailwind's CSS order, not the class order, would decide which one wins).
     const height = /(^|\s)min-h-/.test(className) ? "" : "min-h-[40vh]";
     return (
-      <div role="status" aria-live="polite" className={`w-full ${height} grid place-items-center text-[var(--brand-primary)] dark:text-teal-300 ${className}`}>
+      <div role="status" aria-live="polite" className={`w-full ${height} grid place-items-center text-brand-fg ${className}`}>
         {icon}
         {status}
       </div>
@@ -112,7 +112,7 @@ export default function Loader({
   }
 
   return (
-    <span role="status" className={`inline-flex text-[var(--brand-primary)] dark:text-teal-300 ${className}`}>
+    <span role="status" className={`inline-flex text-brand-fg ${className}`}>
       {icon}
       {status}
     </span>

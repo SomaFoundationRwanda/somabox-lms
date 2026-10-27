@@ -22,7 +22,7 @@ function MatchList({ matches, l }) {
   return (
     <ul className="mt-1 space-y-0.5">
       {matches.map((m) => (
-        <li key={m.id} className="text-xs text-slate-600 dark:text-slate-400">
+        <li key={m.id} className="text-caption text-fg-muted">
           <span className="font-mono font-semibold">{m.learnerCode}</span>{m.grade ? ` · ${m.grade}` : ""}{m.inCourse ? ` · ${l("alreadyInCourse")}` : ""}
         </li>
       ))}
@@ -63,21 +63,21 @@ function FindLearner({ courseId, onAdded, l, t }) {
       <Field id="learner-search" label={l("searchLabel")}>
         <TextInput type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={l("searchPlaceholder")} autoComplete="off" />
         {results.length > 0 && (
-          <ul className="mt-2 divide-y divide-slate-100 dark:divide-slate-800 border border-slate-100 dark:border-slate-800 rounded-lg" aria-label={l("results")}>
+          <ul className="mt-2 divide-y divide-line border border-line rounded-lg" aria-label={l("results")}>
             {results.map((r) => (
               <li key={r.id} className="flex items-center justify-between gap-3 px-3 py-2">
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">{r.fullName}</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400"><span className="font-mono">{r.learnerCode}</span>{r.grade ? ` · ${r.grade}` : ""}</p>
+                  <p className="text-ui font-medium text-fg truncate">{r.fullName}</p>
+                  <p className="text-caption text-fg-subtle"><span className="font-mono">{r.learnerCode}</span>{r.grade ? ` · ${r.grade}` : ""}</p>
                 </div>
                 {r.inCourse
-                  ? <span className="text-xs text-slate-500">{l("alreadyInCourse")}</span>
+                  ? <span className="text-caption text-fg-subtle">{l("alreadyInCourse")}</span>
                   : <Button type="button" size="sm" variant="outline" onClick={async () => { if (await add({ userId: r.id })) setResults((list) => list.map((x) => x.id === r.id ? { ...x, inCourse: true } : x)) }} aria-label={fill(l("addNamed"), { name: r.fullName })}>{l("add")}</Button>}
               </li>
             ))}
           </ul>
         )}
-        {q.trim().length >= 2 && results.length === 0 && <p className="mt-2 text-xs text-slate-500">{l("noResults")}</p>}
+        {q.trim().length >= 2 && results.length === 0 && <p className="mt-2 text-caption text-fg-subtle">{l("noResults")}</p>}
       </Field>
 
       <Field id="learner-email" label={t("course.people.join.orEmail")}>
@@ -88,7 +88,7 @@ function FindLearner({ courseId, onAdded, l, t }) {
           <Button type="button" variant="outline" disabled={!email.trim()} onClick={async () => { if (await add({ email: email.trim() })) setEmail("") }}>{l("add")}</Button>
         </div>
       </Field>
-      {error && <p role="alert" className="text-sm text-rose-600">{error}</p>}
+      {error && <p role="alert" className="text-ui text-danger-fg">{error}</p>}
     </div>
   )
 }
@@ -124,22 +124,22 @@ function NewLearners({ courseId, onCreated, l, t }) {
   if (duplicates) {
     return (
       <div className="space-y-4">
-        <p className="text-sm text-slate-700 dark:text-slate-200">{l("maybeDuplicates")}</p>
+        <p className="text-ui text-fg-muted">{l("maybeDuplicates")}</p>
         <ul className="space-y-2">
           {duplicates.map((d) => (
-            <li key={d.name} className="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700">
-              <p className="text-sm font-medium text-slate-800 dark:text-slate-100">{d.name}</p>
+            <li key={d.name} className="px-3 py-2 rounded-lg border border-line">
+              <p className="text-ui font-medium text-fg">{d.name}</p>
               <MatchList matches={d.matches} l={l} />
             </li>
           ))}
         </ul>
-        <p className="text-xs text-slate-500 dark:text-slate-400">{l("duplicatesHelp")}</p>
+        <p className="text-caption text-fg-subtle">{l("duplicatesHelp")}</p>
         <div className="flex flex-col sm:flex-row gap-2">
           <Button type="button" onClick={() => submit("add")} disabled={saving} className="flex-1">{l("addExisting")}</Button>
           <Button type="button" variant="outline" onClick={() => submit("create")} disabled={saving} className="flex-1">{l("createAnyway")}</Button>
         </div>
-        <button type="button" onClick={() => setDuplicates(null)} className="text-xs font-semibold text-slate-600 hover:underline">{l("back")}</button>
-        {error && <p role="alert" className="text-sm text-rose-600">{error}</p>}
+        <button type="button" onClick={() => setDuplicates(null)} className="text-caption font-semibold text-fg-muted hover:underline">{l("back")}</button>
+        {error && <p role="alert" className="text-ui text-danger-fg">{error}</p>}
       </div>
     )
   }
@@ -153,8 +153,8 @@ function NewLearners({ courseId, onCreated, l, t }) {
         <Select value={grade} onChange={(e) => setGrade(e.target.value)} placeholder={t("learner.profileSetup.selectLevel")}
           options={GRADE_LEVELS.map((g) => ({ value: g.value, label: t(`learner.profileSetup.grades.${g.key}`) }))} />
       </Field>
-      <p className="text-xs text-slate-500 dark:text-slate-400">{l("newHelp")}</p>
-      {error && <p role="alert" className="text-sm text-rose-600">{error}</p>}
+      <p className="text-caption text-fg-subtle">{l("newHelp")}</p>
+      {error && <p role="alert" className="text-ui text-danger-fg">{error}</p>}
       <Button type="button" onClick={() => submit()} disabled={!list.length || !grade || saving} width="full">
         {saving ? l("creating") : fill(l("create"), { count: list.length })}
       </Button>
@@ -185,9 +185,9 @@ export default function AddLearners({ courseId, courseTitle, isDraft, showJoinCo
     return (
       <Modal title={title} onClose={onClose} size="lg" dirty>
         <div className="space-y-4">
-          {result.added.length > 0 && <p className="text-sm text-emerald-700 dark:text-emerald-400">{fill(l("addedExisting"), { names: result.added.map((a) => a.fullName).join(", ") })}</p>}
+          {result.added.length > 0 && <p className="text-ui text-success-fg">{fill(l("addedExisting"), { names: result.added.map((a) => a.fullName).join(", ") })}</p>}
           {result.ambiguous.length > 0 && (
-            <div className="text-sm text-slate-700 dark:text-slate-200">
+            <div className="text-ui text-fg-muted">
               <p>{l("ambiguous")}</p>
               {result.ambiguous.map((a) => <div key={a.name} className="mt-1"><span className="font-medium">{a.name}</span><MatchList matches={a.matches} l={l} /></div>)}
             </div>
@@ -210,7 +210,7 @@ export default function AddLearners({ courseId, courseTitle, isDraft, showJoinCo
       <div className="flex items-center gap-1.5 mb-4" role="group" aria-label={l("howLabel")}>
         {["find", "new"].map((key) => (
           <button key={key} type="button" onClick={() => setTab(key)} aria-pressed={tab === key}
-            className={`text-xs font-semibold px-3 py-1.5 rounded-full border ${tab === key ? "bg-[var(--brand-primary)] text-white border-[var(--brand-primary)]" : "border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300"}`}>
+            className={`text-caption font-semibold px-3 py-1.5 rounded-full border ${tab === key ? "bg-brand-strong text-on-brand-strong border-brand-strong" : "border-line text-fg-muted"}`}>
             {l(key === "find" ? "tabFind" : "tabNew")}
           </button>
         ))}

@@ -77,7 +77,7 @@ export default function CourseStatusSection({ courseId, course, refresh }) {
                 type="button"
                 onClick={() => move(to)}
                 disabled={!!busy}
-                className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 rounded-lg px-3 py-2"
+                className="inline-flex items-center gap-1.5 text-caption font-semibold text-fg-muted border border-line hover:bg-surface-hover disabled:opacity-50 rounded-lg px-3 py-2"
               >
                 {busy === to ? <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" /> : <Icon className="w-3.5 h-3.5" aria-hidden="true" />}
                 {t(`settings.status.action.${to}`)}
@@ -88,13 +88,13 @@ export default function CourseStatusSection({ courseId, course, refresh }) {
             type="button"
             onClick={remove}
             disabled={!!busy}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-700 border border-rose-200 hover:bg-rose-50 dark:border-rose-900 dark:hover:bg-rose-950/30 disabled:opacity-50 rounded-lg px-3 py-2"
+            className="inline-flex items-center gap-1.5 text-caption font-semibold text-danger-fg border border-danger/30 hover:bg-danger-soft disabled:opacity-50 rounded-lg px-3 py-2"
           >
             {busy === "delete" ? <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" /> : <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />}
             {t("settings.status.action.delete")}
           </button>
         </div>
-        {error ? <p role="alert" className="text-xs font-semibold text-rose-600">{error}</p> : null}
+        {error ? <p role="alert" className="text-caption font-semibold text-danger-fg">{error}</p> : null}
       </div>
     </Section>
   );

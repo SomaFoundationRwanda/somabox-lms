@@ -88,13 +88,13 @@ test("custom colours reach buttons, badges and highlights on every page", async 
   await save(page);
   await expect(page.getByText(s("saved")).first()).toBeVisible();
 
-  // A learner's pages pick the colours up: the variables and the accent classes built on them.
+  // A learner's pages pick the colours up: the variables and the token classes built on them.
   const ctx = await browser.newContext({ storageState: authFile("learner") });
   const learner = await ctx.newPage();
   await learner.goto("/manage/scholar-dashboard");
   await expect.poll(() => learner.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--brand-secondary").trim().toUpperCase())).toBe("#9A3412");
-  const colours = await learner.evaluate(() => {
-    const probe = (cls) => {
+  const probe = (page) => page.evaluate(() => {
+    const one = (cls) => {
       const el = document.createElement("div");
       el.className = cls;
       document.body.appendChild(el);
@@ -103,12 +103,18 @@ test("custom colours reach buttons, badges and highlights on every page", async 
       el.remove();
       return out;
     };
-    return { teal600: probe("bg-teal-600").bg, accentDark: probe("bg-accent-dark").bg, button: probe("bg-primary-600").bg };
+    return { brand: one("bg-brand").bg, strong: one("bg-brand-strong").bg, onStrong: one("text-on-brand-strong").color };
   });
-  expect(colours.teal600).toBe("rgb(154, 52, 18)");
-  expect(colours.accentDark).toBe("rgb(91, 33, 182)");
-  // The default button mixes the two school colours: no trace of the old fixed teal.
-  expect(colours.button).not.toBe("rgb(31, 103, 103)");
+  const colours = await probe(learner);
+  expect(colours.brand).toBe("rgb(154, 52, 18)");
+  expect(colours.strong).toBe("rgb(91, 33, 182)");
+  expect(colours.onStrong).toBe("rgb(255, 255, 255)");
+
+  // A light school colour gets dark text on its buttons, so they stay readable.
+  await api("PUT", "/school", { as: "admin", body: { ...DEFAULTS, primaryColor: "#FACC15", secondaryColor: "#FDE047" } });
+  await learner.reload();
+  await expect.poll(async () => (await probe(learner)).onStrong).toBe("rgb(15, 23, 42)");
+  await api("PUT", "/school", { as: "admin", body: { ...DEFAULTS, primaryColor: "#5B21B6", secondaryColor: "#9A3412" } });
 
   // Visitors see them too (the login page).
   const anon = await browser.newPage();

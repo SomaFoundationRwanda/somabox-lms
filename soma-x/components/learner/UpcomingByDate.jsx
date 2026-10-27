@@ -11,9 +11,9 @@ const DAYS_AHEAD = 28
 const ITEM_ICONS = { assignment: ClipboardList, quiz: HelpCircle, page: FileText, discussion: MessageSquare, file: Folder }
 // Due dates stand out; things that just open are quieter.
 const TYPE_STYLES = {
-  due: "text-rose-700 bg-rose-50 border-rose-200",
-  close: "text-amber-800 bg-amber-50 border-amber-200",
-  release: "text-teal-800 bg-teal-50 border-teal-200",
+  due: "text-danger-fg bg-danger-soft border-danger/30",
+  close: "text-warning-fg bg-warning-soft border-warning/30",
+  release: "text-brand-fg bg-brand-soft border-brand/40",
 }
 
 // 'YYYY-MM-DD' arithmetic without time zones getting in the way.
@@ -40,7 +40,7 @@ export default function UpcomingByDate() {
   }
 
   if (state.loading) return <Loader variant="page" size={48} className="min-h-[20vh]" />
-  if (state.error) return <p role="alert" className="text-xs text-rose-600">{t("learner.dashboard.upcoming.loadFailed")}</p>
+  if (state.error) return <p role="alert" className="text-caption text-danger-fg">{t("learner.dashboard.upcoming.loadFailed")}</p>
 
   const dayLabel = (day) => {
     if (day === state.today) return t("course.calendar.today")
@@ -61,32 +61,32 @@ export default function UpcomingByDate() {
 
   return (
     <div className="space-y-4">
-      <p className="text-[11px] text-slate-500">{t("learner.dashboard.upcoming.hint")}</p>
+      <p className="text-caption text-fg-subtle">{t("learner.dashboard.upcoming.hint")}</p>
       {days.length === 0 ? (
-        <p className="text-xs text-slate-500 py-4 text-center">{t("learner.dashboard.upcoming.empty")}</p>
+        <p className="text-caption text-fg-subtle py-4 text-center">{t("learner.dashboard.upcoming.empty")}</p>
       ) : (
         days.map(({ day, events }) => (
           <section key={day} aria-labelledby={`day-${day}`}>
-            <h3 id={`day-${day}`} className={`text-[11px] font-bold uppercase tracking-wide mb-1.5 ${day === state.today ? "text-[var(--brand-primary)]" : "text-slate-500"}`}>
+            <h3 id={`day-${day}`} className={`text-caption font-bold mb-1.5 ${day === state.today ? "text-brand-fg" : "text-fg-subtle"}`}>
               {dayLabel(day)}
             </h3>
-            <ul className="divide-y divide-slate-100 border border-slate-200 rounded-[5px]">
+            <ul className="divide-y divide-line border border-line rounded-[5px]">
               {events.map((e) => {
                 const Icon = ITEM_ICONS[e.itemType] || FileText
                 return (
                   <li key={e.id}>
-                    <Link href={e.url} className="flex items-center gap-3 px-3 py-2.5 hover:bg-slate-50 transition-colors">
-                      <Icon className="w-4 h-4 text-slate-400 shrink-0" aria-hidden="true" />
+                    <Link href={e.url} className="flex items-center gap-3 px-3 py-2.5 hover:bg-surface-hover transition-colors">
+                      <Icon className="w-4 h-4 text-fg-subtle shrink-0" aria-hidden="true" />
                       <span className="min-w-0 flex-1">
-                        <span className="block text-[12px] font-semibold text-slate-900 truncate">{e.itemTitle || e.title}</span>
-                        <span className="block text-[11px] text-slate-500 truncate">
+                        <span className="block text-caption font-semibold text-fg truncate">{e.itemTitle || e.title}</span>
+                        <span className="block text-caption text-fg-subtle truncate">
                           {t(`course.items.${e.itemType}`) || ""}{e.courseTitle ? ` · ${e.courseTitle}` : ""}
                         </span>
                       </span>
-                      <span className={`text-[10px] font-bold uppercase border rounded-full px-2 py-0.5 shrink-0 ${TYPE_STYLES[e.type] || TYPE_STYLES.release}`}>
+                      <span className={`text-caption font-bold border rounded-full px-2 py-0.5 shrink-0 ${TYPE_STYLES[e.type] || TYPE_STYLES.release}`}>
                         {t(`course.calendar.types.${e.type}`) || e.type}
                       </span>
-                      <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" aria-hidden="true" />
+                      <ChevronRight className="w-4 h-4 text-fg-subtle shrink-0" aria-hidden="true" />
                     </Link>
                   </li>
                 )

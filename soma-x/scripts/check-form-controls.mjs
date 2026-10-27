@@ -3,8 +3,10 @@
 // screen. This fails on a hand-written <input>, <select> or <textarea> anywhere else, and on a
 // kit control given its own styling: a className may only place it (width, margins, flex);
 // sizes, icons, codes and help text are the kit's props (size, icon, onClear, variant, description).
-// File pickers and sliders are the kit's FileButton, FileDrop and Slider too. Allowed as they
-// are: hidden inputs, colour pickers, and a rare deliberate exception marked data-raw-control="<why>".
+// Labels and group captions come from the kit too (Field, Label, Fieldset, CheckboxField): a
+// <label> or <legend> styled by hand fails, and so does importing components/ui/checkbox directly.
+// File pickers, sliders, single radios, switches and colours are the kit's too (FileButton,
+// FileDrop, Slider, Radio, Switch, ColorInput). Only hidden inputs are allowed as they are.
 // Run with `pnpm test` in soma-x.
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
@@ -13,7 +15,7 @@ import { fileURLToPath } from "node:url";
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const DIRS = ["app", "components"];
 const OWNERS = ["components/form/", "components/ui/checkbox"];
-const ALLOWED_TYPES = /type=["'](hidden|color)["']/;
+const ALLOWED_TYPES = /type=["']hidden["']/;
 
 function* files(dir) {
     for (const name of readdirSync(dir)) {
@@ -49,10 +51,14 @@ for (const dir of DIRS) {
         while ((m = tag.exec(text))) {
             const attrs = m[2];
             if (m[1] === "input" && ALLOWED_TYPES.test(attrs)) continue;
-            if (/data-raw-control=/.test(attrs)) continue;
             const line = text.slice(0, m.index).split("\n").length;
             problems.push(`${rel}:${line}: <${m[1]}>`);
         }
+        for (const m of text.matchAll(/<(label|legend)\b([^>]*)>/g)) {
+            const cls = /className=/.test(m[2]) && !/className="sr-only"/.test(m[2]);
+            if (cls) problems.push(`${rel}:${text.slice(0, m.index).split("\n").length}: <${m[1]}> styled by hand (use Field, Label or Fieldset)`);
+        }
+        if (/from "@\/components\/ui\/checkbox"/.test(text)) problems.push(`${rel}: imports components/ui/checkbox (use Checkbox or CheckboxField from components/form)`);
         let k;
         while ((k = KIT.exec(text))) {
             const attrs = openingTag(text, k.index);

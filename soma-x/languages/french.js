@@ -35,7 +35,7 @@ export default {
     "teacherSubtitle": "Gérez vos classes et contenus",
     "adminTitle": "Portail Administrateur",
     "adminSubtitle": "Gérez tout dans votre SomaBox",
-    "logout": "DÉCONNEXION",
+    "logout": "Déconnexion",
     "librarySubtitle": "Accédez à des centaines de livres éducatifs",
     "languageName": "FRANÇAIS",
     "loading": "Chargement...",

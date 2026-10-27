@@ -10,24 +10,24 @@ const AVAILABLE = ["cloud", "available-content"];
 const DOWNLOAD_STATUS = ["cloud", "download-status"];
 import { PageHeader, Section, EmptyState } from "@/components/layout";
 import CloudSyncSection from "@/components/sync/CloudSyncSection";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/context/LanguageContext";
 import { fill } from "@/lib/fill";
 import { AlertCircle, CheckCircle2, ChevronDown, ChevronRight, File, FolderClosed, FolderOpen, Loader2, X } from "lucide-react";
 import Loader from "@/components/ui/Loader";
+import { Checkbox } from "@/components/form";
 
 /* ── Inline feedback banner ── */
 const Banner = ({ type, message, onDismiss }) => {
     const { t } = useLanguage();
     const styles = {
-        error:   "bg-red-50 border-red-200 text-red-700",
-        warning: "bg-amber-50 border-amber-200 text-amber-700",
-        success: "bg-green-50 border-green-200 text-green-600",
-        info:    "bg-blue-50 border-blue-200 text-blue-700",
+        error:   "bg-danger-soft border-danger/30 text-danger-fg",
+        warning: "bg-warning-soft border-warning/30 text-warning-fg",
+        success: "bg-success-soft border-success/30 text-success-fg",
+        info:    "bg-info-soft border-info/30 text-info-fg",
     };
     return (
-        <div className={`flex items-start justify-between gap-3 px-3 py-2.5 rounded-[5px] border text-[12px] font-medium ${styles[type]}`}>
+        <div className={`flex items-start justify-between gap-3 px-3 py-2.5 rounded-[5px] border text-caption font-medium ${styles[type]}`}>
             <span className="flex-1">{message}</span>
             {onDismiss && (
                 <button aria-label={t("admin.sync.dismiss")} onClick={onDismiss} className="shrink-0 opacity-60 hover:opacity-100 mt-0.5">
@@ -42,18 +42,18 @@ const Banner = ({ type, message, onDismiss }) => {
 const ConfirmBanner = ({ message, onConfirm, onCancel }) => {
     const { t } = useLanguage();
     return (
-    <div className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-[5px] border bg-amber-50 border-amber-200">
-        <p className="text-[12px] font-medium text-amber-800 flex-1">{message}</p>
+    <div className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-[5px] border bg-warning-soft border-warning/30">
+        <p className="text-caption font-medium text-warning-fg flex-1">{message}</p>
         <div className="flex gap-2 shrink-0">
             <button
                 onClick={onCancel}
-                className="text-[11px] px-3 h-7 rounded-full border border-amber-300 text-amber-700 font-semibold hover:bg-amber-100 transition-colors"
+                className="text-caption px-3 h-7 rounded-full border border-warning/30 text-warning-fg font-semibold hover:bg-warning-soft transition-colors"
             >
                 {t("admin.common.cancel")}
             </button>
             <button
                 onClick={onConfirm}
-                className="text-[11px] px-3 h-7 rounded-full bg-amber-500 text-white font-semibold hover:bg-amber-600 transition-colors"
+                className="text-caption px-3 h-7 rounded-full bg-warning text-on-warning font-semibold hover:bg-warning transition-colors"
             >
                 {t("admin.common.confirm")}
             </button>
@@ -70,7 +70,7 @@ const TreeNode = ({ node, onCheck, checked }) => {
     if (node.type === "folder") {
         return (
             <div>
-                <div className="flex items-center gap-2 px-3 py-2 rounded-[5px] hover:bg-slate-50 dark:hover:bg-slate-900/40 transition-colors">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-[5px] hover:bg-surface-hover transition-colors">
                     <Checkbox
                         checked={!!checked[node.path]}
                         onCheckedChange={(v) => onCheck(node, v === true)}
@@ -80,22 +80,22 @@ const TreeNode = ({ node, onCheck, checked }) => {
                         onClick={() => setCollapsed(!collapsed)}
                     >
                         {collapsed
-                            ? <FolderClosed className="w-4 h-4 text-amber-500 shrink-0" />
-                            : <FolderOpen    className="w-4 h-4 text-amber-500 shrink-0" />
+                            ? <FolderClosed className="w-4 h-4 text-warning-fg shrink-0" />
+                            : <FolderOpen    className="w-4 h-4 text-warning-fg shrink-0" />
                         }
-                        <span className="text-[12px] font-semibold text-slate-700 dark:text-slate-200">{node.name}</span>
+                        <span className="text-caption font-semibold text-fg-muted">{node.name}</span>
                         {node.isDownloaded && (
-                            <span className="text-[11px] bg-green-50 text-green-600 px-2 py-0.5 rounded-full font-bold">
+                            <span className="text-caption bg-success-soft text-success-fg px-2 py-0.5 rounded-full font-bold">
                                 {t("admin.sync.downloaded")}
                             </span>
                         )}
-                        <span className="ml-auto text-slate-500">
+                        <span className="ml-auto text-fg-subtle">
                             {collapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                         </span>
                     </button>
                 </div>
                 {!collapsed && node.children && (
-                    <div className="ml-6 border-l border-slate-100 dark:border-slate-800 pl-2 mt-0.5 space-y-0.5">
+                    <div className="ml-6 border-l border-line pl-2 mt-0.5 space-y-0.5">
                         {node.children.map((child, i) => (
                             <TreeNode key={i} node={child} onCheck={onCheck} checked={checked} />
                         ))}
@@ -107,19 +107,19 @@ const TreeNode = ({ node, onCheck, checked }) => {
 
     if (node.type === "file") {
         return (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-[5px] hover:bg-slate-50 transition-colors ml-6">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-[5px] hover:bg-surface-hover transition-colors ml-6">
                 <Checkbox
                     checked={!!checked[node.path]}
                     onCheckedChange={(v) => onCheck(node, v === true)}
                 />
-                <File className="w-3.5 h-3.5 text-slate-600 shrink-0" />
-                <span className="text-[12px] text-slate-600 flex-1">{node.name}</span>
+                <File className="w-3.5 h-3.5 text-fg-muted shrink-0" />
+                <span className="text-caption text-fg-muted flex-1">{node.name}</span>
                 {node.isDownloaded && (
-                    <span className="text-[11px] bg-green-50 text-green-600 px-2 py-0.5 rounded-full font-bold">
+                    <span className="text-caption bg-success-soft text-success-fg px-2 py-0.5 rounded-full font-bold">
                         {t("admin.sync.downloaded")}
                     </span>
                 )}
-                <span className="text-[11px] text-slate-600">{formatSize(node.size)}</span>
+                <span className="text-caption text-fg-muted">{formatSize(node.size)}</span>
             </div>
         );
     }
@@ -277,7 +277,7 @@ const ManageSync = () => {
 
                 {role === "admin" ? <CloudSyncSection /> : null}
 
-            <div className="space-y-4 pt-6 border-t border-slate-200 dark:border-slate-800">
+            <div className="space-y-4 pt-6 border-t border-line">
                 {/* Feedback banners */}
                 {(banner || confirm) && (
                     <div className="space-y-2">
@@ -304,7 +304,7 @@ const ManageSync = () => {
                         <Loader variant="page" size={56} className="min-h-[30vh]" />
                     ) : cloudUnavailable ? (
                         <EmptyState
-                            icon={<AlertCircle className="w-8 h-8 text-red-300" />}
+                            icon={<AlertCircle className="w-8 h-8 text-danger-fg" />}
                             title={t("admin.sync.remoteUnavailable")}
                         />
                     ) : contentTree.length === 0 ? (
@@ -313,7 +313,7 @@ const ManageSync = () => {
                             title={t("admin.sync.noContent")}
                         />
                     ) : (
-                        <div className="rounded-xl border border-slate-200 dark:border-slate-800 p-2 space-y-0.5 overflow-x-auto">
+                        <div className="rounded-xl border border-line p-2 space-y-0.5 overflow-x-auto">
                             {contentTree.map((node, i) => (
                                 <TreeNode key={i} node={node} onCheck={handleCheck} checked={checked} />
                             ))}
@@ -325,16 +325,16 @@ const ManageSync = () => {
                         {/* Left: status + selection count */}
                         <div className="flex items-center gap-3 flex-wrap">
                             {selectedCount > 0 && (
-                                <span className="text-[11px] font-semibold text-slate-500">
+                                <span className="text-caption font-semibold text-fg-subtle">
                                     {fill(t("admin.sync.selected"), { count: selectedCount })}
                                 </span>
                             )}
                             {downloadStatus !== 'init' && (
-                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                                    downloadStatus === 'finished'   ? 'bg-green-50 text-green-600' :
-                                    downloadStatus === 'failed'     ? 'bg-red-50 text-red-600' :
-                                    downloadStatus === 'downloading' ? 'bg-blue-50 text-blue-600' :
-                                    'bg-slate-100 text-slate-500'
+                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-caption font-bold ${
+                                    downloadStatus === 'finished'   ? 'bg-success-soft text-success-fg' :
+                                    downloadStatus === 'failed'     ? 'bg-danger-soft text-danger-fg' :
+                                    downloadStatus === 'downloading' ? 'bg-info-soft text-info-fg' :
+                                    'bg-surface-sunken text-fg-subtle'
                                 }`}>
                                     {downloadStatus === 'downloading' && <Loader2 className="w-3 h-3 animate-spin" />}
                                     {downloadStatus === 'finished'    && <CheckCircle2 className="w-3 h-3" />}
@@ -348,7 +348,7 @@ const ManageSync = () => {
                             {cloudUnavailable || fetching ? (
                                 <Button
                                     onClick={refreshAvailable}
-                                    className="h-8 px-4 rounded-[5px] text-[12px]"
+                                    className="h-8 px-4 rounded-[5px] text-caption"
                                 >
                                     {t("admin.common.retry")}
                                 </Button>
@@ -357,7 +357,7 @@ const ManageSync = () => {
                                     <Button
                                         onClick={handleDownload}
                                         disabled={downloadStatus === "downloading"}
-                                        className="h-8 px-4 rounded-[5px] text-[12px] gap-1.5"
+                                        className="h-8 px-4 rounded-[5px] text-caption gap-1.5"
                                     >
                                         {downloadStatus === "downloading" && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                                         {t("admin.sync.download")}
@@ -366,7 +366,7 @@ const ManageSync = () => {
                                         variant="destructive"
                                         onClick={handleDelete}
                                         disabled={deleting}
-                                        className="h-8 px-4 rounded-[5px] text-[12px] gap-1.5"
+                                        className="h-8 px-4 rounded-[5px] text-caption gap-1.5"
                                     >
                                         {deleting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                                         {t("admin.common.delete")}

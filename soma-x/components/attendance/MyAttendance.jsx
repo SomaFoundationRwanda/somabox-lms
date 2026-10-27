@@ -34,14 +34,14 @@ export default function MyAttendance() {
           <Section>
             {counted > 0 ? (
               <div className="space-y-1">
-                <p className="text-lg font-bold text-slate-900 dark:text-white">{txn("youAttended", counted, { a: attended(s) })}</p>
-                <p className="text-sm text-slate-600 dark:text-slate-300">
+                <p className="text-section font-bold text-fg">{txn("youAttended", counted, { a: attended(s) })}</p>
+                <p className="text-ui text-fg-muted">
                   {tx("yourRate", { pct: pct(rate) })} {cheer}
                 </p>
-                {s.excused ? <p className="text-xs text-slate-500">{txn("excusedNote", s.excused)}</p> : null}
+                {s.excused ? <p className="text-caption text-fg-subtle">{txn("excusedNote", s.excused)}</p> : null}
               </div>
             ) : (
-              <p className="text-sm text-slate-600 dark:text-slate-300">{tx("myNothingYet")}</p>
+              <p className="text-ui text-fg-muted">{tx("myNothingYet")}</p>
             )}
           </Section>
 

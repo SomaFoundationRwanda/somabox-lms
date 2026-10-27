@@ -61,12 +61,12 @@ export default function FilesPage() {
             <List label={t("nav.files")}>
               {list.map((f) => (
                 <li key={f.id} className="flex items-center justify-between gap-3 px-3 py-2.5">
-                  <a href={apiUrl(f.downloadUrl)} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200 hover:text-[var(--brand-primary)] min-w-0">
-                    <FileIcon className="w-4 h-4 text-slate-400 shrink-0" />
+                  <a href={apiUrl(f.downloadUrl)} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-ui text-fg-muted hover:text-brand-fg min-w-0">
+                    <FileIcon className="w-4 h-4 text-fg-subtle shrink-0" />
                     <span className="truncate">{f.original_name}</span>
                   </a>
                   {isTeacher ? (
-                    <button onClick={() => remove(f.id)} aria-label={tf("modules.deleteNamed", { title: f.original_name })} className="p-1.5 rounded-md hover:bg-slate-100 text-rose-500 shrink-0">
+                    <button onClick={() => remove(f.id)} aria-label={tf("modules.deleteNamed", { title: f.original_name })} className="p-1.5 rounded-md hover:bg-surface-hover text-danger-fg shrink-0">
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   ) : null}

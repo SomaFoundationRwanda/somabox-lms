@@ -38,19 +38,19 @@ export default function SyllabusPage() {
         />
 
         {/* 1. Course Outcomes */}
-        <Section title={<span className="flex items-center gap-2"><Target className="w-4 h-4 text-[var(--brand-secondary)]" /> {t("syllabus.outcomes")}</span>}>
+        <Section title={<span className="flex items-center gap-2"><Target className="w-4 h-4 text-brand-fg" /> {t("syllabus.outcomes")}</span>}>
           {outcomes.length === 0 ? (
-            <p className="text-xs text-slate-500">{t("syllabus.noOutcomes")}</p>
+            <p className="text-caption text-fg-subtle">{t("syllabus.noOutcomes")}</p>
           ) : (
             <List label={t("syllabus.outcomes")}>
               {outcomes.map((o) => (
                 <li key={o.id} className="flex items-start gap-3 px-3 py-2.5">
-                  <span className="text-[10px] font-bold text-[var(--brand-secondary)] bg-teal-50 px-2 py-0.5 rounded border border-teal-200 shrink-0 mt-0.5">
+                  <span className="text-caption font-bold text-brand-fg bg-brand-soft px-2 py-0.5 rounded border border-brand/40 shrink-0 mt-0.5">
                     {o.code || `OUT-${o.id}`}
                   </span>
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{o.title}</p>
-                    {o.description && <p className="text-xs text-slate-500 mt-0.5">{o.description}</p>}
+                    <p className="text-ui font-semibold text-fg">{o.title}</p>
+                    {o.description && <p className="text-caption text-fg-subtle mt-0.5">{o.description}</p>}
                   </div>
                 </li>
               ))}
@@ -59,45 +59,45 @@ export default function SyllabusPage() {
         </Section>
 
         {/* 2. Grading scale */}
-        <Section title={<span className="flex items-center gap-2"><Award className="w-4 h-4 text-[var(--brand-secondary)]" /> {t("syllabus.gradingTitle")}</span>}>
+        <Section title={<span className="flex items-center gap-2"><Award className="w-4 h-4 text-brand-fg" /> {t("syllabus.gradingTitle")}</span>}>
           <DataTable
             caption={t("syllabus.gradingScale")}
             rowKey={(r) => r.grade}
             rows={[{ grade: "A", range: "90 - 100%" },{ grade: "B", range: "80 - 89%" },{ grade: "C", range: "70 - 79%" },{ grade: "D", range: "60 - 69%" },{ grade: "F", range: "< 60%" }]}
             columns={[
-              { key: "grade", header: t("syllabus.grade"), className: "font-bold text-slate-900 dark:text-white" },
-              { key: "range", header: t("quiz.score"), className: "text-slate-600 dark:text-slate-400" },
+              { key: "grade", header: t("syllabus.grade"), className: "font-bold text-fg" },
+              { key: "range", header: t("quiz.score"), className: "text-fg-muted" },
             ]}
           />
         </Section>
 
         {/* 3. Weekly module schedule */}
-        <Section title={<span className="flex items-center gap-2"><Calendar className="w-4 h-4 text-[var(--brand-secondary)]" /> {t("syllabus.schedule")}</span>}>
+        <Section title={<span className="flex items-center gap-2"><Calendar className="w-4 h-4 text-brand-fg" /> {t("syllabus.schedule")}</span>}>
           {modules.length === 0 ? (
-            loading ? <Loader variant="page" size={48} className="min-h-[25vh]" label={t("syllabus.loadingSchedule")} /> : <p className="text-xs text-slate-500">{t("syllabus.noSchedule")}</p>
+            loading ? <Loader variant="page" size={48} className="min-h-[25vh]" label={t("syllabus.loadingSchedule")} /> : <p className="text-caption text-fg-subtle">{t("syllabus.noSchedule")}</p>
           ) : (
             <div className="space-y-6">
               {modules.map((m) => (
                 <div key={m.id} className="space-y-2">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-xs font-bold text-[var(--brand-secondary)] bg-teal-50 px-2.5 py-0.5 rounded-md border border-teal-200">
+                    <span className="text-caption font-bold text-brand-fg bg-brand-soft px-2.5 py-0.5 rounded-md border border-brand/40">
                       {weekLabel(m)}
                     </span>
-                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">{m.title}</h3>
+                    <h3 className="text-ui font-bold text-fg">{m.title}</h3>
                     {m.kind !== "unassigned" && (
-                      <span className="text-xs text-slate-500">{m.startDate ? formatRange(m.startDate, m.endDate) : t("home.noDatesYet")}</span>
+                      <span className="text-caption text-fg-subtle">{m.startDate ? formatRange(m.startDate, m.endDate) : t("home.noDatesYet")}</span>
                     )}
                   </div>
-                  {m.description && <p className="text-xs text-slate-600 dark:text-slate-400">{m.description}</p>}
+                  {m.description && <p className="text-caption text-fg-muted">{m.description}</p>}
 
                   {(m.items || []).length > 0 && (
                     <List label={tf("modules.itemsIn", { title: m.title })}>
                       {m.items.map((item) => (
-                        <li key={item.id} className="px-3 py-2 flex items-center gap-2 text-xs">
-                          <span className="text-[10px] font-bold text-slate-500 bg-slate-50 px-2 py-0.5 rounded border border-slate-200 shrink-0">
+                        <li key={item.id} className="px-3 py-2 flex items-center gap-2 text-caption">
+                          <span className="text-caption font-bold text-fg-subtle bg-surface-sunken px-2 py-0.5 rounded border border-line shrink-0">
                             {tOr(`items.${item.item_type}`, item.item_type)}
                           </span>
-                          <span className="font-semibold text-slate-800 dark:text-slate-100 truncate">{item.title}</span>
+                          <span className="font-semibold text-fg truncate">{item.title}</span>
                         </li>
                       ))}
                     </List>

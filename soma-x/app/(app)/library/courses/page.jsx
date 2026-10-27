@@ -34,7 +34,7 @@ const BUNDLES = ["catalogue", "bundles"];
 function Warnings({ items }) {
   if (!items?.length) return null;
   return (
-    <ul className="space-y-1 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
+    <ul className="space-y-1 rounded-lg border border-warning/30 bg-warning-soft px-3 py-2 text-caption text-warning-fg">
       {items.map((w, i) => (
         <li key={i} className="flex items-start gap-1.5"><AlertTriangle className="w-3.5 h-3.5 mt-px shrink-0" aria-hidden="true" />{w}</li>
       ))}
@@ -48,7 +48,7 @@ function BundlePreview({ SERVER_URL, entryId }) {
   const data = preview.data ? preview.data.bundle || {} : null;
   const error = preview.isError ? networkMessage(t, preview.error, t("shell.courseLibrary.bundleLoadFailed")) : "";
 
-  if (error) return <p role="alert" className="text-xs text-rose-600">{error}</p>;
+  if (error) return <p role="alert" className="text-caption text-danger-fg">{error}</p>;
   if (!data) return <Loader variant="page" size={40} className="min-h-[8rem]" label={t("shell.courseLibrary.loadingPreview")} />;
 
   const modules = Array.isArray(data.modules) ? data.modules : [];
@@ -56,36 +56,36 @@ function BundlePreview({ SERVER_URL, entryId }) {
   const weekLabel = (m) => (m.kind === "baseline" ? t("shell.courseLibrary.weekBaseline") : fill(t("shell.courseLibrary.weekN"), { n: m.weekOffset }));
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[1fr_16rem] gap-4 text-xs">
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr_16rem] gap-4 text-caption">
       <div className="min-w-0">
-        <h4 className="font-bold text-slate-700 dark:text-slate-200 mb-1">{t("shell.courseLibrary.weeks")}</h4>
-        {modules.length === 0 ? <p className="text-slate-500">{t("shell.courseLibrary.noWeeks")}</p> : (
+        <h4 className="font-bold text-fg-muted mb-1">{t("shell.courseLibrary.weeks")}</h4>
+        {modules.length === 0 ? <p className="text-fg-subtle">{t("shell.courseLibrary.noWeeks")}</p> : (
           <ol className="space-y-2">
             {modules.map((m, i) => (
-              <li key={i} className="border-l-2 border-slate-200 dark:border-slate-700 pl-3">
-                <p className="font-semibold text-slate-800 dark:text-slate-100">{weekLabel(m)}: {m.title}</p>
+              <li key={i} className="border-l-2 border-line pl-3">
+                <p className="font-semibold text-fg">{weekLabel(m)}: {m.title}</p>
                 {m.items?.length ? (
-                  <ul className="mt-0.5 space-y-0.5 text-slate-600 dark:text-slate-300">
+                  <ul className="mt-0.5 space-y-0.5 text-fg-muted">
                     {m.items.map((it, j) => (
                       <li key={j} className="flex flex-wrap gap-x-2">
-                        <span className="text-[10px] uppercase tracking-wide font-bold text-slate-400 w-20 shrink-0">{ITEM_TYPE_KEYS.includes(it.type) ? t(`shell.courseLibrary.itemTypes.${it.type}`) : it.type}</span>
+                        <span className="text-caption font-bold text-fg-subtle w-20 shrink-0">{ITEM_TYPE_KEYS.includes(it.type) ? t(`shell.courseLibrary.itemTypes.${it.type}`) : it.type}</span>
                         <span className="min-w-0 break-words">{it.title}</span>
                       </li>
                     ))}
                   </ul>
-                ) : <p className="text-slate-400">{t("shell.courseLibrary.emptyWeek")}</p>}
+                ) : <p className="text-fg-subtle">{t("shell.courseLibrary.emptyWeek")}</p>}
               </li>
             ))}
           </ol>
         )}
       </div>
       <div className="min-w-0">
-        <h4 className="font-bold text-slate-700 dark:text-slate-200 mb-1">{t("shell.courseLibrary.outcomes")}</h4>
-        {outcomes.length === 0 ? <p className="text-slate-500">{t("shell.courseLibrary.noOutcomes")}</p> : (
-          <ul className="space-y-1 text-slate-600 dark:text-slate-300">
+        <h4 className="font-bold text-fg-muted mb-1">{t("shell.courseLibrary.outcomes")}</h4>
+        {outcomes.length === 0 ? <p className="text-fg-subtle">{t("shell.courseLibrary.noOutcomes")}</p> : (
+          <ul className="space-y-1 text-fg-muted">
             {outcomes.map((o, i) => (
               <li key={o.ref || i} className="break-words">
-                {o.code ? <span className="font-semibold text-slate-800 dark:text-slate-100">{o.code} </span> : null}
+                {o.code ? <span className="font-semibold text-fg">{o.code} </span> : null}
                 {o.title}
               </li>
             ))}
@@ -112,13 +112,13 @@ function VersionRow({ SERVER_URL, entry, latest, creating, onCreate }) {
     <div className="space-y-2">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <p className={`${latest ? "text-sm" : "text-xs"} font-semibold text-slate-900 dark:text-white break-words`}>
+          <p className={`${latest ? "text-ui" : "text-caption"} font-semibold text-fg break-words`}>
             {latest ? entry.title : fill(t("shell.courseLibrary.version"), { n: entry.version })}
-            {latest ? <span className="ml-2 text-[11px] font-semibold text-[var(--brand-secondary)]">{fill(t("shell.courseLibrary.version"), { n: entry.version })}</span> : null}
+            {latest ? <span className="ml-2 text-caption font-semibold text-brand-fg">{fill(t("shell.courseLibrary.version"), { n: entry.version })}</span> : null}
           </p>
-          <p className="text-xs text-slate-600 dark:text-slate-300">{details}</p>
-          <p className="text-[11px] text-slate-500 break-words">{origin}</p>
-          {latest && entry.description ? <p className="mt-1 text-xs text-slate-500 line-clamp-2">{entry.description}</p> : null}
+          <p className="text-caption text-fg-muted">{details}</p>
+          <p className="text-caption text-fg-subtle break-words">{origin}</p>
+          {latest && entry.description ? <p className="mt-1 text-caption text-fg-subtle line-clamp-2">{entry.description}</p> : null}
         </div>
         <div className="flex flex-wrap items-center gap-2 shrink-0">
           <button
@@ -126,7 +126,7 @@ function VersionRow({ SERVER_URL, entry, latest, creating, onCreate }) {
             onClick={() => setShowPreview((v) => !v)}
             aria-expanded={showPreview}
             aria-controls={previewId}
-            className="text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 rounded-lg px-3 py-1.5"
+            className="text-caption font-semibold text-fg-muted bg-surface-sunken hover:bg-surface-hover rounded-lg px-3 py-1.5"
           >
             {showPreview ? t("shell.courseLibrary.hidePreview") : t("shell.courseLibrary.preview")}
           </button>
@@ -134,7 +134,7 @@ function VersionRow({ SERVER_URL, entry, latest, creating, onCreate }) {
             type="button"
             onClick={() => onCreate(entry)}
             disabled={creating}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] disabled:opacity-50 rounded-lg px-3 py-1.5"
+            className="inline-flex items-center gap-1.5 text-caption font-semibold text-on-brand-strong bg-brand-strong hover:bg-brand-strong/90 disabled:opacity-50 rounded-lg px-3 py-1.5"
           >
             {creating ? <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" /> : null}
             {creating ? t("shell.courseLibrary.creating") : t("shell.courseLibrary.createFrom")}
@@ -142,7 +142,7 @@ function VersionRow({ SERVER_URL, entry, latest, creating, onCreate }) {
         </div>
       </div>
       {showPreview ? (
-        <div id={previewId} className="border-t border-slate-100 dark:border-slate-800 pt-2">
+        <div id={previewId} className="border-t border-line pt-2">
           <BundlePreview SERVER_URL={SERVER_URL} entryId={entry.id} />
         </div>
       ) : null}
@@ -165,13 +165,13 @@ function BundleGroup({ SERVER_URL, versions, creatingId, onCreate }) {
       <VersionRow SERVER_URL={SERVER_URL} entry={latest} latest creating={creatingId === latest.id} onCreate={onCreate} />
 
       {copies.length ? (
-        <div className="text-xs">
-          <span className="font-semibold text-slate-600 dark:text-slate-300">{t("shell.courseLibrary.yourCopies")} </span>
+        <div className="text-caption">
+          <span className="font-semibold text-fg-muted">{t("shell.courseLibrary.yourCopies")} </span>
           {copies.map((c, i) => (
             <span key={c.courseId}>
               {i > 0 ? ", " : ""}
-              <Link href={`/course/${c.courseId}/home`} className="text-[var(--brand-secondary)] hover:underline">{c.title}</Link>
-              {c.version ? <span className="text-slate-400"> (v{c.version})</span> : null}
+              <Link href={`/course/${c.courseId}/home`} className="text-brand-fg hover:underline">{c.title}</Link>
+              {c.version ? <span className="text-fg-subtle"> (v{c.version})</span> : null}
             </span>
           ))}
         </div>
@@ -183,13 +183,13 @@ function BundleGroup({ SERVER_URL, versions, creatingId, onCreate }) {
             type="button"
             onClick={() => setShowOlder((v) => !v)}
             aria-expanded={showOlder}
-            className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+            className="inline-flex items-center gap-1 text-caption font-semibold text-fg-subtle hover:text-fg"
           >
             {showOlder ? <ChevronDown className="w-3.5 h-3.5" aria-hidden="true" /> : <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" />}
             {fill(t("shell.courseLibrary.olderVersions"), { n: older.length })}
           </button>
           {showOlder ? (
-            <ul className="mt-2 space-y-3 border-l-2 border-slate-100 dark:border-slate-800 pl-3">
+            <ul className="mt-2 space-y-3 border-l-2 border-line pl-3">
               {older.map((v) => (
                 <li key={v.id}>
                   <VersionRow SERVER_URL={SERVER_URL} entry={v} creating={creatingId === v.id} onCreate={onCreate} />
@@ -260,7 +260,7 @@ function UploadArea({ SERVER_URL, onUploaded, onCreated }) {
             type="button"
             onClick={() => send("add")}
             disabled={!!busy}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] disabled:opacity-50 rounded-lg px-4 py-2"
+            className="inline-flex items-center gap-1.5 text-caption font-semibold text-on-brand-strong bg-brand-strong hover:bg-brand-strong/90 disabled:opacity-50 rounded-lg px-4 py-2"
           >
             {busy === "add" ? <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" /> : null}
             {busy === "add" ? t("shell.courseLibrary.uploading") : t("shell.courseLibrary.addToLibrary")}
@@ -269,7 +269,7 @@ function UploadArea({ SERVER_URL, onUploaded, onCreated }) {
             type="button"
             onClick={() => send("import")}
             disabled={!!busy}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--brand-secondary)] bg-teal-50 border border-teal-200 hover:bg-teal-100 disabled:opacity-50 rounded-lg px-4 py-2"
+            className="inline-flex items-center gap-1.5 text-caption font-semibold text-brand-fg bg-brand-soft border border-brand/40 hover:bg-brand-soft disabled:opacity-50 rounded-lg px-4 py-2"
           >
             {busy === "import" ? <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" /> : null}
             {busy === "import" ? t("shell.courseLibrary.creating") : t("shell.courseLibrary.addAndCreate")}
@@ -278,9 +278,9 @@ function UploadArea({ SERVER_URL, onUploaded, onCreated }) {
       ) : null}
 
       <div aria-live="polite">
-        {error ? <p role="alert" className="text-xs font-semibold text-rose-600 break-words">{error}</p> : null}
+        {error ? <p role="alert" className="text-caption font-semibold text-danger-fg break-words">{error}</p> : null}
         {result ? (
-          <p className={`text-xs font-semibold ${result.added ? "text-emerald-700 dark:text-emerald-300" : "text-slate-600 dark:text-slate-300"}`}>
+          <p className={`text-caption font-semibold ${result.added ? "text-success-fg" : "text-fg-muted"}`}>
             {fill(t(result.added ? "shell.courseLibrary.addedResult" : "shell.courseLibrary.alreadyResult"), { title: result.title, n: result.version })}
           </p>
         ) : null}
@@ -352,7 +352,7 @@ export default function CourseLibraryPage() {
   return (
     <div className="min-h-screen pb-24 md:pb-8">
       <div className="px-4 pt-4 flex flex-col gap-8 max-w-5xl">
-        <Link href={backHref} className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-slate-700">
+        <Link href={backHref} className="inline-flex items-center gap-1 text-caption font-semibold text-fg-subtle hover:text-fg-muted">
           <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" /> {role === "admin" ? t("shell.courseLibrary.backAdmin") : t("shell.courseLibrary.backCourses")}
         </Link>
         <PageHeader
@@ -360,8 +360,8 @@ export default function CourseLibraryPage() {
           description={t("shell.courseLibrary.description")}
         />
 
-        <p className="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-300 max-w-2xl">
-          <Info className="w-4 h-4 shrink-0 text-[var(--brand-secondary)]" aria-hidden="true" />
+        <p className="flex items-start gap-2 text-caption text-fg-muted max-w-2xl">
+          <Info className="w-4 h-4 shrink-0 text-brand-fg" aria-hidden="true" />
           <span>
             <strong>{t("shell.courseLibrary.noteStrong")}</strong> {t("shell.courseLibrary.noteRest")}
           </span>
@@ -369,16 +369,16 @@ export default function CourseLibraryPage() {
 
         {created ? (
           <section id="created-course" aria-labelledby="created-course-title" className="space-y-2 scroll-mt-4" role="status">
-            <h2 id="created-course-title" className="text-sm font-bold text-slate-900 dark:text-white">{created.title ? fill(t("shell.courseLibrary.createdNamed"), { title: created.title }) : t("shell.courseLibrary.createdToast")}</h2>
+            <h2 id="created-course-title" className="text-ui font-bold text-fg">{created.title ? fill(t("shell.courseLibrary.createdNamed"), { title: created.title }) : t("shell.courseLibrary.createdToast")}</h2>
             {created.existingCopies.length ? (
-              <p className="text-xs text-slate-600 dark:text-slate-300">
+              <p className="text-caption text-fg-muted">
                 {plural(t, created.existingCopies.length, "shell.courseLibrary.alreadyOneCopy", "shell.courseLibrary.alreadyNCopies")}
               </p>
             ) : null}
             <Warnings items={created.warnings} />
             <Link
               href={`/course/${created.courseId}/home`}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-dark)] rounded-lg px-4 py-2"
+              className="inline-flex items-center gap-1.5 text-caption font-semibold text-on-brand bg-brand hover:bg-brand/90 rounded-lg px-4 py-2"
             >
               {t("shell.courseLibrary.openNew")}
             </Link>
@@ -390,7 +390,7 @@ export default function CourseLibraryPage() {
         </Section>
 
         <Section divided title={t("shell.courseLibrary.bundlesTitle")}>
-          {error ? <p role="alert" className="text-sm text-rose-600 mb-2">{error}</p> : null}
+          {error ? <p role="alert" className="text-ui text-danger-fg mb-2">{error}</p> : null}
           {entries === null ? (
             <Loader variant="page" size={56} className="min-h-[30vh]" label={t("shell.courseLibrary.loading")} />
           ) : groups.length === 0 ? (

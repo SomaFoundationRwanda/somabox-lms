@@ -27,6 +27,7 @@ import { GRADE_LEVELS } from '@/lib/grades';
 import { AccessibilityField, GenderField } from '@/components/profile/ProfileFields';
 import { GENDERS } from '@/lib/profileOptions';
 import { Field, Select, TextInput } from '@/components/form';
+import { Label } from "@/components/form";
 
 // Nobody is asked where they live: one box serves one school, and the box places everyone at the
 // school's location (province, district, rural/urban), set by the admin on the School page.
@@ -261,15 +262,15 @@ export default function MandatoryProfileSetupModal() {
             <>
             {/* School and its place: set by the school, shown read-only (nobody is asked). */}
             {school?.name && (
-                <div className="flex items-start gap-2 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80 text-sm">
-                    <Building2 className="w-4 h-4 mt-0.5 text-teal-600 dark:text-teal-400 shrink-0" aria-hidden="true" />
+                <div className="flex items-start gap-2 p-3.5 rounded-xl bg-surface-sunken border border-line text-ui">
+                    <Building2 className="w-4 h-4 mt-0.5 text-brand-fg shrink-0" aria-hidden="true" />
                     <div className="min-w-0">
-                        <p className="font-semibold text-slate-700 dark:text-slate-200">
+                        <p className="font-semibold text-fg-muted">
                             {t("school.onboarding.schoolLabel")}{" "}
-                            <span className="font-extrabold text-slate-900 dark:text-white">{school.name}</span>
-                            {schoolPlace ? <span className="text-slate-700 dark:text-slate-200"> · {schoolPlace}</span> : null}
+                            <span className="font-extrabold text-fg">{school.name}</span>
+                            {schoolPlace ? <span className="text-fg-muted"> · {schoolPlace}</span> : null}
                         </p>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{t("school.onboarding.setBySchool")}</p>
+                        <p className="text-caption text-fg-subtle mt-0.5">{t("school.onboarding.setBySchool")}</p>
                     </div>
                 </div>
             )}
@@ -286,9 +287,9 @@ export default function MandatoryProfileSetupModal() {
             <>
             {/* Preferred Interface Language */}
             <div>
-                <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1.5">
+                <Label>
                     {t("learner.profileSetup.preferredLanguage")}
-                </label>
+                </Label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {[
                         { code: "en", name: "English" },
@@ -301,10 +302,10 @@ export default function MandatoryProfileSetupModal() {
                             key={l.code}
                             type="button"
                             onClick={() => setPreferredLanguage(l.code)}
-                            className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                            className={`py-2.5 px-3 rounded-xl border text-caption font-bold transition-all flex items-center justify-center gap-1.5 ${
                                 preferredLanguage === l.code
-                                    ? "border-teal-600 bg-teal-50 dark:bg-teal-950/50 text-teal-800 dark:text-teal-200 ring-2 ring-teal-500/20"
-                                    : "border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/40 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                                    ? "border-brand bg-brand-soft text-brand-fg ring-2 ring-brand/20"
+                                    : "border-line bg-surface-sunken/50 text-fg-muted hover:bg-surface-hover"
                             }`}
                         >
                             <Globe className="w-3.5 h-3.5 opacity-70" />
@@ -320,36 +321,36 @@ export default function MandatoryProfileSetupModal() {
     if (!isOpen || checkingStatus) return null;
 
     return (
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-6 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-6 bg-scrim backdrop-blur-md animate-in fade-in duration-200">
             {/* Modal Container */}
             <div
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="onboarding-modal-title"
-                className="w-full max-w-2xl bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[90vh] transition-all transform animate-in zoom-in-95 duration-200"
+                className="w-full max-w-2xl bg-surface-raised rounded-3xl shadow-2xl border border-line overflow-hidden flex flex-col max-h-[90vh] transition-all transform animate-in zoom-in-95 duration-200"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header Banner */}
-                <div className="relative bg-gradient-to-r from-accent-dark via-teal-800 to-teal-900 px-6 sm:px-8 py-6 text-white overflow-hidden shrink-0">
-                    <div className="absolute -top-12 -right-12 w-40 h-40 bg-teal-500/20 rounded-full blur-2xl pointer-events-none" />
-                    <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-amber-500/20 rounded-full blur-xl pointer-events-none" />
+                <div className="dark relative bg-brand-deep px-6 sm:px-8 py-6 text-white overflow-hidden shrink-0">
+                    <div className="absolute -top-12 -right-12 w-40 h-40 bg-brand/20 rounded-full blur-2xl pointer-events-none" />
+                    <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-warning/20 rounded-full blur-xl pointer-events-none" />
 
                     <div className="relative z-10 flex items-start justify-between gap-4">
                         <div className="space-y-1.5">
-                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-teal-200 text-xs font-bold tracking-wide uppercase">
-                                <Sparkles className="w-3.5 h-3.5 text-teal-300" />
+                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-brand-fg text-caption font-bold">
+                                <Sparkles className="w-3.5 h-3.5 text-brand-fg" />
                                 {vt("badge")}
                             </div>
-                            <h2 id="onboarding-modal-title" className="text-xl sm:text-2xl font-black tracking-tight text-white">
+                            <h2 id="onboarding-modal-title" className="text-section sm:text-title font-extrabold tracking-tight text-white">
                                 {vt("title")}
                             </h2>
-                            <p className="text-white/80 text-xs sm:text-sm font-medium">
+                            <p className="text-white/80 text-caption sm:text-ui font-medium">
                                 {vt("subtitle")}
                             </p>
                         </div>
                         <div className="flex flex-col items-end gap-2 shrink-0">
                             <LanguageSwitcher compact />
-                            <div className="hidden sm:flex p-3 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-sm text-teal-300">
+                            <div className="hidden sm:flex p-3 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-sm text-brand-fg">
                                 <ShieldCheck className="w-8 h-8" />
                             </div>
                         </div>
@@ -365,24 +366,24 @@ export default function MandatoryProfileSetupModal() {
                             return (
                                 <div key={item.num} className="flex items-center gap-2 flex-1 min-w-0">
                                     <div
-                                        className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs font-black transition-all shrink-0 ${
+                                        className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-caption font-extrabold transition-all shrink-0 ${
                                             isDone
-                                                ? "bg-teal-400 text-slate-900"
+                                                ? "bg-brand text-on-brand"
                                                 : isActive
-                                                ? "bg-white text-slate-900 ring-2 ring-teal-300 ring-offset-2 ring-offset-teal-900"
-                                                : "bg-white/20 text-white/60"
+                                                ? "bg-fg text-surface ring-2 ring-brand/40 ring-offset-2 ring-offset-brand-strong"
+                                                : "bg-white/20 text-on-brand/60"
                                         }`}
                                     >
                                         {isDone ? <CheckCircle2 className="w-4 h-4" /> : item.num}
                                     </div>
                                     <div className="hidden md:block truncate">
-                                        <p className={`text-[11px] font-bold leading-tight ${isActive ? "text-white" : "text-white/60"}`}>
+                                        <p className={`text-caption font-bold leading-tight ${isActive ? "text-white" : "text-white/60"}`}>
                                             {fill(t("learner.profileSetup.stepN"), { n: item.num })}
                                         </p>
-                                        <p className="text-[10px] text-white/70 truncate">{item.label}</p>
+                                        <p className="text-caption text-white/70 truncate">{item.label}</p>
                                     </div>
                                     {idx < LAST_STEP - 1 && (
-                                        <div className={`flex-1 h-0.5 mx-1 hidden sm:block ${step > item.num ? "bg-teal-400" : "bg-white/20"}`} />
+                                        <div className={`flex-1 h-0.5 mx-1 hidden sm:block ${step > item.num ? "bg-brand" : "bg-white/20"}`} />
                                     )}
                                 </div>
                             );
@@ -395,18 +396,18 @@ export default function MandatoryProfileSetupModal() {
                 <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-6">
                     {isCompletedSuccess ? (
                         <div className="py-12 flex flex-col items-center justify-center text-center space-y-4 animate-in zoom-in-95 duration-300">
-                            <div className="w-20 h-20 rounded-full bg-green-100 dark:bg-green-950/60 border-2 border-green-600 text-green-600 dark:text-green-400 flex items-center justify-center shadow-xl">
+                            <div className="w-20 h-20 rounded-full bg-success-soft border-2 border-success text-success-fg flex items-center justify-center shadow-xl">
                                 <CheckCircle2 className="w-10 h-10" />
                             </div>
                             <div className="space-y-1">
-                                <h3 className="text-2xl font-black text-slate-900 dark:text-white">
+                                <h3 className="text-title font-extrabold text-fg">
                                     {t("learner.profileSetup.allSet")}
                                 </h3>
-                                <p className="text-sm font-medium text-slate-600 dark:text-slate-300 max-w-sm">
+                                <p className="text-ui font-medium text-fg-muted max-w-sm">
                                     {t("learner.profileSetup.allSetBody")}
                                 </p>
                             </div>
-                            <div className="flex items-center gap-2 text-xs font-bold text-teal-600 dark:text-teal-400 pt-2">
+                            <div className="flex items-center gap-2 text-caption font-bold text-brand-fg pt-2">
                                 <Loader2 className="w-4 h-4 animate-spin" />
                                 {t("learner.profileSetup.unlocking")}
                             </div>
@@ -414,12 +415,12 @@ export default function MandatoryProfileSetupModal() {
                     ) : (
                         <div>
                             <div className="space-y-5 animate-in fade-in-50 duration-200">
-                                <div className="border-b border-slate-200 dark:border-slate-800 pb-3">
-                                    <h3 ref={stepHeadingRef} tabIndex={-1} className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]">
-                                        <current.icon className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                                <div className="border-b border-line pb-3">
+                                    <h3 ref={stepHeadingRef} tabIndex={-1} className="text-item font-extrabold text-fg flex items-center gap-2 outline-none">
+                                        <current.icon className="w-4 h-4 text-brand-fg" />
                                         {vt(current.title)}
                                     </h3>
-                                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                    <p className="text-caption text-fg-subtle mt-0.5">
                                         {vt(current.help)}
                                     </p>
                                 </div>
@@ -431,20 +432,20 @@ export default function MandatoryProfileSetupModal() {
 
                 {/* Modal Footer Controls */}
                 {!isCompletedSuccess && (
-                    <div className="p-4 sm:p-6 bg-slate-50 dark:bg-slate-900/90 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3 shrink-0">
+                    <div className="p-4 sm:p-6 bg-surface-sunken border-t border-line flex items-center justify-between gap-3 shrink-0">
                         <div>
                             {step > 1 ? (
                                 <button
                                     type="button"
                                     onClick={handleBack}
                                     disabled={loading}
-                                    className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-extrabold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all disabled:opacity-50"
+                                    className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-line-strong bg-surface text-caption font-extrabold text-fg-muted hover:bg-surface-hover transition-all disabled:opacity-50"
                                 >
                                     <ArrowLeft className="w-3.5 h-3.5" />
                                     {t("learner.profileSetup.previous")}
                                 </button>
                             ) : (
-                                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                                <span className="text-caption font-bold text-fg-subtle">
                                     {t("learner.profileSetup.mandatory")}
                                 </span>
                             )}
@@ -457,7 +458,7 @@ export default function MandatoryProfileSetupModal() {
                                     onClick={handleNext}
                                     disabled={!isStepValid(step)}
                                     aria-disabled={!isStepValid(step)}
-                                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-accent-dark hover:bg-teal-800 text-white text-xs font-black shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-accent-dark"
+                                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-brand-strong hover:bg-brand-strong text-on-brand-strong text-caption font-extrabold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-brand-strong"
                                 >
                                     {t("learner.profileSetup.continue")}
                                     <ArrowRight className="w-3.5 h-3.5" />
@@ -468,7 +469,7 @@ export default function MandatoryProfileSetupModal() {
                                     onClick={handleFinalSubmit}
                                     disabled={loading || !isStepValid(LAST_STEP)}
                                     aria-disabled={loading || !isStepValid(LAST_STEP)}
-                                    className="inline-flex items-center gap-2 px-7 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-teal-800 hover:from-teal-500 hover:to-teal-700 text-white text-xs font-black shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="inline-flex items-center gap-2 px-7 py-2.5 rounded-xl bg-gradient-to-r from-brand to-brand-strong hover:from-brand hover:to-brand-strong text-white text-caption font-extrabold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {loading ? (
                                         <>

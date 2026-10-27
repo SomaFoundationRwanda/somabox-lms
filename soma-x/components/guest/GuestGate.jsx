@@ -38,41 +38,41 @@ export function SignUpPrompt({ next, onDismiss, titleId = "guest-gate-title", au
     const remember = () => rememberNext(target);
 
     return (
-        <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-200 p-6 sm:p-8 text-center">
+        <div className="relative w-full max-w-md bg-surface-raised rounded-2xl shadow-2xl border border-line p-6 sm:p-8 text-center">
             {onDismiss ? (
                 <button
                     type="button"
                     onClick={onDismiss}
                     aria-label={t("guest.close")}
-                    className="absolute top-3 right-3 p-2 rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors"
+                    className="absolute top-3 right-3 p-2 rounded-full text-fg-subtle hover:bg-surface-hover hover:text-fg transition-colors"
                 >
                     <X className="w-4 h-4" aria-hidden="true" />
                 </button>
             ) : null}
-            <div className="w-14 h-14 rounded-2xl bg-teal-50 text-[var(--brand-primary)] flex items-center justify-center mx-auto mb-4">
+            <div className="w-14 h-14 rounded-2xl bg-brand-soft text-brand-fg flex items-center justify-center mx-auto mb-4">
                 <LockKeyhole className="w-7 h-7" aria-hidden="true" />
             </div>
-            <h2 id={titleId} className="text-xl font-bold text-slate-900 leading-snug">
+            <h2 id={titleId} className="text-section font-bold text-fg leading-snug">
                 {t("guest.gateTitle")}
             </h2>
             {message ? (
-                <p className="text-sm font-semibold text-amber-900 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mt-3">{message}</p>
+                <p className="text-ui font-semibold text-warning-fg bg-warning-soft border border-warning/30 rounded-xl px-3 py-2 mt-3">{message}</p>
             ) : null}
-            <p className="text-sm text-slate-600 mt-2">{t("guest.gateWhy")}</p>
-            <p className="text-xs text-slate-500 mt-1">{t("guest.gateReturn")}</p>
+            <p className="text-ui text-fg-muted mt-2">{t("guest.gateWhy")}</p>
+            <p className="text-caption text-fg-subtle mt-1">{t("guest.gateReturn")}</p>
             <div className="mt-6 flex flex-col gap-2.5">
                 <a
                     ref={signUpRef}
                     href={links.signup}
                     onClick={remember}
-                    className="w-full h-11 rounded-xl bg-[var(--brand-primary)] hover:bg-black text-white text-[15px] font-bold flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--brand-primary)]"
+                    className="w-full h-11 rounded-xl bg-brand-strong hover:bg-brand-strong/90 text-on-brand-strong text-item font-bold flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-brand-strong"
                 >
                     {t("guest.signUp")}
                 </a>
                 <a
                     href={links.login}
                     onClick={remember}
-                    className="w-full h-11 rounded-xl border-2 border-slate-300 hover:border-slate-400 text-slate-800 text-[15px] font-bold flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--brand-primary)]"
+                    className="w-full h-11 rounded-xl border-2 border-line-strong hover:border-line-strong text-fg text-item font-bold flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-brand-strong"
                 >
                     {t("guest.haveAccount")}
                 </a>
@@ -80,7 +80,7 @@ export function SignUpPrompt({ next, onDismiss, titleId = "guest-gate-title", au
                     <button
                         type="button"
                         onClick={onDismiss}
-                        className="text-sm font-semibold text-slate-500 hover:text-slate-800 mt-1"
+                        className="text-ui font-semibold text-fg-subtle hover:text-fg mt-1"
                     >
                         {t("guest.notNow")}
                     </button>
@@ -103,7 +103,7 @@ function SignUpModal({ next, message, onClose }) {
 
     return (
         <div
-            className="fixed inset-0 z-[2000] bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4"
+            className="fixed inset-0 z-[2000] bg-scrim backdrop-blur-sm flex items-center justify-center p-4"
             onClick={onClose}
         >
             <div

@@ -11,10 +11,10 @@ export default function Modal({ title, onClose, dirty = false, size = "sm", chil
   const { t } = useLanguage()
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => { if (!dirty) onClose() }}>
-      <div role="dialog" aria-modal="true" aria-label={title} className={`bg-white dark:bg-[#0f1318] border border-transparent dark:border-slate-700/50 rounded-2xl shadow-xl w-full ${SIZES[size] || SIZES.sm} mx-4 p-6 max-h-[calc(100dvh-2rem)] overflow-y-auto`} onClick={(e) => e.stopPropagation()}>
+      <div role="dialog" aria-modal="true" aria-label={title} className={`bg-surface border border-transparent rounded-2xl shadow-xl w-full ${SIZES[size] || SIZES.sm} mx-4 p-6 max-h-[calc(100dvh-2rem)] overflow-y-auto`} onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-semibold text-slate-800 dark:text-white">{title}</h3>
-          <button aria-label={t("teacher.common.close")} onClick={onClose} className="text-slate-600 hover:text-slate-600 transition-colors">
+          <h3 className="text-item font-semibold text-fg">{title}</h3>
+          <button aria-label={t("teacher.common.close")} onClick={onClose} className="text-fg-muted hover:text-fg-muted transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>

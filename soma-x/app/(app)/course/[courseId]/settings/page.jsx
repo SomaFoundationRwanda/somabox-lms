@@ -20,7 +20,7 @@ import GradeSelect from "@/components/teacher/GradeSelect";
 import Explainer from "@/components/help/Explainer";
 import ShareCourseSection from "@/components/course/ShareCourseSection";
 import CourseStatusSection from "@/components/course/CourseStatusSection";
-import { FileButton, Select, TextInput, Textarea } from "@/components/form";
+import { Fieldset, FileButton, Label, Select, TextInput, Textarea } from "@/components/form";
 
 // Settings > Course setup (teachers): the setup checklist, the Week 0 baseline and the guided wizard.
 function CourseSetupSection({ courseId, course, userEmail, onCourseChanged }) {
@@ -44,7 +44,7 @@ function CourseSetupSection({ courseId, course, userEmail, onCourseChanged }) {
   return (
     <section id="course-setup" aria-labelledby="course-setup-title" className="space-y-6 scroll-mt-4">
       <h2 id="course-setup-title" className="sr-only">{t("settings.tabs.setup")}</h2>
-      {statusError && <p className="text-xs text-rose-600" role="alert">{statusError}</p>}
+      {statusError && <p className="text-caption text-danger-fg" role="alert">{statusError}</p>}
       {status && (
         <SetupChecklist
           courseId={courseId}
@@ -75,7 +75,7 @@ function CourseSetupSection({ courseId, course, userEmail, onCourseChanged }) {
               setShowWizard(!showWizard);
             }}
             aria-expanded={showWizard}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--brand-secondary)] bg-teal-50 border border-teal-200 px-3 py-2 rounded-lg hover:bg-teal-100 transition-colors"
+            className="inline-flex items-center gap-1.5 text-caption font-semibold text-brand-fg bg-brand-soft border border-brand/40 px-3 py-2 rounded-lg hover:bg-brand-soft transition-colors"
           >
             {showWizard ? <><X className="w-3.5 h-3.5" aria-hidden="true" /> {t("settings.closeGuided")}</> : <><ListChecks className="w-3.5 h-3.5" aria-hidden="true" /> {t("settings.guided")}</>}
           </button>
@@ -158,20 +158,19 @@ function ShiftTimelinePanel({ courseId, startDate, onApplied }) {
   const movedItems = Array.isArray(result?.items) ? result.items : [];
 
   return (
-    <fieldset className="space-y-3">
-      <legend className="text-sm font-bold text-slate-900 dark:text-white mb-1 inline-flex items-center gap-2">{t("settings.shift.title")} <Explainer k="pages.shiftTimeline" variant="icon" /></legend>
+    <Fieldset legend={<>{t("settings.shift.title")} <Explainer k="pages.shiftTimeline" variant="icon" /></>} className="space-y-3">
       {!hasStartDate ? (
-        <p className="text-[11px] text-slate-500">{t("settings.shift.needStart")}</p>
+        <p className="text-caption text-fg-subtle">{t("settings.shift.needStart")}</p>
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-[8rem_1fr] gap-3">
             <div>
-              <label htmlFor="shift-days" className="text-[11px] font-semibold text-slate-600 mb-1 block">{t("settings.shift.days")}</label>
+              <Label htmlFor="shift-days">{t("settings.shift.days")}</Label>
               <TextInput id="shift-days" type="number" step="1" value={days} onChange={(e) => setDays(e.target.value)} className="w-full" />
-              <p className="text-[10px] text-slate-500 mt-0.5">{t("settings.shift.negative")}</p>
+              <p className="text-caption text-fg-subtle mt-0.5">{t("settings.shift.negative")}</p>
             </div>
             <div>
-              <label htmlFor="shift-from" className="text-[11px] font-semibold text-slate-600 mb-1 block">{t("settings.shift.from")}</label>
+              <Label htmlFor="shift-from">{t("settings.shift.from")}</Label>
               <Select id="shift-from" value={fromModuleId} onChange={(e) => setFromModuleId(e.target.value)} className="w-full" >
                 <option value="">{t("settings.shift.whole")}</option>
                 {modules.map((m) => (
@@ -180,7 +179,7 @@ function ShiftTimelinePanel({ courseId, startDate, onApplied }) {
                   </option>
                 ))}
               </Select>
-              <p className="text-[10px] text-slate-500 mt-0.5">{t("settings.shift.fromHelp")}</p>
+              <p className="text-caption text-fg-subtle mt-0.5">{t("settings.shift.fromHelp")}</p>
             </div>
           </div>
 
@@ -189,7 +188,7 @@ function ShiftTimelinePanel({ courseId, startDate, onApplied }) {
               type="button"
               onClick={() => send(true)}
               disabled={busy || !validDays}
-              className="text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 px-3 py-1.5 rounded-lg transition-colors"
+              className="text-caption font-semibold text-fg-muted bg-surface-sunken hover:bg-surface-hover disabled:opacity-50 px-3 py-1.5 rounded-lg transition-colors"
             >
               {busy && !previewIsCurrent ? t("settings.shift.working") : t("blocks.preview")}
             </button>
@@ -197,30 +196,30 @@ function ShiftTimelinePanel({ courseId, startDate, onApplied }) {
               type="button"
               onClick={() => send(false)}
               disabled={busy || !previewIsCurrent}
-              className="text-xs font-semibold text-white bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] disabled:opacity-50 px-3 py-1.5 rounded-lg transition-colors"
+              className="text-caption font-semibold text-on-brand-strong bg-brand-strong hover:bg-brand-strong/90 disabled:opacity-50 px-3 py-1.5 rounded-lg transition-colors"
               title={previewIsCurrent ? undefined : t("settings.shift.previewFirst")}
             >
               {busy && previewIsCurrent ? t("settings.shift.applying") : t("settings.shift.apply")}
             </button>
-            {preview && !previewIsCurrent && <span className="text-[11px] text-amber-700">{t("settings.shift.changed")}</span>}
+            {preview && !previewIsCurrent && <span className="text-caption text-warning-fg">{t("settings.shift.changed")}</span>}
           </div>
 
-          {error && <p className="text-xs text-rose-600" role="alert">{error}</p>}
+          {error && <p className="text-caption text-danger-fg" role="alert">{error}</p>}
 
           {result && (
-            <div className="space-y-2 text-xs" aria-live="polite">
-              {result.message && <p className="text-slate-700 font-medium">{result.message}</p>}
-              {movedModules.length === 0 && movedItems.length === 0 && <p className="text-slate-500">{t("settings.shift.nothing")}</p>}
+            <div className="space-y-2 text-caption" aria-live="polite">
+              {result.message && <p className="text-fg-muted font-medium">{result.message}</p>}
+              {movedModules.length === 0 && movedItems.length === 0 && <p className="text-fg-subtle">{t("settings.shift.nothing")}</p>}
               {movedModules.length > 0 && (
                 <div>
-                  <h3 className="text-[11px] font-bold uppercase text-slate-500 mb-1">{tf("settings.shift.modulesCount", { n: movedModules.length })}</h3>
-                  <ul className="border border-slate-200 rounded-lg divide-y divide-slate-100 max-h-56 overflow-y-auto">
+                  <h3 className="text-caption font-bold text-fg-subtle mb-1">{tf("settings.shift.modulesCount", { n: movedModules.length })}</h3>
+                  <ul className="border border-line rounded-lg divide-y divide-line max-h-56 overflow-y-auto">
                     {movedModules.map((m) => (
                       <li key={m.moduleId} className="flex flex-wrap items-center gap-x-2 gap-y-0.5 px-2.5 py-1.5">
-                        <span className="font-medium text-slate-700 flex-1 min-w-[8rem] truncate">{m.title}</span>
-                        <span className="text-slate-500">{formatDate(m.fromStart) || "—"}</span>
-                        <ArrowRight className="w-3 h-3 text-slate-400" aria-label={t("settings.shift.to")} />
-                        <span className="font-semibold text-[var(--brand-secondary)]">{formatDate(m.toStart) || "—"}</span>
+                        <span className="font-medium text-fg-muted flex-1 min-w-[8rem] truncate">{m.title}</span>
+                        <span className="text-fg-subtle">{formatDate(m.fromStart) || "—"}</span>
+                        <ArrowRight className="w-3 h-3 text-fg-subtle" aria-label={t("settings.shift.to")} />
+                        <span className="font-semibold text-brand-fg">{formatDate(m.toStart) || "—"}</span>
                       </li>
                     ))}
                   </ul>
@@ -228,14 +227,14 @@ function ShiftTimelinePanel({ courseId, startDate, onApplied }) {
               )}
               {movedItems.length > 0 && (
                 <div>
-                  <h3 className="text-[11px] font-bold uppercase text-slate-500 mb-1">{tf("settings.shift.dueCount", { n: movedItems.length })}</h3>
-                  <ul className="border border-slate-200 rounded-lg divide-y divide-slate-100 max-h-56 overflow-y-auto">
+                  <h3 className="text-caption font-bold text-fg-subtle mb-1">{tf("settings.shift.dueCount", { n: movedItems.length })}</h3>
+                  <ul className="border border-line rounded-lg divide-y divide-line max-h-56 overflow-y-auto">
                     {movedItems.map((i) => (
                       <li key={i.moduleItemId} className="flex flex-wrap items-center gap-x-2 gap-y-0.5 px-2.5 py-1.5">
-                        <span className="font-medium text-slate-700 flex-1 min-w-[8rem] truncate">{i.title}</span>
-                        <span className="text-slate-500">{formatDate(i.fromDue) || "—"}</span>
-                        <ArrowRight className="w-3 h-3 text-slate-400" aria-label={t("settings.shift.to")} />
-                        <span className="font-semibold text-[var(--brand-secondary)]">{formatDate(i.toDue) || "—"}</span>
+                        <span className="font-medium text-fg-muted flex-1 min-w-[8rem] truncate">{i.title}</span>
+                        <span className="text-fg-subtle">{formatDate(i.fromDue) || "—"}</span>
+                        <ArrowRight className="w-3 h-3 text-fg-subtle" aria-label={t("settings.shift.to")} />
+                        <span className="font-semibold text-brand-fg">{formatDate(i.toDue) || "—"}</span>
                       </li>
                     ))}
                   </ul>
@@ -245,7 +244,7 @@ function ShiftTimelinePanel({ courseId, startDate, onApplied }) {
           )}
         </>
       )}
-    </fieldset>
+    </Fieldset>
   );
 }
 
@@ -385,14 +384,14 @@ export default function CourseSettingsPage() {
       <div className="p-4 md:p-6 space-y-6 max-w-2xl">
         <PageHeader help="pages.settings" title={t("nav.settings")} />
 
-        <div className="flex items-center gap-1.5 border-b border-slate-200 overflow-x-auto">
-          <button onClick={() => setTab("details")} className={`text-sm font-semibold px-3 py-2 border-b-2 ${tab === "details" ? "border-[var(--brand-primary)] text-[var(--brand-primary)]" : "border-transparent text-slate-500"}`}>{t("settings.tabs.details")}</button>
-          <button onClick={() => setTab("navigation")} className={`text-sm font-semibold px-3 py-2 border-b-2 ${tab === "navigation" ? "border-[var(--brand-primary)] text-[var(--brand-primary)]" : "border-transparent text-slate-500"}`}>{t("settings.tabs.navigation")}</button>
+        <div className="flex items-center gap-1.5 border-b border-line overflow-x-auto">
+          <button onClick={() => setTab("details")} className={`text-ui font-semibold px-3 py-2 border-b-2 ${tab === "details" ? "border-brand-strong text-brand-fg" : "border-transparent text-fg-subtle"}`}>{t("settings.tabs.details")}</button>
+          <button onClick={() => setTab("navigation")} className={`text-ui font-semibold px-3 py-2 border-b-2 ${tab === "navigation" ? "border-brand-strong text-brand-fg" : "border-transparent text-fg-subtle"}`}>{t("settings.tabs.navigation")}</button>
           {isTeacher && (
-            <button onClick={() => setTab("setup")} className={`text-sm font-semibold px-3 py-2 border-b-2 ${tab === "setup" ? "border-[var(--brand-primary)] text-[var(--brand-primary)]" : "border-transparent text-slate-500"}`}>{t("settings.tabs.setup")}</button>
+            <button onClick={() => setTab("setup")} className={`text-ui font-semibold px-3 py-2 border-b-2 ${tab === "setup" ? "border-brand-strong text-brand-fg" : "border-transparent text-fg-subtle"}`}>{t("settings.tabs.setup")}</button>
           )}
           {isTeacher && (
-            <button onClick={() => setTab("share")} className={`text-sm font-semibold px-3 py-2 border-b-2 whitespace-nowrap ${tab === "share" ? "border-[var(--brand-primary)] text-[var(--brand-primary)]" : "border-transparent text-slate-500"}`}>{t("settings.tabs.share")}</button>
+            <button onClick={() => setTab("share")} className={`text-ui font-semibold px-3 py-2 border-b-2 whitespace-nowrap ${tab === "share" ? "border-brand-strong text-brand-fg" : "border-transparent text-fg-subtle"}`}>{t("settings.tabs.share")}</button>
           )}
         </div>
 
@@ -411,16 +410,16 @@ export default function CourseSettingsPage() {
             <div className="space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label htmlFor="course-start-date" className="text-xs font-semibold text-slate-600 mb-1 block">{t("settings.startDate")}</label>
+                <Label htmlFor="course-start-date">{t("settings.startDate")}</Label>
                 <TextInput id="course-start-date" type="date" value={form.startDate || ""} onChange={(e) => setForm((p) => ({ ...p, startDate: e.target.value }))} className="w-full" />
               </div>
               <div>
-                <label htmlFor="course-end-date" className="text-xs font-semibold text-slate-600 mb-1 block">{t("settings.endDate")}</label>
+                <Label htmlFor="course-end-date">{t("settings.endDate")}</Label>
                 <TextInput id="course-end-date" type="date" value={form.endDate || ""} min={form.startDate || undefined} onChange={(e) => setForm((p) => ({ ...p, endDate: e.target.value }))} className="w-full" />
               </div>
             </div>
             <div>
-              <label htmlFor="course-length" className="text-xs font-semibold text-slate-600 mb-1 block">{t("settings.duration")}</label>
+              <Label htmlFor="course-length">{t("settings.duration")}</Label>
               <TextInput id="course-length" type="number" min={1} max={52} value={form.lengthWeeks} onChange={(e) => setForm((p) => ({ ...p, lengthWeeks: Number(e.target.value) }))} className="w-full" />
             </div>
             </div>
@@ -437,53 +436,53 @@ export default function CourseSettingsPage() {
             <Section divided title={t("settings.about")}>
             <div className="space-y-3">
             <div>
-              <label htmlFor="course-grade" className="text-xs font-semibold text-slate-600 mb-1 block">{t("settings.grade")}</label>
+              <Label htmlFor="course-grade">{t("settings.grade")}</Label>
               <GradeSelect id="course-grade" value={form.grade || ""} onChange={(grade) => setForm((p) => ({ ...p, grade }))} />
             </div>
             <div>
-              <label htmlFor="course-description" className="text-xs font-semibold text-slate-600 mb-1 block">{t("common.description")}</label>
+              <Label htmlFor="course-description">{t("common.description")}</Label>
               <Textarea id="course-description" value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} rows={4} className="w-full" />
             </div>
             <div>
-              <p className="text-xs font-semibold text-slate-600 mb-1">{t("settings.banner")}</p>
+              <p className="text-caption font-semibold text-fg-muted mb-1">{t("settings.banner")}</p>
               <div className="flex flex-wrap items-center gap-2">
                 <FileButton id="course-banner" accept="image/*" onFiles={([f]) => setCoverFile(f)} aria-label={t("settings.banner")}>
                   <ImageUp className="w-3.5 h-3.5" aria-hidden="true" /> {coverFile ? t("settings.bannerChange") : t("settings.bannerChoose")}
                 </FileButton>
-                {coverFile ? <span className="text-xs text-slate-600 dark:text-slate-300 truncate max-w-[16rem]">{coverFile.name}</span> : null}
+                {coverFile ? <span className="text-caption text-fg-muted truncate max-w-[16rem]">{coverFile.name}</span> : null}
               </div>
             </div>
             <div>
-              <label htmlFor="course-visibility" className="text-xs font-semibold text-slate-600 mb-1 block">{t("settings.visibility")}</label>
+              <Label htmlFor="course-visibility">{t("settings.visibility")}</Label>
               <Select id="course-visibility" value={form.visibility} onChange={(e) => setForm((p) => ({ ...p, visibility: e.target.value }))} className="w-full" >
                 <option value="private">{t("settings.private")}</option>
                 <option value="public">{t("settings.public")}</option>
               </Select>
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-caption text-fg-subtle mt-1">
                 {t("settings.publicHelp")}
               </p>
             </div>
             </div>
             </Section>
-            {detailsError && <p className="text-xs text-rose-600" role="alert">{detailsError}</p>}
-            <button onClick={saveDetails} disabled={saving} className="text-xs font-semibold text-white bg-[var(--brand-primary)] rounded-lg px-4 py-2 disabled:opacity-50">
+            {detailsError && <p className="text-caption text-danger-fg" role="alert">{detailsError}</p>}
+            <button onClick={saveDetails} disabled={saving} className="text-caption font-semibold text-on-brand-strong bg-brand-strong rounded-lg px-4 py-2 disabled:opacity-50">
               {saving ? t("common.saving") : t("editors.saveChanges")}
             </button>
             {isTeacher ? <CourseStatusSection courseId={courseId} course={course} refresh={refresh} /> : null}
           </div>
         ) : (
           <div className="space-y-6">
-            <p className="text-xs text-slate-500">{t("settings.navHelp")}</p>
+            <p className="text-caption text-fg-subtle">{t("settings.navHelp")}</p>
 
             <Section title={t("settings.enabled")}>
-              <ul aria-label={t("settings.enabledItems")} className="border border-slate-200 dark:border-slate-800 rounded-xl divide-y divide-slate-100 dark:divide-slate-800">
+              <ul aria-label={t("settings.enabledItems")} className="border border-line rounded-xl divide-y divide-line">
                 {enabled.map((item, idx) => (
                   <li key={item.navKey} className="flex items-center justify-between gap-2 px-3 py-2">
-                    <span className="text-sm text-slate-700">{navLabel(item.navKey, item.label)}</span>
+                    <span className="text-ui text-fg-muted">{navLabel(item.navKey, item.label)}</span>
                     <div className="flex items-center gap-1">
-                      <button onClick={() => moveEnabled(item.navKey, -1)} disabled={idx === 0} aria-label={tf("settings.moveUp", { name: navLabel(item.navKey, item.label) })} className="p-1 rounded hover:bg-slate-100 disabled:opacity-30"><ChevronUp className="w-3.5 h-3.5" /></button>
-                      <button onClick={() => moveEnabled(item.navKey, 1)} disabled={idx === enabled.length - 1} aria-label={tf("settings.moveDown", { name: navLabel(item.navKey, item.label) })} className="p-1 rounded hover:bg-slate-100 disabled:opacity-30"><ChevronDown className="w-3.5 h-3.5" /></button>
-                      <button onClick={() => toggleVisibility(item.navKey)} className="p-1 rounded hover:bg-slate-100 text-slate-500" title={t("settings.hide")} aria-label={tf("settings.hideNamed", { name: navLabel(item.navKey, item.label) })}><Eye className="w-3.5 h-3.5 text-emerald-600" /></button>
+                      <button onClick={() => moveEnabled(item.navKey, -1)} disabled={idx === 0} aria-label={tf("settings.moveUp", { name: navLabel(item.navKey, item.label) })} className="p-1 rounded hover:bg-surface-hover disabled:opacity-30"><ChevronUp className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => moveEnabled(item.navKey, 1)} disabled={idx === enabled.length - 1} aria-label={tf("settings.moveDown", { name: navLabel(item.navKey, item.label) })} className="p-1 rounded hover:bg-surface-hover disabled:opacity-30"><ChevronDown className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => toggleVisibility(item.navKey)} className="p-1 rounded hover:bg-surface-hover text-fg-subtle" title={t("settings.hide")} aria-label={tf("settings.hideNamed", { name: navLabel(item.navKey, item.label) })}><Eye className="w-3.5 h-3.5 text-success-fg" /></button>
                     </div>
                   </li>
                 ))}
@@ -491,21 +490,21 @@ export default function CourseSettingsPage() {
             </Section>
 
             <Section title={t("nav.hiddenFromStudents")}>
-              <ul aria-label={t("settings.hiddenItems")} className="border border-slate-200 dark:border-slate-800 rounded-xl divide-y divide-slate-100 dark:divide-slate-800">
+              <ul aria-label={t("settings.hiddenItems")} className="border border-line rounded-xl divide-y divide-line">
                 {hidden.map((item, idx) => (
-                  <li key={item.navKey} className="flex items-center justify-between gap-2 px-3 py-2 bg-slate-50 dark:bg-slate-900/40">
-                    <span className="text-sm text-slate-400">{navLabel(item.navKey, item.label)}</span>
+                  <li key={item.navKey} className="flex items-center justify-between gap-2 px-3 py-2 bg-surface-sunken">
+                    <span className="text-ui text-fg-subtle">{navLabel(item.navKey, item.label)}</span>
                     <div className="flex items-center gap-1">
-                      <button onClick={() => moveHidden(item.navKey, -1)} disabled={idx === 0} aria-label={tf("settings.moveUp", { name: navLabel(item.navKey, item.label) })} className="p-1 rounded hover:bg-white disabled:opacity-30"><ChevronUp className="w-3.5 h-3.5" /></button>
-                      <button onClick={() => moveHidden(item.navKey, 1)} disabled={idx === hidden.length - 1} aria-label={tf("settings.moveDown", { name: navLabel(item.navKey, item.label) })} className="p-1 rounded hover:bg-white disabled:opacity-30"><ChevronDown className="w-3.5 h-3.5" /></button>
-                      <button onClick={() => toggleVisibility(item.navKey)} className="p-1 rounded hover:bg-white text-slate-400" title={t("settings.show")} aria-label={tf("settings.showNamed", { name: navLabel(item.navKey, item.label) })}><EyeOff className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => moveHidden(item.navKey, -1)} disabled={idx === 0} aria-label={tf("settings.moveUp", { name: navLabel(item.navKey, item.label) })} className="p-1 rounded hover:bg-surface disabled:opacity-30"><ChevronUp className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => moveHidden(item.navKey, 1)} disabled={idx === hidden.length - 1} aria-label={tf("settings.moveDown", { name: navLabel(item.navKey, item.label) })} className="p-1 rounded hover:bg-surface disabled:opacity-30"><ChevronDown className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => toggleVisibility(item.navKey)} className="p-1 rounded hover:bg-surface text-fg-subtle" title={t("settings.show")} aria-label={tf("settings.showNamed", { name: navLabel(item.navKey, item.label) })}><EyeOff className="w-3.5 h-3.5" /></button>
                     </div>
                   </li>
                 ))}
               </ul>
             </Section>
 
-            <button onClick={saveNav} disabled={saving} className="text-xs font-semibold text-white bg-[var(--brand-primary)] rounded-lg px-4 py-2 disabled:opacity-50">
+            <button onClick={saveNav} disabled={saving} className="text-caption font-semibold text-on-brand-strong bg-brand-strong rounded-lg px-4 py-2 disabled:opacity-50">
               {saving ? t("common.saving") : t("settings.saveNav")}
             </button>
           </div>

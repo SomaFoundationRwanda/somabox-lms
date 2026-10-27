@@ -97,12 +97,12 @@ function NavLinks({ onNavigate }) {
         href={href}
         onClick={onNavigate}
         aria-current={isActive ? "page" : undefined}
-        className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+        className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-ui font-medium transition-colors ${
           isActive
-            ? "bg-[var(--brand-primary)] text-white"
+            ? "bg-brand-strong text-on-brand-strong"
             : isHiddenFromStudents
-            ? "text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900/40"
-            : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900/40"
+            ? "text-fg-subtle hover:bg-surface-hover"
+            : "text-fg-muted hover:bg-surface-hover"
         }`}
       >
         <Icon className="w-4 h-4 shrink-0" />
@@ -124,8 +124,8 @@ function NavLinks({ onNavigate }) {
             href={href}
             onClick={onNavigate}
             aria-current={isActive ? "page" : undefined}
-            className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-              isActive ? "bg-[var(--brand-primary)] text-white" : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900/40"
+            className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-ui font-medium transition-colors ${
+              isActive ? "bg-brand-strong text-on-brand-strong" : "text-fg-muted hover:bg-surface-hover"
             }`}
           >
             <Sparkles className="w-4 h-4 shrink-0" />
@@ -140,11 +140,11 @@ function NavLinks({ onNavigate }) {
             onClick={toggleMore}
             aria-expanded={showMore}
             aria-controls={moreId}
-            className="mt-1 flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold uppercase tracking-wide text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-900/40"
+            className="mt-1 flex items-center gap-2.5 px-3 py-2 rounded-lg text-caption font-semibold text-fg-subtle hover:bg-surface-hover"
           >
             <ChevronDown className={`w-4 h-4 shrink-0 transition-transform ${showMore ? "rotate-180" : ""}`} aria-hidden="true" />
             <span className="flex-1 text-left">{t("nav.more")}</span>
-            <span className="text-[10px] font-bold text-slate-400">{more.length}</span>
+            <span className="text-caption font-bold text-fg-subtle">{more.length}</span>
           </button>
           {showMore ? <div id={moreId} className="flex flex-col gap-0.5">{more.map(renderItem)}</div> : null}
         </>
@@ -157,7 +157,7 @@ function NavLinks({ onNavigate }) {
 export default function CourseSidebar() {
   const { t } = useCourseText();
   return (
-    <nav aria-label={t("nav.courseNavigation")} className="hidden md:block w-56 shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-transparent py-4">
+    <nav aria-label={t("nav.courseNavigation")} className="hidden md:block w-56 shrink-0 border-r border-line bg-surface py-4">
       <NavLinks />
     </nav>
   );
@@ -201,25 +201,25 @@ export function CourseMenuButton() {
   }, [open]);
 
   return (
-    <div ref={wrapperRef} className="md:hidden relative border-b border-slate-200 dark:border-slate-800 px-4 py-2">
+    <div ref={wrapperRef} className="md:hidden relative border-b border-line px-4 py-2">
       <button
         ref={buttonRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-controls={panelId}
-        className="flex w-full items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-800 px-3 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900/40"
+        className="flex w-full items-center gap-2 rounded-lg border border-line px-3 py-2 text-ui font-semibold text-fg-muted hover:bg-surface-hover"
       >
         <Menu className="w-4 h-4 shrink-0" aria-hidden="true" />
         <span className="flex-1 text-left">{t("nav.courseMenu")}</span>
-        {current ? <span className="text-xs font-medium text-slate-500 truncate">{navLabel(current.navKey, current.label)}</span> : null}
+        {current ? <span className="text-caption font-medium text-fg-subtle truncate">{navLabel(current.navKey, current.label)}</span> : null}
         <ChevronDown className={`w-4 h-4 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} aria-hidden="true" />
       </button>
       {open ? (
         <nav
           id={panelId}
           aria-label={t("nav.courseNavigation")}
-          className="absolute left-4 right-4 top-full z-30 mt-1 max-h-[70vh] overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 py-2 shadow-lg"
+          className="absolute left-4 right-4 top-full z-30 mt-1 max-h-[70vh] overflow-y-auto rounded-xl border border-line bg-surface py-2 shadow-lg"
         >
           <NavLinks onNavigate={() => setOpen(false)} />
         </nav>

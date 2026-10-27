@@ -19,32 +19,32 @@ export default {
     },
     "tour": {
         "welcome": {
-            "tag": "MURAKAZA NEZA",
+            "tag": "Murakaza neza",
             "title": "Muraho, munyeshuri!",
             "body": "Murakaza neza kuri SOMABOX, aho wigira! Reka tukwereke vuba ibiri hano. Bimara nk'amasegonda 30 gusa."
         },
         "stats": {
-            "tag": "IMIBARE",
+            "tag": "Imibare",
             "title": "Imibare y'ibyo wiga",
             "body": "Aya makarita yerekana amashuri yawe, amasomo urimo kwiga n'ayo wasoje. Uko wiga cyane, niko iyi mibare izamuka!"
         },
         "lessons": {
-            "tag": "AMASOMO",
+            "tag": "Amasomo",
             "title": "Amasomo uheruka",
             "body": "Hano ubona amasomo uheruka n'aho ugeze muri buri rimwe. Kanda ku isomo ukomereze aho wari ugeze."
         },
         "quick-access": {
-            "tag": "AHO UGERA VUBA",
+            "tag": "Aho ugera vuba",
             "title": "Aho ugera vuba",
             "body": "Jya mu mashuri yawe, amasomo, isomero cyangwa imikoro warangije ukanze rimwe gusa."
         },
         "nav": {
-            "tag": "MENYU",
+            "tag": "Menyu",
             "title": "Menyu yawe",
             "body": "Koresha menyu iri ibumoso kugira ngo ujye Ahabanza, mu Masomo, mu Isomero no kuri Konti yawe igihe cyose."
         },
         "finish": {
-            "tag": "BYARANGIYE",
+            "tag": "Byarangiye",
             "title": "Witeguye!",
             "body": "Ni byiza, uzi aho byose biri! Noneho tangira kwiga. Buri somo rikwegereza intego zawe."
         },

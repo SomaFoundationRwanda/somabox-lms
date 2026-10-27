@@ -1,16 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Field as FormField, Select, TextInput, Textarea } from "@/components/form";
+import { Field as FormField, Fieldset, Radio, Select, TextInput, Textarea } from "@/components/form";
 import { Plus, Trash2 } from "lucide-react";
 import { useProgressText } from "@/components/progress/text";
 
 // Inline editor for an AI draft's payload. The teacher edits text, questions, criteria, etc.;
 // Save sends the whole payload back (PATCH) and the server checks it.
 
-const labelClass = "block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5";
-const addBtn = "inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--brand-secondary)] hover:underline";
-const removeBtn = "p-1.5 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 disabled:opacity-30";
+const addBtn = "inline-flex items-center gap-1.5 text-caption font-semibold text-brand-fg hover:underline";
+const removeBtn = "p-1.5 rounded text-fg-subtle hover:text-danger-fg hover:bg-danger-soft disabled:opacity-30";
 
 const clone = (v) => JSON.parse(JSON.stringify(v ?? {}));
 const setAt = (arr, i, value) => arr.map((x, j) => (j === i ? value : x));
@@ -49,32 +48,28 @@ function QuestionsEditor({ questions, onChange, outcomes }) {
   const update = (i, patch) => onChange(setAt(list, i, { ...list[i], ...patch }));
   return (
     <div className="space-y-2">
-      <ol aria-label={tp("ai.editor.questions")} className="divide-y divide-slate-100 dark:divide-slate-800 rounded-xl border border-slate-200 dark:border-slate-800">
+      <ol aria-label={tp("ai.editor.questions")} className="divide-y divide-line rounded-xl border border-line">
         {list.map((q, i) => {
           const options = q.options || [];
           const group = `q-${i}-correct`;
           return (
             <li key={i} className="p-3 space-y-2">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-bold text-slate-500">{tp("ai.editor.questionN", { n: i + 1 })}</span>
+                <span className="text-caption font-bold text-fg-subtle">{tp("ai.editor.questionN", { n: i + 1 })}</span>
                 <button type="button" onClick={() => onChange(without(list, i))} aria-label={tp("ai.editor.removeQuestionN", { n: i + 1 })} className={removeBtn}>
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
               <Field label={tp("ai.editor.question")} value={q.prompt} onChange={(v) => update(i, { prompt: v })} multiline rows={2} />
-              <fieldset>
-                <legend className={labelClass}>{tp("ai.editor.answerOptions")}</legend>
+              <Fieldset legend={tp("ai.editor.answerOptions")}>
                 <div className="space-y-1.5">
                   {options.map((opt, j) => (
                     <div key={j} className="flex items-center gap-2">
-                      <input
-                        type="radio"
-                        data-raw-control="the correct-answer mark beside each answer's own text box"
+                      <Radio
                         name={group}
                         checked={q.correctIndex === j}
                         onChange={() => update(i, { correctIndex: j })}
                         aria-label={tp("ai.editor.optionCorrect", { n: j + 1 })}
-                        className="w-4 h-4 accent-[var(--brand-secondary)] shrink-0"
                       />
                       <TextInput
                         size="sm"
@@ -103,7 +98,7 @@ function QuestionsEditor({ questions, onChange, outcomes }) {
                 <button type="button" onClick={() => update(i, { options: [...options, ""] })} className={`${addBtn} mt-1.5`}>
                   <Plus className="w-3.5 h-3.5" /> {tp("ai.editor.addOption")}
                 </button>
-              </fieldset>
+              </Fieldset>
               <div className="grid grid-cols-1 sm:grid-cols-[8rem_1fr] gap-2">
                 <Field label={tp("common.points")} type="number" min={1} value={q.points} onChange={(v) => update(i, { points: v })} />
                 <OutcomeSelect value={q.outcomeId} onChange={(v) => update(i, { outcomeId: v })} outcomes={outcomes} />
@@ -125,11 +120,11 @@ function CriteriaEditor({ criteria, onChange, outcomes }) {
   const update = (i, patch) => onChange(setAt(list, i, { ...list[i], ...patch }));
   return (
     <div className="space-y-2">
-      <ol aria-label={tp("common.rubricCriteria")} className="divide-y divide-slate-100 dark:divide-slate-800 rounded-xl border border-slate-200 dark:border-slate-800">
+      <ol aria-label={tp("common.rubricCriteria")} className="divide-y divide-line rounded-xl border border-line">
         {list.map((c, i) => (
           <li key={i} className="p-3 space-y-2">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-bold text-slate-500">{tp("common.criterionN", { n: i + 1 })}</span>
+              <span className="text-caption font-bold text-fg-subtle">{tp("common.criterionN", { n: i + 1 })}</span>
               <button type="button" onClick={() => onChange(without(list, i))} aria-label={tp("common.removeCriterionN", { n: i + 1 })} className={removeBtn}>
                 <Trash2 className="w-4 h-4" />
               </button>
@@ -157,12 +152,12 @@ function RowsEditor({ label, item, rows, onChange, blank, render }) {
   const list = rows || [];
   return (
     <div className="space-y-2">
-      <p className="text-xs font-bold text-slate-700 dark:text-slate-300">{label}</p>
-      <ol aria-label={label} className="divide-y divide-slate-100 dark:divide-slate-800 rounded-xl border border-slate-200 dark:border-slate-800">
+      <p className="text-caption font-bold text-fg-muted">{label}</p>
+      <ol aria-label={label} className="divide-y divide-line rounded-xl border border-line">
         {list.map((row, i) => (
           <li key={i} className="p-3 space-y-2">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-bold text-slate-500">{tp(`ai.editor.rows.${item}.item`, { n: i + 1 })}</span>
+              <span className="text-caption font-bold text-fg-subtle">{tp(`ai.editor.rows.${item}.item`, { n: i + 1 })}</span>
               <button type="button" onClick={() => onChange(without(list, i))} aria-label={tp(`ai.editor.rows.${item}.remove`, { n: i + 1 })} className={removeBtn}>
                 <Trash2 className="w-4 h-4" />
               </button>
@@ -218,11 +213,11 @@ export default function DraftEditor({ type, payload, outcomes, saving, error, on
           <OutcomeSelect value={p.outcomeId} onChange={(v) => set({ outcomeId: v })} outcomes={outcomes} />
         </div>
         <div className="space-y-2">
-          <p className="text-xs font-bold text-slate-700 dark:text-slate-300">{tp("ai.editor.rubric")}</p>
+          <p className="text-caption font-bold text-fg-muted">{tp("ai.editor.rubric")}</p>
           {p.rubric ? (
             <>
               <CriteriaEditor criteria={p.rubric.criteria} onChange={(v) => set({ rubric: { ...p.rubric, criteria: v } })} outcomes={outcomes} />
-              <button type="button" onClick={() => set({ rubric: null })} className="text-xs font-semibold text-rose-600 hover:underline">{tp("ai.editor.removeRubric")}</button>
+              <button type="button" onClick={() => set({ rubric: null })} className="text-caption font-semibold text-danger-fg hover:underline">{tp("ai.editor.removeRubric")}</button>
             </>
           ) : (
             <button type="button" onClick={() => set({ rubric: { criteria: [{ title: "", description: "", points: 4, outcomeId: p.outcomeId ?? null }] } })} className={addBtn}>
@@ -242,7 +237,7 @@ export default function DraftEditor({ type, payload, outcomes, saving, error, on
           blank={() => ""}
           render={(t, up) => <Field label={tp("ai.editor.text")} value={t} onChange={(v) => up(v)} multiline rows={3} />}
         />
-        <p className="text-xs font-bold text-slate-700 dark:text-slate-300">{tp("ai.editor.questions")}</p>
+        <p className="text-caption font-bold text-fg-muted">{tp("ai.editor.questions")}</p>
         <QuestionsEditor questions={p.questions} onChange={(v) => set({ questions: v })} outcomes={outcomes} />
         <Field label={tp("ai.editor.discussionPrompt")} value={p.discussionPrompt} onChange={(v) => set({ discussionPrompt: v })} multiline rows={2} />
       </>
@@ -304,10 +299,10 @@ export default function DraftEditor({ type, payload, outcomes, saving, error, on
       onSubmit={(e) => { e.preventDefault(); onSave(p); }}
     >
       {body}
-      {error ? <p role="alert" className="text-xs font-semibold text-rose-600">{error}</p> : null}
+      {error ? <p role="alert" className="text-caption font-semibold text-danger-fg">{error}</p> : null}
       <div className="flex flex-wrap justify-end gap-2 pt-1">
-        <button type="button" onClick={onCancel} disabled={saving} className="text-xs font-semibold text-slate-500 px-4 py-2">{tp("common.cancel")}</button>
-        <button type="submit" disabled={saving} className="text-xs font-bold text-white bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-dark)] disabled:opacity-60 px-5 py-2 rounded-lg">
+        <button type="button" onClick={onCancel} disabled={saving} className="text-caption font-semibold text-fg-subtle px-4 py-2">{tp("common.cancel")}</button>
+        <button type="submit" disabled={saving} className="text-caption font-bold text-on-brand bg-brand hover:bg-brand/90 disabled:opacity-60 px-5 py-2 rounded-lg">
           {saving ? tp("common.saving") : tp("ai.editor.saveChanges")}
         </button>
       </div>

@@ -8,14 +8,14 @@ import {
 import { addDays, compareDates, diffDays, todayIn, weekday } from "@somabox/timeline";
 import { useCourseText } from "@/components/course/useCourseText";
 import Loader from "@/components/ui/Loader";
-import { TextInput } from "@/components/form";
+import { Label, TextInput } from "@/components/form";
 
 // Visual language per event type. Labels shown on screen come from course.calendar.types.<type>.
 export const EVENT_TYPES = {
-  module: { label: "Module starts", Icon: Layers, chip: "bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] border-[var(--brand-primary)]/20", dot: "bg-[var(--brand-primary)]" },
-  release: { label: "Opens", Icon: Unlock, chip: "bg-sky-50 text-sky-800 border-sky-200", dot: "bg-sky-500" },
-  due: { label: "Due", Icon: Clock, chip: "bg-amber-50 text-amber-800 border-amber-200", dot: "bg-amber-500" },
-  close: { label: "Closes", Icon: Lock, chip: "bg-rose-50 text-rose-800 border-rose-200", dot: "bg-rose-500" },
+  module: { label: "Module starts", Icon: Layers, chip: "bg-brand-strong/10 text-brand-fg border-brand-strong/20", dot: "bg-brand-strong" },
+  release: { label: "Opens", Icon: Unlock, chip: "bg-info-soft text-info-fg border-info/30", dot: "bg-info" },
+  due: { label: "Due", Icon: Clock, chip: "bg-warning-soft text-warning-fg border-warning/30", dot: "bg-warning" },
+  close: { label: "Closes", Icon: Lock, chip: "bg-danger-soft text-danger-fg border-danger/30", dot: "bg-danger" },
 };
 const TYPE_ORDER = { module: 0, release: 1, due: 2, close: 3 };
 const MAX_CHIPS = 3;
@@ -76,7 +76,7 @@ function EventChip({ event, showCourse, compact, canMove, onMoveClick, onDragSta
       )}
     </>
   );
-  const chipCls = `flex items-center gap-1 min-w-0 flex-1 border rounded-md ${compact ? "px-1 py-0.5 text-[10px]" : "px-2 py-1 text-xs"} ${meta.chip} hover:brightness-95 focus-visible:outline-2 focus-visible:outline-[var(--brand-secondary)]`;
+  const chipCls = `flex items-center gap-1 min-w-0 flex-1 border rounded-md ${compact ? "px-1 py-0.5 text-caption" : "px-2 py-1 text-caption"} ${meta.chip} hover:brightness-95 focus-visible:outline-2 focus-visible:outline-brand`;
 
   return (
     <div className="flex items-center gap-0.5 min-w-0">
@@ -107,7 +107,7 @@ function EventChip({ event, showCourse, compact, canMove, onMoveClick, onDragSta
         <button
           type="button"
           onClick={() => onMoveClick(event)}
-          className="shrink-0 p-0.5 rounded text-slate-400 hover:text-[var(--brand-primary)] hover:bg-slate-100"
+          className="shrink-0 p-0.5 rounded text-fg-subtle hover:text-brand-fg hover:bg-surface-hover"
           aria-label={tf("calendar.moveAria", { type: typeLabel, title })}
           title={t("calendar.moveTitle")}
         >
@@ -145,19 +145,19 @@ function MoveDialog({ event, onCancel, onConfirm }) {
         aria-labelledby="move-event-title"
         onSubmit={submit}
         onClick={(e) => e.stopPropagation()}
-        className="bg-white rounded-t-2xl sm:rounded-2xl w-full max-w-sm shadow-2xl p-5 space-y-3"
+        className="bg-surface rounded-t-2xl sm:rounded-2xl w-full max-w-sm shadow-2xl p-5 space-y-3"
       >
         <div className="flex items-start justify-between gap-2">
-          <h3 id="move-event-title" className="text-sm font-bold text-slate-900">
+          <h3 id="move-event-title" className="text-ui font-bold text-fg">
             {tf("calendar.moveDialogTitle", { title: event.title, type: typeLabel })}
           </h3>
-          <button type="button" onClick={onCancel} className="p-1 rounded-lg hover:bg-slate-100 text-slate-400" aria-label={t("common.close")}>
+          <button type="button" onClick={onCancel} className="p-1 rounded-lg hover:bg-surface-hover text-fg-subtle" aria-label={t("common.close")}>
             <X className="w-4 h-4" />
           </button>
         </div>
-        <p className="text-xs text-slate-500">{tf("calendar.currently", { date: fmtDay(event.date) })}</p>
+        <p className="text-caption text-fg-subtle">{tf("calendar.currently", { date: fmtDay(event.date) })}</p>
         <div>
-          <label htmlFor="move-event-date" className="block text-xs font-semibold text-slate-600 mb-1.5">{t("calendar.newDate")}</label>
+          <Label htmlFor="move-event-date">{t("calendar.newDate")}</Label>
           <TextInput
             id="move-event-date"
             type="date"
@@ -171,11 +171,11 @@ function MoveDialog({ event, onCancel, onConfirm }) {
           <button
             type="submit"
             disabled={saving || !date}
-            className="flex-1 text-xs font-semibold text-white bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] disabled:opacity-50 rounded-lg py-2.5 transition-colors"
+            className="flex-1 text-caption font-semibold text-on-brand-strong bg-brand-strong hover:bg-brand-strong/90 disabled:opacity-50 rounded-lg py-2.5 transition-colors"
           >
             {saving ? t("calendar.moving") : t("calendar.move")}
           </button>
-          <button type="button" onClick={onCancel} className="text-xs font-medium text-slate-500 hover:text-slate-700 px-3 py-2.5">
+          <button type="button" onClick={onCancel} className="text-caption font-medium text-fg-subtle hover:text-fg-muted px-3 py-2.5">
             {t("common.cancel")}
           </button>
         </div>
@@ -282,7 +282,7 @@ export default function CalendarView({ events, today, loading, onEventMove, onRa
       {/* Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
-          {title && <h1 className="text-lg font-bold text-slate-900 dark:text-white truncate">{title}</h1>}
+          {title && <h1 className="text-section font-bold text-fg truncate">{title}</h1>}
           {loading && (
             // A small "refreshing" mark beside the title (the calendar itself stays on screen).
             <Loader size={20} label={t("common.loading")} />
@@ -290,7 +290,7 @@ export default function CalendarView({ events, today, loading, onEventMove, onRa
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {extraActions}
-          <div className="inline-flex rounded-lg border border-slate-200 p-0.5 bg-slate-50" role="group" aria-label={t("calendar.view")}>
+          <div className="inline-flex rounded-lg border border-line p-0.5 bg-surface-sunken" role="group" aria-label={t("calendar.view")}>
             {[
               { id: "agenda", label: t("calendar.agenda"), Icon: List },
               { id: "month", label: t("calendar.month"), Icon: CalendarDays },
@@ -300,8 +300,8 @@ export default function CalendarView({ events, today, loading, onEventMove, onRa
                 type="button"
                 onClick={() => setView(id)}
                 aria-pressed={view === id}
-                className={`flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-md transition-colors ${
-                  view === id ? "bg-[var(--brand-primary)] text-white" : "text-slate-600 hover:text-slate-900"
+                className={`flex items-center gap-1 text-caption font-semibold px-2.5 py-1.5 rounded-md transition-colors ${
+                  view === id ? "bg-brand-strong text-on-brand-strong" : "text-fg-muted hover:text-fg"
                 }`}
               >
                 <Icon className="w-3.5 h-3.5" aria-hidden="true" /> {label}
@@ -312,7 +312,7 @@ export default function CalendarView({ events, today, loading, onEventMove, onRa
       </div>
 
       {/* Legend */}
-      <ul className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500" aria-label={t("calendar.legend")}>
+      <ul className="flex flex-wrap items-center gap-x-3 gap-y-1 text-caption text-fg-subtle" aria-label={t("calendar.legend")}>
         {Object.entries(EVENT_TYPES).map(([type, meta]) => (
           <li key={type} className="flex items-center gap-1">
             <span className={`w-2 h-2 rounded-full ${meta.dot}`} aria-hidden="true" />
@@ -320,7 +320,7 @@ export default function CalendarView({ events, today, loading, onEventMove, onRa
           </li>
         ))}
         {onEventMove && (
-          <li className="text-slate-400">{t("calendar.dragHelpBefore")} <CalendarClock className="inline w-3 h-3" aria-label={t("calendar.moveButton")} /> {t("calendar.dragHelpAfter")}</li>
+          <li className="text-fg-subtle">{t("calendar.dragHelpBefore")} <CalendarClock className="inline w-3 h-3" aria-label={t("calendar.moveButton")} /> {t("calendar.dragHelpAfter")}</li>
         )}
       </ul>
 
@@ -330,23 +330,23 @@ export default function CalendarView({ events, today, loading, onEventMove, onRa
       {view === "month" && (
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <button type="button" onClick={() => { setMonth((m) => shiftMonth(m, -1)); setExpandedDay(null); }} className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600" aria-label={t("calendar.prevMonth")}>
+            <button type="button" onClick={() => { setMonth((m) => shiftMonth(m, -1)); setExpandedDay(null); }} className="p-1.5 rounded-lg border border-line hover:bg-surface-hover text-fg-muted" aria-label={t("calendar.prevMonth")}>
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <button type="button" onClick={() => { setMonth((m) => shiftMonth(m, 1)); setExpandedDay(null); }} className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600" aria-label={t("calendar.nextMonth")}>
+            <button type="button" onClick={() => { setMonth((m) => shiftMonth(m, 1)); setExpandedDay(null); }} className="p-1.5 rounded-lg border border-line hover:bg-surface-hover text-fg-muted" aria-label={t("calendar.nextMonth")}>
               <ChevronRight className="w-4 h-4" />
             </button>
-            <button type="button" onClick={goToday} className="text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700">
+            <button type="button" onClick={goToday} className="text-caption font-semibold px-2.5 py-1.5 rounded-lg border border-line hover:bg-surface-hover text-fg-muted">
               {t("calendar.today")}
             </button>
-            <h2 className="text-sm font-bold text-slate-800 ml-1" aria-live="polite">{monthLabel}</h2>
+            <h2 className="text-ui font-bold text-fg ml-1" aria-live="polite">{monthLabel}</h2>
           </div>
 
           <div className="overflow-x-auto">
-            <div className="min-w-[36rem] rounded-xl border border-slate-200 overflow-hidden">
-              <div className="grid grid-cols-7 bg-slate-50 border-b border-slate-200">
+            <div className="min-w-[36rem] rounded-xl border border-line overflow-hidden">
+              <div className="grid grid-cols-7 bg-surface-sunken border-b border-line">
                 {WEEKDAY_NAMES.map((name) => (
-                  <div key={name} className="px-1.5 py-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-500 text-center">{name}</div>
+                  <div key={name} className="px-1.5 py-1.5 text-caption font-bold text-fg-subtle text-center">{name}</div>
                 ))}
               </div>
               <div className="grid grid-cols-7">
@@ -364,14 +364,14 @@ export default function CalendarView({ events, today, loading, onEventMove, onRa
                       onDragOver={dragKey ? (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (dropDate !== date) setDropDate(date); } : undefined}
                       onDragLeave={dragKey ? () => { if (dropDate === date) setDropDate(null); } : undefined}
                       onDrop={dragKey ? (e) => handleDrop(e, date) : undefined}
-                      className={`min-h-[6rem] border-b border-r border-slate-100 p-1 space-y-0.5 ${
-                        inMonth ? "bg-white" : "bg-slate-50/70"
-                      } ${isDrop ? "ring-2 ring-inset ring-[var(--brand-secondary)] bg-teal-50" : ""}`}
+                      className={`min-h-[6rem] border-b border-r border-line p-1 space-y-0.5 ${
+                        inMonth ? "bg-surface" : "bg-surface-sunken/70"
+                      } ${isDrop ? "ring-2 ring-inset ring-brand bg-brand-soft" : ""}`}
                       aria-label={formatDate(date, { weekday: "long", day: "numeric", month: "long" })}
                     >
                       <div className="flex justify-end">
-                        <span className={`text-[11px] font-semibold w-6 h-6 flex items-center justify-center rounded-full ${
-                          isToday ? "bg-[var(--brand-secondary)] text-white" : inMonth ? "text-slate-700" : "text-slate-400"
+                        <span className={`text-caption font-semibold w-6 h-6 flex items-center justify-center rounded-full ${
+                          isToday ? "bg-brand text-on-brand" : inMonth ? "text-fg-muted" : "text-fg-subtle"
                         }`}>
                           {Number(date.slice(8))}
                         </span>
@@ -389,12 +389,12 @@ export default function CalendarView({ events, today, loading, onEventMove, onRa
                         />
                       ))}
                       {hidden > 0 && (
-                        <button type="button" onClick={() => setExpandedDay(date)} className="text-[10px] font-semibold text-[var(--brand-secondary)] hover:underline px-1">
+                        <button type="button" onClick={() => setExpandedDay(date)} className="text-caption font-semibold text-brand-fg hover:underline px-1">
                           {tf("calendar.more", { n: hidden })}
                         </button>
                       )}
                       {expanded && dayEvents.length > MAX_CHIPS && (
-                        <button type="button" onClick={() => setExpandedDay(null)} className="text-[10px] font-semibold text-slate-500 hover:underline px-1">
+                        <button type="button" onClick={() => setExpandedDay(null)} className="text-caption font-semibold text-fg-subtle hover:underline px-1">
                           {t("calendar.showLess")}
                         </button>
                       )}
@@ -405,7 +405,7 @@ export default function CalendarView({ events, today, loading, onEventMove, onRa
             </div>
           </div>
           {!loading && list.length === 0 && (
-            <p className="text-xs text-slate-500">{t("calendar.nothingMonth")}</p>
+            <p className="text-caption text-fg-subtle">{t("calendar.nothingMonth")}</p>
           )}
         </div>
       )}
@@ -414,16 +414,16 @@ export default function CalendarView({ events, today, loading, onEventMove, onRa
       {view === "agenda" && (
         <div className="space-y-3">
           {!showEarlier && earlierCount > 0 && (
-            <button type="button" onClick={() => setShowEarlier(true)} className="text-xs font-semibold text-[var(--brand-secondary)] hover:underline">
+            <button type="button" onClick={() => setShowEarlier(true)} className="text-caption font-semibold text-brand-fg hover:underline">
               {tf("calendar.showEarlier", { n: earlierCount })}
             </button>
           )}
           {showEarlier && (
             <div className="flex flex-wrap gap-3">
-              <button type="button" onClick={() => setAgendaFrom((d) => addDays(d, -90))} className="text-xs font-semibold text-[var(--brand-secondary)] hover:underline">
+              <button type="button" onClick={() => setAgendaFrom((d) => addDays(d, -90))} className="text-caption font-semibold text-brand-fg hover:underline">
                 {t("calendar.loadEarlier")}
               </button>
-              <button type="button" onClick={() => setShowEarlier(false)} className="text-xs font-semibold text-slate-500 hover:underline">
+              <button type="button" onClick={() => setShowEarlier(false)} className="text-caption font-semibold text-fg-subtle hover:underline">
                 {t("calendar.hidePast")}
               </button>
             </div>
@@ -432,21 +432,21 @@ export default function CalendarView({ events, today, loading, onEventMove, onRa
           {agendaGroups.length === 0 && loading && <Loader variant="page" size={56} className="min-h-[30vh]" />}
 
           {agendaGroups.length === 0 && !loading && (
-            <p className="text-sm text-slate-500 py-6 text-center">{showEarlier ? t("calendar.nothingPeriod") : t("calendar.nothingAhead")}</p>
+            <p className="text-ui text-fg-subtle py-6 text-center">{showEarlier ? t("calendar.nothingPeriod") : t("calendar.nothingAhead")}</p>
           )}
 
           {/* One list: a row per day (date heading + that day's events). Not a box per day. */}
           {agendaGroups.length > 0 && (
-          <ol className="divide-y divide-slate-100 dark:divide-slate-800 rounded-xl border border-slate-200 dark:border-slate-800">
+          <ol className="divide-y divide-line rounded-xl border border-line">
             {agendaGroups.map(({ date, events: dayEvents }) => {
               const rel = relativeLabel(date);
               const past = compareDates(date, effectiveToday) < 0;
               return (
-                <li key={date} className={`px-3 py-2.5 sm:flex sm:items-start sm:gap-4 ${date === effectiveToday ? "bg-teal-50/40 dark:bg-teal-950/20" : ""} ${past ? "opacity-75" : ""}`}>
-                  <h3 className="flex items-center gap-2 sm:w-52 sm:shrink-0 sm:pt-1 text-xs font-bold text-slate-700 dark:text-slate-200">
+                <li key={date} className={`px-3 py-2.5 sm:flex sm:items-start sm:gap-4 ${date === effectiveToday ? "bg-brand-soft/40" : ""} ${past ? "opacity-75" : ""}`}>
+                  <h3 className="flex items-center gap-2 sm:w-52 sm:shrink-0 sm:pt-1 text-caption font-bold text-fg-muted">
                     {formatDate(date, { weekday: "long", day: "numeric", month: "long" })}
                     {rel && (
-                      <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${date === effectiveToday ? "bg-[var(--brand-secondary)] text-white" : "bg-slate-200 text-slate-600"}`}>{rel}</span>
+                      <span className={`text-caption font-bold px-1.5 py-0.5 rounded ${date === effectiveToday ? "bg-brand text-on-brand" : "bg-line text-fg-muted"}`}>{rel}</span>
                     )}
                   </h3>
                   <ul className="mt-1.5 sm:mt-0 flex-1 min-w-0 space-y-1.5">
@@ -467,7 +467,7 @@ export default function CalendarView({ events, today, loading, onEventMove, onRa
           </ol>
           )}
 
-          <button type="button" onClick={() => setAgendaTo((d) => addDays(d, AGENDA_AHEAD))} className="text-xs font-semibold text-[var(--brand-secondary)] hover:underline">
+          <button type="button" onClick={() => setAgendaTo((d) => addDays(d, AGENDA_AHEAD))} className="text-caption font-semibold text-brand-fg hover:underline">
             {t("calendar.showLater")}
           </button>
         </div>

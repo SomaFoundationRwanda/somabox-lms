@@ -27,7 +27,7 @@ export default function QuizzesListPage() {
           actions={isTeacher ? (
             <Link
               href={`/course/${courseId}/modules`}
-              className="flex items-center gap-1.5 text-xs font-semibold text-white bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-dark)] rounded-lg px-3.5 py-2 transition-colors"
+              className="flex items-center gap-1.5 text-caption font-semibold text-on-brand bg-brand hover:bg-brand/90 rounded-lg px-3.5 py-2 transition-colors"
             >
               <Plus className="w-3.5 h-3.5" /> {t("lists.addFromModules")}
             </Link>
@@ -41,12 +41,12 @@ export default function QuizzesListPage() {
             {quizzes.map((q) => (
               <ListRow
                 key={q.id}
-                icon={<HelpCircle className="w-4 h-4 text-[var(--brand-secondary)]" />}
+                icon={<HelpCircle className="w-4 h-4 text-brand-fg" />}
                 title={q.title}
                 href={`/course/${courseId}/quizzes/${q.id}`}
                 subtitle={`${tf((q.questionCount || 0) === 1 ? "lists.oneQuestion" : "lists.manyQuestions", { n: q.questionCount || 0 })} · ${q.due_at ? tf("common.dueOn", { date: fmtDate(q.due_at) }) : t("lists.relativeTiming")}`}
                 actions={
-                  <Link href={`/course/${courseId}/quizzes/${q.id}`} className="text-xs font-semibold text-[var(--brand-secondary)] hover:underline">
+                  <Link href={`/course/${courseId}/quizzes/${q.id}`} className="text-caption font-semibold text-brand-fg hover:underline">
                     {t("common.open")} &rarr;
                   </Link>
                 }

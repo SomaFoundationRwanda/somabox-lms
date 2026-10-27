@@ -200,7 +200,7 @@ const RichTextEditor = forwardRef(function RichTextEditor(
       Underline,
       Link.configure({
         openOnClick: false,
-        HTMLAttributes: { class: "text-teal-700 underline cursor-pointer" },
+        HTMLAttributes: { class: "text-brand-fg underline cursor-pointer" },
       }),
       CustomImageNode,
       FileAttachmentNode,
@@ -325,9 +325,9 @@ const RichTextEditor = forwardRef(function RichTextEditor(
   if (!editor) return null;
 
   return (
-    <div className="border border-slate-200 rounded-xl overflow-hidden bg-white">
+    <div className="border border-line rounded-xl overflow-hidden bg-surface">
       <EditorToolbar editor={editor} />
-      <div className="border-t border-slate-100">
+      <div className="border-t border-line">
         <EditorContent editor={editor} />
       </div>
       <style jsx global>{`

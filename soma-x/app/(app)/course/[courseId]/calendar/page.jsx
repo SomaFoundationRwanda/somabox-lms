@@ -67,7 +67,7 @@ export default function CourseCalendarPage() {
       type="button"
       onClick={downloadIcs}
       disabled={downloading}
-      className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900/40 disabled:opacity-50 rounded-lg px-3 py-2 transition-colors"
+      className="flex items-center gap-1.5 text-caption font-semibold text-fg-muted border border-line hover:bg-surface-hover disabled:opacity-50 rounded-lg px-3 py-2 transition-colors"
       title={t("calendar.icsHelp")}
     >
       <Download className="w-3.5 h-3.5" aria-hidden="true" /> {downloading ? t("calendar.downloading") : t("calendar.downloadIcs")}
@@ -84,7 +84,7 @@ export default function CourseCalendarPage() {
           actions={noStartDate ? null : downloadButton}
         />
 
-        {error && <p className="text-sm text-rose-600" role="alert">{error}</p>}
+        {error && <p className="text-ui text-danger-fg" role="alert">{error}</p>}
 
         {noStartDate ? (
           <EmptyState
@@ -95,7 +95,7 @@ export default function CourseCalendarPage() {
             action={isTeacher ? (
               <Link
                 href={`/course/${courseId}/settings`}
-                className="text-xs font-semibold text-white bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] rounded-lg px-3 py-2 transition-colors"
+                className="text-caption font-semibold text-on-brand-strong bg-brand-strong hover:bg-brand-strong/90 rounded-lg px-3 py-2 transition-colors"
               >
                 {t("calendar.setStart")}
               </Link>

@@ -75,7 +75,7 @@ export default function SetupPage() {
             {mode === "done" ? (
                 <div className="w-full max-w-[400px] space-y-4 text-center" role="status">
                     <AuthFormHeader title={s("doneTitle")} subtitle={s("doneText")} />
-                    <Link href="/" className="text-accent-dark font-extrabold hover:underline underline-offset-2">
+                    <Link href="/" className="text-brand-fg font-extrabold hover:underline underline-offset-2">
                         {t("shell.signup.signIn")}
                     </Link>
                 </div>

@@ -56,23 +56,23 @@ export default function SendNotificationModal({ isOpen, onClose }) {
     };
 
     return (
-        <div className="fixed inset-0 z-[9995] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-            <div className="bg-white dark:bg-[#0f1318] border-2 border-slate-300 dark:border-slate-700 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+        <div className="fixed inset-0 z-[9995] flex items-center justify-center bg-scrim backdrop-blur-sm p-4 animate-in fade-in duration-200">
+            <div className="bg-surface-raised border-2 border-line-strong rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
                 
                 {/* Header */}
-                <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+                <div className="dark px-6 py-4 bg-surface text-fg flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-lg bg-teal-500/20 border border-teal-500/30 flex items-center justify-center text-teal-300">
+                        <div className="w-8 h-8 rounded-lg bg-brand/20 border border-brand/30 flex items-center justify-center text-brand-fg">
                             <Megaphone size={16} />
                         </div>
                         <div>
-                            <h3 className="text-sm font-extrabold tracking-tight">{t("shell.broadcast.title")}</h3>
-                            <p className="text-[10px] text-slate-500 font-medium">{t("shell.broadcast.subtitle")}</p>
+                            <h3 className="text-ui font-extrabold tracking-tight">{t("shell.broadcast.title")}</h3>
+                            <p className="text-caption text-fg-subtle font-medium">{t("shell.broadcast.subtitle")}</p>
                         </div>
                     </div>
                     <button aria-label={t("shell.common.close")}
                         onClick={onClose}
-                        className="text-slate-600 hover:text-white transition-colors p-1 rounded-lg hover:bg-slate-800"
+                        className="text-fg-muted hover:text-fg transition-colors p-1 rounded-lg hover:bg-surface-hover"
                     >
                         <X size={16} />
                     </button>
@@ -155,14 +155,14 @@ export default function SendNotificationModal({ isOpen, onClose }) {
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-4 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 transition-colors"
+                            className="px-4 h-10 rounded-xl bg-surface-sunken hover:bg-surface-hover text-caption font-bold text-fg-muted transition-colors"
                         >
                             {t("shell.common.cancel")}
                         </button>
                         <button
                             type="submit"
                             disabled={sending}
-                            className="px-5 h-10 rounded-xl bg-accent-dark hover:bg-slate-900 text-white text-xs font-extrabold flex items-center gap-2 shadow-md transition-colors disabled:opacity-50"
+                            className="px-5 h-10 rounded-xl bg-brand-strong hover:bg-brand-strong/90 text-on-brand-strong text-caption font-extrabold flex items-center gap-2 shadow-md transition-colors disabled:opacity-50"
                         >
                             <Send size={13} />
                             {sending ? t("shell.broadcast.sending") : t("shell.broadcast.send")}

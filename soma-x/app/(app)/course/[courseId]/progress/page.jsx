@@ -20,7 +20,7 @@ export default function ProgressPage() {
             compact
             title={tp("progressPage.teacherTitle")}
             description={tp("progressPage.teacherHint")}
-            action={<Link href={`/course/${courseId}/insights`} className="text-xs font-semibold text-[var(--brand-secondary)] hover:underline">{tp("progressPage.openInsights")}</Link>}
+            action={<Link href={`/course/${courseId}/insights`} className="text-caption font-semibold text-brand-fg hover:underline">{tp("progressPage.openInsights")}</Link>}
           />
         </div>
       </div>

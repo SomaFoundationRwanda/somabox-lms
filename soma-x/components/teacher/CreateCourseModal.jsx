@@ -50,10 +50,10 @@ export default function CreateCourseModal({ onClose, onCreated }) {
   return (
     // Clicking outside closes only an untouched form, so a stray click doesn't lose the teacher's typing.
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => { if (!dirty) onClose() }}>
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 p-6" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-surface rounded-2xl shadow-xl w-full max-w-sm mx-4 p-6" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-semibold text-slate-800">{t("teacher.createCourse.title")}</h3>
-          <button aria-label={t("teacher.common.close")} onClick={onClose} className="text-slate-500 hover:text-slate-700 transition-colors">
+          <h3 className="text-item font-semibold text-fg">{t("teacher.createCourse.title")}</h3>
+          <button aria-label={t("teacher.common.close")} onClick={onClose} className="text-fg-subtle hover:text-fg-muted transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -77,17 +77,17 @@ export default function CreateCourseModal({ onClose, onCreated }) {
               placeholder={t("teacher.createCourse.descriptionPlaceholder")}
             />
           </Field>
-          {error && <p className="text-xs text-red-500">{error}</p>}
+          {error && <p className="text-caption text-danger-fg">{error}</p>}
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="w-full py-2.5 rounded-lg text-sm font-medium bg-[var(--brand-secondary)] text-white hover:bg-[var(--brand-secondary-dark)] transition-colors disabled:opacity-50"
+            className="w-full py-2.5 rounded-lg text-ui font-medium bg-brand text-on-brand hover:bg-brand/90 transition-colors disabled:opacity-50"
           >
             {loading ? t("teacher.createCourse.creating") : t("teacher.createCourse.create")}
           </button>
-          <p className="text-xs text-slate-500 text-center">
+          <p className="text-caption text-fg-subtle text-center">
             {t("teacher.createCourse.orBefore")}{" "}
-            <Link href="/library/courses" className="font-semibold text-[var(--brand-secondary)] hover:underline">{t("teacher.createCourse.orLink")}</Link>
+            <Link href="/library/courses" className="font-semibold text-brand-fg hover:underline">{t("teacher.createCourse.orLink")}</Link>
             {" "}{t("teacher.createCourse.orAfter")}
           </p>
         </div>

@@ -25,24 +25,24 @@ function getFileTypeDetails(mimeType = "", filename = "") {
   const ext = filename.split(".").pop()?.toLowerCase() || "";
 
   if (mime.includes("pdf") || ext === "pdf") {
-    return { icon: FileText, label: "pdf", isPdf: true, isImage: false, color: "text-red-500 bg-red-50" };
+    return { icon: FileText, label: "pdf", isPdf: true, isImage: false, color: "text-danger-fg bg-danger-soft" };
   }
   if (mime.includes("word") || ["doc", "docx"].includes(ext)) {
-    return { icon: FileText, label: "word", isPdf: false, isImage: false, color: "text-blue-500 bg-blue-50" };
+    return { icon: FileText, label: "word", isPdf: false, isImage: false, color: "text-info-fg bg-info-soft" };
   }
   if (mime.includes("sheet") || mime.includes("excel") || ["xls", "xlsx", "csv"].includes(ext)) {
-    return { icon: FileSpreadsheet, label: "spreadsheet", isPdf: false, isImage: false, color: "text-emerald-500 bg-emerald-50" };
+    return { icon: FileSpreadsheet, label: "spreadsheet", isPdf: false, isImage: false, color: "text-success-fg bg-success-soft" };
   }
   if (mime.includes("presentation") || mime.includes("powerpoint") || ["ppt", "pptx"].includes(ext)) {
-    return { icon: FileCode2, label: "presentation", isPdf: false, isImage: false, color: "text-amber-500 bg-amber-50" };
+    return { icon: FileCode2, label: "presentation", isPdf: false, isImage: false, color: "text-warning-fg bg-warning-soft" };
   }
   if (mime.includes("zip") || mime.includes("archive") || ["zip", "rar", "7z", "tar", "gz"].includes(ext)) {
-    return { icon: FileArchive, label: "archive", isPdf: false, isImage: false, color: "text-purple-500 bg-purple-50" };
+    return { icon: FileArchive, label: "archive", isPdf: false, isImage: false, color: "text-info-fg bg-info-soft" };
   }
   if (mime.includes("image") || ["jpg", "jpeg", "png", "gif", "svg", "webp"].includes(ext)) {
-    return { icon: ImageIcon, label: "image", isPdf: false, isImage: true, color: "text-teal-500 bg-teal-50" };
+    return { icon: ImageIcon, label: "image", isPdf: false, isImage: true, color: "text-brand-fg bg-brand-soft" };
   }
-  return { icon: FileIcon, label: "other", isPdf: false, isImage: false, color: "text-slate-500 bg-slate-50" };
+  return { icon: FileIcon, label: "other", isPdf: false, isImage: false, color: "text-fg-subtle bg-surface-sunken" };
 }
 
 function formatBytes(bytes) {
@@ -73,16 +73,16 @@ export function FileAttachmentView({ attrs, Wrapper = "div" }) {
   if (uploading) {
     return (
       <Wrapper className="my-4 select-none">
-        <div className="border border-amber-200 rounded-xl overflow-hidden bg-amber-50/60 p-4 flex items-center justify-between gap-3 animate-pulse">
+        <div className="border border-warning/30 rounded-xl overflow-hidden bg-warning-soft/60 p-4 flex items-center justify-between gap-3 animate-pulse">
           <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div className="p-2 rounded-lg bg-amber-100 text-amber-700 shrink-0">
+            <div className="p-2 rounded-lg bg-warning-soft text-warning-fg shrink-0">
               <Loader2 className="w-5 h-5 animate-spin" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-bold text-amber-900 truncate">
+              <p className="text-ui font-bold text-warning-fg truncate">
                 {tf("blocks.uploading", { name: filename })}
               </p>
-              <p className="text-xs text-amber-700 mt-0.5">{t("blocks.pleaseWait")}</p>
+              <p className="text-caption text-warning-fg mt-0.5">{t("blocks.pleaseWait")}</p>
             </div>
           </div>
         </div>
@@ -94,16 +94,16 @@ export function FileAttachmentView({ attrs, Wrapper = "div" }) {
   if (error) {
     return (
       <Wrapper className="my-4 select-none">
-        <div className="border border-rose-200 rounded-xl overflow-hidden bg-rose-50 p-4 flex items-center justify-between gap-3">
+        <div className="border border-danger/30 rounded-xl overflow-hidden bg-danger-soft p-4 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div className="p-2 rounded-lg bg-rose-100 text-rose-700 shrink-0">
+            <div className="p-2 rounded-lg bg-danger-soft text-danger-fg shrink-0">
               <AlertCircle className="w-5 h-5" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-bold text-rose-900 truncate">
+              <p className="text-ui font-bold text-danger-fg truncate">
                 {tf("blocks.uploadFailedFor", { name: filename })}
               </p>
-              <p className="text-xs text-rose-700 mt-0.5">{error}</p>
+              <p className="text-caption text-danger-fg mt-0.5">{error}</p>
             </div>
           </div>
         </div>
@@ -114,18 +114,18 @@ export function FileAttachmentView({ attrs, Wrapper = "div" }) {
   // 3. Completed State Card
   return (
     <Wrapper className="my-4 select-none">
-      <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm hover:shadow transition-shadow">
+      <div className="border border-line rounded-xl overflow-hidden bg-surface shadow-sm hover:shadow transition-shadow">
         {/* Main Card Header */}
-        <div className="flex items-center justify-between gap-3 px-4 py-3 bg-slate-50/50">
+        <div className="flex items-center justify-between gap-3 px-4 py-3 bg-surface-sunken/50">
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <div className={`p-2.5 rounded-lg shrink-0 ${fileType.color}`}>
               <IconComponent className="w-5 h-5" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-slate-800 truncate" title={filename}>
+              <p className="text-ui font-semibold text-fg truncate" title={filename}>
                 {filename}
               </p>
-              <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
+              <div className="flex items-center gap-2 text-caption text-fg-subtle mt-0.5">
                 <span>{t(`blocks.types.${fileType.label}`)}</span>
                 {file_size ? <span>· {formatBytes(file_size)}</span> : null}
               </div>
@@ -139,10 +139,10 @@ export function FileAttachmentView({ attrs, Wrapper = "div" }) {
                 type="button"
                 onClick={() => setPreviewOpen(!previewOpen)}
                 aria-expanded={previewOpen}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-caption font-semibold border transition-colors ${
                   previewOpen
-                    ? "bg-[var(--brand-primary)] text-white border-[var(--brand-primary)]"
-                    : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                    ? "bg-brand-strong text-on-brand-strong border-brand-strong"
+                    : "bg-surface text-fg-muted border-line hover:bg-surface-hover"
                 }`}
               >
                 {previewOpen ? (
@@ -166,7 +166,7 @@ export function FileAttachmentView({ attrs, Wrapper = "div" }) {
                 download={filename}
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-teal-50 text-teal-700 hover:bg-teal-100 border border-teal-200 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-caption font-semibold bg-brand-soft text-brand-fg hover:bg-brand-soft border border-brand/40 transition-colors"
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>{t("common.download")}</span>
@@ -177,29 +177,29 @@ export function FileAttachmentView({ attrs, Wrapper = "div" }) {
 
         {/* Expanded Inline Preview Block */}
         {previewOpen && canPreview && (
-          <div className="border-t border-slate-200 bg-slate-900/5 p-4 animate-in fade-in duration-200">
+          <div className="border-t border-line bg-surface-sunken p-4 animate-in fade-in duration-200">
             {access.state !== "ok" ? (
               <MediaAccessNotice state={access.state} compact />
             ) : fileType.isPdf ? (
               <div className="space-y-3">
                 {/* PDF Toolbar */}
-                <div className="flex items-center justify-between bg-slate-800 text-white px-4 py-2 rounded-lg text-xs">
+                <div className="flex items-center dark justify-between bg-surface-raised text-fg px-4 py-2 rounded-lg text-caption">
                   <span className="font-medium truncate max-w-[200px]">{filename}</span>
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
                       onClick={() => setZoom((z) => Math.max(50, z - 25))}
-                      className="p-1 hover:bg-slate-700 rounded"
+                      className="p-1 hover:bg-surface-hover rounded"
                       title={t("blocks.zoomOut")}
                       aria-label={t("blocks.zoomOut")}
                     >
                       <ZoomOut className="w-3.5 h-3.5" />
                     </button>
-                    <span className="font-mono text-[11px]">{zoom}%</span>
+                    <span className="font-mono text-caption">{zoom}%</span>
                     <button
                       type="button"
                       onClick={() => setZoom((z) => Math.min(200, z + 25))}
-                      className="p-1 hover:bg-slate-700 rounded"
+                      className="p-1 hover:bg-surface-hover rounded"
                       title={t("blocks.zoomIn")}
                       aria-label={t("blocks.zoomIn")}
                     >
@@ -209,7 +209,7 @@ export function FileAttachmentView({ attrs, Wrapper = "div" }) {
                 </div>
 
                 {/* PDF Viewer Container */}
-                <div className="w-full h-[500px] rounded-lg overflow-hidden border border-slate-300 bg-white">
+                <div className="w-full h-[500px] rounded-lg overflow-hidden border border-line-strong bg-surface">
                   <iframe
                     key={access.reloadKey}
                     src={`${fileUrl || url}#zoom=${zoom}`}
@@ -219,7 +219,7 @@ export function FileAttachmentView({ attrs, Wrapper = "div" }) {
                 </div>
               </div>
             ) : fileType.isImage ? (
-              <div className="flex justify-center p-2 bg-slate-100/80 rounded-lg border border-slate-200">
+              <div className="flex justify-center p-2 bg-surface-sunken/80 rounded-lg border border-line">
                 <img
                   key={access.reloadKey}
                   src={fileUrl || url}
@@ -274,7 +274,7 @@ export function VideoEmbedView({ attrs, Wrapper = "div" }) {
 
   return (
     <Wrapper className="my-4 select-none">
-      <div className="rounded-2xl overflow-hidden border border-slate-200 bg-slate-950 shadow-md">
+      <div className="rounded-2xl overflow-hidden border border-line bg-black shadow-md">
         <div className="relative aspect-video w-full">
           {videoInfo.type === "youtube" || videoInfo.type === "vimeo" ? (
             <iframe
@@ -329,7 +329,7 @@ export function ImageView({ attrs }) {
   return (
     <div className="my-4 my-image-block">
       <div className={`flex flex-col ${IMAGE_ALIGN_CLASSES[alignment] || "mx-auto"} ${IMAGE_SIZE_PRESETS[size] || "max-w-[50%]"}`}>
-        <div className="relative group rounded-xl overflow-hidden border transition-all border-slate-200">
+        <div className="relative group rounded-xl overflow-hidden border transition-all border-line">
           {access.state !== "ok" ? <MediaAccessNotice state={access.state} compact /> : null}
           <img
             key={access.reloadKey}
@@ -341,7 +341,7 @@ export function ImageView({ attrs }) {
           />
         </div>
         {caption ? (
-          <p className="mt-1.5 text-center text-xs text-slate-500 italic">
+          <p className="mt-1.5 text-center text-caption text-fg-subtle italic">
             {caption}
           </p>
         ) : null}

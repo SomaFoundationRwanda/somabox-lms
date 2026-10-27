@@ -12,7 +12,7 @@ const ManageTitle = ({ title, description, actions, meta }) => {
         <div className="pt-4 mb-6 space-y-3">
             <Link
                 href="/manage/admin"
-                className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                className="inline-flex items-center gap-1.5 text-caption font-semibold text-fg-subtle hover:text-fg"
             >
                 <ArrowLeft className="w-3.5 h-3.5" /> {t("admin.common.backToAdmin")}
             </Link>

@@ -14,10 +14,10 @@ export default function DataTable({ columns, rows, rowKey = (r) => r.id, caption
   const emptyText = empty ?? t("course.common.nothingToShow") ?? "Nothing to show.";
   const alignClass = { right: "text-right", center: "text-center", left: "text-left" };
   return (
-    <div className={`overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 ${className}`}>
-      <table className="min-w-full text-sm">
+    <div className={`overflow-x-auto rounded-xl border border-line ${className}`}>
+      <table className="min-w-full text-ui">
         {caption ? <caption className="sr-only">{caption}</caption> : null}
-        <thead className="bg-slate-50 dark:bg-slate-900/50 text-[11px] uppercase tracking-wide text-slate-500">
+        <thead className="bg-surface-sunken text-caption text-fg-subtle">
           <tr>
             {columns.map((c) => {
               const sortable = !!(c.sortable && onSort);
@@ -33,10 +33,10 @@ export default function DataTable({ columns, rows, rowKey = (r) => r.id, caption
                     <button
                       type="button"
                       onClick={() => onSort(c.key)}
-                      className={`inline-flex items-center gap-1 uppercase tracking-wide hover:text-slate-900 dark:hover:text-white ${active ? "text-slate-900 dark:text-white" : ""}`}
+                      className={`inline-flex items-center gap-1 hover:text-fg ${active ? "text-fg" : ""}`}
                     >
                       {c.header}
-                      <span aria-hidden="true" className="text-[11px]">{active ? (sort.dir === "asc" ? "▲" : "▼") : "↕"}</span>
+                      <span aria-hidden="true" className="text-caption">{active ? (sort.dir === "asc" ? "▲" : "▼") : "↕"}</span>
                     </button>
                   ) : c.header}
                 </th>
@@ -44,16 +44,16 @@ export default function DataTable({ columns, rows, rowKey = (r) => r.id, caption
             })}
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+        <tbody className="divide-y divide-line">
           {rows.length === 0 ? (
-            <tr><td colSpan={columns.length} className="px-3 py-6 text-center text-slate-500">{emptyText}</td></tr>
+            <tr><td colSpan={columns.length} className="px-3 py-6 text-center text-fg-subtle">{emptyText}</td></tr>
           ) : rows.map((row) => (
             <tr
               key={rowKey(row)}
               onClick={onRowClick ? () => onRowClick(row) : undefined}
               tabIndex={onRowClick ? 0 : undefined}
               onKeyDown={onRowClick ? (e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onRowClick(row); } } : undefined}
-              className={`${onRowClick ? "cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900/40 focus-visible:outline-none focus-visible:bg-slate-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--brand-secondary)]" : ""} ${rowClassName ? rowClassName(row) || "" : ""}`}
+              className={`${onRowClick ? "cursor-pointer hover:bg-surface-hover focus-visible:outline-none focus-visible:bg-surface-hover focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand" : ""} ${rowClassName ? rowClassName(row) || "" : ""}`}
             >
               {columns.map((c) => (
                 <td key={c.key} className={`px-3 py-2 align-middle ${alignClass[c.align || "left"]} ${c.hideOnMobile ? "hidden md:table-cell" : ""} ${c.className || ""}`}>

@@ -28,13 +28,13 @@ function CourseShell({ children }) {
   }
 
   if (error && adminInsights && !course) {
-    return <div className="min-h-full bg-white dark:bg-transparent">{children}</div>;
+    return <div className="min-h-full bg-surface">{children}</div>;
   }
 
   if (error) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center text-center px-4">
-        <p className="text-sm font-semibold text-rose-600">{error}</p>
+        <p className="text-ui font-semibold text-danger-fg">{error}</p>
       </div>
     );
   }
@@ -43,12 +43,12 @@ function CourseShell({ children }) {
     // The course shell is the page itself, not a card: no border/radius/negative margin
     // (pages inside it use sections and lists, so nothing ends up boxed twice).
     // Below md the sidebar column is hidden and a "Course menu" button opens the same nav.
-    <div className="flex min-h-full bg-white dark:bg-transparent">
+    <div className="flex min-h-full bg-surface">
       <CourseSidebar />
       <div className="flex-1 min-w-0">
         <CourseMenuButton />
         {adminView && (
-          <p role="note" className="mx-4 sm:mx-6 mt-4 px-4 py-2.5 rounded-lg border text-sm bg-sky-50 border-sky-200 text-sky-900 dark:bg-sky-500/10 dark:border-sky-500/30 dark:text-sky-100">
+          <p role="note" className="mx-4 sm:mx-6 mt-4 px-4 py-2.5 rounded-lg border text-ui bg-info-soft border-info/30 text-info-fg">
             {t("admin.courses.adminViewNote")}{" "}
             <Link href="/manage/admin" className="font-semibold underline underline-offset-2">{t("admin.courses.adminViewLink")}</Link>
           </p>

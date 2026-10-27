@@ -41,12 +41,12 @@ export default function TeacherDashboardPage() {
       <section>
         <div className="flex items-center justify-between mb-4">
           <Link href="/teacher/courses" className="inline-flex items-center gap-1 group">
-            <h2 className="text-base font-semibold text-slate-700">{t("teacher.dashboard.courses")}</h2>
-            <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-slate-600 transition-colors" />
+            <h2 className="text-item font-semibold text-fg-muted">{t("teacher.dashboard.courses")}</h2>
+            <ChevronRight className="w-4 h-4 text-fg-muted group-hover:text-fg-muted transition-colors" />
           </Link>
           <button
             onClick={() => setCreateModal(true)}
-            className="flex items-center gap-1.5 text-xs font-medium text-white bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-dark)] rounded-lg px-3 py-2 transition-colors"
+            className="flex items-center gap-1.5 text-caption font-medium text-on-brand bg-brand hover:bg-brand/90 rounded-lg px-3 py-2 transition-colors"
           >
             <Plus className="w-3.5 h-3.5" /> {t("teacher.common.newCourse")}
           </button>
@@ -59,9 +59,9 @@ export default function TeacherDashboardPage() {
             <div className="w-full flex justify-center py-8"><EmptyState message={t("teacher.dashboard.noCourses")} /></div>
           ) : (
             courses.map((course) => (
-              <div key={course.id} className="flex-shrink-0 w-72 border border-slate-200 dark:border-slate-700/50 rounded-2xl overflow-hidden bg-white dark:bg-[#0f1318] shadow-sm">
+              <div key={course.id} className="flex-shrink-0 w-72 border border-line rounded-2xl overflow-hidden bg-surface shadow-sm">
                 <Link href={`/course/${course.id}/home`}>
-                  <div className="w-full h-44 bg-slate-100 relative cursor-pointer">
+                  <div className="w-full h-44 bg-surface-sunken relative cursor-pointer">
                     <Image
                       src={course.coverImageUrl ? `${SERVER_URL}${course.coverImageUrl}` : "/imageFallback.png"}
                       alt={course.title}
@@ -73,12 +73,12 @@ export default function TeacherDashboardPage() {
                 </Link>
                 <div className="p-4">
                   <Link href={`/course/${course.id}/home`}>
-                    <p className="text-base font-semibold text-slate-700 dark:text-slate-200 mb-1 hover:text-[var(--brand-secondary)] transition-colors cursor-pointer">{course.title}</p>
+                    <p className="text-item font-semibold text-fg-muted mb-1 hover:text-brand-fg transition-colors cursor-pointer">{course.title}</p>
                   </Link>
-                  <p className="text-xs text-slate-600 mb-4">{course.grade} · {fill(t((course.studentCount || 0) === 1 ? "teacher.common.oneStudent" : "teacher.common.manyStudents"), { count: course.studentCount || 0 })}</p>
+                  <p className="text-caption text-fg-muted mb-4">{course.grade} · {fill(t((course.studentCount || 0) === 1 ? "teacher.common.oneStudent" : "teacher.common.manyStudents"), { count: course.studentCount || 0 })}</p>
                   <button
                     onClick={() => setStudentModal(course.id)}
-                    className="w-full flex items-center justify-center gap-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 border border-slate-300 dark:border-slate-600 rounded-lg py-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                    className="w-full flex items-center justify-center gap-1.5 text-caption font-medium text-fg-muted border border-line-strong rounded-lg py-2 hover:bg-surface-hover transition-colors"
                   >
                     {t("teacher.dashboard.addStudent")} <Plus className="w-3.5 h-3.5" />
                   </button>

@@ -22,22 +22,18 @@ import { buttonVariants } from "@/components/ui/button";
 
 const FieldContext = createContext(null);
 
-const LABEL = "block text-xs font-semibold text-slate-700 dark:text-slate-200";
-const HINT = "text-xs text-slate-500 dark:text-slate-400";
-const ERROR = "text-xs font-semibold text-rose-600 dark:text-rose-400";
+const LABEL = "block text-caption font-semibold text-fg-muted";
+const HINT = "text-caption text-fg-subtle";
+const ERROR = "text-caption font-semibold text-danger-fg";
 
-const SIZES = { sm: "h-9 text-xs", md: "h-10 text-sm", lg: "h-11 text-sm" };
-const BASE = "w-full rounded-lg border bg-white px-3 text-slate-900 placeholder:text-slate-400 shadow-sm outline-none transition-colors "
-    + "focus:border-[var(--brand-secondary)] focus:ring-2 focus:ring-[var(--brand-secondary)]/25 "
-    + "disabled:cursor-not-allowed disabled:opacity-50 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500";
-const border = (invalid) => (invalid ? "border-rose-500 dark:border-rose-400" : "border-slate-300 dark:border-slate-700");
-
-// variant "ghost": no box, for a control that sits in running text or a header (the language switcher).
-const GHOST = "bg-transparent border-transparent shadow-none px-1 h-auto rounded cursor-pointer focus:ring-2 focus:ring-[var(--brand-secondary)]/40";
+const SIZES = { sm: "h-9 text-caption", md: "h-10 text-ui", lg: "h-11 text-ui" };
+const BASE = "w-full rounded-lg border bg-surface px-3 text-fg placeholder:text-fg-subtle shadow-sm outline-none transition-colors "
+    + "focus:border-brand focus:ring-2 focus:ring-brand/25 "
+    + "disabled:cursor-not-allowed disabled:opacity-50";
+const border = (invalid) => (invalid ? "border-danger" : "border-line-strong");
 
 /** The classes of a text box or dropdown, for the rare control that can't be one of these. */
-export function controlClass({ size = "md", invalid = false, variant = "outline", className } = {}) {
-    if (variant === "ghost") return cn("outline-none text-inherit", GHOST, className);
+export function controlClass({ size = "md", invalid = false, className } = {}) {
     return cn(BASE, SIZES[size] || SIZES.md, border(invalid), className);
 }
 
@@ -61,8 +57,8 @@ export function Field({ id, label, hint, error, required = false, optional, clas
                 {label ? (
                     <label id={labelId} htmlFor={fieldId} className={LABEL}>
                         {label}
-                        {required ? <span className="text-rose-500" aria-hidden="true"> *</span> : null}
-                        {optional ? <span className="font-normal text-slate-500 dark:text-slate-400"> {optional}</span> : null}
+                        {required ? <span className="text-danger-fg" aria-hidden="true"> *</span> : null}
+                        {optional ? <span className="font-normal text-fg-subtle"> {optional}</span> : null}
                     </label>
                 ) : null}
                 {children}
@@ -103,11 +99,11 @@ export const TextInput = forwardRef(function TextInput({ size = "md", variant, i
     if (!wrapped) return input;
     return (
         <div className={cn("relative", className)}>
-            {Icon ? <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" aria-hidden="true" /> : null}
+            {Icon ? <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-subtle pointer-events-none" aria-hidden="true" /> : null}
             {input}
             {onClear && props.value ? (
                 <button type="button" onClick={onClear} aria-label={clearLabel}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800">
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md text-fg-subtle hover:text-fg hover:bg-surface-hover">
                     <X className="w-3.5 h-3.5" aria-hidden="true" />
                 </button>
             ) : null}
@@ -125,15 +121,23 @@ export const Textarea = forwardRef(function Textarea({ size = "md", rows = 4, cl
 
 /**
  * A dropdown. `options`: [{ value, label, disabled? }] (or pass <option>s as children).
- * `placeholder` adds a first, unselectable "Choose…" entry for a value of "".
+ * `placeholder` adds a first, unselectable "Choose…" entry for a value of "". `icon`: a lucide
+ * icon shown inside, at the start.
  */
-export const Select = forwardRef(function Select({ size = "md", variant = "outline", options, placeholder, className, children, ...props }, ref) {
+export const Select = forwardRef(function Select({ size = "md", options, placeholder, icon: Icon, className, children, ...props }, ref) {
     const { invalid, ...wired } = useField(props);
-    return (
-        <select ref={ref} {...props} {...wired} className={cn(controlClass({ size, invalid, variant, className }), variant === "ghost" ? "pr-1" : "pr-8")}>
+    const select = (
+        <select ref={ref} {...props} {...wired} className={cn(controlClass({ size, invalid, className: Icon ? null : className }), "pr-8", Icon && "pl-9")}>
             {placeholder !== undefined ? <option value="" disabled>{placeholder}</option> : null}
             {options ? options.map((o) => <option key={o.value} value={o.value} disabled={o.disabled}>{o.label}</option>) : children}
         </select>
+    );
+    if (!Icon) return select;
+    return (
+        <div className={cn("relative", className)}>
+            <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-subtle pointer-events-none" aria-hidden="true" />
+            {select}
+        </div>
     );
 });
 
@@ -144,9 +148,9 @@ export function CheckboxField({ id, label, hint, checked, onCheckedChange, disab
     return (
         <div className={cn("flex items-start gap-2.5", className)}>
             <CheckboxBox id={boxId} checked={checked} onCheckedChange={(v) => onCheckedChange(v === true)} disabled={disabled} className="mt-0.5" />
-            <label htmlFor={boxId} className="text-sm text-slate-700 dark:text-slate-200 leading-snug cursor-pointer">
-                <span className="font-semibold text-slate-800 dark:text-slate-100">{label}</span>
-                {hint ? <span className="block text-xs text-slate-500 dark:text-slate-400">{hint}</span> : null}
+            <label htmlFor={boxId} className="text-ui text-fg-muted leading-snug cursor-pointer">
+                <span className="font-semibold text-fg">{label}</span>
+                {hint ? <span className="block text-caption text-fg-subtle">{hint}</span> : null}
             </label>
         </div>
     );
@@ -181,19 +185,19 @@ export function ChoiceGroup({ options, value, onChange, columns = 3, layout = "g
                         disabled={disabled || o.disabled}
                         onClick={() => onChange(o.value)}
                         className={cn(
-                            "rounded-lg border px-3 font-semibold transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]/40 disabled:cursor-not-allowed disabled:opacity-50",
-                            layout === "list" ? "min-h-10 py-2.5 text-left text-sm" : SIZES[size] || SIZES.md,
+                            "rounded-lg border px-3 font-semibold transition-colors outline-none focus-visible:ring-2 focus-visible:ring-brand/40 disabled:cursor-not-allowed disabled:opacity-50",
+                            layout === "list" ? "min-h-10 py-2.5 text-left text-ui" : SIZES[size] || SIZES.md,
                             selected
-                                ? "border-[var(--brand-secondary)] bg-teal-50 text-teal-900 dark:bg-teal-950/50 dark:text-teal-100"
-                                : cn("bg-white text-slate-700 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800", border(invalid)),
+                                ? "border-brand bg-brand-soft text-brand-fg"
+                                : cn("bg-surface text-fg-muted hover:bg-surface-hover", border(invalid)),
                         )}
                     >
                         {o.description || o.icon ? (
                             <span className="flex items-center gap-3">
-                                {o.icon ? <o.icon className="w-4 h-4 shrink-0 text-[var(--brand-secondary)]" aria-hidden="true" /> : null}
+                                {o.icon ? <o.icon className="w-4 h-4 shrink-0 text-brand-fg" aria-hidden="true" /> : null}
                                 <span className="min-w-0">
                                     <span className="block">{o.label}</span>
-                                    {o.description ? <span className="block text-xs font-normal text-slate-500 dark:text-slate-400 mt-0.5">{o.description}</span> : null}
+                                    {o.description ? <span className="block text-caption font-normal text-fg-subtle mt-0.5">{o.description}</span> : null}
                                 </span>
                             </span>
                         ) : o.label}
@@ -216,7 +220,7 @@ export const PasswordInput = forwardRef(function PasswordInput({ size = "md", cl
                 onClick={() => setShown((v) => !v)}
                 aria-label={toggleLabel || t("shell.login.togglePassword")}
                 aria-pressed={shown}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800"
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-fg-subtle hover:text-fg hover:bg-surface-hover"
             >
                 {shown ? <EyeOff className="w-4 h-4" aria-hidden="true" /> : <Eye className="w-4 h-4" aria-hidden="true" />}
             </button>
@@ -253,7 +257,7 @@ function FileInput({ inputRef, accept, multiple, disabled, onFiles, id, describe
 export function FileButton({ accept, multiple = false, disabled = false, onFiles, variant = "outline", size = "sm", id, title, className, children, ...rest }) {
     const autoId = useId();
     const inputId = id || `file-${autoId}`;
-    const look = variant === "bare" ? className : buttonVariants({ variant, size, className: cn("focus-within:ring-[3px] focus-within:ring-[var(--brand-secondary)]/40", className) });
+    const look = variant === "bare" ? className : buttonVariants({ variant, size, className: cn("focus-within:ring-[3px] focus-within:ring-brand/40", className) });
     return (
         <label htmlFor={inputId} title={title} aria-disabled={disabled || undefined}
             className={cn(look, "cursor-pointer", disabled && "pointer-events-none opacity-50")} {...rest}>
@@ -285,19 +289,19 @@ export function FileDrop({ accept, multiple = false, disabled = false, onFiles, 
             }}
             className={cn(
                 "flex flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed px-4 py-6 text-center cursor-pointer transition-colors",
-                "focus-within:ring-2 focus-within:ring-[var(--brand-secondary)]/40",
+                "focus-within:ring-2 focus-within:ring-brand/40",
                 dragging
-                    ? "border-[var(--brand-secondary)] bg-teal-50 dark:bg-teal-950/20"
-                    : "border-slate-300 bg-slate-50 hover:border-slate-400 hover:bg-white dark:border-slate-700 dark:bg-slate-900/40 dark:hover:bg-slate-900",
+                    ? "border-brand bg-brand-soft"
+                    : "border-line-strong bg-surface-sunken hover:border-line-strong hover:bg-surface",
                 disabled && "pointer-events-none opacity-50",
                 className,
             )}
         >
             {children ?? (
                 <>
-                    {Icon ? <Icon className="w-6 h-6 text-slate-400" aria-hidden="true" /> : null}
-                    {title ? <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{title}</span> : null}
-                    {hint ? <span className="text-xs text-slate-500 dark:text-slate-400">{hint}</span> : null}
+                    {Icon ? <Icon className="w-6 h-6 text-fg-subtle" aria-hidden="true" /> : null}
+                    {title ? <span className="text-ui font-semibold text-fg-muted">{title}</span> : null}
+                    {hint ? <span className="text-caption text-fg-subtle">{hint}</span> : null}
                 </>
             )}
             <FileInput id={inputId} accept={accept} multiple={multiple} disabled={disabled} onFiles={onFiles} />
@@ -327,5 +331,99 @@ export function Slider({ value, min = 0, max = 100, step = 1, onChange, tone = "
             className={cn("kit-slider w-full h-1.5 rounded-full appearance-none cursor-pointer", tone === "onDark" && "kit-slider-on-dark", className)}
             style={{ background: `linear-gradient(to right, ${fill} 0%, ${fill} ${share}%, ${rest} ${share}%, ${rest} 100%)` }}
         />
+    );
+}
+
+// ── Labels, groups, single radios, colours ─────────────────────────────────────────────────
+
+/** The kit's label on its own, for a control that can't sit in a Field (prefer Field). */
+export function Label({ className, children, ...props }) {
+    return <label {...props} className={cn(LABEL, "mb-1.5", className)}>{children}</label>;
+}
+
+/** A group of related controls under one caption (legend). `hideLegend` keeps it for screen readers only. */
+export function Fieldset({ legend, hint, required = false, hideLegend = false, className, children }) {
+    return (
+        <fieldset className={cn("space-y-2", className)}>
+            <legend className={hideLegend ? "sr-only" : cn(LABEL, "mb-1.5 inline-flex items-center gap-1.5")}>
+                {legend}
+                {required ? <span className="text-danger-fg" aria-hidden="true">*</span> : null}
+            </legend>
+            {hint ? <p className={HINT}>{hint}</p> : null}
+            {children}
+        </fieldset>
+    );
+}
+
+/** One radio on its own, for a choice that sits beside other controls (e.g. "this answer is correct"). */
+export const Radio = forwardRef(function Radio({ className, ...props }, ref) {
+    return (
+        <input ref={ref} type="radio" {...props}
+            className={cn("w-4 h-4 shrink-0 cursor-pointer accent-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50", className)} />
+    );
+});
+
+/** A colour: a swatch that opens the colour chooser, and its #RRGGBB code to type. `onChange("#RRGGBB")`. */
+export function ColorInput({ value, onChange, fallback = "#000000", size = "lg", swatchLabel, ...props }) {
+    const valid = /^#[0-9a-f]{6}$/i.test(value || "");
+    const { invalid, ...wired } = useField(props);
+    return (
+        <div className="flex items-center gap-2">
+            <input
+                type="color"
+                value={(valid ? value : fallback).toLowerCase()}
+                onChange={(e) => onChange(e.target.value.toUpperCase())}
+                aria-label={swatchLabel}
+                className={cn("shrink-0 rounded-lg cursor-pointer border bg-surface p-1", size === "lg" ? "w-11 h-11" : size === "sm" ? "w-9 h-9" : "w-10 h-10", border(invalid))}
+            />
+            <TextInput {...props} {...wired} value={value} maxLength={7} spellCheck={false} autoCapitalize="characters"
+                onChange={(e) => onChange(e.target.value.trim().toUpperCase())} size={size} variant="code" />
+        </div>
+    );
+}
+
+/** An on/off switch. `onChange(nextChecked)`. Name it with aria-labelledby or aria-label. */
+export function Switch({ checked, onChange, disabled = false, className, children, ...props }) {
+    return (
+        <button
+            type="button"
+            role="switch"
+            aria-checked={!!checked}
+            disabled={disabled}
+            onClick={() => onChange(!checked)}
+            {...props}
+            className={cn(
+                "relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+                checked ? "bg-brand" : "bg-line-strong",
+                className,
+            )}
+        >
+            <span className={cn("inline-block h-5 w-5 rounded-full bg-surface shadow transition-transform", checked ? "translate-x-6" : "translate-x-1")} />
+            {children ? <span className="sr-only">{children}</span> : null}
+        </button>
+    );
+}
+
+/**
+ * Several checkboxes in a bordered, scrolling list (e.g. outcomes, people). `items`: [{ value,
+ * label, hint? }]; `selected`: the chosen values; `onChange(nextSelected)`.
+ */
+export function CheckboxList({ items, selected, onChange, className }) {
+    const autoId = useId();
+    const toggle = (value, on) => onChange(on ? [...selected, value] : selected.filter((v) => v !== value));
+    return (
+        <div className={cn("max-h-40 overflow-y-auto rounded-lg border border-line divide-y divide-line", className)}>
+            {items.map((item, i) => (
+                <CheckboxField
+                    key={String(item.value)}
+                    id={`${autoId}-${i}`}
+                    label={item.label}
+                    hint={item.hint}
+                    checked={selected.includes(item.value)}
+                    onCheckedChange={(on) => toggle(item.value, on)}
+                    className="px-3 py-2 hover:bg-surface-hover"
+                />
+            ))}
+        </div>
     );
 }

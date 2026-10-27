@@ -19,32 +19,32 @@ export default function TeacherPageChrome({ page, onEdit, onTogglePublish }) {
             <button
               type="button"
               onClick={onTogglePublish}
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border transition-colors ${
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-caption font-semibold border transition-colors ${
                 page.published
-                  ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
-                  : "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100"
+                  ? "bg-success-soft text-success-fg border-success/30 hover:bg-success-soft"
+                  : "bg-warning-soft text-warning-fg border-warning/30 hover:bg-warning-soft"
               }`}
             >
               {page.published ? (
                 <>
-                  <Eye className="w-3.5 h-3.5 text-emerald-600" />
+                  <Eye className="w-3.5 h-3.5 text-success-fg" />
                   <span>{t("common.published")}</span>
                 </>
               ) : (
                 <>
-                  <EyeOff className="w-3.5 h-3.5 text-amber-600" />
+                  <EyeOff className="w-3.5 h-3.5 text-warning-fg" />
                   <span>{t("pageView.draftUnpublished")}</span>
                 </>
               )}
             </button>
             {stats && (
-              <span className="inline-flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400">
-                <Users className="w-3.5 h-3.5 text-[var(--brand-primary)]" />
+              <span className="inline-flex items-center gap-1.5 text-caption text-fg-muted">
+                <Users className="w-3.5 h-3.5 text-brand-fg" />
                 <span>
                   {tf("pageView.viewed", { n: stats.viewedCount, total: stats.totalEnrolled })}
                 </span>
-                <span className="text-slate-300">·</span>
-                <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
+                <span className="text-fg-subtle">·</span>
+                <CheckCircle className="w-3.5 h-3.5 text-success-fg" />
                 <span>
                   {tf("pageView.completedCount", { n: stats.completedCount })}
                 </span>
@@ -56,7 +56,7 @@ export default function TeacherPageChrome({ page, onEdit, onTogglePublish }) {
           <button
             type="button"
             onClick={onEdit}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] rounded-lg transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-caption font-semibold text-on-brand-strong bg-brand-strong hover:bg-brand-strong/90 rounded-lg transition-colors"
           >
             <Edit className="w-3.5 h-3.5" />
             <span>{t("editors.editPage")}</span>
@@ -65,7 +65,7 @@ export default function TeacherPageChrome({ page, onEdit, onTogglePublish }) {
       />
 
       {/* Shared Page Content Renderer */}
-      <div className="px-1 py-2 border-t border-slate-200 dark:border-slate-800 pt-6">
+      <div className="px-1 py-2 border-t border-line pt-6">
         <PageContent
           bodyJson={page.body_json}
           bodyHtml={page.body_html}

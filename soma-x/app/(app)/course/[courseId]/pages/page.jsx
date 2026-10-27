@@ -27,7 +27,7 @@ export default function PagesListPage() {
           actions={isTeacher ? (
             <Link
               href={`/course/${courseId}/modules`}
-              className="flex items-center gap-1.5 text-xs font-semibold text-white bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-dark)] rounded-lg px-3.5 py-2 transition-colors"
+              className="flex items-center gap-1.5 text-caption font-semibold text-on-brand bg-brand hover:bg-brand/90 rounded-lg px-3.5 py-2 transition-colors"
             >
               <Plus className="w-3.5 h-3.5" /> {t("lists.addFromModules")}
             </Link>
@@ -41,11 +41,11 @@ export default function PagesListPage() {
             {pages.map((p) => (
               <ListRow
                 key={p.id}
-                icon={<FileText className="w-4 h-4 text-[var(--brand-secondary)]" />}
+                icon={<FileText className="w-4 h-4 text-brand-fg" />}
                 title={p.title}
                 href={`/course/${courseId}/pages/${p.id}`}
                 actions={
-                  <Link href={`/course/${courseId}/pages/${p.id}`} className="text-xs font-semibold text-[var(--brand-secondary)] hover:underline">
+                  <Link href={`/course/${courseId}/pages/${p.id}`} className="text-caption font-semibold text-brand-fg hover:underline">
                     {t("lists.read")} &rarr;
                   </Link>
                 }

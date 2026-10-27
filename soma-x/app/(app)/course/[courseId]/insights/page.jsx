@@ -85,7 +85,7 @@ function TeacherInsights() {
           meta={data?.today ? <span>{tp("insights.figuresAsOf", { date: fmtDateTime(new Date(`${data.today}T12:00:00`), locale, { day: "numeric", month: "short", year: "numeric" }) })}</span> : null}
         />
 
-        <div role="tablist" aria-label={tp("insights.tabsLabel")} className="flex gap-1 overflow-x-auto border-b border-slate-200 dark:border-slate-800" onKeyDown={onTabKey}>
+        <div role="tablist" aria-label={tp("insights.tabsLabel")} className="flex gap-1 overflow-x-auto border-b border-line" onKeyDown={onTabKey}>
           {TABS.map((t) => {
             const selected = t.key === tab;
             return (
@@ -99,8 +99,8 @@ function TeacherInsights() {
                 aria-controls={`insights-panel-${t.key}`}
                 tabIndex={selected ? 0 : -1}
                 onClick={() => selectTab(t.key)}
-                className={`shrink-0 px-3 py-2 text-sm font-semibold border-b-2 -mb-px transition-colors ${
-                  selected ? "border-[var(--brand-secondary)] text-[var(--brand-secondary)]" : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                className={`shrink-0 px-3 py-2 text-ui font-semibold border-b-2 -mb-px transition-colors ${
+                  selected ? "border-brand text-brand-fg" : "border-transparent text-fg-subtle hover:text-fg"
                 }`}
               >
                 {tp(`insights.tabs.${t.key}`)}
@@ -109,7 +109,7 @@ function TeacherInsights() {
           })}
         </div>
 
-        <div role="tabpanel" id={`insights-panel-${tab}`} aria-labelledby={`insights-tab-${tab}`} tabIndex={0} className="focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]">
+        <div role="tabpanel" id={`insights-panel-${tab}`} aria-labelledby={`insights-tab-${tab}`} tabIndex={0} className="focus:outline-none focus-visible:ring-2 focus-visible:ring-brand">
           {loading && !data ? (
             <LoadingRows count={4} />
           ) : error ? (

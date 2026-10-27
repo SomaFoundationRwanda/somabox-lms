@@ -71,7 +71,7 @@ export default function DiscussionThreadPage() {
   };
 
   if (loading) return <Loader variant="page" />;
-  if (!discussion) return <div className="p-6"><p className="text-sm text-rose-600">{t("discussions.notFound")}</p></div>;
+  if (!discussion) return <div className="p-6"><p className="text-ui text-danger-fg">{t("discussions.notFound")}</p></div>;
 
   return (
     <div>
@@ -79,9 +79,9 @@ export default function DiscussionThreadPage() {
       <div className="p-4 md:p-6 space-y-6 max-w-2xl">
         <PageHeader help="items.discussion"
           title={discussion.title}
-          meta={discussion.graded ? <span className="text-[10px] font-bold uppercase text-teal-600 bg-teal-50 rounded-full px-1.5 py-0.5">{t("quizKinds.graded")}</span> : null}
+          meta={discussion.graded ? <span className="text-caption font-bold text-brand-fg bg-brand-soft rounded-full px-1.5 py-0.5">{t("quizKinds.graded")}</span> : null}
         >
-          {discussion.body ? <p className="text-sm text-slate-700 dark:text-slate-300 mt-2 whitespace-pre-wrap">{discussion.body}</p> : null}
+          {discussion.body ? <p className="text-ui text-fg-muted mt-2 whitespace-pre-wrap">{discussion.body}</p> : null}
         </PageHeader>
 
         {isTeacher ? (
@@ -93,31 +93,31 @@ export default function DiscussionThreadPage() {
               <button
                 onClick={toggleGraded}
                 disabled={savingGraded}
-                className="text-xs font-semibold text-white bg-[var(--brand-primary)] rounded-lg px-3 py-1.5 disabled:opacity-50"
+                className="text-caption font-semibold text-on-brand-strong bg-brand-strong rounded-lg px-3 py-1.5 disabled:opacity-50"
               >
                 {discussion.graded ? t("discussions.removeGrading") : t("discussions.markGraded")}
               </button>
               {discussion.graded ? (
-                <span className="text-xs text-slate-500">
+                <span className="text-caption text-fg-subtle">
                   {tf("common.points", { n: discussion.points_possible })} · {t("discussions.syncs")}
                 </span>
               ) : null}
             </div>
             {gradedError ? (
-              <p className="mt-2 text-xs font-semibold text-rose-600">{gradedError}</p>
+              <p className="mt-2 text-caption font-semibold text-danger-fg">{gradedError}</p>
             ) : null}
           </Section>
         ) : null}
 
         <Section title={tf("discussions.repliesCount", { n: discussion.replies.length })}>
           {discussion.replies.length === 0 ? (
-            <p className="text-sm text-slate-500">{t("discussions.noReplies")}</p>
+            <p className="text-ui text-fg-subtle">{t("discussions.noReplies")}</p>
           ) : (
             <List label={t("discussions.replies")}>
               {discussion.replies.map((r) => (
                 <li key={r.id} className="px-3 py-3">
-                  <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">{r.authorName}</p>
-                  <p className="text-sm text-slate-600 dark:text-slate-300 mt-1 whitespace-pre-wrap">{r.body}</p>
+                  <p className="text-caption font-semibold text-fg-muted">{r.authorName}</p>
+                  <p className="text-ui text-fg-muted mt-1 whitespace-pre-wrap">{r.body}</p>
                 </li>
               ))}
             </List>
@@ -125,9 +125,9 @@ export default function DiscussionThreadPage() {
 
           {isObserver ? null : <div className="mt-3 flex items-center gap-2">
             <TextInput value={reply} onChange={(e) => setReply(e.target.value)} placeholder={t("discussions.replyPlaceholder")} aria-label={t("discussions.replyPlaceholder")} className="flex-1 min-w-0" />
-            <button onClick={postReply} className="text-xs font-semibold text-white bg-[var(--brand-primary)] rounded-lg px-3 py-2">{t("discussions.reply")}</button>
+            <button onClick={postReply} className="text-caption font-semibold text-on-brand-strong bg-brand-strong rounded-lg px-3 py-2">{t("discussions.reply")}</button>
           </div>}
-          {replyError ? <p role="alert" className="mt-2 text-xs font-semibold text-rose-600">{replyError}</p> : null}
+          {replyError ? <p role="alert" className="mt-2 text-caption font-semibold text-danger-fg">{replyError}</p> : null}
         </Section>
       </div>
     </div>

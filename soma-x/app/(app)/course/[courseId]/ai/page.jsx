@@ -1,6 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiFetch, getErrorMessage } from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
+import { useCourseSection } from "@/lib/useCourseSection";
 import Link from "next/link";
 import { Sparkles, Inbox, ChevronDown, ChevronRight } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
@@ -8,7 +12,7 @@ import { useToast } from "@/context/ToastContext";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
 import { PageHeader, Section, List, EmptyState } from "@/components/layout";
 import useAiStatus from "@/lib/useAiStatus";
-import { aiFetch, cancelAiJob, isActiveJob, startAiJob } from "@/lib/ai";
+import { cancelAiJob, isActiveJob, startAiJob } from "@/lib/ai";
 import { useProgressText, jobKindLabel, weekLabel } from "@/components/progress/text";
 import { AiStatusNote, JobProgress } from "@/components/ai/AiBits";
 import DraftCard, { ApprovedNote, DecidedDraftRow } from "@/components/ai/DraftCard";
@@ -31,13 +35,7 @@ export default function AiDraftsPage() {
   const { tp } = useProgressText();
   const aiStatus = useAiStatus();
 
-  const [jobs, setJobs] = useState([]);
-  const [pending, setPending] = useState([]);
-  const [decided, setDecided] = useState([]);
-  const [modules, setModules] = useState([]);
-  const [outcomes, setOutcomes] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const queryClient = useQueryClient();
   const [dismissed, setDismissed] = useState(() => new Set());
   const [cancelling, setCancelling] = useState(null);
   const [showDecided, setShowDecided] = useState(false);
@@ -48,68 +46,56 @@ export default function AiDraftsPage() {
 
   useEffect(() => { setDismissed(readDismissed()); }, []);
 
-  const base = `${SERVER_URL}/courses/${courseId}/ai`;
+  const enabled = !!courseId && isTeacher;
+  const key = (...parts) => queryKeys.courseSection(courseId, ["ai", ...parts].join("/"));
+  const draftsKey = key("drafts");
+  const jobsKey = key("jobs");
 
-  const loadDrafts = useCallback(async () => {
-    const [p, a, r] = await Promise.all([
-      aiFetch(`${base}/drafts?status=pending`),
-      aiFetch(`${base}/drafts?status=approved`),
-      aiFetch(`${base}/drafts?status=rejected`),
-    ]);
-    if (!p.ok) { setError(p.message); return; }
-    setPending(p.data || []);
-    const done = [...(a.ok ? a.data || [] : []), ...(r.ok ? r.data || [] : [])];
-    done.sort((x, y) => new Date(y.decidedAt || y.createdAt) - new Date(x.decidedAt || x.createdAt));
-    setDecided(done);
-  }, [base]);
+  const jobsQuery = useQuery({
+    queryKey: jobsKey,
+    queryFn: () => apiFetch(`/courses/${courseId}/ai/jobs`),
+    enabled,
+    refetchInterval: (q) => ((q.state.data || []).some(isActiveJob) ? 3000 : false),
+  });
+  const draftsQuery = useQuery({
+    queryKey: draftsKey,
+    queryFn: async () => {
+      const [pendingList, approved, rejected] = await Promise.all(
+        ["pending", "approved", "rejected"].map((status) => apiFetch(`/courses/${courseId}/ai/drafts?status=${status}`).catch((err) => (status === "pending" ? Promise.reject(err) : []))),
+      );
+      const decidedList = [...(approved || []), ...(rejected || [])]
+        .sort((x, y) => new Date(y.decidedAt || y.createdAt) - new Date(x.decidedAt || x.createdAt));
+      return { pending: pendingList || [], decided: decidedList };
+    },
+    enabled,
+  });
+  const { data: modulesData, loading: modulesLoading } = useCourseSection(isTeacher ? "modules" : null);
+  const { data: outcomesData } = useCourseSection(isTeacher ? "outcomes" : null);
 
-  const loadJobs = useCallback(async () => {
-    const j = await aiFetch(`${base}/jobs`);
-    if (!j.ok) { setError(j.message); return null; }
-    setJobs(j.data || []);
-    return j.data || [];
-  }, [base]);
+  const jobs = jobsQuery.data || [];
+  const pending = draftsQuery.data?.pending || [];
+  const decided = draftsQuery.data?.decided || [];
+  const modules = Array.isArray(modulesData) ? modulesData : [];
+  const outcomes = Array.isArray(outcomesData) ? outcomesData : [];
+  const loading = enabled && (jobsQuery.isPending || draftsQuery.isPending || modulesLoading);
+  const error = jobsQuery.isError ? getErrorMessage(jobsQuery.error) : draftsQuery.isError ? getErrorMessage(draftsQuery.error) : "";
 
-  const loadAll = useCallback(async () => {
-    if (!SERVER_URL || !courseId || !isTeacher) return;
-    setLoading(true);
-    setError("");
-    const [m, o] = await Promise.all([
-      aiFetch(`${SERVER_URL}/courses/${courseId}/modules`),
-      aiFetch(`${SERVER_URL}/courses/${courseId}/outcomes`),
-      loadJobs(),
-      loadDrafts(),
-    ]);
-    if (m.ok && Array.isArray(m.data)) setModules(m.data);
-    if (o.ok && Array.isArray(o.data)) setOutcomes(o.data);
-    setLoading(false);
-  }, [SERVER_URL, courseId, isTeacher, loadJobs, loadDrafts]);
-
-  useEffect(() => { loadAll(); }, [loadAll]);
-
-  // Poll while any job is queued or running; when one finishes, reload the drafts.
   const activeIds = jobs.filter(isActiveJob).map((j) => j.id).join(",");
   const prevActive = useRef("");
   useEffect(() => {
-    if (!activeIds) {
-      if (prevActive.current) loadDrafts();
-      prevActive.current = "";
-      return undefined;
-    }
-    const before = prevActive.current.split(",").filter(Boolean);
-    const now = activeIds.split(",");
-    if (before.some((id) => !now.includes(id))) loadDrafts();
+    if (prevActive.current && prevActive.current !== activeIds) queryClient.invalidateQueries({ queryKey: draftsKey });
     prevActive.current = activeIds;
-    const t = setTimeout(loadJobs, 3000);
-    return () => clearTimeout(t);
-  }, [activeIds, jobs, loadJobs, loadDrafts]);
+  }, [activeIds]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const setDrafts = (change) => queryClient.setQueryData(draftsKey, (d) => (d ? change(d) : d));
+  const loadJobs = () => queryClient.invalidateQueries({ queryKey: jobsKey });
 
   const cancel = async (job) => {
     setCancelling(job.id);
     const r = await cancelAiJob(SERVER_URL, courseId, job.id);
     setCancelling(null);
     if (!r.ok) { showToast(r.message, "error"); return; }
-    setJobs((list) => list.map((j) => (j.id === job.id ? r.data : j)));
+    queryClient.setQueryData(jobsKey, (list) => (list || []).map((j) => (j.id === job.id ? r.data : j)));
   };
 
   const startFillWeek = async (e) => {
@@ -167,7 +153,7 @@ export default function AiDraftsPage() {
           title={tp("ai.page.title")}
           description={tp("ai.page.description")}
           actions={
-            <Link href={`/course/${courseId}/modules`} className="text-xs font-semibold text-[var(--brand-primary)] dark:text-teal-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg px-3 py-2">
+            <Link href={`/course/${courseId}/modules`} className="text-caption font-semibold text-brand-fg border border-line hover:bg-surface-hover rounded-lg px-3 py-2">
               {tp("ai.page.goToModules")}
             </Link>
           }
@@ -175,20 +161,20 @@ export default function AiDraftsPage() {
           <AiStatusNote status={aiStatus} className="mt-2" />
         </PageHeader>
 
-        {error ? <p role="alert" className="text-sm text-rose-600">{error}</p> : null}
+        {error ? <p role="alert" className="text-ui text-danger-fg">{error}</p> : null}
         {lastApproved ? (
           <ApprovedNote draft={lastApproved.draft} courseId={courseId} message={lastApproved.message} onDismiss={() => setLastApproved(null)} />
         ) : null}
 
         {aiStatus.allowed ? (
           <Section
-            title={<span className="flex items-center gap-2"><Sparkles className="w-4 h-4 text-[var(--brand-secondary)]" /> {tp("ai.page.startTitle")}</span>}
+            title={<span className="flex items-center gap-2"><Sparkles className="w-4 h-4 text-brand-fg" /> {tp("ai.page.startTitle")}</span>}
             description={tp("ai.page.startHint")}
           >
             {weeks.length === 0 ? (
-              <p className="text-xs text-slate-500">
+              <p className="text-caption text-fg-subtle">
                 {tp("ai.page.noWeeks")}{" "}
-                <Link href={`/course/${courseId}/modules`} className="font-semibold text-[var(--brand-secondary)] hover:underline">{tp("ai.page.goToModules")}</Link>
+                <Link href={`/course/${courseId}/modules`} className="font-semibold text-brand-fg hover:underline">{tp("ai.page.goToModules")}</Link>
               </p>
             ) : (
               <form onSubmit={startFillWeek} className="flex flex-wrap items-center gap-2">
@@ -203,7 +189,7 @@ export default function AiDraftsPage() {
                 <button
                   type="submit"
                   disabled={!fillWeekId || starting}
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-dark)] disabled:opacity-50 rounded-lg px-3.5 py-2"
+                  className="inline-flex items-center gap-1.5 text-caption font-semibold text-on-brand bg-brand hover:bg-brand/90 disabled:opacity-50 rounded-lg px-3.5 py-2"
                 >
                   <Sparkles className="w-3.5 h-3.5" /> {starting ? tp("common.starting") : tp("ai.page.startButton")}
                 </button>
@@ -222,7 +208,7 @@ export default function AiDraftsPage() {
           ) : (
             <List label={tp("ai.page.jobsList")}>
               {visibleJobs.map((j) => (
-                <li key={j.id} className={`px-3 py-3 ${j.status === "failed" ? "bg-rose-50/60 dark:bg-rose-950/20" : ""}`}>
+                <li key={j.id} className={`px-3 py-3 ${j.status === "failed" ? "bg-danger-soft/60" : ""}`}>
                   <JobProgress
                     job={j}
                     label={jobLabel(j)}
@@ -254,15 +240,14 @@ export default function AiDraftsPage() {
                   modules={modules}
                   outcomes={outcomes}
                   headingLevel={3}
-                  onUpdated={(next) => setPending((list) => list.map((x) => (x.id === next.id ? next : x)))}
+                  onUpdated={(next) => setDrafts((d) => ({ ...d, pending: d.pending.map((x) => (x.id === next.id ? next : x)) }))}
                   onDecided={(next, result) => {
-                    setPending((list) => list.filter((x) => x.id !== d.id));
-                    setDecided((list) => [{ ...next, decidedAt: new Date().toISOString() }, ...list]);
+                    setDrafts((all) => ({ pending: all.pending.filter((x) => x.id !== d.id), decided: [{ ...next, decidedAt: new Date().toISOString() }, ...all.decided] }));
                     if (result.status === "approved") {
                       setLastApproved({ draft: next, message: result.message });
                       if (next.type === "outline" || next.type === "outcome") {
-                        aiFetch(`${SERVER_URL}/courses/${courseId}/outcomes`).then((o) => { if (o.ok && Array.isArray(o.data)) setOutcomes(o.data); });
-                        aiFetch(`${SERVER_URL}/courses/${courseId}/modules`).then((m) => { if (m.ok && Array.isArray(m.data)) setModules(m.data); });
+                        queryClient.invalidateQueries({ queryKey: queryKeys.courseSection(courseId, "outcomes") });
+                        queryClient.invalidateQueries({ queryKey: queryKeys.courseSection(courseId, "modules") });
                       }
                     }
                   }}
@@ -277,14 +262,14 @@ export default function AiDraftsPage() {
             type="button"
             onClick={() => setShowDecided((v) => !v)}
             aria-expanded={showDecided}
-            className="flex items-center gap-1.5 text-sm font-bold text-slate-900 dark:text-white"
+            className="flex items-center gap-1.5 text-ui font-bold text-fg"
           >
             {showDecided ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
             {tp("ai.page.recentlyDecided", { n: decided.length })}
           </button>
           {showDecided ? (
             decided.length === 0 ? (
-              <p className="mt-2 text-xs text-slate-500">{tp("ai.page.noneDecided")}</p>
+              <p className="mt-2 text-caption text-fg-subtle">{tp("ai.page.noneDecided")}</p>
             ) : (
               <List label={tp("ai.page.decidedList")} className="mt-3">
                 {decided.map((d) => (

@@ -95,7 +95,7 @@ export default function QuizDetailPage() {
   };
 
   if (loading) return <Loader variant="page" label={t("quiz.loading")} />;
-  if (!quiz) return <div className="p-6"><p className="text-sm text-rose-600">{t("quiz.notFound")}</p></div>;
+  if (!quiz) return <div className="p-6"><p className="text-ui text-danger-fg">{t("quiz.notFound")}</p></div>;
 
   const currentModule = quiz.module || modules.find(m => m.id === quiz.module_id) || null;
   const attemptsAllowed = quiz.attempts_allowed ?? null;
@@ -114,29 +114,29 @@ export default function QuizDetailPage() {
           description={quiz.description || undefined}
           meta={
             <>
-            <span className="text-xs font-bold text-[var(--brand-secondary)] bg-teal-50 border border-teal-200 px-2.5 py-1 rounded-full">
+            <span className="text-caption font-bold text-brand-fg bg-brand-soft border border-brand/40 px-2.5 py-1 rounded-full">
               {tf("assignment.module", { module: currentModule ? `${weekLabel(currentModule)} - ${currentModule.title}` : t("assignment.notInModule") })}
             </span>
-            <span className="text-xs font-semibold text-slate-500 flex items-center gap-1">
-              <Clock className="w-3.5 h-3.5 text-slate-400" /> {quiz.due_at ? tf("common.dueOn", { date: fmtDate(quiz.due_at, { weekday: "short", day: "numeric", month: "short" }) }) : t("common.noDueDate")}
+            <span className="text-caption font-semibold text-fg-subtle flex items-center gap-1">
+              <Clock className="w-3.5 h-3.5 text-fg-subtle" /> {quiz.due_at ? tf("common.dueOn", { date: fmtDate(quiz.due_at, { weekday: "short", day: "numeric", month: "short" }) }) : t("common.noDueDate")}
             </span>
             </>
           }
         >
           {/* Outcome Tags */}
           <div className="flex items-center gap-2 flex-wrap pt-2">
-            <span className="text-xs font-bold text-slate-500 flex items-center gap-1">
-              <Target className="w-3.5 h-3.5 text-[var(--brand-secondary)]" /> {t("quiz.targetOutcomes")}
+            <span className="text-caption font-bold text-fg-subtle flex items-center gap-1">
+              <Target className="w-3.5 h-3.5 text-brand-fg" /> {t("quiz.targetOutcomes")}
             </span>
             {itemOutcomes.length === 0 && quiz.kind === "practice" ? (
-              <span className="text-xs text-slate-400">{t("quiz.practiceNotGraded")}</span>
+              <span className="text-caption text-fg-subtle">{t("quiz.practiceNotGraded")}</span>
             ) : itemOutcomes.length === 0 ? (
-              <span className="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full">
+              <span className="text-caption font-bold text-warning-fg bg-warning-soft border border-warning/30 px-2.5 py-0.5 rounded-full">
                 ⚠️ {isTeacher ? t("quiz.missingOutcomeHint") : t("modules.missingOutcome")}
               </span>
             ) : (
               itemOutcomes.map((t) => (
-                <span key={t.outcome_id} className="text-xs font-bold text-[var(--brand-secondary)] bg-teal-50 border border-teal-200 px-2.5 py-0.5 rounded-full">
+                <span key={t.outcome_id} className="text-caption font-bold text-brand-fg bg-brand-soft border border-brand/40 px-2.5 py-0.5 rounded-full">
                   {t.outcome_code}: {t.outcome_title}
                 </span>
               ))
@@ -145,17 +145,17 @@ export default function QuizDetailPage() {
         </PageHeader>
 
         {submitted !== null ? (
-          <div role="status" className="rounded-xl border border-teal-200 bg-teal-50 p-4 text-sm text-teal-900 space-y-1">
+          <div role="status" className="rounded-xl border border-brand/40 bg-brand-soft p-4 text-ui text-brand-fg space-y-1">
             <p className="font-bold flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-[var(--brand-secondary)]" />
+              <CheckCircle2 className="w-5 h-5 text-brand-fg" />
               {tf("quiz.submittedScore", { n: submitted.score })}{submitted.scorePct != null ? ` (${submitted.scorePct}%)` : ""}
             </p>
-            <p className="text-xs">
+            <p className="text-caption">
               {tf("quiz.attemptN", { n: submitted.attemptNumber })}
               {submitted.attemptsRemaining != null ? ` · ${tf(submitted.attemptsRemaining === 1 ? "quiz.oneLeft" : "quiz.manyLeft", { n: submitted.attemptsRemaining })}` : ""}
             </p>
             {submitted.late ? (
-              <p className="text-xs font-semibold text-amber-700 flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {t("assignment.submittedLate")}</p>
+              <p className="text-caption font-semibold text-warning-fg flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {t("assignment.submittedLate")}</p>
             ) : null}
           </div>
         ) : null}
@@ -175,7 +175,7 @@ export default function QuizDetailPage() {
                 rows={results}
                 rowKey={(r) => r.scholar_email}
                 columns={[
-                  { key: "fullName", header: t("quiz.learner"), className: "font-medium text-slate-800 dark:text-slate-100", render: (r) => r.fullName || r.scholar_email },
+                  { key: "fullName", header: t("quiz.learner"), className: "font-medium text-fg", render: (r) => r.fullName || r.scholar_email },
                   {
                     key: "score",
                     header: t("quiz.score"),
@@ -190,7 +190,7 @@ export default function QuizDetailPage() {
                     key: "date",
                     header: t("quiz.submittedCol"),
                     hideOnMobile: true,
-                    className: "whitespace-nowrap text-slate-500",
+                    className: "whitespace-nowrap text-fg-subtle",
                     render: (r) => (r.submitted_at ? fmtDateTime(r.submitted_at) : "—"),
                   },
                   ...(canGrant ? [{
@@ -202,7 +202,7 @@ export default function QuizDetailPage() {
                         type="button"
                         onClick={() => grantAttempt(r)}
                         disabled={granting === r.scholar_email}
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--brand-secondary)] hover:underline disabled:opacity-50 whitespace-nowrap"
+                        className="inline-flex items-center gap-1 text-caption font-semibold text-brand-fg hover:underline disabled:opacity-50 whitespace-nowrap"
                       >
                         <RotateCcw className="w-3.5 h-3.5" aria-hidden="true" />
                         {granting === r.scholar_email ? t("quiz.granting") : t("quiz.allowAnother")}
@@ -217,14 +217,14 @@ export default function QuizDetailPage() {
 
         {/* QUESTIONS LIST (FOR STUDENT TAKING OR TEACHER PREVIEW) */}
         <Section title={tf("editors.quiz.questionsCount", { n: (quiz.questions || []).length })}>
-          <ol className="divide-y divide-slate-100 dark:divide-slate-800 rounded-xl border border-slate-200 dark:border-slate-800">
+          <ol className="divide-y divide-line rounded-xl border border-line">
           {(quiz.questions || []).map((q, idx) => (
             <li key={q.id || idx} className="p-4 space-y-3">
               <div className="flex items-start justify-between gap-3">
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                <h3 className="text-ui font-bold text-fg">
                   {tf("editors.quiz.questionN", { n: idx + 1 })}: {q.prompt}
                 </h3>
-                <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full shrink-0">
+                <span className="text-caption font-semibold text-fg-subtle bg-surface-sunken px-2.5 py-0.5 rounded-full shrink-0">
                   {tf("common.points", { n: q.points })}
                 </span>
               </div>
@@ -254,11 +254,11 @@ export default function QuizDetailPage() {
           </ol>
 
           {isObserver && (
-            <p className="pt-4 text-sm text-slate-500 dark:text-slate-400">{t("quiz.observerNote")}</p>
+            <p className="pt-4 text-ui text-fg-subtle">{t("quiz.observerNote")}</p>
           )}
           {!isTeacher && !isObserver && (
             <div className="pt-4 flex flex-col items-end gap-2">
-              <span className="text-xs font-semibold text-slate-500">
+              <span className="text-caption font-semibold text-fg-subtle">
                 {attemptsAllowed == null
                   ? t("quiz.unlimitedAttempts")
                   : noAttemptsLeft
@@ -266,15 +266,15 @@ export default function QuizDetailPage() {
                   : tf("quiz.attemptOf", { n: attemptsUsed + 1, total: attemptsAllowed })}
               </span>
               {noAttemptsLeft && (
-                <p className="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-xl">
+                <p className="text-caption font-semibold text-warning-fg bg-warning-soft border border-warning/30 px-3 py-1.5 rounded-xl">
                   {t("quiz.noAttemptsLeft")}
                 </p>
               )}
-              {submitError && <p role="alert" className="text-xs font-semibold text-rose-600">{submitError}</p>}
+              {submitError && <p role="alert" className="text-caption font-semibold text-danger-fg">{submitError}</p>}
               <button
                 onClick={submitQuiz}
                 disabled={noAttemptsLeft || submitting}
-                className="px-6 py-2.5 bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-dark)] disabled:opacity-50 disabled:hover:bg-[var(--brand-secondary)] text-white font-bold text-xs rounded-lg transition-colors"
+                className="px-6 py-2.5 bg-brand hover:bg-brand/90 disabled:opacity-50 disabled:hover:bg-brand text-on-brand font-bold text-caption rounded-lg transition-colors"
               >
                 {submitting ? t("assignment.submitting") : t("quiz.submit")}
               </button>

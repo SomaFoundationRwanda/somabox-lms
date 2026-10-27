@@ -59,7 +59,7 @@ export default function ClassTab({ data, reload, onShowFlagged }) {
             label={tp("insights.class.flaggedLabel")}
             value={c.atRisk ?? "—"}
             sub={(
-              <button type="button" onClick={onShowFlagged} className="font-semibold text-[var(--brand-secondary)] hover:underline">
+              <button type="button" onClick={onShowFlagged} className="font-semibold text-brand-fg hover:underline">
                 {tp("insights.class.seeWho")}
               </button>
             )}
@@ -71,7 +71,7 @@ export default function ClassTab({ data, reload, onShowFlagged }) {
               <>
                 {txn("basedOnLearners", c.learnersWithAttendance ?? 0)}
                 {" · "}
-                <Link href={`/course/${courseId}/attendance`} className="font-semibold text-[var(--brand-secondary)] hover:underline">{tx("openAttendance")}</Link>
+                <Link href={`/course/${courseId}/attendance`} className="font-semibold text-brand-fg hover:underline">{tx("openAttendance")}</Link>
               </>
             )}
           />
@@ -92,9 +92,9 @@ export default function ClassTab({ data, reload, onShowFlagged }) {
       <Section divided title={tp("insights.class.needsAttention")}>
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <div className="min-w-0">
-            <h3 className="mb-2 text-xs font-semibold text-slate-700 dark:text-slate-200">{tp("insights.class.reteachTitle")}</h3>
+            <h3 className="mb-2 text-caption font-semibold text-fg-muted">{tp("insights.class.reteachTitle")}</h3>
             {reteachOutcomes.length === 0 ? (
-              <p className="text-sm text-slate-500">{outcomes.some((o) => o.learnersWithData > 0) ? tp("insights.class.noReteach") : tp("common.noResultsYetDot")}</p>
+              <p className="text-ui text-fg-subtle">{outcomes.some((o) => o.learnersWithData > 0) ? tp("insights.class.noReteach") : tp("common.noResultsYetDot")}</p>
             ) : (
               <List label={tp("insights.class.reteachList")}>
                 {reteachOutcomes.map((o) => (
@@ -110,9 +110,9 @@ export default function ClassTab({ data, reload, onShowFlagged }) {
             )}
           </div>
           <div className="min-w-0">
-            <h3 className="mb-2 text-xs font-semibold text-slate-700 dark:text-slate-200">{tp("insights.class.mostMissed")}</h3>
+            <h3 className="mb-2 text-caption font-semibold text-fg-muted">{tp("insights.class.mostMissed")}</h3>
             {missedItems.length === 0 ? (
-              <p className="text-sm text-slate-500">{tp("insights.class.noMissed")}</p>
+              <p className="text-ui text-fg-subtle">{tp("insights.class.noMissed")}</p>
             ) : (
               <List label={tp("insights.class.mostMissed")}>
                 {missedItems.map((i) => (
@@ -128,8 +128,8 @@ export default function ClassTab({ data, reload, onShowFlagged }) {
             )}
           </div>
         </div>
-        <p className="mt-3 text-xs text-slate-500">
-          {tp("insights.class.flagsRuleNote")} <Link href={`/course/${courseId}/insights?tab=learners&flagged=1`} className="font-semibold text-[var(--brand-secondary)] hover:underline">{tp("insights.class.openFlagged")}</Link>
+        <p className="mt-3 text-caption text-fg-subtle">
+          {tp("insights.class.flagsRuleNote")} <Link href={`/course/${courseId}/insights?tab=learners&flagged=1`} className="font-semibold text-brand-fg hover:underline">{tp("insights.class.openFlagged")}</Link>
         </p>
       </Section>
     </div>

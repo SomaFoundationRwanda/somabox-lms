@@ -1,7 +1,6 @@
 "use client"
-import { useEffect, useState, useCallback, useContext } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { X, ChevronLeft, ChevronRight, Sparkles, Rocket, BarChart3, BookOpen, Zap, Compass } from "lucide-react";
-import DataContext from "@/context/DataContext";
 import { useLanguage } from "@/context/LanguageContext";
 
 const TOUR_KEY = "somabox_tour_seen_v1";
@@ -45,8 +44,6 @@ const STEPS = [
     },
 ];
 
-const ACCENT = "var(--brand-primary)";
-
 function Pointer({ top, left }) {
     return (
         <div
@@ -55,34 +52,28 @@ function Pointer({ top, left }) {
         >
             {/* Outer expanding ring */}
             <div
-                className="absolute rounded-full animate-ping"
+                className="absolute rounded-full animate-ping bg-brand-strong/25"
                 style={{
                     width: 64,
                     height: 64,
                     top: "50%",
                     left: "50%",
                     transform: "translate(-50%, -50%)",
-                    backgroundColor: "rgba(32,58,58,0.25)",
                 }}
             />
             {/* Middle ring */}
             <div
-                className="absolute rounded-full animate-pulse"
+                className="absolute rounded-full animate-pulse bg-brand-strong/35 border-2 border-brand-strong/50"
                 style={{
                     width: 40,
                     height: 40,
                     top: "50%",
                     left: "50%",
                     transform: "translate(-50%, -50%)",
-                    backgroundColor: "rgba(32,58,58,0.35)",
-                    border: "2px solid rgba(32,58,58,0.5)",
                 }}
             />
             {/* Center dot */}
-            <div
-                className="relative w-4 h-4 rounded-full"
-                style={{ backgroundColor: ACCENT }}
-            />
+            <div className="relative w-4 h-4 rounded-full bg-brand-strong" />
         </div>
     );
 }
@@ -108,43 +99,35 @@ function TourCard({ step, stepIndex, total, onNext, onPrev, onSkip }) {
         >
             {/* Card */}
             <div
-                className="relative rounded-[20px] overflow-hidden shadow-2xl"
+                className="dark relative rounded-[20px] overflow-hidden shadow-2xl border border-line"
                 style={{
-                    background: "linear-gradient(145deg, #0d2020 0%, #112828 50%, #0a1a1a 100%)",
-                    border: "1px solid rgba(255,255,255,0.1)",
+                    background: "linear-gradient(145deg, color-mix(in srgb, var(--brand-deep) 22%, black) 0%, color-mix(in srgb, var(--brand-deep) 30%, black) 50%, color-mix(in srgb, var(--brand-deep) 15%, black) 100%)",
                 }}
             >
                 {/* Decorative dot grid */}
                 <div
-                    className="absolute inset-0 pointer-events-none opacity-[0.06]"
+                    className="absolute inset-0 pointer-events-none opacity-[0.06] text-fg"
                     style={{
-                        backgroundImage: "radial-gradient(circle, rgba(255,255,255,1) 1px, transparent 1px)",
+                        backgroundImage: "radial-gradient(circle, currentColor 1px, transparent 1px)",
                         backgroundSize: "18px 18px",
                     }}
                 />
 
                 {/* Glow blob */}
-                <div
-                    className="absolute -top-10 -right-10 w-40 h-40 rounded-full blur-3xl pointer-events-none"
-                    style={{ backgroundColor: "rgba(32,58,58,0.6)" }}
-                />
+                <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full blur-3xl pointer-events-none bg-brand-strong/60" />
 
                 {/* Content */}
                 <div className="relative z-10 p-6">
                     {/* Top row: tag + skip */}
                     <div className="flex items-center justify-between mb-5">
                         <span
-                            className="text-[11px] font-black tracking-[0.15em] px-2.5 py-1 rounded-full"
-                            style={{ backgroundColor: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.5)" }}
+                            className="text-caption font-extrabold px-2.5 py-1 rounded-full bg-surface-hover text-fg-subtle"
                         >
                             {t(`learner.tour.${step.id}.tag`)}
                         </span>
                         <button
                             onClick={onSkip}
-                            className="flex items-center gap-1 text-[11px] font-semibold transition-colors"
-                            style={{ color: "rgba(255,255,255,0.35)" }}
-                            onMouseEnter={e => e.currentTarget.style.color = "rgba(255,255,255,0.7)"}
-                            onMouseLeave={e => e.currentTarget.style.color = "rgba(255,255,255,0.35)"}
+                            className="flex items-center gap-1 text-caption font-semibold text-fg-subtle hover:text-fg-muted transition-colors"
                         >
                             <X size={12} /> {t("learner.tour.skip")}
                         </button>
@@ -152,18 +135,18 @@ function TourCard({ step, stepIndex, total, onNext, onPrev, onSkip }) {
 
                     {/* Icon */}
                     {step.icon && (
-                        <div className="w-12 h-12 rounded-2xl bg-teal-500/20 border border-teal-500/30 flex items-center justify-center text-teal-300 mb-3 shadow-md">
+                        <div className="w-12 h-12 rounded-2xl bg-brand/20 border border-brand/30 flex items-center justify-center text-brand-fg mb-3 shadow-md">
                             <step.icon className="w-6 h-6" />
                         </div>
                     )}
 
                     {/* Title */}
-                    <h3 className="text-[20px] font-black text-white leading-tight mb-2 tracking-tight">
+                    <h3 className="text-section font-extrabold text-fg leading-tight mb-2 tracking-tight">
                         {t(`learner.tour.${step.id}.title`)}
                     </h3>
 
                     {/* Body */}
-                    <p className="text-[13px] leading-relaxed mb-6" style={{ color: "rgba(255,255,255,0.6)" }}>
+                    <p className="text-small leading-relaxed mb-6 text-fg-muted">
                         {t(`learner.tour.${step.id}.body`)}
                     </p>
 
@@ -172,15 +155,10 @@ function TourCard({ step, stepIndex, total, onNext, onPrev, onSkip }) {
                         {STEPS.map((_, i) => (
                             <div
                                 key={i}
-                                className="rounded-full transition-all duration-300"
+                                className={`rounded-full transition-all duration-300 ${i === stepIndex ? "bg-fg/85" : i < stepIndex ? "bg-fg/35" : "bg-fg/10"}`}
                                 style={{
                                     width: i === stepIndex ? 20 : 6,
                                     height: 6,
-                                    backgroundColor: i === stepIndex
-                                        ? "rgba(255,255,255,0.85)"
-                                        : i < stepIndex
-                                            ? "rgba(255,255,255,0.35)"
-                                            : "rgba(255,255,255,0.12)",
                                 }}
                             />
                         ))}
@@ -191,24 +169,14 @@ function TourCard({ step, stepIndex, total, onNext, onPrev, onSkip }) {
                         {!isFirst && (
                             <button
                                 onClick={onPrev}
-                                className="flex items-center gap-1.5 h-10 px-4 rounded-xl text-[12px] font-bold transition-all"
-                                style={{
-                                    backgroundColor: "rgba(255,255,255,0.08)",
-                                    color: "rgba(255,255,255,0.7)",
-                                    border: "1px solid rgba(255,255,255,0.1)",
-                                }}
-                                onMouseEnter={e => e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.14)"}
-                                onMouseLeave={e => e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.08)"}
+                                className="flex items-center gap-1.5 h-10 px-4 rounded-xl text-caption font-bold bg-surface-hover hover:bg-fg/15 text-fg-muted border border-line transition-all"
                             >
                                 <ChevronLeft size={14} /> {t("learner.tour.back")}
                             </button>
                         )}
                         <button
                             onClick={isLast ? onSkip : onNext}
-                            className="flex items-center gap-1.5 h-10 px-5 rounded-xl text-[12px] font-black flex-1 justify-center transition-all shadow-lg"
-                            style={{ backgroundColor: ACCENT, color: "#fff" }}
-                            onMouseEnter={e => e.currentTarget.style.backgroundColor = "color-mix(in srgb, var(--brand-primary) 85%, white)"}
-                            onMouseLeave={e => e.currentTarget.style.backgroundColor = ACCENT}
+                            className="flex items-center gap-1.5 h-10 px-5 rounded-xl text-caption font-extrabold flex-1 justify-center bg-brand-strong text-on-brand-strong hover:brightness-110 transition-all shadow-lg"
                         >
                             {isLast ? (
                                 <><Sparkles size={13} /> {t("learner.tour.start")}</>
@@ -273,8 +241,8 @@ export default function OnboardingTour({ onDone }) {
 
             {/* Overlay */}
             <div
-                className="fixed inset-0 z-[10000]"
-                style={{ backgroundColor: "rgba(0,0,0,0.72)", backdropFilter: "blur(3px)" }}
+                className="fixed inset-0 z-[10000] bg-scrim"
+                style={{ backdropFilter: "blur(3px)" }}
             />
 
             {/* Pointer beacon */}
@@ -294,7 +262,6 @@ export default function OnboardingTour({ onDone }) {
 }
 
 export function TourLaunchButton({ className = "" }) {
-    const { isDark } = useContext(DataContext);
     const { t } = useLanguage();
     const [seen, setSeen] = useState(true);
 
@@ -309,17 +276,10 @@ export function TourLaunchButton({ className = "" }) {
 
     if (!seen) return null;
 
-    const bg      = `color-mix(in srgb, ${isDark ? "var(--brand-secondary)" : ACCENT} ${isDark ? 12 : 8}%, transparent)`;
-    const bgHover = `color-mix(in srgb, ${isDark ? "var(--brand-secondary)" : ACCENT} ${isDark ? 20 : 14}%, transparent)`;
-    const color   = isDark ? "var(--brand-secondary)" : ACCENT;
-
     return (
         <button
             onClick={restart}
-            className={`flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full transition-colors ${className}`}
-            style={{ backgroundColor: bg, color }}
-            onMouseEnter={e => e.currentTarget.style.backgroundColor = bgHover}
-            onMouseLeave={e => e.currentTarget.style.backgroundColor = bg}
+            className={`flex items-center gap-1.5 text-caption font-semibold px-3 py-1.5 rounded-full bg-brand-soft hover:bg-brand/20 text-brand-fg transition-colors ${className}`}
         >
             <Sparkles size={12} /> {t("learner.tour.take")}
         </button>

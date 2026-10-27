@@ -17,12 +17,12 @@ import QueryProvider from "@/components/global/QueryProvider";
 // builds no longer need network access at all to get Poppins.
 //
 // No 900 (Black) weight on purpose: Manrope (the previous typeface) tops
-// out at 800 (Extra Bold), so every existing `font-black` (font-weight:900)
+// out at 800 (Extra Bold), so every existing `font-extrabold` (font-weight:900)
 // usage across the app was always silently clamping to 800. Poppins does
 // ship a true 900, and loading it made those same headings render visibly
 // heavier than the design was ever tuned for. Omitting 900 keeps the browser
 // falling back to the nearest loaded weight (800), preserving the original
-// look without having to touch every `font-black` usage individually.
+// look without having to touch every `font-extrabold` usage individually.
 const poppins = localFont({
   variable: "--font-poppins",
   display: "swap",

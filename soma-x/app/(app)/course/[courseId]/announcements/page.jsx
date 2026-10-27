@@ -68,8 +68,8 @@ export default function AnnouncementsPage() {
             <TextInput value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} placeholder={t("common.title")} aria-label={t("announcements.titleLabel")} className="w-full" />
             <Textarea value={form.body} onChange={(e) => setForm((p) => ({ ...p, body: e.target.value }))} rows={3} placeholder={t("announcements.message")} aria-label={t("announcements.messageLabel")} className="w-full" />
             <div className="flex justify-end gap-2">
-              <button onClick={() => setCreating(false)} className="text-xs font-medium text-slate-500 px-3 py-2">{t("common.cancel")}</button>
-              <button onClick={create} className="text-xs font-semibold text-white bg-[var(--brand-primary)] rounded-lg px-3 py-2">{t("discussions.post")}</button>
+              <button onClick={() => setCreating(false)} className="text-caption font-medium text-fg-subtle px-3 py-2">{t("common.cancel")}</button>
+              <button onClick={create} className="text-caption font-semibold text-on-brand-strong bg-brand-strong rounded-lg px-3 py-2">{t("discussions.post")}</button>
             </div>
           </div>
         ) : null}
@@ -78,19 +78,19 @@ export default function AnnouncementsPage() {
           {(list) => (
             <List label={t("nav.announcements")}>
               {list.map((a) => (
-                <li key={a.id} className={`px-3 py-3 ${a.pinned ? "bg-amber-50/60 dark:bg-amber-950/20" : ""}`}>
+                <li key={a.id} className={`px-3 py-3 ${a.pinned ? "bg-warning-soft/60" : ""}`}>
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-1.5 min-w-0">
-                      {a.pinned ? <Pin className="w-3.5 h-3.5 text-amber-600 shrink-0" aria-label={t("announcements.pinned")} /> : null}
-                      <p className="text-sm font-bold text-slate-800 dark:text-slate-100">{a.title}</p>
+                      {a.pinned ? <Pin className="w-3.5 h-3.5 text-warning-fg shrink-0" aria-label={t("announcements.pinned")} /> : null}
+                      <p className="text-ui font-bold text-fg">{a.title}</p>
                     </div>
-                    <span className="text-xs text-slate-400 shrink-0">{fmtDate(a.created_at)}</span>
+                    <span className="text-caption text-fg-subtle shrink-0">{fmtDate(a.created_at)}</span>
                   </div>
-                  {a.body ? <p className="text-sm text-slate-600 dark:text-slate-300 mt-1 whitespace-pre-wrap">{a.body}</p> : null}
+                  {a.body ? <p className="text-ui text-fg-muted mt-1 whitespace-pre-wrap">{a.body}</p> : null}
                   <div className="flex items-center gap-2 mt-1.5">
-                    {!a.published && isTeacher ? <span className="text-[10px] font-bold uppercase text-amber-600">{t("common.unpublished")}</span> : null}
+                    {!a.published && isTeacher ? <span className="text-caption font-bold text-warning-fg">{t("common.unpublished")}</span> : null}
                     {isTeacher ? (
-                      <button onClick={() => togglePin(a)} className="text-[10px] font-semibold text-slate-400 hover:text-slate-700">
+                      <button onClick={() => togglePin(a)} className="text-caption font-semibold text-fg-subtle hover:text-fg-muted">
                         {a.pinned ? t("announcements.unpin") : t("announcements.pin")}
                       </button>
                     ) : null}

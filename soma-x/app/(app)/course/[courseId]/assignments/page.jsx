@@ -29,7 +29,7 @@ export default function AssignmentsPage() {
           actions={isTeacher ? (
             <Link
               href={`/course/${courseId}/modules`}
-              className="flex items-center gap-1.5 text-xs font-semibold text-white bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-dark)] rounded-lg px-3.5 py-2 transition-colors"
+              className="flex items-center gap-1.5 text-caption font-semibold text-on-brand bg-brand hover:bg-brand/90 rounded-lg px-3.5 py-2 transition-colors"
             >
               <Plus className="w-3.5 h-3.5" /> {t("lists.addFromModules")}
             </Link>
@@ -48,11 +48,11 @@ export default function AssignmentsPage() {
               return (
                 <ListRow
                   key={`${item.kind}-${item.id}`}
-                  icon={<Icon className="w-4 h-4 text-[var(--brand-secondary)]" />}
+                  icon={<Icon className="w-4 h-4 text-brand-fg" />}
                   title={item.title}
                   href={href}
                   subtitle={item.dueAt ? tf("common.dueOn", { date: fmtDate(item.dueAt) }) : t("lists.weekSlot")}
-                  meta={item.pointsPossible != null ? <span className="font-semibold text-slate-700 dark:text-slate-300">{tf("common.points", { n: item.pointsPossible })}</span> : null}
+                  meta={item.pointsPossible != null ? <span className="font-semibold text-fg-muted">{tf("common.points", { n: item.pointsPossible })}</span> : null}
                 />
               );
             })}

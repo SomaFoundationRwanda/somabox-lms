@@ -42,12 +42,11 @@ function formatDate(raw, lang) {
 export default function UserProfilePage() {
     const params = useParams();
     const router = useRouter();
-    const { SERVER_URL, isDark } = useContext(DataContext);
+    const { SERVER_URL } = useContext(DataContext);
     const { t, lang } = useLanguage();
     const { showToast } = useToast();
     const [downloading, setDownloading] = useState(false);
     
-    const dm = isDark;
     const userId = params.userId;
 
     // The account, and for a learner their courses, outcomes and pending practice.
@@ -78,8 +77,8 @@ export default function UserProfilePage() {
     if (error || !user) {
         return (
             <div className="text-center py-12">
-                <p className="text-rose-500 font-bold mb-4">{error || t("admin.user.notFound")}</p>
-                <button onClick={() => { startRouteLoading(); router.push("/manage/admin"); }} className="px-4 py-2 bg-slate-200 rounded-lg text-sm font-semibold">
+                <p className="text-danger-fg font-bold mb-4">{error || t("admin.user.notFound")}</p>
+                <button onClick={() => { startRouteLoading(); router.push("/manage/admin"); }} className="px-4 py-2 bg-line rounded-lg text-ui font-semibold">
                     {t("admin.user.goBack")}
                 </button>
             </div>
@@ -105,17 +104,17 @@ export default function UserProfilePage() {
     const joined = formatDate(user.created_at, lang) || notSpecified;
 
     const roleColors = {
-        admin: { bg: "bg-purple-100 dark:bg-purple-950/60", text: "text-purple-700 dark:text-purple-300", border: "border-purple-300 dark:border-purple-800" },
-        teacher: { bg: "bg-emerald-100 dark:bg-emerald-950/60", text: "text-emerald-700 dark:text-emerald-300", border: "border-emerald-300 dark:border-emerald-800" },
-        scholar: { bg: "bg-sky-100 dark:bg-sky-950/60", text: "text-sky-700 dark:text-sky-300", border: "border-sky-300 dark:border-sky-800" },
+        admin: { bg: "bg-info-soft", text: "text-info-fg", border: "border-info/30" },
+        teacher: { bg: "bg-success-soft", text: "text-success-fg", border: "border-success/30" },
+        scholar: { bg: "bg-info-soft", text: "text-info-fg", border: "border-info/30" },
     };
     const roleStyle = roleColors[user.role] || roleColors.scholar;
 
     const Field = ({ label, icon: Icon, children, className = "" }) => (
         <div className="py-2.5 flex items-start justify-between gap-4">
-            <dt className="text-xs font-semibold text-slate-500 dark:text-slate-400">{label}</dt>
-            <dd className={`text-sm font-semibold text-slate-900 dark:text-white text-right flex items-center gap-1.5 min-w-0 ${className}`}>
-                {Icon ? <Icon className="w-3.5 h-3.5 text-slate-400 shrink-0" /> : null}
+            <dt className="text-caption font-semibold text-fg-subtle">{label}</dt>
+            <dd className={`text-ui font-semibold text-fg text-right flex items-center gap-1.5 min-w-0 ${className}`}>
+                {Icon ? <Icon className="w-3.5 h-3.5 text-fg-subtle shrink-0" /> : null}
                 <span className="min-w-0 break-words">{children}</span>
             </dd>
         </div>
@@ -127,10 +126,10 @@ export default function UserProfilePage() {
             header: t("admin.courses.colCourse"),
             render: (course) => (
                 <div className="min-w-0">
-                    <Link href={`/course/${course.id}/home`} className="font-semibold text-slate-900 dark:text-white hover:text-[var(--brand-secondary)] hover:underline">
+                    <Link href={`/course/${course.id}/home`} className="font-semibold text-fg hover:text-brand-fg hover:underline">
                         {course.title}
                     </Link>
-                    <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">{course.description || t("admin.user.noDescription")}</p>
+                    <p className="text-caption text-fg-subtle mt-0.5 line-clamp-1">{course.description || t("admin.user.noDescription")}</p>
                 </div>
             ),
         },
@@ -138,21 +137,21 @@ export default function UserProfilePage() {
             key: "teacher",
             header: t("admin.courses.colTeacher"),
             hideOnMobile: true,
-            render: (course) => <span className="text-xs text-slate-600 dark:text-slate-300">{course.created_by_teacher_email || "—"}</span>,
+            render: (course) => <span className="text-caption text-fg-muted">{course.created_by_teacher_email || "—"}</span>,
         },
         {
             key: "grade",
             header: t("admin.user.colGrade"),
             render: (course) => course.grade
-                ? <span className="text-[11px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-full whitespace-nowrap">{course.grade}</span>
-                : <span className="text-xs text-slate-400">—</span>,
+                ? <span className="text-caption font-semibold bg-surface-sunken text-fg-muted px-2 py-0.5 rounded-full whitespace-nowrap">{course.grade}</span>
+                : <span className="text-caption text-fg-subtle">—</span>,
         },
         {
             key: "open",
             header: <span className="sr-only">{t("admin.library.open")}</span>,
             align: "right",
             render: (course) => (
-                <Link href={`/course/${course.id}/home`} className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline whitespace-nowrap">
+                <Link href={`/course/${course.id}/home`} className="text-caption font-bold text-brand-fg hover:underline whitespace-nowrap">
                     {t("admin.library.open")}
                 </Link>
             ),
@@ -163,14 +162,14 @@ export default function UserProfilePage() {
         <div className="max-w-6xl mx-auto space-y-8 pb-12 animate-in fade-in duration-300 pt-4 px-4 sm:px-6">
             <button
                 onClick={() => { startRouteLoading(); router.push("/manage/admin?tab=users"); }}
-                className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
+                className="inline-flex items-center gap-1.5 text-caption font-semibold text-fg-subtle hover:text-fg transition-colors"
             >
                 <ArrowLeft className="w-3.5 h-3.5" /> {t("admin.user.backToUsers")}
             </button>
 
             {/* Header */}
             <div className="flex items-start gap-4">
-                <div className="w-14 h-14 rounded-2xl bg-teal-600 flex items-center justify-center text-white text-xl font-black shrink-0">
+                <div className="w-14 h-14 rounded-2xl bg-brand flex items-center justify-center text-on-brand text-section font-extrabold shrink-0">
                     {initials}
                 </div>
                 <div className="min-w-0 flex-1">
@@ -178,22 +177,22 @@ export default function UserProfilePage() {
                         title={user.full_name || t("admin.user.unnamed")}
                         description={
                             <span className="inline-flex items-center gap-1.5 break-all">
-                                <Mail className="w-3.5 h-3.5 text-teal-500 shrink-0" />
+                                <Mail className="w-3.5 h-3.5 text-brand-fg shrink-0" />
                                 {shownEmail(user)}
                             </span>
                         }
                         meta={
                             <>
-                                <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-extrabold border ${roleStyle.bg} ${roleStyle.text} ${roleStyle.border}`}>
+                                <span className={`px-2.5 py-0.5 rounded-full text-caption font-extrabold border ${roleStyle.bg} ${roleStyle.text} ${roleStyle.border}`}>
                                     {t(`role.${user.role}`) || user.role}
                                 </span>
                                 {user.learner_code && (
-                                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200">
-                                        {t("school.learnerCode")}: <span className="font-mono font-black">{user.learner_code}</span>
+                                    <span className="px-2.5 py-0.5 rounded-full text-caption font-bold border border-line text-fg-muted">
+                                        {t("school.learnerCode")}: <span className="font-mono font-extrabold">{user.learner_code}</span>
                                     </span>
                                 )}
                                 {isInactive && (
-                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 uppercase">
+                                    <span className="text-caption font-bold px-2 py-0.5 rounded-full bg-surface-sunken text-fg-subtle">
                                         {t("admin.user.inactive")}
                                     </span>
                                 )}
@@ -204,7 +203,7 @@ export default function UserProfilePage() {
                                 type="button"
                                 onClick={downloadData}
                                 disabled={downloading}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-line text-caption font-bold text-fg-muted hover:bg-surface-hover disabled:opacity-50"
                             >
                                 <Download className="w-3.5 h-3.5" aria-hidden="true" />
                                 {downloading ? t("admin.user.preparing") : t("admin.user.downloadData")}
@@ -218,8 +217,8 @@ export default function UserProfilePage() {
 
                 {/* Left Column: Demographics & Contact */}
                 <div className="lg:col-span-1 space-y-8 min-w-0">
-                    <Section title={<span className="flex items-center gap-2"><User className="w-4 h-4 text-teal-600" /> {t("admin.user.personal")}</span>}>
-                        <dl className="divide-y divide-slate-100 dark:divide-slate-800">
+                    <Section title={<span className="flex items-center gap-2"><User className="w-4 h-4 text-brand-fg" /> {t("admin.user.personal")}</span>}>
+                        <dl className="divide-y divide-line">
                             <Field label={t("admin.user.phone")} icon={Phone}>{user.phone || notSpecified}</Field>
                             <Field label={t("admin.user.gender")} className="capitalize">
                                 {genderLabel(t, user.gender)}
@@ -230,8 +229,8 @@ export default function UserProfilePage() {
                         </dl>
                     </Section>
 
-                    <Section divided title={<span className="flex items-center gap-2"><GraduationCap className="w-4 h-4 text-teal-600" /> {t("admin.user.academic")}</span>}>
-                        <dl className="divide-y divide-slate-100 dark:divide-slate-800">
+                    <Section divided title={<span className="flex items-center gap-2"><GraduationCap className="w-4 h-4 text-brand-fg" /> {t("admin.user.academic")}</span>}>
+                        <dl className="divide-y divide-line">
                             <Field label={t("admin.user.school")} icon={Building2}>{user.school_name || t("admin.user.notAssigned")}</Field>
                             <Field label={t("admin.user.gradeLevel")}>{user.grade_level || notSpecified}</Field>
                             <Field label={t("admin.user.provinceDistrict")} icon={MapPin}>
@@ -249,15 +248,15 @@ export default function UserProfilePage() {
                     {user.role === "scholar" && (
                         <>
                             {/* Outcome pulse tile (allowed card) */}
-                            <div className="bg-gradient-to-br from-teal-900 to-slate-900 rounded-2xl border border-teal-800/40 p-5 text-white relative overflow-hidden">
-                                <BrainCircuit className="absolute -right-4 -bottom-4 w-24 h-24 text-teal-800/30 opacity-50" />
-                                <h3 className="text-xs font-black uppercase tracking-wider text-teal-400 flex items-center gap-2 relative z-10">
+                            <div className="dark bg-gradient-to-br from-brand-strong to-surface rounded-2xl border border-brand/40 p-5 text-fg relative overflow-hidden">
+                                <BrainCircuit className="absolute -right-4 -bottom-4 w-24 h-24 text-brand-fg/30 opacity-50" />
+                                <h3 className="text-caption font-extrabold text-brand-fg flex items-center gap-2 relative z-10">
                                     <Activity className="w-4 h-4" /> {t("admin.user.practiceActivity")}
                                 </h3>
                                 <div className="relative z-10 mt-3">
-                                    <p className="text-3xl font-black">{analytics?.activeTrackedOutcomes ?? "—"}</p>
-                                    <p className="text-xs font-medium text-teal-200/70 mt-1">{t("admin.user.practiceTypes")}</p>
-                                    <PracticeLabel className="mt-2 text-teal-100 border-teal-700 bg-teal-950/40" />
+                                    <p className="text-display font-extrabold">{analytics?.activeTrackedOutcomes ?? "—"}</p>
+                                    <p className="text-caption font-medium text-fg-muted mt-1">{t("admin.user.practiceTypes")}</p>
+                                    <PracticeLabel className="mt-2 text-brand-fg border-brand bg-brand-strong/40" />
                                 </div>
                             </div>
 
@@ -270,7 +269,7 @@ export default function UserProfilePage() {
                                                 title={sp.topic_title}
                                                 subtitle={fill(t("admin.user.interval"), { days: sp.interval_days })}
                                                 actions={
-                                                    <span className="px-2 py-1 bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 rounded-lg text-[10px] font-black uppercase">
+                                                    <span className="px-2 py-1 bg-warning-soft text-warning-fg rounded-lg text-caption font-extrabold">
                                                         {t("admin.user.pending")}
                                                     </span>
                                                 }

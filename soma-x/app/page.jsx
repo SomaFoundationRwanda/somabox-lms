@@ -3,13 +3,13 @@ import { useEffect, useState } from "react";
 import { useLanguage } from '@/context/LanguageContext';
 import { Compass } from "lucide-react";
 import { fill } from "@/lib/fill";
-import { Checkbox } from "@/components/ui/checkbox";
 import Link from "next/link";
 import { AuthDivider, AuthError, AuthField, AuthFormHeader, AuthLayout, AuthPasswordField, AuthSubmit } from "@/components/auth/AuthPage";
 import { useToast } from "@/context/ToastContext";
 import { accountPage, renewMediaSession, safeNext, setSessionToken, takeNext } from "@/lib/session";
 import { startRouteLoading } from "@/components/global/RouteLoader";
 import { apiFetch, getErrorMessage } from "@/lib/api";
+import { CheckboxField } from "@/components/form";
 
 const AuthComp = () => {
     const { t } = useLanguage();
@@ -91,7 +91,7 @@ const AuthComp = () => {
             <form onSubmit={handleSubmit} className="w-full max-w-[400px] space-y-4">
                 <AuthFormHeader title={t("shell.login.formTitle")} subtitle={t("shell.login.formSubtitle")}>
                     {next ? (
-                        <p className="text-accent-dark text-[13px] font-semibold mt-2">
+                        <p className="text-brand-fg text-small font-semibold mt-2">
                             {t("guest.continueHint")}
                         </p>
                     ) : null}
@@ -122,18 +122,13 @@ const AuthComp = () => {
                 />
 
                 {/* Shared device: the sign-in ends when the browser closes */}
-                <div className="flex items-start gap-2.5">
-                    <Checkbox
-                        id="auth-shared-device"
-                        checked={sharedDevice}
-                        onCheckedChange={(v) => setSharedDevice(v === true)}
-                        className="mt-0.5"
-                    />
-                    <label htmlFor="auth-shared-device" className="text-[13px] text-slate-700 leading-snug cursor-pointer">
-                        <span className="font-bold text-slate-800">{t("shell.login.sharedDevice")}</span>
-                        <span className="block text-slate-600">{t("shell.login.sharedDeviceHelp")}</span>
-                    </label>
-                </div>
+                <CheckboxField
+                    id="auth-shared-device"
+                    label={t("shell.login.sharedDevice")}
+                    hint={t("shell.login.sharedDeviceHelp")}
+                    checked={sharedDevice}
+                    onCheckedChange={setSharedDevice}
+                />
 
                 <AuthError>{loginError}</AuthError>
 
@@ -144,9 +139,9 @@ const AuthComp = () => {
                 <AuthDivider>{t("shell.login.or")}</AuthDivider>
 
                 {/* Sign up */}
-                <p className="text-center text-[14px] text-slate-700 font-medium">
+                <p className="text-center text-ui text-fg-muted font-medium">
                     {t("shell.login.noAccount")}{' '}
-                    <Link href={next ? `/signup?next=${encodeURIComponent(next)}` : "/signup"} className="text-accent-dark font-extrabold hover:underline underline-offset-2">
+                    <Link href={next ? `/signup?next=${encodeURIComponent(next)}` : "/signup"} className="text-brand-fg font-extrabold hover:underline underline-offset-2">
                         {t("shell.login.signUp")}
                     </Link>
                 </p>
@@ -154,7 +149,7 @@ const AuthComp = () => {
                 {/* Explore as a guest */}
                 <Link
                     href="/home"
-                    className="w-full h-11 rounded-lg border-2 border-slate-300 hover:border-slate-400 text-[14px] font-bold text-slate-800 flex items-center justify-center gap-2 transition-colors"
+                    className="w-full h-11 rounded-lg border-2 border-line-strong hover:border-line-strong text-ui font-bold text-fg flex items-center justify-center gap-2 transition-colors"
                 >
                     <Compass className="w-4 h-4" aria-hidden="true" />
                     {t("guest.exploreWithoutAccount")}
