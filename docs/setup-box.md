@@ -85,7 +85,7 @@ sudo install -m 0755 somabox-device-info.sh /usr/local/sbin/somabox-device-info.
 sudo install -m 0644 somabox-device-info.service /etc/systemd/system/somabox-device-info.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now somabox-device-info.service
-cat /etc/somabox/device.json           # check: "serial" should not be null
+cat /etc/somabox/device.json           # check: "serialNumber" should not be null
 cd ~/somabox
 pnpm exec pm2 restart soma-x-backend
 ```
