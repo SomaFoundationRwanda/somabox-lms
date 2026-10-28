@@ -6,8 +6,8 @@ database. Everything runs as your normal user.
 ## 1. Clone and bring main up to date
 
 ```bash
-git clone https://github.com/SomaFoundationRwanda/somabox-lms.git
-cd somabox-lms
+git clone https://github.com/SomaFoundationRwanda/somabox-lms.git somabox
+cd somabox
 git fetch --all
 git checkout main
 git merge origin/dev
@@ -74,7 +74,7 @@ Open `http://<device-ip>:3001` in a browser, enter the code, and create the admi
 ## Updating later
 
 ```bash
-cd somabox-lms
+cd somabox
 git fetch --all
 git merge origin/dev
 pnpm install --frozen-lockfile
