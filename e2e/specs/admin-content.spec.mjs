@@ -122,7 +122,7 @@ test.describe("analytics", () => {
     const learners = page.getByRole("term").filter({ hasText: /^Learners$/ }).locator("xpath=following-sibling::dd[1]");
     await expect(learners).toHaveText(String(users.total ?? users.pagination?.total ?? (await learners.textContent())));
 
-    const courses = page.getByRole("table", { name: "Courses" });
+    const courses = page.getByRole("table", { name: t("admin.home.coursesTitle") });
     await courses.getByRole("link", { name: course.title }).click();
     await page.waitForURL(`**/course/${course.id}/insights`);
   });

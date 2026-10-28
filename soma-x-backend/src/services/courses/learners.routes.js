@@ -13,9 +13,11 @@ import { revokeUserSessions } from "../../helpers/auth.js";
 import { hashPassword, logAdminAuditAction } from "../users.service.js";
 import { applySchoolToUser, assignLearnerCode } from "../school.js";
 import { courseExists, requireTeacher,
-  requireCourseTeacher, } from "./shared.js";
+  requireCourseTeacher, teachesLearnersClass } from "./shared.js";
 import { LEARNER_EMAIL_DOMAIN } from "../../helpers/identity.js";
 import { membershipChanged } from "../../helpers/live.js";
+import { notifyAddedToCourse } from "./notify.js";
+import { classLevel, learnerClasses, placeInClass, sameClass } from "./classes.js";
 
 const router = express.Router();
 
@@ -51,18 +53,55 @@ const publicLearner = (u) => ({
   inCourse: u.in_course === true || Number(u.in_course) === 1,
 });
 
-async function enrollLearner(courseId, email) {
+// placeClass: false for an account just made with the class the teacher chose (it keeps that
+// class only); an existing learner added to the course also gets the course's class.
+async function enrollLearner(courseId, email, { placeClass = true } = {}) {
+  const before = await localDb.prepare("SELECT status FROM enrollments WHERE course_id = ? AND LOWER(user_email) = LOWER(?)").get(courseId, email);
+  if (before?.status !== "active") await notifyAddedToCourse(courseId, email, "student");
+  if (placeClass) await placeInClass(courseId, email);
   await localDb.prepare(`
     INSERT INTO enrollments (course_id, user_email, role, status) VALUES (?, ?, 'student', 'active')
     ON CONFLICT (course_id, user_email) DO UPDATE SET status = 'active'
   `).run(courseId, email);
 }
 
+// Learners the teacher is likely to add, without knowing their code: those of the course's class
+// (own or annex), then those at the same level (S1A when the course is S1B). Not those already
+// in the course. { course: { grade }, sameClass: [...], sameLevel: [...] }.
+router.get("/:id/learner-suggestions", async (req, res) => {
+  try {
+    const courseId = String(req.params.id || "").trim();
+    const course = await courseExists(courseId);
+    if (!course) return res.status(404).json({ message: "Subject not found" });
+    if (!await requireTeacher(req, res, courseId)) return;
+    if (!course.grade) return res.json({ course: { grade: null }, sameClass: [], sameLevel: [] });
+    const rows = await localDb.prepare(`
+      SELECT u.id, u.full_name, u.learner_code, u.grade_level, u.annex_classes FROM users u
+      WHERE u.role = 'scholar' AND u.is_active = 1
+        AND NOT EXISTS (SELECT 1 FROM enrollments e WHERE e.course_id = ? AND LOWER(e.user_email) = LOWER(u.email) AND e.status IN ('active', 'pending'))
+      ORDER BY u.full_name, u.learner_code
+    `).all(courseId);
+    const level = classLevel(course.grade);
+    const same = [];
+    const near = [];
+    for (const u of rows) {
+      const classes = learnerClasses(u);
+      if (classes.some((c) => sameClass(c, course.grade))) same.push(u);
+      else if (level && classes.some((c) => classLevel(c) === level)) near.push(u);
+    }
+    const shown = (u) => ({ ...publicLearner({ ...u, in_course: false }), annexClasses: u.annex_classes || [] });
+    return res.json({ course: { grade: course.grade }, sameClass: same.slice(0, 200).map(shown), sameLevel: near.slice(0, 200).map(shown) });
+  } catch (error) {
+    console.error("Error suggesting learners:", error);
+    return res.status(500).json({ message: error.message });
+  }
+});
+
 // Learners of the school, by name or learner code (no email addresses), for adding to the course.
 router.get("/:id/learner-search", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     if (!await requireTeacher(req, res, courseId)) return;
     const q = String(req.query.q || "").trim().toLowerCase();
     if (q.length < 2) return res.json([]);
@@ -83,7 +122,10 @@ router.get("/:id/learner-search", async (req, res) => {
 });
 
 /**
- * New learner accounts, straight into this course. { names: [..], grade, duplicates }.
+ * New learner accounts, straight into this course. { names: [..], grade, duplicates, passwordMode }.
+ * passwordMode "temporary" (default): they choose their own password at first sign-in;
+ * "permanent": the password given here stays theirs. Either way the teacher already knows who they
+ * are, so the first-visit questions can wait (profile_deferred).
  * A name that matches an existing learner (same name, any class) is a possible duplicate:
  * - duplicates "ask" (default): nothing is created; 409 lists the matches;
  * - "add": a name with exactly one match adds that learner instead (several: left for the
@@ -94,13 +136,14 @@ router.get("/:id/learner-search", async (req, res) => {
 router.post("/:id/learners", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     const auth = await requireTeacher(req, res, courseId);
     if (!auth) return;
 
     const names = [...new Set((Array.isArray(req.body.names) ? req.body.names : []).map(cleanName).filter(Boolean))];
     const grade = String(req.body.grade || "").trim().slice(0, 50);
     const duplicates = ["ask", "add", "create"].includes(req.body.duplicates) ? req.body.duplicates : "ask";
+    const permanent = req.body.passwordMode === "permanent";
     if (!names.length) return res.status(400).json({ message: "Write at least one learner's name" });
     if (names.length > MAX_BATCH) return res.status(400).json({ message: `Add at most ${MAX_BATCH} learners at a time` });
     if (!grade) return res.status(400).json({ message: "Choose the learners' class" });
@@ -134,17 +177,17 @@ router.post("/:id/learners", async (req, res) => {
       const hash = await hashPassword(password);
       const learner = await localDb.transaction(async () => {
         const row = await localDb.prepare(`
-          INSERT INTO users (email, full_name, password_hash, role, grade_level, must_change_password)
-          VALUES (?, ?, ?, 'scholar', ?, 1) RETURNING id
-        `).get(`pending-${crypto.randomUUID()}@${LEARNER_EMAIL_DOMAIN}`, name, hash, grade);
+          INSERT INTO users (email, full_name, password_hash, role, grade_level, must_change_password, profile_deferred)
+          VALUES (?, ?, ?, 'scholar', ?, ?, true) RETURNING id
+        `).get(`pending-${crypto.randomUUID()}@${LEARNER_EMAIL_DOMAIN}`, name, hash, grade, permanent ? 0 : 1);
         await applySchoolToUser(row.id);
         const code = await assignLearnerCode(row.id);
         const email = `${code.toLowerCase()}@${LEARNER_EMAIL_DOMAIN}`;
         await localDb.prepare("UPDATE users SET email = ? WHERE id = ?").run(email, row.id);
-        await enrollLearner(courseId, email);
+        await enrollLearner(courseId, email, { placeClass: false });
         return { id: row.id, code, email };
       })();
-      created.push({ id: learner.id, fullName: name, grade, learnerCode: learner.code, temporaryPassword: password });
+      created.push({ id: learner.id, fullName: name, grade, learnerCode: learner.code, temporaryPassword: password, permanent });
       await logAdminAuditAction({
         adminEmail: auth.email,
         action: "TEACHER_CREATE_LEARNER",
@@ -168,17 +211,20 @@ router.post("/:id/learners", async (req, res) => {
 router.post("/:id/people/:enrollmentId/reset-password", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     const auth = await requireCourseTeacher(req, res, courseId);
     if (!auth) return;
     const learner = await localDb.prepare(`
-      SELECT u.id, u.email, u.full_name, u.learner_code, u.role FROM enrollments e
+      SELECT u.id, u.email, u.full_name, u.learner_code, u.role, u.grade_level, u.annex_classes FROM enrollments e
       JOIN users u ON LOWER(u.email) = LOWER(e.user_email)
       WHERE e.id = ? AND e.course_id = ? AND e.role = 'student' AND e.status = 'active'
     `).get(req.params.enrollmentId, courseId);
-    if (!learner) return res.status(404).json({ message: "This learner isn't in the course" });
+    if (!learner) return res.status(404).json({ message: "This learner isn't in the subject" });
     // Only learners' passwords: never a teacher's or an admin's, even one enrolled as a student.
     if (learner.role !== "scholar") return res.status(403).json({ message: "Only the school's admin can reset this person's password" });
+    if (!teachesLearnersClass(await courseExists(courseId), learner)) {
+      return res.status(403).json({ message: "This learner is in another class. Their own class's teacher or the admin can reset it.", code: "OTHER_CLASS" });
+    }
 
     const password = temporaryPassword();
     await localDb.prepare("UPDATE users SET password_hash = ?, must_change_password = 1 WHERE id = ?").run(await hashPassword(password), learner.id);

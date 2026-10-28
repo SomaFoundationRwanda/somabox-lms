@@ -5,6 +5,8 @@ import { localDb } from "../../helpers/db-manager.js";
 import { calculateEstimatedReadMinutes, syncPageFileReferences } from "./shared.js";
 import { ScheduleError, parseItemDays, refreshDueDates } from "./schedule.js";
 import { baselineQuestionsChanged } from "./setup.js";
+import { CategoryError, parseCategory } from "./categories.js";
+import { GroupError, discussionGroupId, setAssignmentGroups } from "./groups.js";
 
 export const CONTENT_TABLES = {
   page: "course_pages",
@@ -127,6 +129,9 @@ export async function createModuleContent({ courseId, moduleId, itemType, data =
   const outcomeIds = Array.isArray(data.outcomeIds) ? data.outcomeIds.filter(Boolean) : [];
   // Dates come from day offsets within the module (due_at is derived, never stored directly).
   const days = parseItemDays(itemType, data) || parseItemDays(itemType, { releaseDay: 0, dueDay: 6 });
+  // Graded work's type (short quiz, exam...) and whether its scores wait for the teacher.
+  const category = parseCategory(data.category) ?? null;
+  const scoresHidden = Boolean(data.scoresHidden);
 
   return await localDb.transaction(async () => {
     let contentId;
@@ -141,18 +146,18 @@ export async function createModuleContent({ courseId, moduleId, itemType, data =
       await syncPageFileReferences(contentId, bodyJson);
     } else if (itemType === "assignment") {
       const row = await localDb.prepare(`
-        INSERT INTO assignments (course_id, module_id, title, description, points_possible, published, created_by_teacher_email)
-        VALUES (?, ?, ?, ?, ?, 0, ?) RETURNING id
-      `).get(courseId, moduleRow.id, title, data.description || "", Number(data.pointsPossible) || 100, actorEmail);
+        INSERT INTO assignments (course_id, module_id, title, description, points_possible, published, created_by_teacher_email, category, scores_hidden)
+        VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?) RETURNING id
+      `).get(courseId, moduleRow.id, title, data.description || "", Number(data.pointsPossible) || 100, actorEmail, category, scoresHidden);
       contentId = Number(row.id);
     } else if (itemType === "quiz") {
       const kind = ["baseline", "practice", "graded"].includes(data.kind) ? data.kind : (moduleRow.kind === "baseline" ? "baseline" : "graded");
       const attempts = data.attemptsAllowed == null || data.attemptsAllowed === "" ? null : Number(data.attemptsAllowed);
       const timeLimit = data.timeLimitMinutes == null || data.timeLimitMinutes === "" ? null : Number(data.timeLimitMinutes);
       const row = await localDb.prepare(`
-        INSERT INTO quizzes (course_id, module_id, title, description, published, created_by_teacher_email, kind, attempts_allowed, time_limit_minutes)
-        VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?) RETURNING id
-      `).get(courseId, moduleRow.id, title, data.description || "", actorEmail, kind, attempts, timeLimit);
+        INSERT INTO quizzes (course_id, module_id, title, description, published, created_by_teacher_email, kind, attempts_allowed, time_limit_minutes, category, scores_hidden)
+        VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?) RETURNING id
+      `).get(courseId, moduleRow.id, title, data.description || "", actorEmail, kind, attempts, timeLimit, kind === "graded" ? category : null, scoresHidden);
       contentId = Number(row.id);
       await replaceQuizQuestions(contentId, Array.isArray(data.questions) ? data.questions : [], courseId);
     } else if (itemType === "discussion") {
@@ -164,6 +169,17 @@ export async function createModuleContent({ courseId, moduleId, itemType, data =
     }
 
     if (outcomeIds.length) await setItemOutcomes(courseId, itemType, contentId, outcomeIds);
+    // An assignment can be given to some groups only (none: the whole class).
+    if (itemType === "assignment" && Array.isArray(data.groupIds)) await setAssignmentGroups(courseId, contentId, data.groupIds);
+    // Group work: one submission per group (only meaningful once it's given to groups).
+    if (itemType === "assignment" && data.groupSubmission !== undefined) {
+      await localDb.prepare("UPDATE assignments SET group_submission = ? WHERE id = ?").run(Boolean(data.groupSubmission), contentId);
+    }
+    // A group discussion (callers check that a learner posting is in the group).
+    if (itemType === "discussion" && data.groupId != null && data.groupId !== "") {
+      const groupId = await discussionGroupId(courseId, data.groupId, { isStaff: true });
+      await localDb.prepare("UPDATE discussions SET group_id = ? WHERE id = ?").run(groupId, contentId);
+    }
 
     let published = Boolean(publish);
     let notice = null;
@@ -234,7 +250,7 @@ export async function deleteContent(courseId, itemType, contentId) {
 
 /** Sends an ItemError as JSON; returns false for other errors so the caller can 500. */
 export function sendItemError(res, error) {
-  if (error?.name === "ScheduleError" || error instanceof ScheduleError) {
+  if (error?.name === "ScheduleError" || error instanceof ScheduleError || error instanceof CategoryError || error instanceof GroupError) {
     res.status(400).json({ message: error.message });
     return true;
   }

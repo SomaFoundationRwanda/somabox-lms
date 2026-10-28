@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch, getErrorMessage } from "@/lib/api";
 import { queryKeys } from "@/lib/queryKeys";
@@ -16,6 +16,9 @@ import { useCourseText } from "@/components/course/useCourseText";
 import { useItemOpened } from "@/lib/usage";
 import Loader from "@/components/ui/Loader";
 import { ChoiceGroup, Textarea } from "@/components/form";
+import DataContext from "@/context/DataContext";
+import { useLanguage } from "@/context/LanguageContext";
+import { celebrateWork } from "@/lib/learnerCelebrations";
 
 function getOptionText(opt) {
   if (opt === null || opt === undefined) return "";
@@ -51,6 +54,8 @@ export default function QuizDetailPage() {
   const [submitting, setSubmitting] = useState(false);
   const [granting, setGranting] = useState(null);
   const { showToast } = useToast();
+  const { user } = useContext(DataContext);
+  const { t: tAll } = useLanguage();
 
   const submitQuiz = async () => {
     setSubmitError("");
@@ -62,6 +67,8 @@ export default function QuizDetailPage() {
         for (const queryKey of [queryKeys.courseSection(courseId, "grades"), queryKeys.courseSection(courseId, "my-progress"), queryKeys.assignmentSummary, queryKeys.dashboard]) {
           queryClient.invalidateQueries({ queryKey });
         }
+        // Learners: well done (or a milestone), and what's next.
+        if (user?.id) celebrateWork({ t: tAll, userId: user.id, title: quiz?.title || "" });
       } catch (err) {
         // 409 codes: NO_ATTEMPTS_LEFT, CLOSED, NOT_OPEN_YET each come with a readable message.
         const fallback = {

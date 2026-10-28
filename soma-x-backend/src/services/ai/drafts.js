@@ -114,7 +114,7 @@ export async function applyDraft(draft, actorEmail) {
   }
   if (draft.type === "quiz") {
     const module = await draftModule(draft);
-    const r = await createModuleContent({ ...base, moduleId: module.id, itemType: "quiz", data: { title: p.title, kind: "graded", questions: await quizQuestions(courseId, p.questions) } });
+    const r = await createModuleContent({ ...base, moduleId: module.id, itemType: "quiz", data: { title: p.title, kind: "graded", category: "short_quiz", questions: await quizQuestions(courseId, p.questions) } });
     return { quizzes: [r.contentId] };
   }
   if (draft.type === "assignment") {
@@ -134,7 +134,7 @@ export async function applyDraft(draft, actorEmail) {
   if (draft.type === "story") {
     const module = await draftModule(draft);
     const page = await createModuleContent({ ...base, moduleId: module.id, itemType: "page", data: { title: p.title, body: p.paragraphs.map((t) => `<p>${escapeHtml(t)}</p>`).join("") } });
-    const quiz = await createModuleContent({ ...base, moduleId: module.id, itemType: "quiz", data: { title: `${p.title}: questions`, kind: "graded", questions: await quizQuestions(courseId, p.questions) } });
+    const quiz = await createModuleContent({ ...base, moduleId: module.id, itemType: "quiz", data: { title: `${p.title}: questions`, kind: "graded", category: "short_quiz", questions: await quizQuestions(courseId, p.questions) } });
     const discussion = await createModuleContent({ ...base, moduleId: module.id, itemType: "discussion", data: { title: `${p.title}: discussion`, body: `<p>${escapeHtml(p.discussionPrompt)}</p>` } });
     return { pages: [page.contentId], quizzes: [quiz.contentId], discussions: [discussion.contentId] };
   }

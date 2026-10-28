@@ -44,7 +44,7 @@ test.describe("profile form", () => {
     await expect(page.getByRole("dialog").filter({ hasText: p("title") })).toBeHidden();
   });
 
-  test("a new teacher changes the temporary password in Teacher Settings, then answers only their own questions", async ({ page }) => {
+  test("a new teacher changes the temporary password in Teacher Settings, and isn't asked profile questions", async ({ page }) => {
     const email = `fresh-teacher-${uid()}@e2e.test`;
     await api("POST", "/users", { as: "admin", body: { email, password: "temporary-pass", role: "teacher", fullName: "Fresh Teacher" } });
     await login(page, email, "temporary-pass");
@@ -60,16 +60,8 @@ test.describe("profile form", () => {
     await page.getByRole("button", { name: t("learner.account.changePassword") }).click();
     await expect(page.getByText(t("learner.account.pwUpdated"))).toBeVisible();
 
-    // The teacher's own profile form: no name, phone or class, one step.
-    const dialog = page.getByRole("dialog").filter({ hasText: t("teacher.profileSetup.title") });
-    await expect(dialog).toBeVisible();
-    await expect(dialog.getByLabel(p("fullName"))).toHaveCount(0);
-    await expect(dialog.getByLabel(p("grade"))).toHaveCount(0);
-    await expect(dialog.getByRole("button", { name: p("finish") })).toBeDisabled();
-    await dialog.getByRole("radio", { name: t("shell.people.genders.male"), exact: true }).click();
-    await dialog.getByLabel(t("shell.people.accessibility")).selectOption("none");
-    await dialog.getByRole("button", { name: p("finish") }).click();
-    await expect(dialog).toBeHidden({ timeout: 15_000 });
+    // Teachers aren't asked profile questions: the admin entered who they are.
+    await expect(page.getByRole("dialog").filter({ hasText: t("teacher.profileSetup.title") })).toHaveCount(0);
 
     await page.goto(HOME.teacher);
     await expect(page).toHaveURL(new RegExp(HOME.teacher));

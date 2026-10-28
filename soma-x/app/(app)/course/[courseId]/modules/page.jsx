@@ -27,7 +27,6 @@ import { todayIn } from "@somabox/timeline";
 
 // Teacher-only code is loaded on demand so learners on low-end devices don't download it:
 // drag-and-drop for teachers (the item editors are pages of their own).
-const SortableModuleList = lazy(() => import("@/components/course/modules/sortable").then((m) => ({ default: m.SortableModuleList })));
 
 // Labels come from course.items.<value>.
 const ITEM_TYPE_OPTIONS = [
@@ -41,6 +40,11 @@ const ITEM_TYPE_OPTIONS = [
 
 // The kinds of item a teacher can show on their own (Weeks filter).
 const ITEM_FILTERS = ["all", "page", "assignment", "quiz", "discussion", "file"];
+
+// Teachers: the weeks wait for the drag-and-drop code (items are reordered by dragging), so the
+// rows aren't swapped for draggable ones under the teacher's hand (a menu opened on one would
+// vanish with it).
+const DragReady = lazy(() => import("@/components/course/modules/sortable").then(() => ({ default: ({ children }) => children })));
 
 export default function ModulesPage() {
   const { SERVER_URL, courseId, isTeacher } = useCourse();
@@ -142,11 +146,6 @@ export default function ModulesPage() {
     refetch();
   };
 
-  const handleModuleReorder = async (moduleIds) => {
-    await apiFetch(`/courses/${courseId}/modules/reorder`, { method: "PATCH", json: { moduleIds } }).catch(console.error);
-    refetch();
-  };
-
   // ===== Add Item Flow =====
   const handleAddItem = (moduleRow) => {
     setAddingItemFor(moduleRow);
@@ -236,6 +235,9 @@ export default function ModulesPage() {
   };
   const selectedExplainer = explain(`items.${selectedItemType}`).entry;
 
+  // The first regular week starts on the course's start date (changed in Settings).
+  const regularOffsets = (modules || []).filter((m) => m.kind === "regular").map((m) => Number(m.week_offset));
+  const firstWeekOffset = regularOffsets.length ? Math.min(...regularOffsets) : null;
   const renderTeacherModule = (moduleRow, dnd = null) => (
     <ModuleCard
       key={moduleRow.id}
@@ -248,6 +250,7 @@ export default function ModulesPage() {
       onDeleteItem={handleDeleteItem}
       ai={aiProps}
       dnd={typeFilter === "all" ? dnd : null}
+      isFirstWeek={moduleRow.kind === "regular" && Number(moduleRow.week_offset) === firstWeekOffset}
       itemFilter={typeFilter}
       weeks={modules || []}
     />
@@ -259,7 +262,6 @@ export default function ModulesPage() {
       <div className="p-4 md:p-6 space-y-6">
         <PageHeader help="pages.modules"
           title={t("modules.title")}
-          description={isTeacher ? t("modules.description") : undefined}
           actions={isTeacher ? (
             <>
             <Link
@@ -339,10 +341,10 @@ export default function ModulesPage() {
         {modules && modules.length > 0 && (
           isTeacher ? (
             <div className="space-y-10">
-              {/* Until drag-and-drop has loaded: a loader, not cards that would be replaced (a
-                  menu opened on one would vanish with it). */}
+              {/* Weeks follow their dates (Week 0, then past, this week, upcoming): a week moves by
+                  changing its date (its ⋯ menu), not by dragging. */}
               <Suspense fallback={<Loader variant="page" size={48} className="min-h-[20vh]" label={t("modules.loading")} />}>
-                <SortableModuleList modules={modules} onReorder={handleModuleReorder} renderModule={renderTeacherModule} />
+                <DragReady>{modules.map((moduleRow) => renderTeacherModule(moduleRow))}</DragReady>
               </Suspense>
             </div>
           ) : (

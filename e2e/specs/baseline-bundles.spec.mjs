@@ -20,6 +20,9 @@ test.describe("baseline", () => {
     await page.getByRole("button", { name: bt("build") }).click();
     await expect(page.getByText(bt("built")).first()).toBeVisible();
     await page.getByRole("button", { name: bt("approve") }).click();
+    // When Week 0's days are already over, a dialog says so first; approving anyway is allowed.
+    const anyway = page.getByRole("button", { name: bt("approveAnyway") });
+    if (await anyway.isVisible({ timeout: 2_000 }).catch(() => false)) await anyway.click();
     await expect(page.getByText(bt("approvedToast")).first()).toBeVisible();
     await expect(page.getByText(bt("approved")).first()).toBeVisible();
 

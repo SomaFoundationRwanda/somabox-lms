@@ -9,10 +9,10 @@ import { queryKeys } from "@/lib/queryKeys";
 // until a teacher approves the draft (which creates UNPUBLISHED items) and then publishes them.
 
 export const JOB_KIND_LABELS = {
-  fill_week: "Fill the week",
+  fill_week: "Fill the lesson",
   story: "Story",
   quiz: "Quiz",
-  outline: "Course outline",
+  outline: "Subject outline",
   outcome_rewrite: "Outcome rewrite",
   rubric: "Rubric",
   grading: "Grading suggestion",
@@ -24,7 +24,7 @@ export const DRAFT_TYPE_LABELS = {
   quiz: "Quiz",
   assignment: "Assignment",
   story: "Story",
-  outline: "Course outline",
+  outline: "Subject outline",
   outcome: "Outcome",
   rubric: "Rubric",
   grading: "Grading suggestion",

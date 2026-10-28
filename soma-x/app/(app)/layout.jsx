@@ -15,6 +15,10 @@ import { useContext, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Loader from "@/components/ui/Loader";
 import { startRouteLoading } from "@/components/global/RouteLoader";
+import { useTrackPages } from "@/lib/inAppHistory";
+import CelebrationHost from "@/components/celebrate/CelebrationHost";
+import { useWelcomeBack } from "@/lib/learnerCelebrations";
+import { usePersistedCache } from "@/lib/persistCache";
 
 // Routes in this group that need an account. Everything else here is for exploring as a
 // guest: /home, /library, /discover-courses and the content browser (/[...slug]).
@@ -39,6 +43,18 @@ export default function AppLayout({ children }) {
   tRef.current = t;
   const router = useRouter();
   const pathname = usePathname();
+  // For the course pages' Back button (lib/inAppHistory.js).
+  useTrackPages();
+  // Learners: a welcome when they come back after a while.
+  useWelcomeBack();
+  // What was loaded before is shown at once after a reload, then checked with the box.
+  usePersistedCache(authenticated && !authLoading ? user?.id : null);
+  // The app's own files kept on the device (public/sw.js). Not in development: it would keep
+  // stale builds around while the code changes.
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "production" || !("serviceWorker" in navigator)) return;
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  }, []);
   const explore = isExploreRoute(pathname);
   const guest = !authLoading && !authenticated;
 
@@ -113,6 +129,7 @@ export default function AppLayout({ children }) {
         </div>
       </div>
       <MandatoryProfileSetupModal />
+      <CelebrationHost />
     </GuestGateProvider>
   );
 }

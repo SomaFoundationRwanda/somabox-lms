@@ -67,6 +67,26 @@ export async function assignLearnerCode(userId) {
     })();
 }
 
+/** Gives a teacher their staff code ("GSK-T001") if they have none; returns it. */
+export async function assignStaffCode(userId) {
+    return localDb.transaction(async () => {
+        const user = await localDb.prepare('SELECT staff_code FROM users WHERE id = ?').get(userId);
+        if (!user || user.staff_code) return user?.staff_code ?? null;
+        const school = await localDb.prepare('SELECT school_name, school_code, next_staff_number FROM unit_branding WHERE id = 1 FOR UPDATE').get();
+        const prefix = school?.school_code || initialsOf(school?.school_name);
+        let n = Number(school?.next_staff_number || 1);
+        let code;
+        for (;;) {
+            code = `${prefix}-T${String(n).padStart(3, '0')}`;
+            n += 1;
+            if (!await localDb.prepare('SELECT 1 FROM users WHERE UPPER(staff_code) = UPPER(?)').get(code)) break;
+        }
+        await localDb.prepare('UPDATE unit_branding SET next_staff_number = ? WHERE id = 1').run(n);
+        await localDb.prepare('UPDATE users SET staff_code = ? WHERE id = ?').run(code, userId);
+        return code;
+    })();
+}
+
 /**
  * The box is the school's location: everyone except admins gets the school's name, province,
  * district and rural/urban (where the admin has set them). No learner or teacher is asked.

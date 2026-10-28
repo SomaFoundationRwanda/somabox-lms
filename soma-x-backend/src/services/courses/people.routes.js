@@ -13,7 +13,10 @@ import {
   userFullName,
   getEnrollment,
   isTeacherRole,
+  teachesLearnersClass,
 } from "./shared.js";
+import { notifyAddedToCourse } from "./notify.js";
+import { placeInClass } from "./classes.js";
 
 const router = express.Router();
 
@@ -28,14 +31,14 @@ const router = express.Router();
 async function staffChangeProblem(auth, courseId, current, newRole, existingUser) {
   const touchesStaff = isTeacherRole(newRole) || isTeacherRole(current?.role);
   if (touchesStaff && auth.enrollment.role !== "teacher") {
-    return { status: 403, message: "Only the course's teacher can add or change teachers and assistants" };
+    return { status: 403, message: "Only the subject's teacher can add or change teachers and assistants" };
   }
   if (isTeacherRole(newRole) && existingUser && !["teacher", "admin"].includes(existingUser.role)) {
-    return { status: 400, message: "Only teacher accounts can teach or assist in a course" };
+    return { status: 400, message: "Only teacher accounts can teach or assist in a subject" };
   }
   if (current?.role === "teacher" && newRole !== "teacher") {
     const teachers = await localDb.prepare("SELECT COUNT(*) AS n FROM enrollments WHERE course_id = ? AND role = 'teacher' AND status = 'active'").get(courseId);
-    if (Number(teachers.n) <= 1) return { status: 409, message: "A course needs at least one teacher. Add another teacher first." };
+    if (Number(teachers.n) <= 1) return { status: 409, message: "A subject needs at least one teacher. Add another teacher first." };
   }
   return null;
 }
@@ -45,19 +48,20 @@ async function staffChangeProblem(auth, courseId, current, newRole, existingUser
 router.get("/:id/people", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     const auth = await requireEnrolled(req, res, courseId);
     if (!auth) return;
     // Learners see who is in the class, but not everyone's email address.
     const staff = isTeacherRole(auth.enrollment.role) || auth.enrollment.adminView;
 
     const rows = await localDb.prepare(`
-      SELECT e.*, u.learner_code, u.role AS account_role FROM enrollments e
+      SELECT e.*, u.learner_code, u.role AS account_role, u.grade_level, u.annex_classes FROM enrollments e
       LEFT JOIN users u ON LOWER(u.email) = LOWER(e.user_email)
       WHERE e.course_id = ? ORDER BY e.role ASC, e.joined_at ASC
     `).all(courseId);
     // Learners and observers see the class as it is now: active members, without observers.
     const listed = staff ? rows : rows.filter((row) => row.status === "active" && row.role !== "observer");
+    const course = await courseExists(courseId);
     const people = await Promise.all(listed.map(async (row) => ({
       id: row.id,
       // Learners without an email have an internal address: never shown.
@@ -68,7 +72,8 @@ router.get("/:id/people", async (req, res) => {
       account: staff ? row.user_email : null,
       // Teachers may give a learner (a learner account) a new temporary password.
       // Only the course's own teacher, for a learner account.
-      canResetPassword: auth.enrollment.role === "teacher" && row.role === "student" && row.account_role === "scholar",
+      canResetPassword: auth.enrollment.role === "teacher" && row.role === "student" && row.account_role === "scholar" && teachesLearnersClass(course, row),
+      className: staff ? row.grade_level || null : null,
       fullName: await userFullName(row.user_email),
       role: row.role,
       status: row.status,
@@ -84,7 +89,7 @@ router.get("/:id/people", async (req, res) => {
 router.post("/:id/people", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     const auth = await requireTeacher(req, res, courseId);
     if (!auth) return;
 
@@ -117,6 +122,8 @@ router.post("/:id/people", async (req, res) => {
       ON CONFLICT(course_id, user_email) DO UPDATE SET role = excluded.role, status = 'active'
     `).run(courseId, email, role);
     membershipChanged(courseId, [email]);
+    if (role === "student") await placeInClass(courseId, email);
+    if (current?.status !== "active") await notifyAddedToCourse(courseId, email, role);
 
     return res.status(201).json({ message: "Enrolled", email, role, status: "active" });
   } catch (error) {
@@ -125,14 +132,38 @@ router.post("/:id/people", async (req, res) => {
   }
 });
 
+// A join request (someone who used the join code): the course's teacher lets them in or not.
+// { approve: true } makes them a learner of the course and places them in its class.
+router.post("/:id/people/:enrollmentId/request", async (req, res) => {
+  try {
+    const courseId = String(req.params.id || "").trim();
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
+    if (!await requireTeacher(req, res, courseId)) return;
+    const row = await localDb.prepare("SELECT * FROM enrollments WHERE id = ? AND course_id = ? AND status = 'pending'").get(req.params.enrollmentId, courseId);
+    if (!row) return res.status(404).json({ message: "There's no join request like this" });
+    if (req.body?.approve === true) {
+      await localDb.prepare("UPDATE enrollments SET status = 'active', role = 'student' WHERE id = ?").run(row.id);
+      await placeInClass(courseId, row.user_email);
+      await notifyAddedToCourse(courseId, row.user_email, "student");
+    } else {
+      await localDb.prepare("DELETE FROM enrollments WHERE id = ?").run(row.id);
+    }
+    membershipChanged(courseId, [row.user_email]);
+    return res.json({ status: req.body?.approve === true ? "active" : "declined" });
+  } catch (error) {
+    console.error("Error answering a join request:", error);
+    return res.status(500).json({ message: error.message });
+  }
+});
+
 router.delete("/:id/people/:enrollmentId", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     const auth = await requireTeacher(req, res, courseId);
     if (!auth) return;
     const target = await localDb.prepare("SELECT * FROM enrollments WHERE id = ? AND course_id = ?").get(req.params.enrollmentId, courseId);
-    if (!target) return res.status(404).json({ message: "This person isn't in the course" });
+    if (!target) return res.status(404).json({ message: "This person isn't in the subject" });
     const problem = await staffChangeProblem(auth, courseId, target, null, null);
     if (problem) return res.status(problem.status).json({ message: problem.message });
 
@@ -152,14 +183,14 @@ router.post("/:id/enroll", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
     const course = await courseExists(courseId);
-    if (!course) return res.status(404).json({ message: "Course not found. Check the course code." });
+    if (!course) return res.status(404).json({ message: "Subject not found. Check the subject code." });
 
     const email = req.user.email;
     const existing = await getEnrollment(courseId, email);
-    if (existing?.status === "active") return res.status(200).json({ message: "You're already in this course", courseId });
-    if (existing) return res.status(403).json({ message: "Your place in this course was removed. Ask your teacher to add you again." });
-    if (course.visibility !== "public") return res.status(403).json({ message: "This course is private. Ask your teacher to add you." });
-    if (course.lifecycle !== "open") return res.status(400).json({ message: "This course isn't open for joining yet" });
+    if (existing?.status === "active") return res.status(200).json({ message: "You're already in this subject", courseId });
+    if (existing) return res.status(403).json({ message: "Your place in this subject was removed. Ask your teacher to add you again." });
+    if (course.visibility !== "public") return res.status(403).json({ message: "This subject is private. Ask your teacher to add you." });
+    if (course.lifecycle !== "open") return res.status(400).json({ message: "This subject isn't open for joining yet" });
 
     await localDb.prepare("INSERT INTO enrollments (course_id, user_email, role, status) VALUES (?, ?, 'student', 'active')").run(courseId, email);
     membershipChanged(courseId, [email]);

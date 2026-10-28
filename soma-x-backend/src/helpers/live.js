@@ -186,7 +186,7 @@ async function checkSessions() {
         SELECT s.token_hash FROM sessions s JOIN users u ON u.id = s.user_id
         WHERE s.token_hash IN (${hashes.map(() => '?').join(',')}) AND s.revoked_at IS NULL AND s.expires_at > NOW()
           AND u.is_active = 1
-          AND s.last_seen_at > NOW() - (CASE WHEN s.shared_device = 1 THEN INTERVAL '30 minutes' ELSE INTERVAL '12 hours' END)
+          AND s.last_seen_at > NOW() - INTERVAL '30 minutes'
     `).all(...hashes);
     const valid = new Set(rows.map((r) => r.token_hash));
     for (const s of open) if (!valid.has(s.tokenHash)) close(s);

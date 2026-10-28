@@ -5,32 +5,39 @@ import { useRouter } from "next/navigation"
 import { X } from "lucide-react"
 import { useLanguage } from "@/context/LanguageContext"
 import GradeSelect from "@/components/teacher/GradeSelect"
-import { useQueryClient } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { apiFetch } from "@/lib/api"
 import { queryKeys } from "@/lib/queryKeys"
-import { Field, TextInput, Textarea } from "@/components/form";
+import { Field, Select, TextInput, Textarea } from "@/components/form";
 
 // Shared by every entry point that creates a course, so there's exactly one create-course UX.
 export default function CreateCourseModal({ onClose, onCreated }) {
   const queryClient = useQueryClient()
   const { t } = useLanguage()
   const router = useRouter()
-  const [form, setForm] = useState({ title: "", grade: "", description: "" })
+  const [form, setForm] = useState({ title: "", grade: "", subject: "", description: "" })
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+  // The classes and subjects the admin gave this teacher (the same kept profile as elsewhere).
+  const { data: profile } = useQuery({ queryKey: queryKeys.profile, queryFn: () => apiFetch("/users/profile/view") })
+  const classes = Array.isArray(profile?.teacher_classes) ? profile.teacher_classes : []
+  const subjects = Array.isArray(profile?.teacher_subjects) ? profile.teacher_subjects : []
 
-  const dirty = Boolean(form.title.trim() || form.grade.trim() || form.description.trim())
+  const dirty = Boolean(form.title.trim() || form.grade.trim() || form.subject.trim() || form.description.trim())
+  // Left empty, the title is the subject and class ("English · S1B").
+  const suggestedTitle = [form.subject.trim(), form.grade.trim()].filter(Boolean).join(" · ")
 
   const handleSubmit = async () => {
     const resolvedGrade = form.grade.trim()
-    if (!form.title.trim()) { setError(t("teacher.createCourse.titleRequired")); return }
+    const title = form.title.trim() || suggestedTitle
+    if (!title) { setError(t("teacher.createCourse.titleRequired")); return }
     if (!resolvedGrade) { setError(t("teacher.createCourse.gradeRequired")); return }
     setError("")
     setLoading(true)
     try {
       let data
       try {
-        data = await apiFetch("/courses", { method: "POST", json: { title: form.title.trim(), grade: resolvedGrade, description: form.description } })
+        data = await apiFetch("/courses", { method: "POST", json: { title, grade: resolvedGrade, subject: form.subject.trim() || null, description: form.description } })
       } catch (err) {
         if (err?.status === 0) throw err
         setError(err?.body?.message || t("teacher.createCourse.failed"))
@@ -60,15 +67,24 @@ export default function CreateCourseModal({ onClose, onCreated }) {
         </div>
 
         <div className="flex flex-col gap-3">
-          <Field label={t("teacher.createCourse.courseTitle")} required>
+          <Field label={t("teacher.createCourse.grade")} required>
+            <GradeSelect inField classes={classes} value={form.grade} onChange={(grade) => setForm((p) => ({ ...p, grade }))} />
+          </Field>
+          <Field label={t("teacher.createCourse.subject")}>
+            {subjects.length ? (
+              <Select value={form.subject} onChange={(e) => setForm((p) => ({ ...p, subject: e.target.value }))} placeholder={t("teacher.createCourse.chooseSubject")}>
+                {subjects.map((s) => <option key={s} value={s}>{s}</option>)}
+              </Select>
+            ) : (
+              <TextInput value={form.subject} onChange={(e) => setForm((p) => ({ ...p, subject: e.target.value }))} placeholder={t("teacher.createCourse.subjectPlaceholder")} />
+            )}
+          </Field>
+          <Field label={t("teacher.createCourse.courseTitle")} required={!suggestedTitle}>
             <TextInput aria-label={t("teacher.createCourse.courseTitle")}
-              placeholder={t("teacher.createCourse.titlePlaceholder")}
+              placeholder={suggestedTitle || t("teacher.createCourse.titlePlaceholder")}
               value={form.title}
               onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
             />
-          </Field>
-          <Field label={t("teacher.createCourse.grade")} required>
-            <GradeSelect value={form.grade} onChange={(grade) => setForm((p) => ({ ...p, grade }))} />
           </Field>
           <Field label={t("teacher.createCourse.description")}>
             <Textarea aria-label={t("teacher.createCourse.description")}

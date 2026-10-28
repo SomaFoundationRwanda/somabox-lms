@@ -10,6 +10,7 @@ import AsyncListState from "@/components/course/AsyncListState";
 import { PageHeader, DataTable } from "@/components/layout";
 import { useCourseText } from "@/components/course/useCourseText";
 import JoinCodePanel from "@/components/teacher/JoinCodePanel";
+import JoinRequests from "@/components/teacher/JoinRequests";
 import AddLearners from "@/components/teacher/AddLearners";
 import CredentialSheet from "@/components/teacher/CredentialSheet";
 import Modal from "@/components/ui/Modal";
@@ -40,7 +41,8 @@ export default function PeoplePage() {
   const lang = useLanguage();
   const l = (key) => lang.t(`teacher.learners.${key}`);
 
-  const filtered = Array.isArray(people) ? people.filter((p) => roleFilter === "all" || p.role === roleFilter) : people;
+  // Join requests are listed on their own (above), not as members.
+  const filtered = Array.isArray(people) ? people.filter((p) => p.status !== "pending" && (roleFilter === "all" || p.role === roleFilter)) : people;
 
   const { showToast } = useToast();
   const queryClient = useQueryClient();
@@ -90,7 +92,10 @@ export default function PeoplePage() {
           title={t("nav.people")}
           actions={isTeacher ? (
             <div className="flex items-center gap-2">
-              <button onClick={() => setAddingLearners(true)} className="flex items-center gap-1.5 text-caption font-semibold text-on-brand-strong bg-brand-strong hover:bg-brand-strong/90 rounded-lg px-3 py-2">
+              <button onClick={() => setAddingLearners("new")} className="flex items-center gap-1.5 text-caption font-semibold text-on-brand-strong bg-brand-strong hover:bg-brand-strong/90 rounded-lg px-3 py-2">
+                <KeyRound className="w-3.5 h-3.5" /> {lang.t("teacher.learnersPage.createAccounts")}
+              </button>
+              <button onClick={() => setAddingLearners(true)} className="flex items-center gap-1.5 text-caption font-semibold text-fg-muted border border-line hover:bg-surface-hover rounded-lg px-3 py-2">
                 <UserPlus className="w-3.5 h-3.5" /> {t("people.addLearners")}
               </button>
               <button onClick={() => setAdding((v) => !v)} className="flex items-center gap-1.5 text-caption font-semibold text-fg-muted border border-line hover:bg-surface-hover rounded-lg px-3 py-2">
@@ -101,6 +106,7 @@ export default function PeoplePage() {
         />
 
         {/* Learners join with the code; email is for the few who have one (and for staff). */}
+        {isTeacher ? <JoinRequests courseId={courseId} people={people} onChanged={peopleChanged} /> : null}
         {isCourseTeacher ? <JoinCodePanel courseId={courseId} isDraft={course?.lifecycle === "draft"} /> : null}
 
         {adding ? (
@@ -143,8 +149,8 @@ export default function PeoplePage() {
                   render: (person) => (
                     <div className="flex items-center justify-end gap-1">
                       {person.canResetPassword && (
-                        <button onClick={() => resetPassword(person)} aria-label={fill(l("resetNamed"), { name: person.fullName || person.learnerCode || "" })} title={l("resetPassword")} className="p-1.5 rounded-md hover:bg-surface-hover text-fg-muted">
-                          <KeyRound className="w-3.5 h-3.5" />
+                        <button onClick={() => resetPassword(person)} aria-label={fill(l("resetNamed"), { name: person.fullName || person.learnerCode || "" })} className="inline-flex items-center gap-1.5 text-caption font-semibold text-fg-muted border border-line hover:bg-surface-hover rounded-lg px-2.5 py-1.5 whitespace-nowrap">
+                          <KeyRound className="w-3.5 h-3.5" aria-hidden="true" /> {l("resetPassword")}
                         </button>
                       )}
                       {isCourseTeacher || person.role === "student" || person.role === "observer" ? (
@@ -162,7 +168,7 @@ export default function PeoplePage() {
       </div>
 
       {addingLearners && (
-        <AddLearners courseId={courseId} courseTitle={course?.title} onClose={() => setAddingLearners(false)} onChanged={refetch} />
+        <AddLearners courseId={courseId} courseTitle={course?.title} courseGrade={course?.grade || ""} initialTab={addingLearners === "new" ? "new" : undefined} onClose={() => setAddingLearners(false)} onChanged={refetch} />
       )}
       {resetDone && (
         <Modal title={fill(l("resetTitle"), { name: resetDone.fullName })} onClose={() => setResetDone(null)} size="lg" dirty>

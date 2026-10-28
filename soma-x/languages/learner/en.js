@@ -40,7 +40,7 @@ export default {
         "nav": {
             "tag": "Menu",
             "title": "Your menu",
-            "body": "Use the menu on the left to move between Dashboard, Courses, Library and your Account at any time."
+            "body": "Use the menu on the left to move between Dashboard, Subjects, Library and your Account at any time."
         },
         "finish": {
             "tag": "All done",
@@ -118,7 +118,8 @@ export default {
         "mandatory": "Required setup (step 1 of 3)",
         "continue": "Continue",
         "saving": "Saving profile…",
-        "finish": "Finish and start"
+        "finish": "Finish and start",
+        "later": "Later",
     },
     "practice": {
         "label": "Practice — doesn't count toward outcome mastery",
@@ -151,31 +152,31 @@ export default {
         "clearSearch": "Clear search"
     },
     "discover": {
-        "loadFailed": "Couldn't load the courses",
-        "joinFailed": "Couldn't join the course",
+        "loadFailed": "Couldn't load the subjects",
+        "joinFailed": "Couldn't join the subject",
         "code": {
           "title": "Join with a code",
           "help": "Type the code your teacher gave you.",
           "placeholder": "e.g. K7M4QX",
           "button": "Join",
           "errors": {
-            "INVALID_CODE": "No course has this code. Check it with your teacher.",
-            "NOT_OPEN": "This course isn't open yet. Ask your teacher.",
+            "INVALID_CODE": "No subject has this code. Check it with your teacher.",
+            "NOT_OPEN": "This subject isn't open yet. Ask your teacher.",
             "TOO_MANY": "Too many wrong codes. Wait a few minutes and try again."
           }
         },
-        "subtitle": "Browse public courses and join straight away — no invitation needed",
-        "empty": "No public courses are available right now. Check back later.",
+        "subtitle": "Browse public subjects and join straight away — no invitation needed",
+        "empty": "No public subjects are available right now. Check back later.",
         "oneEnrolled": "1 learner",
         "nEnrolled": "{n} learners",
         "joining": "Joining…",
-        "join": "Join course"
+        "join": "Join subject"
     },
     "account": {
         "dataDownloaded": "Your data was downloaded",
         "downloadFailed": "Download failed",
         "yourData": "Your data",
-        "yourDataHelp": "Download a file with everything this box holds about you: your profile, courses, work, results and usage logs.",
+        "yourDataHelp": "Download a file with everything this box holds about you: your profile, subjects, work, results and usage logs.",
         "preparing": "Preparing…",
         "downloadData": "Download my data",
         "hide": "Hide",
@@ -241,16 +242,16 @@ export default {
         "offlineBody": "Read books and materials in your Library at any time — no internet needed.",
         "browseLibrary": "Browse the Library",
         "settledTitle": "You're all set up!",
-        "settledBody": "Your account is ready. Your teacher will add you to your course soon — you don't need to do anything. Meanwhile, explore the learning materials in the Library.",
+        "settledBody": "Your account is ready. Your teacher will add you to your subject soon — you don't need to do anything. Meanwhile, explore the learning materials in the Library.",
         "tryPractice": "Try practice topics",
-        "myCourses": "My courses",
+        "myCourses": "My subjects",
         "view": {
-          "label": "Show my courses as",
+          "label": "Show my subjects as",
           "cards": "Cards",
           "byDate": "By date"
         },
         "upcoming": {
-          "hint": "What's due and what opens in your courses over the next 4 weeks.",
+          "hint": "What's due and what opens in your subjects over the next 4 weeks.",
           "empty": "Nothing due in the next 4 weeks.",
           "loadFailed": "Couldn't load what's coming up.",
           "open": "Open"
@@ -259,12 +260,12 @@ export default {
         "progress": "Progress",
         "noGradedWork": "No graded work yet",
         "continue": "Continue",
-        "publicCourses": "Explore public courses",
+        "publicCourses": "Explore public subjects",
         "quickAccess": "Quick access",
         "nJoined": "{n} joined",
         "notEnrolled": "Not enrolled yet",
         "viewWork": "See your work",
-        "discoverSub": "Browse and join public courses",
+        "discoverSub": "Browse and join public subjects",
         "interleaved": "Mixed review",
         "interleavedSub": "Practise on your own",
         "librarySub": "Books and materials"
@@ -285,9 +286,25 @@ export default {
         "revisitedMany": "You went over {n} questions from your finished lessons."
     },
     "courses": {
-        "subtitle": "The courses you're enrolled in.",
-        "joinCourse": "Join a course",
+        "subtitle": "The subjects you're enrolled in.",
+        "joinCourse": "Join a subject",
         "join": "Join",
-        "empty": "You're not enrolled in any courses yet. Ask your teacher for a course code."
-    }
+        "empty": "You're not enrolled in any subjects yet. Ask your teacher for a subject code."
+    },
+    "celebrate": {
+        "submittedTitle": "Well done! It's handed in.",
+        "submittedNext": "\"{title}\" is with your teacher. Keep going with the next one.",
+        "submittedDone": "\"{title}\" is with your teacher. You're all caught up!",
+        "firstTitle": "Your first piece of work!",
+        "firstMessage": "You've started: every piece of work you hand in shows your teacher how you're growing.",
+        "milestoneTitle": "{n} pieces of work handed in!",
+        "milestoneMessage": "What a milestone. Your effort adds up: keep it going.",
+        "next": "Next: {title}",
+        "start": "Start now",
+        "dashboard": "My dashboard",
+        "welcome": "Welcome back!",
+        "welcomeNamed": "Welcome back, {name}!",
+        "welcomeNext": "Thank you for coming back. Next for you: \"{title}\".",
+        "welcomeDone": "Thank you for coming back. You're all caught up: well done!",
+    },
 };

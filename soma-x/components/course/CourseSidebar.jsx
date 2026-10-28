@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  UsersRound,
   BarChart3,
   BookOpen,
   ChevronDown,
@@ -48,17 +49,19 @@ const NAV_ICONS = {
   settings: SettingsIcon,
   insights: BarChart3,
   attendance: ClipboardCheck,
+  groups: UsersRound,
   ai: Sparkles,
 };
 
 // Teachers see what they use every week first; the rest (Settings and AI drafts too) sit under
 // "More" so a new teacher isn't faced with 19 links. Order within each group follows the course's
 // nav order.
-const TEACHER_CORE = new Set(["home", "modules", "outcomes", "grades", "people", "announcements", "attendance"]);
+const TEACHER_CORE = new Set(["home", "modules", "assignments", "quizzes", "discussions", "outcomes", "grades", "people", "groups", "announcements", "attendance"]);
 // Learners: the course week by week, their grades and the news; the rest under "More".
-const LEARNER_CORE = new Set(["home", "modules", "grades", "announcements"]);
+const LEARNER_CORE = new Set(["home", "modules", "grades", "groups", "announcements"]);
 const MORE_KEY = "somabox.courseNav.moreOpen";
-const WEEK_LISTS = new Set(["pages", "assignments", "quizzes", "discussions"]);
+// In no one's menu: rubrics are on their assignment's page, and pages are opened from Weeks.
+const NOT_IN_MENU = new Set(["rubrics", "pages"]);
 // Learners can still open these, but not from the menu: pages are in Weeks, outcomes on My
 // progress, their attendance on Grades. Fewer links when they open a course.
 export const NOT_IN_LEARNER_MENU = new Set(["pages", "outcomes", "attendance"]);
@@ -67,11 +70,10 @@ function useVisibleNav() {
   const { courseId, nav, isTeacher, isCourseTeacher, adminView } = useCourse();
   // The server already leaves out what a learner, observer or admin can't open. Settings run the
   // course: only its teachers see them, not assistants.
-  // Teachers find pages, assignments, quizzes and discussions on Weeks (with a filter), so those
-  // four lists stay in learners' menus only. Learners' menus leave out NOT_IN_LEARNER_MENU.
+  // Nobody's menu has NOT_IN_MENU; learners' menus also leave out NOT_IN_LEARNER_MENU.
   const visibleNav = nav.filter((item) => (isTeacher || item.visibleToStudents || adminView)
     && (item.navKey !== "settings" || isCourseTeacher)
-    && !(isTeacher && WEEK_LISTS.has(item.navKey))
+    && !NOT_IN_MENU.has(item.navKey)
     && (isTeacher || adminView || !NOT_IN_LEARNER_MENU.has(item.navKey)));
   return { courseId, isTeacher, visibleNav };
 }

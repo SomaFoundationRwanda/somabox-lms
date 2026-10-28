@@ -13,6 +13,7 @@ import { startTestServer, USERS, PASSWORD } from "./helpers.js";
 const POLICY = {
   "POST /auth/login": "public",
   "POST /auth/register": "public",
+  "GET /auth/classes": "public",
   "GET /setup/status": "public",
   "POST /setup": "public",
   "GET /auth/me": "any",
@@ -116,6 +117,7 @@ const POLICY = {
   // Course routes that aren't about one existing course the caller belongs to.
   "POST /courses": "staff",
   "GET /courses/mine": "any",
+  "GET /courses/mine/learners": "staff",
   "GET /courses/public": "public", // catalogue guests may browse
   "GET /courses/all": "admin",
   "PUT /courses/:id/teacher": "admin",
@@ -279,14 +281,14 @@ test("course items can't be edited through another course", async () => {
 });
 
 test("register creates a scholar with a session, never another role", async () => {
-  const res = await ctx.api("POST", "/auth/register", { body: { email: "New.Learner@test.local", password: "secret123", fullName: "New Learner", role: "admin" } });
+  const res = await ctx.api("POST", "/auth/register", { body: { email: "New.Learner@test.local", password: "secret123", fullName: "New Learner", role: "admin", className: "S1B" } });
   assert.equal(res.status, 201, JSON.stringify(res.body));
   assert.equal(res.body.user.role, "scholar");
   const me = await ctx.api("GET", "/auth/me", { token: res.body.token });
   assert.equal(me.status, 200);
   assert.equal(me.body.user.email, "new.learner@test.local");
 
-  const dup = await ctx.api("POST", "/auth/register", { body: { email: "new.learner@test.local", password: "secret123" } });
+  const dup = await ctx.api("POST", "/auth/register", { body: { email: "new.learner@test.local", password: "secret123", className: "S1B" } });
   assert.equal(dup.status, 409);
 });
 
@@ -380,23 +382,27 @@ test("one device address is limited across accounts, and a correct sign-in clear
   resetLoginThrottle();
 });
 
-test("a shared-device session ends after 30 idle minutes; a normal one doesn't", async () => {
-  const shared = await ctx.api("POST", "/auth/login", { body: { email: USERS.otherTeacher.email, password: PASSWORD, sharedDevice: true } });
-  assert.equal(shared.status, 200);
-  assert.equal(shared.body.sharedDevice, true);
-  // Its media cookie is dropped when the browser closes too.
-  const cookieOf = async (sharedDevice) => (await fetch(`${ctx.baseUrl}/auth/login`, {
+test("every session ends after 30 idle minutes and 12 hours at most, without anyone ticking a box", async () => {
+  const login = await ctx.api("POST", "/auth/login", { body: { email: USERS.otherTeacher.email, password: PASSWORD } });
+  assert.equal(login.status, 200);
+  // The media cookie is dropped when the browser closes.
+  const cookie = (await fetch(`${ctx.baseUrl}/auth/login`, {
     method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email: USERS.otherTeacher.email, password: PASSWORD, sharedDevice }),
+    body: JSON.stringify({ email: USERS.otherTeacher.email, password: PASSWORD }),
   })).headers.get("set-cookie") || "";
-  assert.doesNotMatch(await cookieOf(true), /Max-Age/i);
-  assert.match(await cookieOf(false), /Max-Age/i);
-  const normal = await ctx.login(USERS.otherTeacher.email);
+  assert.match(cookie, /somabox|media/i);
+  assert.doesNotMatch(cookie, /Max-Age/i);
+  const active = await ctx.login(USERS.otherTeacher.email);
+  const row = await ctx.db.prepare("SELECT expires_at, created_at FROM sessions ORDER BY id DESC LIMIT 1").get();
+  assert.ok(new Date(row.expires_at) - new Date(row.created_at) <= 12 * 60 * 60 * 1000 + 5000, "sessions last 12 hours at most");
+
+  // 29 idle minutes: still signed in (and the request counts as activity).
+  await ctx.db.prepare("UPDATE sessions SET last_seen_at = NOW() - INTERVAL '29 minutes' WHERE user_id = (SELECT id FROM users WHERE email = ?)").run(USERS.otherTeacher.email);
+  assert.equal((await ctx.api("GET", "/auth/me", { token: active })).status, 200);
+  // 31 idle minutes: signed out.
   await ctx.db.prepare("UPDATE sessions SET last_seen_at = NOW() - INTERVAL '31 minutes' WHERE user_id = (SELECT id FROM users WHERE email = ?)").run(USERS.otherTeacher.email);
-  assert.equal((await ctx.api("GET", "/auth/me", { token: shared.body.token })).status, 401);
-  assert.equal((await ctx.api("GET", "/auth/me", { token: normal })).status, 200);
-  const row = await ctx.db.prepare("SELECT expires_at, created_at FROM sessions WHERE shared_device = 1 ORDER BY id DESC LIMIT 1").get();
-  assert.ok(new Date(row.expires_at) - new Date(row.created_at) <= 12 * 60 * 60 * 1000 + 5000, "shared sessions last 12 hours at most");
+  assert.equal((await ctx.api("GET", "/auth/me", { token: login.body.token })).status, 401);
+  assert.equal((await ctx.api("GET", "/auth/me", { token: active })).status, 401);
 });
 
 test("an admin-created account must change its temporary password; its profile is the person's own", async () => {
@@ -410,7 +416,9 @@ test("an admin-created account must change its temporary password; its profile i
   assert.equal(login.body.user.must_change_password, true);
   assert.equal((await ctx.api("GET", "/courses/mine", { token: login.body.token })).body.code, "PASSWORD_CHANGE_REQUIRED");
   const profile = await ctx.api("GET", "/users/profile/view", { token: login.body.token });
-  assert.equal(profile.body.isProfileComplete, false, "the teacher answers their own profile");
+  // Teachers get no first-visit questions (the admin enters their classes and subjects), and
+  // the admin still can't answer the personal ones for them.
+  assert.equal(profile.body.isProfileComplete, true, "teachers aren't asked first-visit questions");
   assert.notEqual(profile.body.disability_status, "visual", "the admin can't answer for them");
 });
 
@@ -423,13 +431,13 @@ test("signing out everywhere else keeps only this session", async () => {
   assert.equal((await ctx.api("GET", "/auth/me", { token: here })).status, 200);
 });
 
-test("gender is male, female or other: 'prefer not to say' isn't an answer, and the reminder follows the profile form", async () => {
+test("gender is male or female: 'prefer not to say' or 'other' isn't an answer, and the reminder follows the profile form", async () => {
   const token = ctx.tokens.outsider;
   const finish = (gender) => ctx.api("PATCH", "/users/profile/update", { token, body: { gender, disabilityStatus: "none", gradeLevel: "Primary 4", completeProfile: true } });
-  for (const gender of ["prefer_not_to_say", "non_binary", ""]) assert.equal((await finish(gender)).status, 400, gender);
+  for (const gender of ["prefer_not_to_say", "non_binary", "other", ""]) assert.equal((await finish(gender)).status, 400, gender);
   const before = await ctx.api("GET", "/notifications", { token });
   assert.equal(before.body.isProfileIncomplete, true);
-  assert.equal((await finish("other")).status, 200);
+  assert.equal((await finish("female")).status, 200);
   assert.equal((await ctx.api("GET", "/users/profile/view", { token })).body.isProfileComplete, true);
   assert.equal((await ctx.api("GET", "/notifications", { token })).body.isProfileIncomplete, false);
 });

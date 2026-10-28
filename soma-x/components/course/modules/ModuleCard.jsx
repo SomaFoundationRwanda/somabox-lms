@@ -3,8 +3,9 @@
 import { useState, lazy, Suspense } from "react";
 import Link from "next/link";
 import {
-  EyeOff, Trash2, GripVertical, Plus, ChevronDown, ChevronRight, Pencil, Sparkles, Check, BookOpenText,
+  EyeOff, Trash2, GripVertical, Plus, ChevronDown, ChevronRight, Pencil, Sparkles, Check, BookOpenText, CalendarDays,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import ActionMenu from "@/components/ui/ActionMenu";
 import ModuleItemRow from "./ModuleItemRow";
@@ -44,7 +45,11 @@ export default function ModuleCard({
   itemFilter = "all", // Weeks filter: show only this kind of item ("all" = everything, draggable)
   weeks = [], // every week of the course (to move an item to another one)
   defaultCollapsed = false, // learners: only the week they're in starts open
+  isFirstWeek = false, // the course's first regular week: its date is the course's start date (Settings)
 }) {
+  const router = useRouter();
+  // Changing the week's start date: { date, error, code } while the dialog is open.
+  const [dateEdit, setDateEdit] = useState(null);
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState(moduleRow.title);
@@ -129,6 +134,23 @@ export default function ModuleCard({
     const error = await send(`/courses/${courseId}/modules/${moduleRow.id}`, { method: "DELETE", json: {} }, t("modules.errors.deleteModule"));
     if (error) showToast(error, "error");
     onRefetch();
+  };
+
+  // Week 1 starts on the course's start date: moving it moves every week, so it's done in Settings.
+  const changeDate = () => {
+    if (isFirstWeek) { router.push(`/course/${courseId}/settings#course-dates`); return; }
+    setDateEdit({ date: moduleRow.startDate || "", error: "", code: "" });
+  };
+  const saveDate = async () => {
+    if (!dateEdit?.date) return;
+    try {
+      await apiFetch(`/courses/${courseId}/modules/${moduleRow.id}`, { method: "PATCH", json: { startDate: dateEdit.date } });
+      setDateEdit(null);
+      showToast(t("modules.dateChanged"), "success");
+      onRefetch();
+    } catch (err) {
+      setDateEdit((d) => ({ ...d, error: err?.status === 0 ? getErrorMessage(err) : err?.body?.message || t("modules.errors.updateModule"), code: err?.body?.code || "" }));
+    }
   };
 
   const saveTitle = async () => {
@@ -290,6 +312,7 @@ export default function ModuleCard({
                 label={tf("modules.weekActions", { title: isUnassigned ? heading : moduleRow.title })}
                 items={[
                   isUnassigned ? null : { key: "rename", label: t("modules.renameModule"), icon: Pencil, onSelect: () => { setTitleDraft(moduleRow.title); setEditingTitle(true); } },
+                  isUnassigned ? null : { key: "date", label: isFirstWeek ? t("modules.changeCourseStart") : t("modules.changeDate"), icon: CalendarDays, onSelect: changeDate },
                   isUnassigned ? null : ai?.status?.allowed
                     ? { key: "fill", label: fillRunning ? t("modules.ai.filling") : t("modules.ai.fillWeekMenu"), icon: Sparkles, onSelect: startFillWeek, disabled: aiBusy === "fill_week" || fillRunning }
                     : ai?.status && !ai.status.loading && ai.status.reason ? { key: "ai-off", label: t("modules.ai.off"), icon: Sparkles, disabled: true } : null,
@@ -303,6 +326,28 @@ export default function ModuleCard({
           )}
         </div>
       </div>
+
+      {isTeacher && dateEdit ? (
+        <Modal title={tf("modules.changeDateFor", { week: weekLabel(moduleRow) })} onClose={() => setDateEdit(null)} dirty>
+          <div className="space-y-3">
+            <Field id={`week-date-${moduleRow.id}`} label={t("modules.weekStarts")} hint={moduleRow.kind === "baseline" ? t("modules.baselineDateHint") : t("modules.weekDateHint")}>
+              <TextInput type="date" value={dateEdit.date} onChange={(e) => setDateEdit((d) => ({ ...d, date: e.target.value, error: "" }))} />
+            </Field>
+            {dateEdit.error ? (
+              <div role="alert" className="text-caption text-danger-fg bg-danger-soft border border-danger/30 rounded-lg px-3 py-2 space-y-1">
+                <p className="font-semibold">{dateEdit.error}</p>
+                {["BEFORE_START", "BASELINE_RANGE", "FIRST_WEEK", "NO_START"].includes(dateEdit.code) ? (
+                  <Link href={`/course/${courseId}/settings#course-dates`} className="font-bold underline">{t("modules.openDateSettings")} &rarr;</Link>
+                ) : null}
+              </div>
+            ) : null}
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="ghost" onClick={() => setDateEdit(null)}>{t("common.cancel")}</Button>
+              <Button type="button" onClick={saveDate} disabled={!dateEdit.date}>{t("modules.saveDate")}</Button>
+            </div>
+          </div>
+        </Modal>
+      ) : null}
 
       {isTeacher && storyOpen ? (
         <form onSubmit={startStory} className="flex flex-wrap items-end gap-2 px-5 py-3 border-b border-line">

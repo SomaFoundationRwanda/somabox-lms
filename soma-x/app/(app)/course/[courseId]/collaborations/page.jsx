@@ -57,7 +57,6 @@ export default function CollaborationsPage() {
       <div className="p-4 md:p-6 space-y-6 max-w-2xl">
         <PageHeader help="pages.collaborations"
           title={t("nav.collaborations")}
-          description={isTeacher ? t("collab.description") : undefined}
           actions={canTakePart ? (
             <Button onClick={() => setCreating((v) => !v)} className="h-9 gap-1.5">
               <Plus className="w-3.5 h-3.5" /> {t("collab.new")}

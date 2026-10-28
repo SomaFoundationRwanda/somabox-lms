@@ -116,7 +116,8 @@ test("observers and admins read the course but don't post in it; learners post o
     assert.equal((await as("POST", `/courses/${id}/discussions`, discussion)).status, 403, `${who} starts a discussion`);
     assert.equal((await as("POST", `/courses/${id}/discussions/${c.discussion.content_id}/replies`, { body: "x" })).status, 403, `${who} replies`);
   }
-  assert.equal((await asStudent("POST", `/courses/${id}/discussions`, discussion)).status, 201, "a learner starts a discussion");
+  assert.equal((await asStudent("POST", `/courses/${id}/discussions`, discussion)).status, 403, "learners reply; teachers start discussions");
+  assert.equal((await asStudent("POST", `/courses/${id}/discussions/${c.discussion.content_id}/replies`, { body: "x" })).status, 201, "a learner replies");
 
   // Collaborations are hidden from learners by default: nobody but staff adds one there.
   const collab = { title: "Board", url: "https://example.org" };

@@ -15,17 +15,19 @@ function safeInternalLink(link) {
 }
 
 /**
- * Helper utility to create a system notification
+ * Helper utility to create a system notification. `key` and `params`: the text's key under
+ * shell.notifications.kinds (with {placeholders} filled from params), shown in the reader's
+ * language; title and message are the English, kept as the fallback.
  */
-export async function createNotification({ userEmail, title, message, type = 'system', link = null }) {
+export async function createNotification({ userEmail, title, message, type = 'system', link = null, key = null, params = null }) {
     if (!userEmail) return null;
     const normalizedEmail = userEmail.trim().toLowerCase();
     try {
         const stmt = localDb.prepare(`
-            INSERT INTO user_notifications (user_email, title, message, type, link)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO user_notifications (user_email, title, message, type, link, text_key, text_params)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         `);
-        const info = await stmt.run(normalizedEmail, title, message, type, link);
+        const info = await stmt.run(normalizedEmail, title, message, type, link, key, params ? JSON.stringify(params) : null);
         publish({ kind: 'notifications' }, { emails: [normalizedEmail] });
         return info.lastInsertRowid;
     } catch (err) {
@@ -63,7 +65,7 @@ router.get('/', async (req, res) => {
 
         // 2. Fetch all notifications for user
         const notifications = await localDb.prepare(`
-            SELECT id, user_email, title, message, type, link, is_read, created_at
+            SELECT id, user_email, title, message, type, link, is_read, created_at, text_key, text_params
             FROM user_notifications
             WHERE LOWER(user_email) = LOWER(?)
             ORDER BY created_at DESC

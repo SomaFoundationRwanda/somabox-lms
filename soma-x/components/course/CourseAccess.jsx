@@ -67,6 +67,20 @@ export function NotEnrolled({ courseId, notEnrolled }) {
     }
   };
 
+  // Joined with the course's code: the teacher hasn't let them in yet.
+  if (notEnrolled?.code === "PENDING") {
+    return (
+      <Panel title={course?.title || t("access.pendingTitle")}>
+        <Text tone="muted">{t("access.pendingText")}</Text>
+        <div className="pt-2">
+          <Button asChild variant="outline">
+            <Link href="/manage/scholar-dashboard">{t("access.backToDashboard")}</Link>
+          </Button>
+        </div>
+      </Panel>
+    );
+  }
+
   if (course) {
     return (
       <Panel title={course.title}>

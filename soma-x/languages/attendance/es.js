@@ -2,7 +2,7 @@
 export default {
   title: "Asistencia",
   description: "Pase lista en clase y luego vea quién ha venido.",
-  descriptionAdmin: "Las listas y la asistencia de este curso. Solo los docentes del curso pueden pasar lista.",
+  descriptionAdmin: "Las listas y la asistencia de esta asignatura. Solo los docentes de la asignatura pueden pasar lista.",
   loadFailed: "No se pudo cargar la asistencia.",
 
   // Statuses
@@ -34,7 +34,7 @@ export default {
   // The register
   registerRegion: "Lista",
   registerHint: "Toque una letra para cada estudiante. Tóquela otra vez para borrarla.",
-  readOnlyHint: "Puede ver esta lista, pero solo los docentes del curso pueden marcarla.",
+  readOnlyHint: "Puede ver esta lista, pero solo los docentes de la asignatura pueden marcarla.",
   registerListLabel: "Estudiantes de {title}",
   statusFor: "Asistencia de {name}",
   markAllPresent: "Marcar a todos presentes",

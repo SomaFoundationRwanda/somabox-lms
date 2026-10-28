@@ -31,19 +31,19 @@ export default {
         "analyticsSection": "Takwimu za ufikiaji, ujumuishi na ukuaji",
         "adminReserved": "Kwa msimamizi pekee",
         "openAnalytics": "Fungua takwimu zote",
-        "coursesTitle": "Kozi",
-        "coursesDescription": "Kozi zote kwenye kifaa hiki, pamoja na mwalimu na wanafunzi",
+        "coursesTitle": "Masomo",
+        "coursesDescription": "Masomo yote kwenye kifaa hiki, pamoja na mwalimu na wanafunzi",
         "usersDescription": "Simamia majukumu na vitambulisho"
     },
     "courses": {
-        "loadFailed": "Imeshindwa kupakia kozi",
-        "emptyTitle": "Bado hakuna kozi",
-        "emptyText": "Kozi huonekana hapa mwalimu akiunda moja.",
+        "loadFailed": "Imeshindwa kupakia masomo",
+        "emptyTitle": "Bado hakuna masomo",
+        "emptyText": "Masomo huonekana hapa mwalimu akiunda moja.",
         "searchPlaceholder": "Tafuta kwa jina, msimbo au mwalimu",
-        "searchLabel": "Tafuta kozi",
-        "caption": "Kozi zote",
-        "noMatch": "Hakuna kozi inayolingana na utafutaji wako.",
-        "colCourse": "Kozi",
+        "searchLabel": "Tafuta masomo",
+        "caption": "Masomo yote",
+        "noMatch": "Hakuna somo linalolingana na utafutaji wako.",
+        "colCourse": "Somo",
         "code": "Msimbo {code}",
         "colTeacher": "Mwalimu",
         "colStatus": "Hali",
@@ -53,14 +53,14 @@ export default {
         "changeTeacher": "Badilisha mwalimu",
         "changeTeacherTitle": "Mwalimu wa {course}",
         "currentTeachers": "Inafundishwa na {teachers}.",
-        "noTeacherNow": "Hakuna mwalimu hai anayefundisha kozi hii sasa.",
+        "noTeacherNow": "Hakuna mwalimu hai anayefundisha somo hili sasa.",
         "newTeacher": "Mwalimu mpya",
         "chooseTeacher": "Chagua mwalimu…",
-        "removeOthers": "Ondoa walimu wa sasa kwenye kozi hii",
+        "removeOthers": "Ondoa walimu wa sasa kwenye somo hili",
         "saveTeacher": "Hifadhi",
         "teacherChanged": "{course} ina mwalimu wake mpya",
         "changeTeacherFailed": "Imeshindwa kubadilisha mwalimu",
-        "adminViewNote": "Unatazama kozi hii kama msimamizi: unaweza kusoma kila kitu lakini huwezi kubadilisha.",
+        "adminViewNote": "Unatazama somo hili kama msimamizi: unaweza kusoma kila kitu lakini huwezi kubadilisha.",
         "adminViewLink": "Rudi kwenye lango la msimamizi",
         "lifecycle": {
             "draft": "Rasimu",
@@ -89,10 +89,10 @@ export default {
     },
     "ai": {
         "features": {
-            "fill_week": "Jaza wiki",
+            "fill_week": "Jaza funzo",
             "story": "Hadithi",
             "quiz": "Jaribio",
-            "outline": "Muhtasari wa kozi",
+            "outline": "Muhtasari wa somo",
             "outcome_rewrite": "Kuandika upya lengo",
             "rubric": "Rubriki",
             "grading": "Pendekezo la alama",
@@ -103,7 +103,7 @@ export default {
             "quiz": "Jaribio",
             "assignment": "Kazi",
             "story": "Hadithi",
-            "outline": "Muhtasari wa kozi",
+            "outline": "Muhtasari wa somo",
             "outcome": "Lengo",
             "rubric": "Rubriki",
             "grading": "Pendekezo la alama"
@@ -115,7 +115,7 @@ export default {
         "userOff": "AI imezimwa kwa {name}",
         "pickFromList": "Chagua mwalimu au msimamizi kwenye orodha.",
         "unknown": "Haijulikani",
-        "description": "Walimu na wasimamizi wanaweza kutumia AI kuandaa maudhui ya kozi, rubriki na mapendekezo ya alama. Kila inachoandika ni rasimu ambayo mwalimu lazima aidhinishe kisha achapishe.",
+        "description": "Walimu na wasimamizi wanaweza kutumia AI kuandaa maudhui ya masomo, rubriki na mapendekezo ya alama. Kila inachoandika ni rasimu ambayo mwalimu lazima aidhinishe kisha achapishe.",
         "schoolSwitch": "Swichi ya shule nzima",
         "isOn": "Msaidizi wa AI amewashwa kwa shule hii.",
         "isOff": "Msaidizi wa AI amezimwa kwa kila mtu shuleni hii.",
@@ -138,7 +138,7 @@ export default {
         "colTokens": "Tokeni",
         "colAvg": "Sekunde (wastani)",
         "draftsTitle": "Kilichotokea kwa rasimu",
-        "draftsHelp": "Kwa kila aina: imeongezwa kwenye kozi kama ilivyoandikwa, imeongezwa baada ya mwalimu kuihariri, imekataliwa, au bado inasubiri.",
+        "draftsHelp": "Kwa kila aina: imeongezwa kwenye somo kama ilivyoandikwa, imeongezwa baada ya mwalimu kuihariri, imekataliwa, au bado inasubiri.",
         "draftsCaption": "Rasimu za AI kwa matokeo",
         "noDrafts": "Hakuna rasimu katika kipindi hiki.",
         "colType": "Aina",
@@ -151,13 +151,13 @@ export default {
         "events": {
             "explainer_opened": "Msaada (\"Hiki ni nini?\") umefunguliwa",
             "create_helper_used": "Msaidizi wa kuunda ametumika",
-            "course_opened": "Kozi imefunguliwa",
-            "item_opened": "Kipengele kimefunguliwa (ukurasa, kazi, jaribio, mjadala)",
+            "course_opened": "Somo limefunguliwa",
+            "item_opened": "Nyenzo imefunguliwa (ukurasa, kazi, jaribio, mjadala)",
             "insights_viewed": "Takwimu zimetazamwa (walimu)",
             "progress_viewed": "\"Maendeleo yangu\" yametazamwa (wanafunzi)",
             "grading_time": "Usahihishaji uliopimwa muda",
             "ai_suggestion_used": "Pendekezo la alama la AI limehifadhiwa",
-            "item_edited_after_publish": "Kipengele kimehaririwa baada ya kuchapishwa"
+            "item_edited_after_publish": "Nyenzo imehaririwa baada ya kuchapishwa"
         },
         "seconds": "Sekunde {s}",
         "minSec": "Dakika {m} sekunde {s}",
@@ -178,16 +178,16 @@ export default {
         "totals": "Jumla",
         "learners": "Wanafunzi",
         "teachers": "Walimu",
-        "runningCourses": "Kozi zinazoendelea",
+        "runningCourses": "Masomo yanayoendelea",
         "stillDraft": "{count} bado ni rasimu",
         "withResults": "Wanafunzi wenye matokeo",
         "xOfY": "{x} kati ya {y}",
-        "inRunning": "katika kozi zinazoendelea",
+        "inRunning": "katika masomo yanayoendelea",
         "active7": "Walio hai siku 7 zilizopita",
         "learnersLower": "wanafunzi",
-        "coursesHelp": "Kozi zilizochapishwa na zilizoisha. Chagua kozi kufungua uchanganuzi wake.",
-        "noRunning": "Bado hakuna kozi zinazoendelea.",
-        "noRunningHelp": "Kozi zinaonekana hapa zikishachapishwa.",
+        "coursesHelp": "Masomo yaliyochapishwa na yaliyoisha. Chagua somo kufungua uchanganuzi wake.",
+        "noRunning": "Bado hakuna masomo yanayoendelea.",
+        "noRunningHelp": "Masomo yanaonekana hapa yakishachapishwa.",
         "colWithResults": "Wenye matokeo",
         "colMastery": "Umahiri wa wastani",
         "colDelta": "Mabadiliko dhidi ya awali",
@@ -204,7 +204,7 @@ export default {
         "fromTimed": "kutoka usahihishaji {count} uliopimwa (kufungua kazi ya mwanafunzi hadi kuhifadhi alama)",
         "noTimed": "Bado hakuna usahihishaji uliopimwa",
         "editsAfter": "Mabadiliko baada ya kuchapisha",
-        "editsAfterHelp": "mabadiliko kwa vipengele ambavyo wanafunzi walikuwa wanaviona",
+        "editsAfterHelp": "mabadiliko kwa nyenzo ambazo wanafunzi walikuwa wanaziona",
         "productUse": "Matumizi",
         "productUseCaption": "Matumizi, siku {days} zilizopita",
         "noUsage": "Hakuna matumizi yaliyorekodiwa katika kipindi hiki.",
@@ -292,16 +292,16 @@ export default {
         },
         "scope": {
             "courses": {
-                "label": "Kozi na malengo",
-                "help": "Majina ya kozi, wiki, kurasa, majaribio, kazi na malengo yanayofundishwa."
+                "label": "Masomo na mafunzo",
+                "help": "Masomo, vitengo, mafunzo, majaribio na kazi pamoja na aina zake (jaribio la awali, mitihani…), na malengo yanayofundishwa. Kurasa hutumwa bila maandishi yake."
             },
             "enrollments": {
                 "label": "Usajili",
-                "help": "Nani yuko kwenye kozi ipi, kama mwalimu au mwanafunzi."
+                "help": "Nani yuko kwenye somo lipi, kama mwalimu au mwanafunzi."
             },
             "grades": {
-                "label": "Alama na matokeo ya majaribio",
-                "help": "Alama za kazi na za majaribio."
+                "label": "Matokeo",
+                "help": "Kila alama: majaribio ya awali, majaribio mafupi, kazi na mitihani mingine, na jinsi kila mwanafunzi anavyoendelea kwa muda."
             },
             "outcomeResults": {
                 "label": "Matokeo ya malengo",
@@ -312,8 +312,8 @@ export default {
                 "help": "Nani alikuwepo, alichelewa, hakuwepo au alikuwa na ruhusa katika kila orodha ya darasa."
             },
             "events": {
-                "label": "Matukio ya matumizi",
-                "help": "Kurasa na zana zinazofunguliwa, ili timu ione kinachosaidia. Hakuna kazi zilizoandikwa."
+                "label": "Shughuli",
+                "help": "Wakati kila mwanafunzi na mwalimu anaingia na yuko hai, masomo na mafunzo anayofungua, anachomaliza na majibu yake kwenye majadiliano. Hakuna kazi zilizoandikwa."
             }
         },
         "peopleOptions": {
@@ -378,7 +378,11 @@ export default {
         "scopeHelp": "Kilichochaguliwa hapa tu ndicho hutumwa kwenye wingu. Kila kitu kingine hubaki kwenye kifaa hiki.",
         "boxId": "Kitambulisho cha kifaa (kwa msaada):",
         "sendsBy": "hutuma kupitia {via}",
-        "webAddress": "anwani ya wavuti"
+        "webAddress": "anwani ya wavuti",
+        "alwaysSent": "Hutumwa kila mara",
+        "alwaysSentHelp": "Rekodi ya ujifunzaji ambayo programu inaripoti. Haiwezi kuzimwa, na kilichorekodiwa awali pia hutumwa.",
+        "yourChoice": "Chaguo lako",
+        "filesStay": "Faili na video haziondoki kamwe kwenye kisanduku hiki.",
     },
     "library": {
         "uploadFailed": "Kupakia kumeshindwa.",
@@ -442,7 +446,7 @@ export default {
         "provinceDistrict": "Mkoa na wilaya",
         "na": "Haipo",
         "locationType": "Aina ya mahali",
-        "rural": "Mwanafunzi wa kijijini",
+        "rural": "Kijijini",
         "urban": "Mjini / nusu mjini",
         "disability": "Hali ya ulemavu",
         "none": "Hakuna",
@@ -455,9 +459,17 @@ export default {
         "pending": "Inasubiri",
         "caughtUp": "Umemaliza yote!",
         "noPending": "Hakuna marudio yanayosubiri.",
-        "enrolled": "Kozi alizojiunga",
-        "notEnrolled": "Hajajiunga na kozi yoyote",
-        "notEnrolledHelp": "Mwanafunzi huyu bado hajajiunga na kozi yoyote inayoendelea."
+        "enrolled": "Masomo aliyojiunga",
+        "notEnrolled": "Hajajiunga na somo lolote",
+        "notEnrolledHelp": "Mwanafunzi huyu bado hajajiunga na somo lolote linaloendelea.",
+        "work": "Shule na ufundishaji",
+        "classesTaught": "Madarasa anayofundisha",
+        "subjectsTaught": "Fani za masomo anazofundisha",
+        "noneYet": "Bado hakuna",
+        "annexClasses": "Madarasa ya ziada",
+        "teaching": "Masomo yake kwenye kifaa hiki",
+        "notTeaching": "Bado hafundishi somo lolote",
+        "notTeachingHelp": "Masomo ambayo mwalimu huyu anaunda au anaongezwa kama mwalimu yanaonekana hapa.",
     },
     "users": {
         "resetPassword": "Weka upya nenosiri",
@@ -472,7 +484,7 @@ export default {
         "loadListFailed": "Imeshindwa kupakia orodha ya watumiaji",
         "statusFailed": "Imeshindwa kubadilisha hali",
         "reactivated": "Mtumiaji {name} amewezeshwa tena",
-        "coursesWithoutTeacher": "Kozi hizi hazina mwalimu sasa: {courses}. Zipe mwalimu chini ya Kozi (Badilisha mwalimu).",
+        "coursesWithoutTeacher": "Masomo haya hayana mwalimu sasa: {courses}. Yape mwalimu chini ya Masomo (Badilisha mwalimu).",
         "deactivated": "Mtumiaji {name} amezimwa",
         "deleteFailed": "Imeshindwa kufuta mtumiaji",
         "deleted": "Mtumiaji amefutwa kabisa",
@@ -577,7 +589,17 @@ export default {
         "hidePassword": "Ficha nenosiri",
         "showPassword": "Onyesha nenosiri",
         "saving": "Inahifadhi…",
-        "update": "Sasisha mtumiaji"
+        "update": "Sasisha mtumiaji",
+        "classes": "Madarasa anayofundisha",
+        "classesHint": "Majina ya shule, mf. P1, S1B, S3C. Bonyeza Enter baada ya kila moja.",
+        "classesPlaceholder": "mf. S1B",
+        "subjects": "Fani za masomo anazofundisha",
+        "subjectsHint": "mf. Kiingereza, Hisabati, Fizikia. Bonyeza Enter baada ya kila moja.",
+        "subjectsPlaceholder": "mf. Kiingereza",
+        "remove": "Ondoa",
+        "staffCode": "Msimbo wa mfanyakazi",
+        "staffCodeHelp": "Mpe mwalimu msimbo huu. Anaweza kuingia kwa {code} badala ya barua pepe yake.",
+        "optionalParen": "(si lazima)",
     },
     "profile": {
         "inactiveAccount": "Akaunti isiyo hai",

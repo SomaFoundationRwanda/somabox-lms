@@ -89,7 +89,7 @@ export default {
     },
     "ai": {
         "features": {
-            "fill_week": "Kuzuza icyumweru",
+            "fill_week": "Kuzuza inyigisho",
             "story": "Inkuru",
             "quiz": "Ikizamini",
             "outline": "Imbata y'isomo",
@@ -152,12 +152,12 @@ export default {
             "explainer_opened": "Ubufasha (\"Iki ni iki?\") bwafunguwe",
             "create_helper_used": "Umufasha wo gukora yakoreshejwe",
             "course_opened": "Isomo ryafunguwe",
-            "item_opened": "Ikintu cyafunguwe (paji, umukoro, ikizamini, ikiganiro)",
+            "item_opened": "Imfashanyigisho yafunguwe (paji, umukoro, ikizamini, ikiganiro)",
             "insights_viewed": "Isesengura ryarebwe (abarimu)",
             "progress_viewed": "\"Aho ngeze\" harebwe (abanyeshuri)",
             "grading_time": "Ibikosorwa byabariwe igihe",
             "ai_suggestion_used": "Igitekerezo cy'amanota cya AI cyabitswe",
-            "item_edited_after_publish": "Ikintu cyahinduwe kimaze gushyirwa ahagaragara"
+            "item_edited_after_publish": "Imfashanyigisho yahinduwe imaze gushyirwa ahagaragara"
         },
         "seconds": "Amasegonda {s}",
         "minSec": "Iminota {m} n'amasegonda {s}",
@@ -204,7 +204,7 @@ export default {
         "fromTimed": "bivuye ku bikosorwa {count} byabariwe igihe (kuva ufunguye umukoro kugeza ubitse amanota)",
         "noTimed": "Nta gikosorwa cyabariwe igihe",
         "editsAfter": "Ibyahinduwe nyuma yo gushyirwa ahagaragara",
-        "editsAfterHelp": "impinduka ku bintu abanyeshuri bari basanzwe babona",
+        "editsAfterHelp": "impinduka ku mfashanyigisho abanyeshuri bari basanzwe babona",
         "productUse": "Imikoreshereze",
         "productUseCaption": "Imikoreshereze, iminsi {days} ishize",
         "noUsage": "Nta mikoreshereze yanditswe muri iki gihe.",
@@ -292,16 +292,16 @@ export default {
         },
         "scope": {
             "courses": {
-                "label": "Amasomo n'intego",
-                "help": "Imitwe y'amasomo, ibyumweru, paji, ibizamini, imikoro n'intego bigamije."
+                "label": "Amasomo n'inyigisho",
+                "help": "Amasomo, imitwe, inyigisho, ibizamini bito n'imikoro n'ubwoko bwabyo (isuzuma ry'ibanze, ibizamini…), n'intego byigisha. Impapuro zoherezwa nta nyandiko yazo."
             },
             "enrollments": {
                 "label": "Abiyandikishije",
                 "help": "Uri muri buri somo, nk'umwarimu cyangwa umunyeshuri."
             },
             "grades": {
-                "label": "Amanota n'ibyavuye mu bizamini",
-                "help": "Amanota y'imikoro n'ay'ibizamini."
+                "label": "Amanota",
+                "help": "Amanota yose: isuzuma ry'ibanze, ibizamini bito, imikoro n'ibindi bizamini, n'uko buri munyeshuri atera imbere uko igihe kigenda."
             },
             "outcomeResults": {
                 "label": "Ibyavuye ku ntego",
@@ -312,8 +312,8 @@ export default {
                 "help": "Uwari uhari, uwakererewe, utari uhari cyangwa wasabye uruhushya kuri buri rutonde rw'ishuri."
             },
             "events": {
-                "label": "Ibikorwa by'imikoreshereze",
-                "help": "Paji n'ibikoresho bifungurwa, kugira ngo itsinda rimenye ibifasha. Nta nyandiko z'abanyeshuri."
+                "label": "Ibikorwa",
+                "help": "Igihe buri munyeshuri n'umwarimu yinjiye kandi akora, amasomo n'inyigisho afungura, ibyo arangiza n'ibisubizo bye mu biganiro. Nta nyandiko z'imikoro."
             }
         },
         "peopleOptions": {
@@ -378,7 +378,11 @@ export default {
         "scopeHelp": "Ibyatoranyijwe hano gusa ni byo byoherezwa kuri cloud. Ibindi byose biguma kuri iyi SOMABOX.",
         "boxId": "Nimero iranga SOMABOX (ku bafasha):",
         "sendsBy": "yohereza ikoresheje {via}",
-        "webAddress": "aderesi y'urubuga"
+        "webAddress": "aderesi y'urubuga",
+        "alwaysSent": "Byoherezwa buri gihe",
+        "alwaysSentHelp": "Amakuru y'imyigire gahunda ikoresha muri raporo. Ntashobora guhagarikwa, kandi ibyanditswe mbere nabyo byoherezwa.",
+        "yourChoice": "Uhitamo",
+        "filesStay": "Amadosiye n'amashusho ntibisohoka muri iyi box.",
     },
     "library": {
         "uploadFailed": "Kohereza byanze.",
@@ -442,7 +446,7 @@ export default {
         "provinceDistrict": "Intara n'Akarere",
         "na": "Ntibihari",
         "locationType": "Ubwoko bw'aho atuye",
-        "rural": "Umunyeshuri wo mu cyaro",
+        "rural": "Icyaro",
         "urban": "Umujyi / inkengero z'umujyi",
         "disability": "Ubumuga",
         "none": "Nta na kimwe",
@@ -457,7 +461,15 @@ export default {
         "noPending": "Nta subiramo ritegereje.",
         "enrolled": "Amasomo yiyandikishijemo",
         "notEnrolled": "Ntiyiyandikishije mu isomo na rimwe",
-        "notEnrolledHelp": "Uyu munyeshuri ntarinjira mu isomo na rimwe rikora."
+        "notEnrolledHelp": "Uyu munyeshuri ntarinjira mu isomo na rimwe rikora.",
+        "work": "Ishuri n'ibyo yigisha",
+        "classesTaught": "Amashuri yigisha",
+        "subjectsTaught": "Ingeri z'amasomo yigisha",
+        "noneYet": "Nta na kimwe",
+        "annexClasses": "Andi mashuri",
+        "teaching": "Amasomo ye kuri iyi SOMABOX",
+        "notTeaching": "Nta somo arigisha",
+        "notTeachingHelp": "Amasomo uyu mwarimu akora cyangwa yongerwamo nk'umwarimu agaragara hano.",
     },
     "users": {
         "resetPassword": "Hindura ijambo ry'ibanga",
@@ -577,7 +589,17 @@ export default {
         "hidePassword": "Hisha ijambo ry'ibanga",
         "showPassword": "Erekana ijambo ry'ibanga",
         "saving": "Birabikwa…",
-        "update": "Vugurura umukoresha"
+        "update": "Vugurura umukoresha",
+        "classes": "Amashuri yigisha",
+        "classesHint": "Amazina y'ishuri, urugero P1, S1B, S3C. Kanda Enter nyuma ya buri rimwe.",
+        "classesPlaceholder": "urugero: S1B",
+        "subjects": "Ingeri z'amasomo yigisha",
+        "subjectsHint": "urugero Icyongereza, Imibare, Ubugenge. Kanda Enter nyuma ya buri rimwe.",
+        "subjectsPlaceholder": "urugero: Icyongereza",
+        "remove": "Kuramo",
+        "staffCode": "Kode y'umukozi",
+        "staffCodeHelp": "Ha mwarimu iyi kode. Ashobora kwinjira akoresheje {code} aho gukoresha imeyili ye.",
+        "optionalParen": "(si ngombwa)",
     },
     "profile": {
         "inactiveAccount": "Konti idakora",

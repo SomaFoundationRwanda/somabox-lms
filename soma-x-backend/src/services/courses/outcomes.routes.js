@@ -18,7 +18,7 @@ const router = express.Router();
 router.get("/:id/outcomes", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     if (!await requireNavVisible(req, res, courseId, "outcomes")) return;
     const rows = await localDb.prepare("SELECT * FROM outcomes WHERE course_id = ? ORDER BY created_at DESC").all(courseId);
     return res.json(rows);
@@ -31,7 +31,7 @@ router.get("/:id/outcomes", async (req, res) => {
 router.post("/:id/outcomes", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     const auth = await requireTeacher(req, res, courseId);
     if (!auth) return;
     const title = String(req.body.title || "").trim();
@@ -51,7 +51,7 @@ router.post("/:id/outcomes", async (req, res) => {
 router.patch("/:id/outcomes/:outcomeId", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     if (!await requireTeacher(req, res, courseId)) return;
 
     const { title, description, masteryScale } = req.body;
@@ -77,7 +77,7 @@ router.patch("/:id/outcomes/:outcomeId", async (req, res) => {
 router.delete("/:id/outcomes/:outcomeId", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     if (!await requireTeacher(req, res, courseId)) return;
     // Same rule as tagging: a published graded item must keep at least one outcome, so an
     // outcome that is the only tag of one can't be deleted.
@@ -111,7 +111,7 @@ router.delete("/:id/outcomes/:outcomeId", async (req, res) => {
 router.get("/:id/item-outcomes", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     if (!await requireEnrolled(req, res, courseId)) return;
     const rows = await localDb.prepare(`
       SELECT io.*, o.title AS outcome_title, o.code AS outcome_code
@@ -128,7 +128,7 @@ router.get("/:id/item-outcomes", async (req, res) => {
 router.post("/:id/item-outcomes", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     if (!await requireTeacher(req, res, courseId)) return;
     const { itemType, itemId, outcomeIds } = req.body;
     if (!itemType || !itemId || !Array.isArray(outcomeIds)) {
@@ -136,12 +136,12 @@ router.post("/:id/item-outcomes", async (req, res) => {
     }
     if (!CONTENT_TABLES[itemType]) return res.status(400).json({ message: "itemType must be page, assignment, quiz, or discussion" });
     const item = await localDb.prepare(`SELECT id, published FROM ${CONTENT_TABLES[itemType]} WHERE id = ? AND course_id = ?`).get(itemId, courseId);
-    if (!item) return res.status(404).json({ message: "Item not found in this course" });
+    if (!item) return res.status(404).json({ message: "Material not found in this subject" });
     // A published graded item must keep at least one outcome.
     if (Number(item.published) === 1 && GRADED_TYPES.includes(itemType) && outcomeIds.filter(Boolean).length === 0) {
       const quiz = itemType === "quiz" ? await localDb.prepare("SELECT kind FROM quizzes WHERE id = ?").get(item.id) : null;
       if (quiz?.kind !== "practice") {
-        return res.status(422).json({ message: "A published graded item needs at least one outcome. Unpublish it first to remove all outcomes.", code: "OUTCOME_REQUIRED" });
+        return res.status(422).json({ message: "A published graded material needs at least one outcome. Unpublish it first to remove all outcomes.", code: "OUTCOME_REQUIRED" });
       }
     }
     await localDb.transaction(() => setItemOutcomes(courseId, itemType, item.id, outcomeIds.filter(Boolean)))();
@@ -157,7 +157,7 @@ router.post("/:id/item-outcomes", async (req, res) => {
 router.get("/:id/outcome-mastery", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     const auth = await requireEnrolled(req, res, courseId);
     if (!auth) return;
 

@@ -16,7 +16,12 @@ export default function SignupPage() {
   const { t } = useLanguage();
   const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({ email: '', password: '', confirmPassword: '', name: '' });
+  const [formData, setFormData] = useState({ email: '', password: '', confirmPassword: '', name: '', className: '' });
+  // The school's classes (e.g. "S1B"), offered when the learner types theirs.
+  const [classes, setClasses] = useState([]);
+  useEffect(() => {
+    apiFetch("/auth/classes", { allowUnauthenticated: true }).then((list) => setClasses(Array.isArray(list) ? list : [])).catch(() => {});
+  }, []);
   const [error, setError] = useState('');
   // The learner code the server gave the new account (e.g. GSK-0012), shown before moving on.
   const [learnerCode, setLearnerCode] = useState('');
@@ -56,6 +61,14 @@ export default function SignupPage() {
       return;
     }
 
+    // The class comes first: it's how the learner's teachers find them.
+    if (!formData.className.trim()) {
+      const msg = t("shell.signup.classRequired");
+      setError(msg);
+      showToast(msg, "error");
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
       const msg = t("shell.signup.passwordsDontMatch");
       setError(msg);
@@ -73,7 +86,7 @@ export default function SignupPage() {
       try {
         data = await apiFetch("/auth/register", {
           method: "POST",
-          json: { email: normalizedEmail, fullName: formData.name, password: formData.password },
+          json: { email: normalizedEmail, fullName: formData.name, password: formData.password, className: formData.className.trim() },
           allowUnauthenticated: true,
         });
       } catch (err) {
@@ -136,6 +149,22 @@ export default function SignupPage() {
         ) : (
         <form onSubmit={handleSubmit} className="w-full max-w-[400px] space-y-4">
           <AuthFormHeader title={t("shell.signup.formTitle")} subtitle={t("shell.signup.formSubtitle")} />
+
+          <AuthField
+            id="signup-class"
+            label={t("shell.signup.className")}
+            hint={t("shell.signup.classHint")}
+            type="text"
+            list="signup-classes"
+            placeholder={t("shell.signup.classPlaceholder")}
+            autoComplete="off"
+            required
+            value={formData.className}
+            onChange={(e) => setFormData({ ...formData, className: e.target.value })}
+          />
+          <datalist id="signup-classes">
+            {classes.map((c) => <option key={c} value={c} />)}
+          </datalist>
 
           <AuthField
             id="signup-name"

@@ -47,7 +47,7 @@ async function jobView(job) {
 router.post("/:id/ai/jobs", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     if (!await requireAiTeacher(req, res, courseId)) return;
     const kind = String(req.body.kind || "");
     if (!JOB_KINDS[kind]) return res.status(400).json({ message: `kind must be one of: ${Object.keys(JOB_KINDS).join(", ")}` });
@@ -71,7 +71,7 @@ router.post("/:id/ai/jobs", async (req, res) => {
 router.get("/:id/ai/jobs", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     if (!await requireAiStaff(req, res, courseId)) return;
     const active = req.query.active === "1";
     const jobs = await localDb.prepare(`
@@ -87,7 +87,7 @@ router.get("/:id/ai/jobs", async (req, res) => {
 router.get("/:id/ai/jobs/:jobId", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     if (!await requireAiStaff(req, res, courseId)) return;
     const job = await localDb.prepare("SELECT * FROM ai_jobs WHERE id = ? AND course_id = ?").get(req.params.jobId, courseId);
     if (!job) return res.status(404).json({ message: "Job not found" });
@@ -100,7 +100,7 @@ router.get("/:id/ai/jobs/:jobId", async (req, res) => {
 router.post("/:id/ai/jobs/:jobId/cancel", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     if (!await requireAiStaff(req, res, courseId)) return;
     const job = await localDb.prepare("SELECT * FROM ai_jobs WHERE id = ? AND course_id = ?").get(req.params.jobId, courseId);
     if (!job) return res.status(404).json({ message: "Job not found" });
@@ -128,7 +128,7 @@ async function loadDraft(res, courseId, draftId) {
 router.get("/:id/ai/drafts", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     if (!await requireAiStaff(req, res, courseId)) return;
     const status = ["pending", "approved", "rejected"].includes(req.query.status) ? req.query.status : null;
     // Grading suggestions are reviewed on the grading screen, not in the drafts list.
@@ -144,7 +144,7 @@ router.get("/:id/ai/drafts", async (req, res) => {
 router.get("/:id/ai/drafts/:draftId", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     if (!await requireAiStaff(req, res, courseId)) return;
     const draft = await loadDraft(res, courseId, req.params.draftId);
     if (!draft) return;
@@ -158,7 +158,7 @@ router.get("/:id/ai/drafts/:draftId", async (req, res) => {
 router.patch("/:id/ai/drafts/:draftId", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     if (!await requireAiStaff(req, res, courseId)) return;
     const draft = await loadDraft(res, courseId, req.params.draftId);
     if (!draft) return;
@@ -175,7 +175,7 @@ router.patch("/:id/ai/drafts/:draftId", async (req, res) => {
 router.post("/:id/ai/drafts/:draftId/approve", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     const auth = await requireAiStaff(req, res, courseId);
     if (!auth) return;
     const draft = await loadDraft(res, courseId, req.params.draftId);
@@ -190,7 +190,7 @@ router.post("/:id/ai/drafts/:draftId/approve", async (req, res) => {
       `).run(auth.email, JSON.stringify(created), draft.id);
       return created;
     })();
-    return res.json({ message: "Added to the course as unpublished drafts. Review them, then publish.", resultRefs: refs });
+    return res.json({ message: "Added to the subject as unpublished drafts. Review them, then publish.", resultRefs: refs });
   } catch (error) {
     if (sendItemError(res, error)) return;
     console.error("Error approving AI draft:", error);
@@ -202,7 +202,7 @@ router.post("/:id/ai/drafts/:draftId/approve", async (req, res) => {
 router.get("/:id/ai/grading-suggestion", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     if (!await requireAiStaff(req, res, courseId)) return;
     const draft = await localDb.prepare(`
       SELECT * FROM ai_drafts WHERE course_id = ? AND type = 'grading' AND assignment_id = ? AND LOWER(scholar_email) = LOWER(?)
@@ -217,7 +217,7 @@ router.get("/:id/ai/grading-suggestion", async (req, res) => {
 router.post("/:id/ai/drafts/:draftId/reject", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     const auth = await requireAiStaff(req, res, courseId);
     if (!auth) return;
     const draft = await loadDraft(res, courseId, req.params.draftId);

@@ -74,10 +74,11 @@ export function cookieValue(req, name) {
 }
 
 // Same host on another port is the same site, so SameSite=Lax cookies reach the API from the app.
-// On a shared device the cookie is dropped when the browser closes (the token inside still expires).
-export async function setMediaCookie(res, userId, { sharedDevice = false } = {}) {
+// Every device may be shared: the cookie is dropped when the browser closes (the token inside
+// still expires).
+export async function setMediaCookie(res, userId) {
     res.cookie(MEDIA_COOKIE, await mediaToken(userId), {
-        httpOnly: true, sameSite: 'lax', path: '/', ...(sharedDevice ? {} : { maxAge: MEDIA_TTL_MS }),
+        httpOnly: true, sameSite: 'lax', path: '/',
         secure: process.env.MEDIA_COOKIE_SECURE === 'true',
     });
 }
@@ -164,7 +165,7 @@ export function requireMediaAccess({ courseFiles = false, allowGuests = false } 
                 const [first, ...rest] = String(req.path || '').split('/').filter(Boolean).map((part) => decodeURIComponent(part));
                 const courseId = first || '';
                 if (!courseId || !await canOpenCourseFiles(user, courseId, rest.join('/'))) {
-                    return res.status(403).json({ message: "This file belongs to a course you're not in" });
+                    return res.status(403).json({ message: "This file belongs to a subject you're not in" });
                 }
             }
             req.mediaUser = user;

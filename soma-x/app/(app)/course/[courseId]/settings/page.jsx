@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import useUnsavedChanges from "@/lib/useUnsavedChanges";
 import Link from "next/link";
 import { NOT_IN_LEARNER_MENU } from "@/components/course/CourseSidebar";
 import { ArrowRight, ChevronDown, ChevronUp, Eye, EyeOff, ListChecks, ImageUp } from "lucide-react";
@@ -210,19 +211,20 @@ export default function CourseSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [coverFile, setCoverFile] = useState(null);
 
+  // The details as saved: the form has unsaved changes while it differs (or a banner is chosen).
+  const savedForm = useMemo(() => (course ? {
+    title: course.title || "",
+    description: course.description || "",
+    grade: course.grade || "",
+    visibility: course.visibility || "private",
+    startDate: toDateInput(course.start_date),
+    endDate: toDateInput(course.end_date),
+    lengthWeeks: course.length_weeks || 4,
+  } : null), [course]);
   useEffect(() => {
-    if (course) {
-      setForm({
-        title: course.title || "",
-        description: course.description || "",
-        grade: course.grade || "",
-        visibility: course.visibility || "private",
-        startDate: toDateInput(course.start_date),
-        endDate: toDateInput(course.end_date),
-        lengthWeeks: course.length_weeks || 4,
-      });
-    }
-  }, [course]);
+    if (savedForm) setForm(savedForm);
+  }, [savedForm]);
+  const detailsDirty = !!savedForm && (JSON.stringify(form) !== JSON.stringify(savedForm) || !!coverFile);
 
   useEffect(() => {
     setNavItems(nav.map((item) => ({ ...item })));
@@ -233,6 +235,11 @@ export default function CourseSettingsPage() {
     if (!isTeacher) return;
     const syncFromHash = () => {
       if (window.location.hash === "#share") setTab("share");
+      // From a week's "Change date": the course dates (moving the start moves every week).
+      if (window.location.hash === "#course-dates") {
+        setTab("details");
+        setTimeout(() => document.getElementById("course-dates")?.scrollIntoView({ block: "start", behavior: "smooth" }), 150);
+      }
       if (window.location.hash === "#course-setup" || window.location.hash === "#guided-setup") {
         setTab("setup");
         requestAnimationFrame(() => document.getElementById("course-setup")?.scrollIntoView({ block: "start" }));
@@ -247,7 +254,7 @@ export default function CourseSettingsPage() {
     setDetailsError("");
     if (form.startDate && form.endDate && compareDates(form.endDate, form.startDate) < 0) {
       setDetailsError(t("settings.endBeforeStart"));
-      return;
+      return false;
     }
     setSaving(true);
     try {
@@ -266,15 +273,20 @@ export default function CourseSettingsPage() {
           .catch((err) => { throw new Error(err?.body?.message || t("settings.bannerFailed")); });
       }
       showToast(t("settings.saved"), "success");
+      setCoverFile(null);
       refresh();
       // Title, grade and cover show on the course lists too.
       queryClient.invalidateQueries({ queryKey: queryKeys.courses });
+      return true;
     } catch (err) {
       setDetailsError(err.message || t("settings.saveFailed"));
+      return false;
     } finally {
       setSaving(false);
     }
   };
+  // Leaving Settings (a link, closing the tab) with unsaved details asks first.
+  const { dialog: unsavedDialog } = useUnsavedChanges({ dirty: detailsDirty, onSave: saveDetails });
 
   const enabled = navItems.filter((i) => i.visibleToStudents).sort((a, b) => a.position - b.position);
   const hidden = navItems.filter((i) => !i.visibleToStudents).sort((a, b) => a.position - b.position);
@@ -334,6 +346,7 @@ export default function CourseSettingsPage() {
       <Breadcrumbs sectionKey="settings" />
       <div className="p-4 md:p-6 space-y-6 max-w-2xl">
         <PageHeader help="pages.settings" title={t("nav.settings")} />
+        {unsavedDialog}
 
         <div className="flex items-center gap-1.5 border-b border-line overflow-x-auto">
           <button onClick={() => setTab("details")} className={`text-ui font-semibold px-3 py-2 border-b-2 ${tab === "details" ? "border-brand-strong text-brand-fg" : "border-transparent text-fg-subtle"}`}>{t("settings.tabs.details")}</button>
@@ -352,7 +365,7 @@ export default function CourseSettingsPage() {
           <CourseSetupSection courseId={courseId} course={course} />
         ) : tab === "details" ? (
           <div className="space-y-8">
-            <Section title={t("settings.dates")} description={t("settings.datesHelp")}>
+            <Section id="course-dates" className="scroll-mt-4" title={t("settings.dates")} description={t("settings.datesHelp")}>
             <div className="space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
@@ -383,7 +396,7 @@ export default function CourseSettingsPage() {
             <div className="space-y-3">
             <div>
               <Label htmlFor="course-grade">{t("settings.grade")}</Label>
-              <GradeSelect id="course-grade" value={form.grade || ""} onChange={(grade) => setForm((p) => ({ ...p, grade }))} />
+              <GradeSelect inField id="course-grade" value={form.grade || ""} onChange={(grade) => setForm((p) => ({ ...p, grade }))} />
             </div>
             <div>
               <Label htmlFor="course-description">{t("common.description")}</Label>

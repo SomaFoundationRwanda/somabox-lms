@@ -77,7 +77,7 @@ test("announcements: the teacher posts one; learners see it", async ({ browser }
   await teacher.page.getByRole("button", { name: ct("announcements.new") }).click();
   await teacher.page.getByLabel(ct("announcements.titleLabel")).fill("Bring a ruler on Monday");
   await teacher.page.getByLabel(ct("announcements.messageLabel")).fill("We will draw fraction bars.");
-  await teacher.page.getByRole("button", { name: ct("discussions.post") }).click();
+  await teacher.page.getByRole("button", { name: ct("announcements.post") }).click();
   await expect(teacher.page.getByText("Bring a ruler on Monday")).toBeVisible();
 
   const learner = await asRole(browser, "learner");
@@ -135,7 +135,7 @@ test("collaborations: the teacher who shared a link can delete it", async ({ bro
 test("syllabus is built from the outcomes and weeks", async ({ browser }) => {
   const learner = await asRole(browser, "learner");
   await learner.page.goto(`/course/${c.id}/syllabus`);
-  await expect(learner.page.getByRole("list", { name: "Course learning outcomes" })).toContainText("Add fractions");
+  await expect(learner.page.getByRole("list", { name: t("course.syllabus.outcomes") })).toContainText("Add fractions");
   await expect(learner.page.getByRole("table", { name: "Grading scale" })).toBeVisible();
   await expect(learner.page.getByText("Fractions basics").first()).toBeVisible();
   await learner.close();

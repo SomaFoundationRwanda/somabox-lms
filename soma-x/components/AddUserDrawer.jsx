@@ -11,7 +11,8 @@ import { useLanguage } from "@/context/LanguageContext";
 import { fill } from "@/lib/fill";
 import { apiFetch, getErrorMessage } from "@/lib/api";
 import { useUsersChanged } from "@/lib/queries/users";
-import { Field, Label, PasswordInput, TextInput } from "@/components/form";
+import { Field, Label, PasswordInput, TagInput, TextInput } from "@/components/form";
+import { GenderField } from "@/components/profile/ProfileFields";
 
 /* ── Role config ── */
 const ROLES = [
@@ -39,11 +40,18 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
     const [success, setSuccess]             = useState(null);
     // A new learner's sign-in code from the server (e.g. GSK-0012), shown until the admin closes.
     const [createdCode, setCreatedCode]     = useState("");
+    // A teacher's classes and subjects, in the school's own names ("S1B", "English").
+    const [createdStaff, setCreatedStaff]   = useState(false);
+    const [classes, setClasses]             = useState([]);
+    const [subjects, setSubjects]           = useState([]);
     const { t }                             = useLanguage();
     const usersChanged                      = useUsersChanged();
 
-    // No gender, accessibility or location here: people answer their own profile at first
-    // sign-in, and the server places everyone at the school's location (School page).
+    // Gender and phone: the admin can fill them in (teachers aren't asked at first sign-in).
+    // Accessibility and location aren't here: learners answer their own profile, and the server
+    // places everyone at the school's location (School page).
+    const [gender, setGender]               = useState("");
+    const [phone, setPhone]                 = useState("");
 
     /* Populate form when editing an existing user */
     useEffect(() => {
@@ -52,11 +60,19 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
             setFullName(user.full_name || "");
             setSelectedRole(user.role || "teacher");
             setPassword("");
+            setClasses(Array.isArray(user.teacher_classes) ? user.teacher_classes : []);
+            setSubjects(Array.isArray(user.teacher_subjects) ? user.teacher_subjects : []);
+            setGender(["male", "female"].includes(user.gender) ? user.gender : "");
+            setPhone(user.phone || "");
         } else {
             setEmail("");
             setFullName("");
             setSelectedRole("teacher");
             setPassword("");
+            setClasses([]);
+            setSubjects([]);
+            setGender("");
+            setPhone("");
         }
         setError(null);
         setSuccess(null);
@@ -93,6 +109,9 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
             if (!restrictToLoginInfo) {
                 body.fullName = fullName;
                 body.role = selectedRole;
+                if (selectedRole === "teacher") { body.teacherClasses = classes; body.teacherSubjects = subjects; }
+                if (gender) body.gender = gender;
+                if (phone.trim() || user?.phone) body.phone = phone.trim();
             }
             if (password) body.password = password;
 
@@ -103,10 +122,11 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
             const successMsg = t(user ? "admin.addUser.updated" : "admin.addUser.created");
             setSuccess(successMsg);
             showToast(successMsg, "success");
-            if (!user) { setEmail(""); setFullName(""); setPassword(""); setSelectedRole("teacher"); }
+            if (!user) { setEmail(""); setFullName(""); setPassword(""); setSelectedRole("teacher"); setClasses([]); setSubjects([]); setGender(""); setPhone(""); }
             if (onSuccess) onSuccess();
-            // Keep the drawer open for a new learner so the admin can note the code down.
-            if (!user && data.user?.learner_code) setCreatedCode(data.user.learner_code);
+            // Keep the drawer open for a new learner or teacher so the admin can note the code down.
+            const code = data.user?.learner_code || data.user?.staff_code;
+            if (!user && code) { setCreatedCode(code); setCreatedStaff(!!data.user?.staff_code); }
             else setTimeout(handleClose, 1200);
         } catch (err) {
             const message = getErrorMessage(err, t);
@@ -222,6 +242,28 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
                                     </Field>
                                 )}
 
+                                {/* ── A teacher's classes and subjects ── */}
+                                {!restrictToLoginInfo && selectedRole === "teacher" && (
+                                    <>
+                                        <Field label={t("admin.addUser.classes")} hint={t("admin.addUser.classesHint")}>
+                                            <TagInput value={classes} onChange={setClasses} placeholder={t("admin.addUser.classesPlaceholder")} removeLabel={t("admin.addUser.remove")} disabled={loading} />
+                                        </Field>
+                                        <Field label={t("admin.addUser.subjects")} hint={t("admin.addUser.subjectsHint")}>
+                                            <TagInput value={subjects} onChange={setSubjects} placeholder={t("admin.addUser.subjectsPlaceholder")} removeLabel={t("admin.addUser.remove")} disabled={loading} />
+                                        </Field>
+                                    </>
+                                )}
+
+                                {/* ── Gender and phone ── */}
+                                {!restrictToLoginInfo && (
+                                    <>
+                                        <GenderField value={gender} onChange={setGender} required={false} showHelp={false} size="sm" />
+                                        <Field label={t("admin.user.phone")} optional={t("admin.addUser.optionalParen")}>
+                                            <TextInput type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="07…" disabled={loading} />
+                                        </Field>
+                                    </>
+                                )}
+
                                 {/* ── Email ── */}
                                 <Field label={t("admin.addUser.email")}>
                                     <TextInput
@@ -266,9 +308,9 @@ export function AddUserDrawer({ user, trigger, onSuccess, restrictToLoginInfo = 
                                 )}
                                 {createdCode && (
                                     <div role="status" className="px-3 py-3 rounded-[5px] border-2 border-brand bg-brand-soft text-fg">
-                                        <p className="text-caption font-bold text-brand-fg">{t("school.learnerCode")}</p>
+                                        <p className="text-caption font-bold text-brand-fg">{createdStaff ? t("admin.addUser.staffCode") : t("school.learnerCode")}</p>
                                         <p className="text-section font-extrabold font-mono text-fg break-all">{createdCode}</p>
-                                        <p className="text-caption mt-1">{fill(t("school.users.createdCode"), { code: createdCode })}</p>
+                                        <p className="text-caption mt-1">{fill(t(createdStaff ? "admin.addUser.staffCodeHelp" : "school.users.createdCode"), { code: createdCode })}</p>
                                     </div>
                                 )}
                                 {createdCode && (

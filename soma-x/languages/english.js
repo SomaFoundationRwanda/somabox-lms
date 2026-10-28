@@ -145,7 +145,7 @@ export default {
     "role":{
         "teacher":"Teacher",
         "admin":"Admin",
-        "scholar": "Scholar"
+        "scholar": "Learner"
     },
     "notFound":"Content not found",
     "loading": "Loading...",

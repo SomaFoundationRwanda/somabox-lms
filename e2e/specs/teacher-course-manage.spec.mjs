@@ -40,7 +40,7 @@ test.describe("weeks and items", () => {
   test("renames, unpublishes, publishes and deletes a week", async ({ page }) => {
     const course = await seedCourse({ learners: [] });
     await page.goto(`/course/${course.id}/modules`);
-    const week2 = page.getByRole("heading", { level: 2, name: /Week 2/ });
+    const week2 = page.getByRole("heading", { level: 2, name: new RegExp(t("course.weeks.week").replace("{n}", "2")) });
     await expect(week2).toBeVisible();
 
     // A week's less common actions are in its "⋯" menu.
@@ -81,6 +81,8 @@ test.describe("weeks and items", () => {
     await itemMenu("Fraction poster").click();
     await page.getByRole("menuitem", { name: ct("common.edit") }).click();
     await page.getByLabel(ct("editors.assignmentTitle"), { exact: true }).fill("Fraction poster (A3)");
+    // Work made before types existed gets one when it's next edited.
+    await page.locator("#assignment-category").selectOption("short_quiz");
     await page.getByRole("button", { name: ct("editors.saveChanges") }).click();
     // Saving goes to the assignment's own page; back on Weeks, the new title shows.
     await expect(page.getByRole("heading", { level: 1, name: "Fraction poster (A3)" })).toBeVisible();
@@ -151,7 +153,7 @@ test.describe("settings", () => {
     const ctx = await browser.newContext({ storageState: authFile("learner2") });
     const learner = await ctx.newPage();
     await learner.goto(`/course/${course.id}/home`);
-    const nav = learner.getByRole("navigation", { name: "Course navigation" });
+    const nav = learner.getByRole("navigation", { name: t("course.nav.courseNavigation") });
     await expect(nav.getByRole("link", { name: ct("nav.home") })).toBeVisible();
     await expect(nav.getByRole("link", { name: ct("nav.announcements") })).toHaveCount(0);
     await ctx.close();
@@ -190,7 +192,7 @@ test.describe("people", () => {
     await page.getByLabel(ct("people.email")).fill(USERS.learner2.email);
     await page.getByLabel(ct("people.role"), { exact: true }).selectOption("ta");
     await page.getByRole("button", { name: ct("common.add"), exact: true }).click();
-    await expect(page.getByText("Only teacher accounts can teach or assist in a course").first()).toBeVisible();
+    await expect(page.getByText("Only teacher accounts can teach or assist in a subject").first()).toBeVisible();
   });
 
   test("creates accounts for new learners; the class sheet shows their codes and temporary passwords once", async ({ page, browser }) => {
@@ -263,6 +265,34 @@ test.describe("people", () => {
     await fresh.close();
   });
 
+  test("the teacher's Learners page creates accounts and resets a password", async ({ page, browser }) => {
+    const course = await seedCourse({ learners: [] });
+    const name = `Learner ${uid()}`;
+    const pt = (key) => t(`teacher.learnersPage.${key}`);
+    await page.goto("/teacher/dashboard");
+    await page.getByRole("link", { name: t("teacher.nav.learners") }).click();
+    await page.getByRole("button", { name: pt("createAccounts") }).click();
+    await page.getByRole("dialog").getByLabel(pt("course")).selectOption({ label: course.title });
+    await page.getByRole("dialog").getByRole("button", { name: pt("continue") }).click();
+    const dialog = page.getByRole("dialog");
+    await dialog.getByLabel(lt("namesLabel")).fill(name);
+    await dialog.getByLabel(lt("gradeLabel")).selectOption("Primary 4");
+    await dialog.getByRole("button", { name: lt("create").replace("{count}", "1") }).click();
+    const code = (await dialog.getByRole("table", { name: lt("sheetCaption") }).getByRole("row").nth(1).getByRole("cell").nth(1).textContent()).trim();
+    await dialog.getByRole("button", { name: lt("done") }).click();
+
+    await page.getByLabel(pt("search")).fill(code);
+    await expect(page.getByRole("row").filter({ hasText: name })).toBeVisible();
+    page.once("dialog", (d) => d.accept());
+    await page.getByRole("button", { name: lt("resetNamed").replace("{name}", name) }).click();
+    const temporary = (await page.getByRole("table", { name: lt("sheetCaption") }).getByRole("row").nth(1).getByRole("cell").nth(2).textContent()).trim();
+    const fresh = await browser.newContext();
+    const learner = await fresh.newPage();
+    await login(learner, code, temporary);
+    await learner.waitForURL("**/account");
+    await fresh.close();
+  });
+
   test("a join code lets a learner join by themselves, until it's turned off", async ({ page, browser }) => {
     const course = await seedCourse({ learners: [] });
     await page.goto(`/course/${course.id}/people`);
@@ -277,6 +307,9 @@ test.describe("people", () => {
     await learner.getByRole("button", { name: "Join", exact: true }).click();
     await learner.waitForURL(`**/course/${course.id}/**`);
     await ctx.close();
+    // Joining with the code is a request the teacher approves.
+    await page.reload();
+    await page.getByRole("button", { name: ct("joinRequests.approve") }).first().click();
 
     page.once("dialog", (d) => d.accept());
     await panel.getByRole("button", { name: ct("people.join.turnOff") }).click();

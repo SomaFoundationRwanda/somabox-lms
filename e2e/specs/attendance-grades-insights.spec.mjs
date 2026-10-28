@@ -74,7 +74,7 @@ test.describe("grades and insights", () => {
     const book = teacher.page.getByRole("table", { name: "Gradebook" });
     await expect(book.getByRole("row").filter({ hasText: USERS.learner.name })).toContainText("9");
     await expect(book.getByRole("row").filter({ hasText: USERS.learner2.name })).toContainText("1");
-    await book.getByRole("link", { name: "Fractions check" }).click();
+    await book.getByRole("link", { name: "Fractions check", exact: true }).click();
     await teacher.page.waitForURL(`**/quizzes/${c.quiz.content_id}`);
     await teacher.close();
   });
@@ -105,8 +105,8 @@ test.describe("grades and insights", () => {
     await expect(page.getByText(USERS.learner2.name).first()).toBeVisible();
 
     await page.goto(`/course/${c.id}/insights`);
-    await tabs.getByRole("tab", { name: "Items" }).click();
-    const items = page.getByRole("tabpanel", { name: "Items" });
+    await tabs.getByRole("tab", { name: t("progress.insights.tabs.items") }).click();
+    const items = page.getByRole("tabpanel", { name: t("progress.insights.tabs.items") });
     await items.getByRole("row").filter({ hasText: "Fractions check" }).getByRole("button", { name: t("progress.insights.items.analysis") }).click();
     // Per question: how many got it right (learner 2 missed question 2).
     await expect(items.getByText(/Which is bigger/).first()).toBeVisible();

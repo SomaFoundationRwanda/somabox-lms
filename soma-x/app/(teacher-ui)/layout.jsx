@@ -8,9 +8,10 @@ import MandatoryProfileSetupModal from "@/components/onboarding/MandatoryProfile
 import BrightnessSlider from "@/components/ui/BrightnessSlider";
 import Header from "@/components/global/Header";
 import { useLanguage } from "@/context/LanguageContext";
-import { BookOpen, CalendarDays, Compass, LayoutDashboard, LogOut, PanelLeftClose, PanelLeftOpen, Settings } from "lucide-react"
+import { BookOpen, CalendarDays, Compass, LayoutDashboard, LogOut, PanelLeftClose, PanelLeftOpen, Settings, Users } from "lucide-react"
 import Loader from "@/components/ui/Loader";
 import { startRouteLoading } from "@/components/global/RouteLoader";
+import GenderReminder from "@/components/teacher/GenderReminder";
 
 const EXPANDED_WIDTH = 180
 const COLLAPSED_WIDTH = 64
@@ -18,6 +19,7 @@ const COLLAPSED_WIDTH = 64
 const mainNavItems = [
   { id: "dashboard", labelKey: "teacher.nav.dashboard", Icon: LayoutDashboard, href: "/teacher/dashboard" },
   { id: "courses", labelKey: "teacher.nav.courses", Icon: BookOpen, href: "/teacher/courses" },
+  { id: "learners", labelKey: "teacher.nav.learners", Icon: Users, href: "/teacher/learners" },
   { id: "explore", labelKey: "teacher.nav.explore", Icon: Compass, href: "/teacher/explore" },
   { id: "calendar", labelKey: "teacher.nav.calendar", Icon: CalendarDays, href: "/calendar" },
 ]
@@ -151,6 +153,7 @@ export default function TeacherUILayout({ children }) {
         {/* The shared Header carries the language switcher, so every teacher page has it (phones too). */}
         <Header />
         <main className="flex-1 overflow-y-auto px-8 py-6 bg-surface">
+          <GenderReminder />
           {children}
         </main>
       </div>

@@ -3,6 +3,7 @@ import bcrypt from "bcrypt";
 import { serverDb } from '../helpers/db-manager.js';
 import { createSession, revokeSession, revokeUserSessions } from '../helpers/auth.js';
 import { setMediaCookie, clearMediaCookie } from '../helpers/media.js';
+import { recordEvent } from './insights/events.js';
 import { assignLearnerCode, applySchoolToLearner } from './school.js';
 import { loginRetryAfter, recordLoginFailure, clearLoginFailures } from '../helpers/login-throttle.js';
 
@@ -28,7 +29,7 @@ router.post('/login', async (req, res) => {
 
         const row = email.includes('@')
             ? await serverDb.prepare('SELECT * FROM users WHERE LOWER(email) = LOWER(?)').get(email)
-            : await serverDb.prepare('SELECT * FROM users WHERE UPPER(learner_code) = UPPER(?)').get(email);
+            : await serverDb.prepare('SELECT * FROM users WHERE UPPER(learner_code) = UPPER(?) OR UPPER(staff_code) = UPPER(?)').get(email, email);
 
         // Compare against a stand-in hash when there's no such account, so the answer takes
         // as long either way and doesn't tell whether the account exists.
@@ -44,14 +45,13 @@ router.post('/login', async (req, res) => {
             return res.status(403).json({ message: 'Your account has been deactivated. Please contact an administrator.' });
         }
 
-        // On a shared device (a family phone, a classroom tablet) the session ends sooner.
-        const sharedDevice = req.body.sharedDevice === true;
-        const token = await createSession(row.id, req.headers['user-agent'], { sharedDevice });
-        await setMediaCookie(res, row.id, { sharedDevice });
+        // Every session is treated as on a shared device (helpers/auth.js): nobody has to remember to say so.
+        const token = await createSession(row.id, req.headers['user-agent']);
+        await setMediaCookie(res, row.id);
+        await recordEvent({ id: row.id, role: row.role }, null, 'signed_in');
 
         return res.json({
             message: 'Login successful',
-            sharedDevice,
             token,
             user: {
                 id: row.id,
@@ -73,13 +73,35 @@ router.post('/login', async (req, res) => {
     }
 });
 
+// The school's classes, for a new learner to pick theirs: those its teachers teach and its
+// courses are for (e.g. "S1B"). Public: sign-up comes before an account.
+router.get('/classes', async (req, res) => {
+    try {
+        const rows = await serverDb.prepare(`
+            SELECT DISTINCT name FROM (
+                SELECT jsonb_array_elements_text(teacher_classes) AS name FROM users WHERE role = 'teacher' AND COALESCE(is_active, 1) = 1
+                UNION SELECT grade FROM courses WHERE COALESCE(grade, '') <> '' AND lifecycle <> 'archived'
+            ) c WHERE COALESCE(TRIM(name), '') <> '' ORDER BY name
+        `).all();
+        return res.json(rows.map((r) => r.name));
+    } catch (error) {
+        console.error('Classes error:', error);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
 // Public self-registration. Always creates a scholar; staff accounts are created by admins.
+// The learner says their class first (e.g. "S1B"), so their teachers can find them.
 router.post('/register', async (req, res) => {
     try {
         const email = String(req.body.email || '').trim().toLowerCase();
         const password = String(req.body.password || '');
         const fullName = String(req.body.fullName || '').trim();
+        const className = String(req.body.className || '').replace(/\s+/g, ' ').trim().slice(0, 40);
 
+        if (!className) {
+            return res.status(400).json({ message: 'Choose your class first', code: 'CLASS_REQUIRED' });
+        }
         if (!email || !password) {
             return res.status(400).json({ message: 'Email and password are required' });
         }
@@ -97,10 +119,10 @@ router.post('/register', async (req, res) => {
 
         const passwordHash = await bcrypt.hash(password, 12);
         const row = await serverDb.prepare(`
-            INSERT INTO users (email, full_name, password_hash, role)
-            VALUES (?, ?, ?, 'scholar')
-            RETURNING id, email, full_name, role, created_at
-        `).get(email, fullName, passwordHash);
+            INSERT INTO users (email, full_name, password_hash, role, grade_level)
+            VALUES (?, ?, ?, 'scholar', ?)
+            RETURNING id, email, full_name, role, created_at, grade_level
+        `).get(email, fullName, passwordHash, className);
 
         // A new learner belongs to this box's school and gets a learner code straight away.
         await applySchoolToLearner(row.id);
@@ -179,7 +201,7 @@ router.post('/media-session', async (req, res) => {
         clearMediaCookie(res);
         return res.status(401).json({ message: 'Please log in to continue' });
     }
-    await setMediaCookie(res, req.user.id, { sharedDevice: req.user.sharedDevice });
+    await setMediaCookie(res, req.user.id);
     return res.json({ ok: true });
 });
 

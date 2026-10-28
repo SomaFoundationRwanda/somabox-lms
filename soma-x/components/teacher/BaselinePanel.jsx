@@ -13,6 +13,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiError, apiFetch } from "@/lib/api";
 import { queryKeys } from "@/lib/queryKeys";
 import { Field, TextInput, Textarea } from "@/components/form";
+import Modal from "@/components/ui/Modal";
+import { formatRange } from "@/lib/dates";
 
 const MIN_REASON = 10;
 
@@ -50,6 +52,8 @@ export default function BaselinePanel({ courseId, isDraft, onChanged, compact = 
   const [perOutcome, setPerOutcome] = useState("2");
   const [skipOpen, setSkipOpen] = useState(false);
   const [reason, setReason] = useState("");
+  // The "what's missing and how to fix it" dialog, opened by Approve while it can't be approved.
+  const [readyDialog, setReadyDialog] = useState(false);
 
   const run = async (key, path, body, successMessage) => {
     setBusy(key);
@@ -91,7 +95,15 @@ export default function BaselinePanel({ courseId, isDraft, onChanged, compact = 
     setPerOutcome(String(n));
     run("generate", "/baseline/generate", { perOutcome: n }, t("teacher.baseline.built"));
   };
-  const approve = () => run("approve", "/baseline/approve", {}, t("teacher.baseline.approvedToast"));
+  const approve = () => {
+    // Not ready, or Week 0 is already over: say what to do before (or instead of) approving.
+    if (!state.canApprove || (state.warnings || []).length) { setReadyDialog(true); return; }
+    return run("approve", "/baseline/approve", {}, t("teacher.baseline.approvedToast"));
+  };
+  const approveAnyway = async () => {
+    setReadyDialog(false);
+    await run("approve", "/baseline/approve", {}, t("teacher.baseline.approvedToast"));
+  };
   const reset = () => run("reset", "/baseline/reset", {}, t("teacher.baseline.undoneToast"));
   const skip = async () => {
     const r = reason.trim();
@@ -214,8 +226,7 @@ export default function BaselinePanel({ courseId, isDraft, onChanged, compact = 
           <button
             type="button"
             onClick={approve}
-            disabled={anyBusy || !state.canApprove}
-            title={state.canApprove ? undefined : t("teacher.baseline.fixFirst")}
+            disabled={anyBusy}
             className={`${btn} text-on-brand-strong bg-brand-strong hover:bg-brand-strong/90`}
           >
             <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" /> {busy === "approve" ? t("teacher.baseline.approving") : t("teacher.baseline.approve")}
@@ -273,6 +284,48 @@ export default function BaselinePanel({ courseId, isDraft, onChanged, compact = 
           {t("teacher.baseline.edit")}
         </Link>
       </div>
+
+      {readyDialog ? (
+        <Modal title={state.canApprove ? t("teacher.baseline.checkTitle") : t("teacher.baseline.notReadyTitle")} onClose={() => setReadyDialog(false)} size="lg">
+          <div className="space-y-4">
+            {(state.problemCodes || []).length ? (
+              <>
+                <p className="text-ui text-fg-muted">{t("teacher.baseline.notReadyIntro")}</p>
+                <ol className="space-y-3">
+                  {state.problemCodes.map((p, i) => {
+                    // What to do about each problem, and where.
+                    const action = p.id === "no_module"
+                      ? <button type="button" onClick={() => { setReadyDialog(false); addWeek0(); }} className="font-bold text-brand-fg underline">{t("teacher.baseline.addModule")}</button>
+                      : p.id === "no_quiz"
+                        ? <button type="button" onClick={() => { setReadyDialog(false); generate(); }} className="font-bold text-brand-fg underline">{t("teacher.baseline.build")}</button>
+                        : <Link href={editHref} className="font-bold text-brand-fg underline">{t("teacher.baseline.edit")}</Link>;
+                    return (
+                      <li key={p.id} className="rounded-xl border border-line p-3 space-y-1">
+                        <p className="text-ui font-semibold text-fg">{i + 1}. {stateProblems[i]}</p>
+                        <p className="text-caption text-fg-muted">{t(`teacher.baseline.fix.${p.id}`)}</p>
+                        <p className="text-caption">{action} &rarr;</p>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </>
+            ) : null}
+            {(state.warnings || []).map((w) => (
+              <div key={w.id} className="rounded-xl border border-warning/30 bg-warning-soft p-3 space-y-1">
+                <p className="text-ui font-semibold text-warning-fg">{fill(t("teacher.baseline.pastTitle"), { dates: formatRange(w.params.start, w.params.end) })}</p>
+                <p className="text-caption text-fg-muted">{t("teacher.baseline.pastFix")}</p>
+                <Link href={`/course/${courseId}/settings#course-dates`} className="text-caption font-bold text-brand-fg underline">{t("teacher.baseline.openDates")} &rarr;</Link>
+              </div>
+            ))}
+            <div className="flex justify-end gap-2">
+              <button type="button" onClick={() => setReadyDialog(false)} className="text-caption font-semibold text-fg-muted px-3 py-2">{t("teacher.common.close")}</button>
+              {state.canApprove ? (
+                <button type="button" onClick={approveAnyway} className={`${btn} text-on-brand-strong bg-brand-strong hover:bg-brand-strong/90`}>{t("teacher.baseline.approveAnyway")}</button>
+              ) : null}
+            </div>
+          </div>
+        </Modal>
+      ) : null}
 
       {error && (
         <div role="alert" className="p-3 bg-danger-soft border border-danger/30 rounded-xl text-caption text-danger-fg">

@@ -19,10 +19,13 @@ import { useCourseText } from "@/components/course/useCourseText";
 import { formatRange } from "@/lib/dates";
 import Loader from "@/components/ui/Loader";
 import LearnerHome from "@/components/course/LearnerHome";
+import SidePanel from "@/components/ui/SidePanel";
+import JoinCodePanel from "@/components/teacher/JoinCodePanel";
+import JoinRequests from "@/components/teacher/JoinRequests";
 
 export default function CourseHomePage() {
   const { courseId, course, isTeacher, isCourseTeacher, isLearner, adminView, refresh } = useCourse();
-  const { blockingText, warningText } = useSetupText();
+  const { blockingText, warningText, warningHelp, blockingHelp, actionLabel } = useSetupText();
   const { showToast } = useToast();
   const { t, tf, tOr, weekLabel, ownWeekTitle, lifecycleLabel, fmtDay } = useCourseText();
   // Server text for the weekly loop comes with a key + params; show it in the UI language,
@@ -44,6 +47,9 @@ export default function CourseHomePage() {
   const outcomePulse = pulseQuery.data;
   const loading = statusQuery.loading || loopQuery.loading || pulseQuery.loading;
   const [expandedWeek, setExpandedWeek] = useState(null);
+  // Teachers: the weeks and the outcome pulse open in a side panel, so the home shows only what
+  // needs them now. null | "weeks" | "outcomes".
+  const [panel, setPanel] = useState(null);
   // This week starts open, once the week is known.
   const [openedCurrent, setOpenedCurrent] = useState(false);
   useEffect(() => {
@@ -72,10 +78,11 @@ export default function CourseHomePage() {
   };
 
   const beatInfo = homeLoop || {};
-  const currentBeat = beatInfo.currentBeat || "prepare";
   const needsAttention = beatInfo.needsAttention || [];
   const timeline = beatInfo.timeline || [];
   const outcomesList = outcomePulse?.outcomes || [];
+  // Teachers: who asked to join with the code (approved here or on People).
+  const peopleQuery = useCourseSection(isTeacher ? "people" : null);
 
 
   const weekText = beatInfo.currentWeekNumber === null || beatInfo.currentWeekNumber === undefined
@@ -138,7 +145,8 @@ export default function CourseHomePage() {
                   <ListRow
                     key={b.id}
                     title={blockingText(b)}
-                    actions={b.href ? <Link href={b.href} className="text-caption font-semibold text-brand-fg hover:underline">{t("status.fix")} &rarr;</Link> : null}
+                    subtitle={blockingHelp(b) || undefined}
+                    actions={b.href ? <Link href={b.href} className="text-caption font-semibold text-brand-fg hover:underline">{actionLabel(b, t("status.fix"))} &rarr;</Link> : null}
                   />
                 ))}
               </List>
@@ -170,11 +178,6 @@ export default function CourseHomePage() {
 
           <div>
             <h2 id="now-title" className="text-section font-bold text-fg">{loopText("loopTitles", beatInfo.beatKey, beatInfo.beatParams, beatInfo.beatTitle) || t("home.currentBeat")}</h2>
-            {isTeacher && (
-              <p className="text-ui text-fg-subtle mt-1 max-w-2xl">
-                {["prepare", "release", "collect", "grade", "review"].includes(currentBeat) ? t(`home.beatHelp.${currentBeat}`) : null}
-              </p>
-            )}
           </div>
 
           {beatInfo.primaryAction && (
@@ -187,6 +190,10 @@ export default function CourseHomePage() {
           )}
         </section>
         ) : null}
+
+        {/* Teachers: join requests and the course's join code, where they open the course. */}
+        {isTeacher ? <JoinRequests courseId={courseId} people={peopleQuery.data} onChanged={peopleQuery.refetch} /> : null}
+        {isCourseTeacher ? <JoinCodePanel courseId={courseId} isDraft={isDraft} /> : null}
 
         {/* Learners: what to do next, and the rest behind buttons that open a side panel. */}
         {isLearner ? <LearnerHome timeline={timeline} /> : null}
@@ -221,7 +228,8 @@ export default function CourseHomePage() {
                   tone="warning"
                   icon={<AlertTriangle className="w-4 h-4 text-warning-fg" />}
                   title={warningText(w)}
-                  actions={w.href ? <Link href={w.href} className="text-caption font-bold text-warning-fg hover:underline">{t("status.fix")} &rarr;</Link> : null}
+                  subtitle={warningHelp(w) || undefined}
+                  actions={w.href ? <Link href={w.href} className="text-caption font-bold text-warning-fg hover:underline">{actionLabel(w, t("status.fix"))} &rarr;</Link> : null}
                 />
               ))}
             </List>
@@ -229,21 +237,36 @@ export default function CourseHomePage() {
         </Section>
         )}
 
-        {/* 3. OUTCOME PULSE (small tiles are allowed here); learners have it in their Progress panel. */}
+        {/* 3. The rest, one tap away: buttons that open the weeks or the outcome pulse in a panel. */}
         {!isLearner ? (
-        <Section
-          title={<span className="flex items-center gap-2"><Target className="w-4 h-4 text-brand-fg" /> {isLearner ? t("home.outcomePulseMine") : t("home.outcomePulse")}</span>}
-          actions={
-            <Link href={`/course/${courseId}/outcomes`} className="text-caption font-semibold text-brand-fg hover:underline">
-              {t("common.viewAll")} &rarr;
-            </Link>
-          }
-        >
+          <nav aria-label={t("home.more")} className="flex flex-wrap gap-2">
+            {[
+              { key: "weeks", icon: Calendar, label: t("home.timeline"), count: timeline.length },
+              { key: "outcomes", icon: Target, label: t("home.outcomePulse"), count: outcomesList.length },
+            ].map(({ key, icon: Icon, label, count }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setPanel(key)}
+                aria-haspopup="dialog"
+                className="inline-flex items-center gap-2 rounded-xl border border-line px-3.5 py-2.5 text-ui font-semibold text-fg-muted hover:border-brand/40 hover:bg-surface-hover"
+              >
+                <Icon className="w-4 h-4 text-brand-fg" aria-hidden="true" /> {label}
+                <span className="text-caption font-bold text-fg-subtle bg-surface-sunken rounded-full px-2 py-0.5">{count}</span>
+              </button>
+            ))}
+          </nav>
+        ) : null}
+
+        {/* The outcome pulse (small tiles are allowed here); learners have it in their Progress panel. */}
+        {!isLearner ? (
+        <SidePanel open={panel === "outcomes"} onClose={() => setPanel(null)} title={t("home.outcomePulse")}
+          footer={<Link href={`/course/${courseId}/outcomes`} className="text-caption font-semibold text-brand-fg hover:underline">{t("common.viewAll")} &rarr;</Link>}>
           {outcomesList.length === 0 ? (
             <p className="text-caption text-fg-subtle">{t("home.noOutcomeData")}</p>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {outcomesList.slice(0, 3).map((o) => (
+            <div className="grid grid-cols-1 gap-3">
+              {outcomesList.map((o) => (
                 <div key={o.id} className="rounded-xl border border-line p-3 space-y-2">
                   <p className="text-caption font-semibold text-fg truncate" title={o.title}>{o.title}</p>
                   <p className="text-section font-bold text-brand-fg leading-none">
@@ -258,15 +281,12 @@ export default function CourseHomePage() {
               ))}
             </div>
           )}
-        </Section>
+        </SidePanel>
         ) : null}
 
-        {/* 4. TIMELINE (one row per module); learners have it in their Weeks panel. */}
+        {/* The weeks (one row per week); learners have them in their Weeks panel. */}
         {!isLearner ? (
-        <Section
-          title={<span className="flex items-center gap-2"><Calendar className="w-4 h-4 text-brand-fg" /> {t("home.timeline")}</span>}
-          description={isTeacher ? t("home.timelineHelp") : undefined}
-        >
+        <SidePanel open={panel === "weeks"} onClose={() => setPanel(null)} title={t("home.timeline")}>
           {timeline.length === 0 ? (
             <p className="text-caption text-fg-subtle">{t("home.noTimeline")}</p>
           ) : (
@@ -310,7 +330,7 @@ export default function CourseHomePage() {
               })}
             </List>
           )}
-        </Section>
+        </SidePanel>
         ) : null}
       </div>
     </div>

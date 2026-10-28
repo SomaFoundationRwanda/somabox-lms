@@ -80,12 +80,14 @@ test("fills the rest of Week 1: an assignment, a quiz, a discussion, a sub-heade
   await page.getByLabel(ct("editors.assignmentTitle"), { exact: true }).fill("Fraction poster");
   await page.getByLabel(ct("editors.instructions")).fill("Draw and label three fractions.");
   await page.getByLabel(ct("editors.pointsPossible")).fill("10");
+  await page.locator("#assignment-category").selectOption("short_quiz");
   await page.getByRole("checkbox", { name: /Add fractions with unlike denominators/ }).check();
   await page.getByRole("button", { name: ct("editors.createAssignment") }).click();
   await expect(page.getByRole("link", { name: /Fraction poster/ })).toBeVisible();
 
   await addItem("quiz");
   await page.getByLabel(ct("editors.quiz.title"), { exact: true }).fill("Fractions check");
+  await page.locator("#quiz-category").selectOption("short_quiz");
   await page.getByRole("button", { name: ct("editors.quiz.addQuestion") }).click();
   await page.getByLabel(ct("editors.quiz.promptN", { n: 1 })).fill("What is 1/2 + 1/4?");
   await page.getByLabel(ct("editors.quiz.questionOption", { q: 1, n: 1 })).fill("3/4");

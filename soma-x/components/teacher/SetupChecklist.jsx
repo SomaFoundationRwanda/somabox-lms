@@ -20,7 +20,7 @@ export function setupNeedsAttention(status) {
  */
 export default function SetupChecklist({ courseId, status, onChanged, showSettingsLink = true }) {
   const { t } = useLanguage();
-  const { checklistLabel, warningText } = useSetupText();
+  const { checklistLabel, warningText, warningHelp, actionLabel } = useSetupText();
 
   if (!status || !Array.isArray(status.checklist)) return null;
 
@@ -77,10 +77,13 @@ export default function SetupChecklist({ courseId, status, onChanged, showSettin
           <ul className="divide-y divide-warning/30 border border-warning/30 rounded-xl overflow-hidden">
             {warnings.map((w) => (
               <li key={w.id} className="px-3 py-2.5 bg-warning-soft/60 flex flex-wrap items-center justify-between gap-2">
-                <p className="text-caption font-medium text-warning-fg flex-1 min-w-[12rem]">{warningText(w)}</p>
+                <div className="flex-1 min-w-[12rem]">
+                  <p className="text-caption font-medium text-warning-fg">{warningText(w)}</p>
+                  {warningHelp(w) ? <p className="text-caption text-fg-muted mt-0.5">{warningHelp(w)}</p> : null}
+                </div>
                 {w.href && (
                   <Link href={w.href} className="text-caption font-bold text-warning-fg hover:underline shrink-0">
-                    {t("teacher.setup.fix")} &rarr;
+                    {actionLabel(w, t("teacher.setup.fix"))} &rarr;
                   </Link>
                 )}
               </li>

@@ -151,14 +151,16 @@ test("learners join a private course with the teacher's join code", async () => 
   const asJson = JSON.stringify((await asStudent("GET", `/courses/${courseId}`)).body) + JSON.stringify((await asStudent("GET", "/courses/mine")).body);
   assert.ok(!asJson.includes(on.body.code));
 
-  // Typed loosely (lower case, spaces, a dash) it still works, and joins as a student.
+  // Typed loosely (lower case, spaces, a dash) it still works: a request to join as a student,
+  // which the teacher approves (a code can travel beyond the class).
   assert.equal((await asOutsider("POST", "/courses/join-by-code", { code: "XXXXXX" })).status, 404);
   const typed = `${on.body.code.slice(0, 3).toLowerCase()} - ${on.body.code.slice(3)}`;
   const joined = await asOutsider("POST", "/courses/join-by-code", { code: typed });
   assert.equal(joined.status, 200);
   assert.equal(joined.body.courseId, courseId);
+  assert.equal(joined.body.status, "pending");
   const enrollment = await db.prepare("SELECT role, status FROM enrollments WHERE course_id = ? AND user_email = ?").get(courseId, USERS.outsider.email);
-  assert.deepEqual([enrollment.role, enrollment.status], ["student", "active"]);
+  assert.deepEqual([enrollment.role, enrollment.status], ["student", "pending"]);
 
   // A new code replaces the old one; off stops joining.
   const renewed = await asTeacher("POST", `/courses/${courseId}/join-code`, { action: "new" });
@@ -253,14 +255,14 @@ test("learners can't see or submit unpublished work", async () => {
   assert.equal((await asStudent("POST", `/courses/${courseId}/assignments/${draft.body.content_id}/submit`, { body: "hi" })).status, 404);
 });
 
-test("discussions are created in a module the learner can see", async () => {
+test("teachers start discussions in a week; learners reply but don't start them", async () => {
   const { courseId, week1 } = await setupCourse("Discuss");
-  // week1 isn't published yet
-  assert.equal((await asStudent("POST", `/courses/${courseId}/discussions`, { title: "Q", moduleId: week1.id })).status, 404);
   await asTeacher("PATCH", `/courses/${courseId}/modules/${week1.id}`, { published: true });
-  const res = await asStudent("POST", `/courses/${courseId}/discussions`, { title: "Q", moduleId: week1.id });
+  assert.equal((await asStudent("POST", `/courses/${courseId}/discussions`, { title: "Q", moduleId: week1.id })).status, 403);
+  const res = await asTeacher("POST", `/courses/${courseId}/discussions`, { title: "Q", moduleId: week1.id, published: true });
   assert.equal(res.status, 201, JSON.stringify(res.body));
   assert.equal(res.body.module_id, week1.id);
+  assert.equal((await asStudent("POST", `/courses/${courseId}/discussions/${res.body.id}/replies`, { body: "My answer" })).status, 201);
 });
 
 // ---------- Quizzes (guide §5.4) ----------

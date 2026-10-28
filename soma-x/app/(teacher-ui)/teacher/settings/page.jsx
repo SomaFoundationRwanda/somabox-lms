@@ -7,7 +7,10 @@ import { LANGUAGE_NAMES } from "@/components/global/LanguageSwitcher"
 import ChangePasswordForm from "@/components/account/ChangePasswordForm"
 import { useToast } from "@/context/ToastContext"
 import { apiFetch } from "@/lib/api"
-import { Select } from "@/components/form"
+import { ChoiceGroup, Select, TextInput } from "@/components/form"
+import { useQueryClient } from "@tanstack/react-query"
+import { MY_PROFILE_KEY, useMyProfile } from "@/components/teacher/GenderReminder"
+import { GENDERS } from "@/lib/profileOptions"
 
 function Section({ title, children }) {
   return (
@@ -29,6 +32,50 @@ function Row({ label, description, children }) {
       </div>
       <div className="flex-shrink-0">{children}</div>
     </div>
+  )
+}
+
+// Gender and phone: the teacher's own (the admin may have entered them already).
+function AboutMeRows() {
+  const { t } = useLanguage()
+  const { showToast } = useToast()
+  const queryClient = useQueryClient()
+  const profile = useMyProfile()
+  const [phone, setPhone] = useState(null)
+  const shownPhone = phone ?? profile.data?.phone ?? ""
+
+  const save = async (json) => {
+    try {
+      await apiFetch("/users/profile/update", { method: "PATCH", json })
+      await queryClient.invalidateQueries({ queryKey: MY_PROFILE_KEY })
+      showToast(t("teacher.settings.saved"), "success")
+      return true
+    } catch {
+      showToast(t("teacher.common.somethingWrong"), "error")
+      return false
+    }
+  }
+
+  return (
+    <>
+      <Row label={t("shell.people.gender")} description={t("shell.people.genderHelp")}>
+        <ChoiceGroup
+          value={profile.data?.gender || ""}
+          onChange={(gender) => save({ gender })}
+          options={GENDERS.map((g) => ({ value: g, label: t(`shell.people.genders.${g}`) }))}
+          columns={2}
+          size="sm"
+        />
+      </Row>
+      <Row label={t("teacher.settings.phone")} description={t("teacher.settings.phoneHelp")}>
+        <form className="flex gap-2" onSubmit={async (e) => { e.preventDefault(); if (await save({ phone: shownPhone.trim() })) setPhone(null) }}>
+          <TextInput type="tel" value={shownPhone} onChange={(e) => setPhone(e.target.value)} aria-label={t("teacher.settings.phone")} className="w-40" size="sm" />
+          <button type="submit" disabled={phone == null} className="text-caption font-semibold text-on-brand-strong bg-brand-strong rounded-lg px-3 py-1.5 disabled:opacity-50">
+            {t("teacher.settings.save")}
+          </button>
+        </form>
+      </Row>
+    </>
   )
 }
 
@@ -79,6 +126,7 @@ export default function TeacherSettingsPage() {
         <Row label={t("teacher.settings.role")}>
           <span className="text-caption font-semibold px-2.5 py-1 rounded-full bg-brand/10 text-brand-fg">{t("teacher.settings.teacherRole")}</span>
         </Row>
+        <AboutMeRows />
       </Section>
 
       <Section title={t("teacher.settings.security")}>

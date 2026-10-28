@@ -105,6 +105,9 @@ export default function ScholarCoursesPage() {
                 <div className="p-4">
                   <p className="text-item font-semibold text-fg-muted mb-1">{course.title}</p>
                   <p className="text-caption text-fg-muted">{course.grade}</p>
+                  {course.my_status === "pending" ? (
+                    <span className="mt-2 inline-block text-caption font-semibold text-warning-fg bg-warning-soft rounded-full px-2 py-0.5">{t("course.access.pendingTitle")}</span>
+                  ) : null}
                 </div>
               </Link>
             ))}

@@ -133,7 +133,7 @@ test("deleting an account releases its places; a re-registered email inherits no
   const left = await db.prepare("SELECT COUNT(*) AS n FROM enrollments WHERE user_email = 'leaver@test.local'").get();
   assert.equal(Number(left.n), 0);
 
-  const again = await ctx.api("POST", "/auth/register", { body: { email: "leaver@test.local", password: PASSWORD, fullName: "Someone else" } });
+  const again = await ctx.api("POST", "/auth/register", { body: { email: "leaver@test.local", password: PASSWORD, fullName: "Someone else", className: "S1B" } });
   assert.ok([200, 201].includes(again.status), JSON.stringify(again.body));
   const token = await ctx.login("leaver@test.local");
   const mine = await ctx.api("GET", "/courses/mine", { token });
@@ -252,11 +252,11 @@ test("an enrolled learner never succeeds on a teacher-only course route", async 
     "GET /courses/:id/grades", "GET /courses/:id/outcomes", "GET /courses/:id/outcome-mastery", "GET /courses/:id/item-outcomes",
     "GET /courses/:id/calendar", "GET /courses/:id/calendar.ics", "GET /courses/:id/timeline", "GET /courses/:id/home-loop",
     "GET /courses/:id/baseline", "GET /courses/:id/my-progress", "GET /courses/:id/files", "GET /courses/:id/collaborations",
-    "POST /courses/:id/collaborations", "POST /courses/:id/discussions", "POST /courses/:id/modules/:moduleId/items/:itemId/progress",
+    "POST /courses/:id/collaborations", "POST /courses/:id/modules/:moduleId/items/:itemId/progress",
     "GET /courses/:id/setup-status", "POST /courses/:id/enroll", "POST /courses/:id/join",
     "GET /courses/:id/rubrics",
     "GET /courses/:id/module-items/sequence-position", "POST /courses/:id/module-items/:moduleItemId/progress",
-    "GET /courses/:id/attendance/me",
+    "GET /courses/:id/attendance/me", "GET /courses/:id/groups",
   ]);
   const routes = [];
   const walk = (prefix, stack) => {

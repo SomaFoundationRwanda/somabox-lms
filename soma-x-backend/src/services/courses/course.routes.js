@@ -18,7 +18,11 @@ import {
   courseExists,
   upload,
   requireCourseTeacher,
+  userFullName,
+  teachesLearnersClass,
 } from "./shared.js";
+import { notify, notifyAddedToCourse } from "./notify.js";
+import { placeInClass } from "./classes.js";
 
 const router = express.Router();
 
@@ -27,9 +31,10 @@ const router = express.Router();
 router.post("", async (req, res) => {
   try {
     if (!["teacher", "admin"].includes(req.user?.role)) {
-      return res.status(403).json({ message: "Only teachers can create courses" });
+      return res.status(403).json({ message: "Only teachers can create subjects" });
     }
     const { title, description, grade, startDate, endDate } = req.body;
+    const subject = String(req.body.subject || "").trim().slice(0, 60) || null;
     const email = req.user.email;
 
     if (!title) {
@@ -39,9 +44,9 @@ router.post("", async (req, res) => {
     const courseId = await generateUniqueCourseCode();
 
     await localDb.prepare(`
-      INSERT INTO courses (id, title, description, grade, start_date, end_date, lifecycle, created_by_teacher_email)
-      VALUES (?, ?, ?, ?, ?, ?, 'draft', ?)
-    `).run(courseId, title, description || "", grade || "", parseCourseDate(startDate), parseCourseDate(endDate), email);
+      INSERT INTO courses (id, title, description, grade, subject, start_date, end_date, lifecycle, created_by_teacher_email)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 'draft', ?)
+    `).run(courseId, title, description || "", grade || "", subject, parseCourseDate(startDate), parseCourseDate(endDate), email);
 
     await seedDefaultNavItems(courseId);
 
@@ -59,12 +64,51 @@ router.post("", async (req, res) => {
   }
 });
 
+// The learners in the courses this teacher teaches (the teacher's Learners page): one row per
+// learner, with their courses and the course where the teacher may reset their password.
+router.get("/mine/learners", async (req, res) => {
+  try {
+    if (!["teacher", "admin"].includes(req.user.role)) return res.status(403).json({ message: "Only teachers have learners" });
+    const rows = await localDb.prepare(`
+      SELECT c.id AS course_id, c.title, c.grade, e.id AS enrollment_id, e.status,
+             u.id AS user_id, u.full_name, u.learner_code, u.role AS account_role, u.grade_level, u.annex_classes
+      FROM enrollments t
+      JOIN courses c ON c.id = t.course_id
+      JOIN enrollments e ON e.course_id = c.id AND e.role = 'student' AND e.status IN ('active', 'invited')
+      JOIN users u ON LOWER(u.email) = LOWER(e.user_email)
+      WHERE LOWER(t.user_email) = LOWER(?) AND t.role = 'teacher' AND t.status = 'active'
+      ORDER BY u.full_name ASC, c.title ASC
+    `).all(req.user.email);
+    const byUser = new Map();
+    for (const row of rows) {
+      const learner = byUser.get(row.user_id) || {
+        id: row.user_id,
+        fullName: row.full_name || "",
+        learnerCode: row.learner_code || null,
+        className: row.grade_level || null,
+        courses: [],
+        resetIn: null,
+      };
+      learner.courses.push({ id: row.course_id, title: row.title });
+      // Same rule as the reset itself: a learner account, active in a course of their class.
+      if (!learner.resetIn && row.account_role === "scholar" && row.status === "active" && teachesLearnersClass({ grade: row.grade }, row)) {
+        learner.resetIn = { courseId: row.course_id, enrollmentId: row.enrollment_id };
+      }
+      byUser.set(row.user_id, learner);
+    }
+    return res.json([...byUser.values()]);
+  } catch (error) {
+    console.error("Error listing a teacher's learners:", error);
+    return res.status(500).json({ message: error.message });
+  }
+});
+
 router.get("/mine", async (req, res) => {
   try {
     // Admins may look up another user's courses (admin user detail page).
     const requested = normalizeEmail(req.query.userEmail);
     if (requested && requested !== req.user.email && req.user.role !== "admin") {
-      return res.status(403).json({ message: "You can only view your own courses" });
+      return res.status(403).json({ message: "You can only view your own subjects" });
     }
     const email = requested || req.user.email;
 
@@ -72,7 +116,8 @@ router.get("/mine", async (req, res) => {
       SELECT c.*, e.role AS my_role, e.status AS my_status
       FROM courses c
       JOIN enrollments e ON e.course_id = c.id
-      WHERE LOWER(e.user_email) = LOWER(?) AND e.status IN ('active', 'invited')
+      -- 'pending': asked to join with the code, waiting for the teacher (shown as waiting).
+      WHERE LOWER(e.user_email) = LOWER(?) AND e.status IN ('active', 'invited', 'pending')
         -- learners don't see courses that are still being set up, or archived ones
         AND (e.role IN ('teacher', 'ta') OR c.lifecycle NOT IN ('draft', 'archived'))
       ORDER BY c.created_at DESC
@@ -121,11 +166,11 @@ router.put("/:id/teacher", async (req, res) => {
     if (req.user.role !== "admin") return res.status(403).json({ message: "You do not have permission to do this" });
     const courseId = String(req.params.id || "").trim();
     const course = await courseExists(courseId);
-    if (!course) return res.status(404).json({ message: "Course not found" });
+    if (!course) return res.status(404).json({ message: "Subject not found" });
     const email = normalizeEmail(req.body.email);
     const account = email ? await localDb.prepare("SELECT role, is_active FROM users WHERE LOWER(email) = ?").get(email) : null;
     if (!account) return res.status(404).json({ message: "There's no account with this email", code: "NO_ACCOUNT" });
-    if (!["teacher", "admin"].includes(account.role)) return res.status(400).json({ message: "Only teacher accounts can teach a course" });
+    if (!["teacher", "admin"].includes(account.role)) return res.status(400).json({ message: "Only teacher accounts can teach a subject" });
     if (Number(account.is_active) === 0) return res.status(400).json({ message: "This account is deactivated. Reactivate it first." });
 
     const removeOthers = req.body.removeOthers === true;
@@ -141,6 +186,7 @@ router.put("/:id/teacher", async (req, res) => {
         await localDb.prepare("DELETE FROM enrollments WHERE course_id = ? AND role = 'teacher' AND LOWER(user_email) <> ?").run(courseId, email);
       }
     })();
+    await notifyAddedToCourse(courseId, email, "teacher");
     await logAdminAuditAction({
       adminEmail: req.user.email,
       action: "ASSIGN_COURSE_TEACHER",
@@ -215,23 +261,27 @@ router.post("/join-by-code", async (req, res) => {
     const course = row ? await courseExists(row.course_id) : null;
     if (!course) {
       joinMisses.set(email, [...recentMisses(email), Date.now()]);
-      return res.status(404).json({ message: "No course has this code. Check it with your teacher.", code: "INVALID_CODE" });
+      return res.status(404).json({ message: "No subject has this code. Check it with your teacher.", code: "INVALID_CODE" });
     }
     if (course.lifecycle !== "open") {
-      return res.status(400).json({ message: "This course isn't open yet. Ask your teacher.", code: "NOT_OPEN" });
+      return res.status(400).json({ message: "This subject isn't open yet. Ask your teacher.", code: "NOT_OPEN" });
     }
 
-    // Someone already in the course (a teacher included) keeps their role.
+    // Someone already in the course (a teacher included) keeps their place.
     const existing = await getEnrollment(course.id, email);
+    if (existing?.status === "active") return res.json({ message: "Joined subject", status: "active", courseId: course.id, title: course.title });
+    if (existing?.status === "pending") return res.json({ message: "Waiting for your teacher to approve", status: "pending", courseId: course.id, title: course.title });
+
+    // A code can reach learners outside the class: joining with it asks the course's teachers.
     if (existing) {
-      if (existing.status !== "active") {
-        await localDb.prepare("UPDATE enrollments SET status = 'active' WHERE course_id = ? AND LOWER(user_email) = LOWER(?)").run(course.id, email);
-      }
+      await localDb.prepare("UPDATE enrollments SET status = 'pending', role = 'student' WHERE course_id = ? AND LOWER(user_email) = LOWER(?)").run(course.id, email);
     } else {
-      await localDb.prepare("INSERT INTO enrollments (course_id, user_email, role, status) VALUES (?, ?, 'student', 'active')").run(course.id, email);
+      await localDb.prepare("INSERT INTO enrollments (course_id, user_email, role, status) VALUES (?, ?, 'student', 'pending')").run(course.id, email);
     }
+    const teachers = await localDb.prepare("SELECT user_email FROM enrollments WHERE course_id = ? AND role = 'teacher' AND status = 'active'").all(course.id);
+    await notify(teachers.map((t) => t.user_email), "joinRequest", { name: await userFullName(email) || email, course: course.title }, `/course/${course.id}/people`);
     membershipChanged(course.id, [email]);
-    return res.json({ message: "Joined course", courseId: course.id, title: course.title });
+    return res.json({ message: "Waiting for your teacher to approve", status: "pending", courseId: course.id, title: course.title });
   } catch (error) {
     console.error("Error joining by code:", error);
     return res.status(500).json({ message: error.message });
@@ -241,7 +291,7 @@ router.post("/join-by-code", async (req, res) => {
 router.get("/:id/join-code", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     if (!await requireTeacher(req, res, courseId)) return;
     const row = await localDb.prepare("SELECT code FROM course_join_codes WHERE course_id = ?").get(courseId);
     return res.json({ code: row?.code || null });
@@ -254,7 +304,7 @@ router.get("/:id/join-code", async (req, res) => {
 router.post("/:id/join-code", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     const auth = await requireCourseTeacher(req, res, courseId);
     if (!auth) return;
     const action = req.body?.action;
@@ -281,26 +331,27 @@ router.post("/:id/join", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
     const course = await courseExists(courseId);
-    if (!course) return res.status(404).json({ message: "Course not found" });
-    if (course.visibility !== "public") return res.status(403).json({ message: "This course is private and requires an invite" });
-    if (course.lifecycle !== "open") return res.status(400).json({ message: "This course isn't open for joining" });
+    if (!course) return res.status(404).json({ message: "Subject not found" });
+    if (course.visibility !== "public") return res.status(403).json({ message: "This subject is private and requires an invite" });
+    if (course.lifecycle !== "open") return res.status(400).json({ message: "This subject isn't open for joining" });
 
     const email = req.user.email;
 
     const existing = await getEnrollment(courseId, email);
     // Nobody switches back on a place a teacher switched off (as with a join code).
     if (existing && existing.status !== "active") {
-      return res.status(403).json({ message: "Your place in this course was removed. Ask your teacher to add you again.", code: "REMOVED" });
+      return res.status(403).json({ message: "Your place in this subject was removed. Ask your teacher to add you again.", code: "REMOVED" });
     }
     if (!existing) {
       await localDb.prepare(`
         INSERT INTO enrollments (course_id, user_email, role, status)
         VALUES (?, ?, 'student', 'active')
       `).run(courseId, email);
+      await placeInClass(courseId, email);
     }
 
     membershipChanged(courseId, [email]);
-    return res.status(200).json({ message: "Joined course", course: await courseExists(courseId) });
+    return res.status(200).json({ message: "Joined subject", course: await courseExists(courseId) });
   } catch (error) {
     console.error("Error joining course:", error);
     return res.status(500).json({ message: error.message });
@@ -311,7 +362,7 @@ router.get("/:id", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
     const course = await courseExists(courseId);
-    if (!course) return res.status(404).json({ message: "Course not found" });
+    if (!course) return res.status(404).json({ message: "Subject not found" });
 
     // Someone signed in who isn't in the course: say so, and for a public, open course show what
     // it is so they can join it (POST /:id/join). A private course stays a name-less refusal.
@@ -319,8 +370,11 @@ router.get("/:id", async (req, res) => {
       const mine = await getEnrollment(courseId, req.user.email);
       if (!mine || mine.status !== "active") {
         const joinable = !mine && course.visibility === "public" && course.lifecycle === "open";
+        if (mine?.status === "pending") {
+          return res.status(403).json({ message: "Waiting for your teacher to approve", code: "PENDING", course: { id: course.id, title: course.title, description: course.description, grade: course.grade } });
+        }
         return res.status(403).json({
-          message: "Not enrolled in this course",
+          message: "Not enrolled in this subject",
           code: mine ? "REMOVED" : "NOT_ENROLLED",
           course: joinable ? { id: course.id, title: course.title, description: course.description, grade: course.grade } : null,
         });
@@ -378,7 +432,7 @@ router.patch("/:id", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
     const existingCourse = await courseExists(courseId);
-    if (!existingCourse) return res.status(404).json({ message: "Course not found" });
+    if (!existingCourse) return res.status(404).json({ message: "Subject not found" });
     if (!await requireCourseTeacher(req, res, courseId)) return;
 
     const { title, description, grade, lifecycle, homePageType, startDate, endDate, visibility, lengthWeeks } = req.body;
@@ -392,6 +446,7 @@ router.patch("/:id", async (req, res) => {
     if (title !== undefined) { updates.push("title = ?"); params.push(title); }
     if (description !== undefined) { updates.push("description = ?"); params.push(description); }
     if (grade !== undefined) { updates.push("grade = ?"); params.push(grade); }
+    if (req.body.subject !== undefined) { updates.push("subject = ?"); params.push(String(req.body.subject || "").trim().slice(0, 60) || null); }
     if (lifecycle !== undefined && lifecycle !== existingCourse.lifecycle) { updates.push("lifecycle = ?"); params.push(lifecycle); }
     if (homePageType !== undefined && ["modules", "activity", "page"].includes(homePageType)) { updates.push("home_page_type = ?"); params.push(homePageType); }
     const newStart = startDate !== undefined ? parseCourseDate(startDate) : existingCourse.start_date;
@@ -425,7 +480,7 @@ router.patch("/:id", async (req, res) => {
 router.delete("/:id", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     const isAdmin = req.user?.role === "admin";
     if (!isAdmin && !await requireCourseTeacher(req, res, courseId)) return;
 
@@ -438,7 +493,7 @@ router.delete("/:id", async (req, res) => {
     `).get(courseId, courseId, courseId);
     if (Number(learnerWork.n) > 0 && !(isAdmin && req.query.force === "true")) {
       return res.status(409).json({
-        message: "This course has learners' work in it, so it can't be deleted. Archive it instead: learners no longer see it in their course list, and grades and results are kept.",
+        message: "This subject has learners' work in it, so it can't be deleted. Archive it instead: learners no longer see it in their subject list, and grades and results are kept.",
         code: "HAS_LEARNER_WORK",
       });
     }
@@ -460,7 +515,7 @@ router.delete("/:id", async (req, res) => {
 router.post("/:id/cover-image", upload.single("image"), async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     if (!await requireCourseTeacher(req, res, courseId)) return;
     if (!req.file) return res.status(400).json({ message: "No image file provided" });
 

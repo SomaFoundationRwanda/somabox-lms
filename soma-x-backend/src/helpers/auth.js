@@ -1,13 +1,13 @@
 import crypto from 'crypto';
 import { serverDb } from './db-manager.js';
 import { closeSessionStreams, closeUserStreams } from './live.js';
+import { noteActiveDay } from '../services/insights/events.js';
 
-// Sessions end after 7 days, or after 12 hours without any request. One started on a shared
-// device (a family phone, a classroom tablet) ends after 12 hours, or 30 minutes without any request.
-const SESSION_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
-const SESSION_IDLE_MS = 12 * 60 * 60 * 1000;
-const SHARED_SESSION_MAX_AGE_MS = 12 * 60 * 60 * 1000;
-const SHARED_SESSION_IDLE_MS = 30 * 60 * 1000;
+// Every device may be shared (a classroom tablet, a family phone), and a learner may forget to say
+// so: every session ends after 12 hours, or after 30 minutes without any request. (The app keeps
+// the session alive while the person is actually typing or clicking: lib/keepAlive.js.)
+const SESSION_MAX_AGE_MS = 12 * 60 * 60 * 1000;
+const SESSION_IDLE_MS = 30 * 60 * 1000;
 // Avoid a write on every request: refresh last_seen_at at most once a minute.
 const LAST_SEEN_RESOLUTION_MS = 60 * 1000;
 
@@ -21,13 +21,12 @@ function readBearerToken(req) {
     return match ? match[1].trim() : null;
 }
 
-export async function createSession(userId, userAgent, { sharedDevice = false } = {}) {
+export async function createSession(userId, userAgent) {
     const token = crypto.randomBytes(32).toString('base64url');
-    const maxAge = sharedDevice ? SHARED_SESSION_MAX_AGE_MS : SESSION_MAX_AGE_MS;
     await serverDb.prepare(`
         INSERT INTO sessions (token_hash, user_id, expires_at, user_agent, shared_device)
-        VALUES (?, ?, ?, ?, ?)
-    `).run(hashToken(token), userId, new Date(Date.now() + maxAge).toISOString(), userAgent || null, sharedDevice ? 1 : 0);
+        VALUES (?, ?, ?, ?, 1)
+    `).run(hashToken(token), userId, new Date(Date.now() + SESSION_MAX_AGE_MS).toISOString(), userAgent || null);
     return token;
 }
 
@@ -67,7 +66,7 @@ export async function authenticate(req, res, next) {
 
         const now = Date.now();
         const lastSeen = new Date(row.last_seen_at).getTime();
-        if (new Date(row.expires_at).getTime() <= now || now - lastSeen > (Number(row.shared_device) === 1 ? SHARED_SESSION_IDLE_MS : SESSION_IDLE_MS) || Number(row.is_active) === 0) {
+        if (new Date(row.expires_at).getTime() <= now || now - lastSeen > SESSION_IDLE_MS || Number(row.is_active) === 0) {
             return next();
         }
         if (now - lastSeen > LAST_SEEN_RESOLUTION_MS) {
@@ -80,9 +79,10 @@ export async function authenticate(req, res, next) {
             fullName: row.full_name,
             role: row.role,
             mustChangePassword: Number(row.must_change_password) === 1,
-            sharedDevice: Number(row.shared_device) === 1,
         };
         req.sessionToken = token;
+        // Not awaited: counting active days never slows a request down.
+        noteActiveDay(req.user);
         next();
     } catch (error) {
         next(error);
@@ -93,6 +93,8 @@ export async function authenticate(req, res, next) {
 const PUBLIC_ROUTES = [
     { method: 'POST', path: '/auth/login' },
     { method: 'POST', path: '/auth/register' },
+    // The school's classes, picked first when a learner signs up.
+    { method: 'GET', path: '/auth/classes' },
     { method: 'GET', path: '/analytics/branding' },
     { method: 'POST', path: '/auth/media-session' },
     // The school's name, logo and colours (login page), and visitor previews.

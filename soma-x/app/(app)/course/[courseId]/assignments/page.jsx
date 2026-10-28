@@ -25,7 +25,6 @@ export default function AssignmentsPage() {
       <div className="p-4 md:p-6 space-y-6 max-w-4xl">
         <PageHeader help="pages.assignments"
           title={t("nav.assignments")}
-          description={isTeacher ? t("lists.assignmentsDescription") : undefined}
           actions={isTeacher ? (
             <Link
               href={`/course/${courseId}/modules`}
@@ -53,6 +52,11 @@ export default function AssignmentsPage() {
                   href={href}
                   subtitle={item.dueAt ? tf("common.dueOn", { date: fmtDate(item.dueAt) }) : t("lists.weekSlot")}
                   meta={item.pointsPossible != null ? <span className="font-semibold text-fg-muted">{tpts(item.pointsPossible)}</span> : null}
+                  actions={isTeacher && item.kind === "assignment" ? (
+                    <Link href={`${href}#submissions`} className="text-caption font-semibold text-brand-fg border border-brand/40 hover:bg-brand-soft rounded-full px-2.5 py-1 whitespace-nowrap">
+                      {t("submission.gradeLink")} · {tf("submission.handedIn", { n: item.handedIn ?? 0 })}
+                    </Link>
+                  ) : null}
                 />
               );
             })}

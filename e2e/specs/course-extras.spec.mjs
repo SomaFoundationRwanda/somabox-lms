@@ -118,24 +118,18 @@ async function dragOneDown(page) {
 test.describe("reordering with the keyboard", () => {
   test.use({ storageState: authFile("teacher") });
 
-  test("moves a week and an item", async ({ page }) => {
+  test("moves an item (weeks follow their dates)", async ({ page }) => {
     const c = await seedCourse({ learners: [], weeks: 3 });
     await page.goto(`/course/${c.id}/modules`);
-    const weekTitles = async () => (await api("GET", `/courses/${c.id}/modules`, { as: "teacher" })).filter((m) => m.kind !== "unassigned").map((m) => m.title);
-    const before = await weekTitles();
-    // The drag-and-drop list loads just after the page; wait for it before using the handles.
-    await expect(page.locator('[aria-roledescription="sortable"]').first()).toBeVisible();
-    const handle = page.getByRole("button", { name: ct("modules.dragModule"), exact: true }).first();
-    await handle.focus();
-    await dragOneDown(page);
-    await expect.poll(weekTitles, { timeout: 3_000 }).not.toEqual(before);
+    // Weeks are ordered by date and moved with "Change date", not dragged.
+    await expect(page.getByRole("button", { name: ct("modules.dragModule"), exact: true })).toHaveCount(0);
 
     const items = async () => JSON.stringify(await api("GET", `/courses/${c.id}/modules`, { as: "teacher" }));
     const itemsBefore = await items();
     // Each week's item list loads on its own too.
     await page.reload();
     // (The drag handles themselves are the sortable elements.)
-    const itemHandle = page.getByRole("button", { name: "Drag to reorder the item", exact: true }).first();
+    const itemHandle = page.getByRole("button", { name: t("course.modules.dragItem"), exact: true }).first();
     await expect(itemHandle).toHaveAttribute("aria-roledescription", "sortable");
     await itemHandle.focus();
     await dragOneDown(page);
@@ -251,7 +245,7 @@ test.describe("joining", () => {
     const { code } = await api("POST", `/courses/${c.id}/join-code`, { as: "teacher", body: { action: "on" } });
     const learner = await asRole(browser, "learner2");
     await learner.page.goto("/manage/scholar-dashboard/courses");
-    await learner.page.getByRole("button", { name: "Join a course" }).click();
+    await learner.page.getByRole("button", { name: t("learner.courses.joinCourse") }).click();
     await learner.page.getByRole("textbox").last().fill(code);
     await learner.page.getByRole("button", { name: /^Join$/ }).last().click();
     await learner.page.waitForURL(`**/course/${c.id}/**`, { timeout: 5_000 });

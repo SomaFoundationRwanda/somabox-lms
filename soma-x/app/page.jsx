@@ -9,7 +9,6 @@ import { useToast } from "@/context/ToastContext";
 import { accountPage, renewMediaSession, safeNext, setSessionToken, takeNext } from "@/lib/session";
 import { startRouteLoading } from "@/components/global/RouteLoader";
 import { apiFetch, getErrorMessage } from "@/lib/api";
-import { CheckboxField } from "@/components/form";
 
 const AuthComp = () => {
     const { t } = useLanguage();
@@ -17,7 +16,6 @@ const AuthComp = () => {
     const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL;
 
     const [formData, setFormData] = useState({ email: '', password: '' });
-    const [sharedDevice, setSharedDevice] = useState(false);
     const [loginError, setLoginError] = useState('');
     const [loading, setLoading] = useState(false);
     // Where a guest was going when they were asked to sign in (?next=, or remembered).
@@ -45,7 +43,7 @@ const AuthComp = () => {
         try {
             const data = await apiFetch("/auth/login", {
                 method: "POST",
-                json: { email: formData.email.trim(), password: formData.password, sharedDevice },
+                json: { email: formData.email.trim(), password: formData.password },
                 allowUnauthenticated: true,
             }).catch((err) => {
                 const msg = err?.status === 429
@@ -55,7 +53,7 @@ const AuthComp = () => {
             });
 
             const userRole = String(data.user?.role || 'scholar').toLowerCase();
-            setSessionToken(data.token, { sharedDevice: data.sharedDevice === true });
+            setSessionToken(data.token);
             // The login response set the media cookie (this request used credentials:
             // "include"); renew it once more so videos and books work straight away.
             await renewMediaSession();
@@ -121,14 +119,8 @@ const AuthComp = () => {
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 />
 
-                {/* Shared device: the sign-in ends when the browser closes */}
-                <CheckboxField
-                    id="auth-shared-device"
-                    label={t("shell.login.sharedDevice")}
-                    hint={t("shell.login.sharedDeviceHelp")}
-                    checked={sharedDevice}
-                    onCheckedChange={setSharedDevice}
-                />
+                {/* Every device may be shared: the sign-in always ends on its own. */}
+                <p className="text-caption text-fg-subtle">{t("shell.login.autoSignOut")}</p>
 
                 <AuthError>{loginError}</AuthError>
 

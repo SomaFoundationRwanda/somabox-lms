@@ -27,7 +27,7 @@ export async function publishCourse(page, { withWeeks = true } = {}) {
   await page.getByRole("button", { name: t("course.status.publish"), exact: true }).first().click();
   const dialog = page.getByRole("dialog", { name: t("course.status.publishTitle") });
   await expect(dialog).toBeVisible();
-  const withWeeksButton = dialog.getByRole("button", { name: /^Publish course and/ });
+  const withWeeksButton = dialog.getByRole("button", { name: new RegExp(`^${t("course.status.publishWithWeekOne").split(" and ")[0]} and`) });
   if (withWeeks && await withWeeksButton.count()) await withWeeksButton.click();
   else if (await dialog.getByRole("button", { name: t("course.status.publishOnly") }).count()) await dialog.getByRole("button", { name: t("course.status.publishOnly") }).click();
   else await dialog.getByRole("button", { name: t("course.status.publish"), exact: true }).click();

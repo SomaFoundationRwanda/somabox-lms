@@ -32,18 +32,25 @@ test.describe("sync", () => {
     await expect(page.getByText(/isn't set up on this box yet/).first()).toBeVisible();
   });
 
-  test("the admin chooses what leaves the box", async ({ page }) => {
+  test("the learning record is always sent; the admin chooses names and written work", async ({ page }) => {
     await page.goto("/manage/admin/sync");
     const save = page.getByRole("button", { name: t("admin.analytics.save"), exact: true });
     await expect(save).toBeDisabled();
-    await page.getByRole("checkbox", { name: /^Usage events/ }).uncheck();
-    await page.getByRole("radio", { name: /^No personal details/ }).check();
+    // Lessons, results and activity can't be switched off, and files never leave the box.
+    for (const key of ["courses", "enrollments", "grades", "outcomeResults", "events"]) {
+      const box = page.getByRole("checkbox", { name: new RegExp(`^${c(`scope.${key}.label`)}`) });
+      await expect(box).toBeChecked();
+      await expect(box).toBeDisabled();
+    }
+    await expect(page.getByText(c("filesStay"))).toBeVisible();
+    await expect(page.getByRole("radio", { name: new RegExp(`^${c("peopleOptions.none.label")}`) })).toHaveCount(0);
+    await page.getByRole("radio", { name: new RegExp(`^${c("peopleOptions.full.label")}`) }).check();
     await save.click();
     await expect(page.getByText(c("scopeSaved")).first()).toBeVisible();
     const { scope } = await api("GET", "/sync/status", { as: "admin" });
-    expect(scope).toMatchObject({ events: false, people: "none" });
+    expect(scope).toMatchObject({ events: true, grades: true, people: "full" });
     await page.reload();
-    await expect(page.getByRole("checkbox", { name: /^Usage events/ })).not.toBeChecked();
+    await expect(page.getByRole("radio", { name: new RegExp(`^${c("peopleOptions.full.label")}`) })).toBeChecked();
   });
 
   test("attendance can be kept on the box", async ({ page }) => {

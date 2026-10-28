@@ -65,11 +65,13 @@ test.describe("sign in", () => {
     await expect(page).toHaveURL(/\/$/);
   });
 
-  test("on a shared device the sign-in is kept only until the browser closes", async ({ page }) => {
+  test("every sign-in is kept only until the browser closes, without a box to tick", async ({ page }) => {
     await page.goto("/");
+    // Nothing to remember: every device is treated as shared.
+    await expect(page.getByRole("checkbox")).toHaveCount(0);
+    await expect(page.getByText(t("shell.login.autoSignOut"))).toBeVisible();
     await page.getByLabel(t("school.login.label")).fill(USERS.learner2.email);
     await page.getByLabel(t("shell.login.password"), { exact: true }).fill(PASSWORD);
-    await page.getByRole("checkbox", { name: new RegExp(t("shell.login.sharedDevice")) }).check();
     await page.getByRole("button", { name: t("auth.authLogin"), exact: true }).click();
     await page.waitForURL(`**${HOME.scholar}`);
     expect(await page.evaluate(() => localStorage.getItem("st"))).toBeNull();
@@ -77,6 +79,18 @@ test.describe("sign in", () => {
     // A reload in the same tab stays signed in.
     await page.reload();
     await expect(page).toHaveURL(new RegExp(HOME.scholar));
+  });
+
+  test("someone typing or tapping stays signed in: the app tells the box they're still there", async ({ page }) => {
+    await page.clock.install();
+    await login(page, USERS.learner2.email, PASSWORD);
+    await page.waitForURL(`**${HOME.scholar}`);
+    await expect(page.getByRole("button", { name: t("logout"), exact: true })).toBeVisible();
+    // Six quiet minutes, then a key press: the box hears from the app.
+    await page.clock.fastForward("06:00");
+    const ping = page.waitForRequest((r) => new URL(r.url()).pathname === "/auth/me");
+    await page.keyboard.press("Tab");
+    await ping;
   });
 });
 
@@ -97,6 +111,7 @@ test.describe("sign up", () => {
   test("a new learner creates an account and lands on their dashboard", async ({ page }) => {
     const email = `new-${uid()}@e2e.test`;
     await page.goto("/signup");
+    await page.locator("#signup-class").fill("S1B");
     await page.getByLabel("Full Name").fill("Nia New");
     await page.getByLabel("Email").fill(email);
     await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
@@ -115,6 +130,7 @@ test.describe("sign up", () => {
 
   test("mismatched passwords are refused before anything is sent", async ({ page }) => {
     await page.goto("/signup");
+    await page.locator("#signup-class").fill("S1B");
     await page.getByLabel("Full Name").fill("Nia New");
     await page.getByLabel("Email").fill(`mismatch-${uid()}@e2e.test`);
     await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
@@ -126,6 +142,7 @@ test.describe("sign up", () => {
 
   test("an email that's already registered is refused", async ({ page }) => {
     await page.goto("/signup");
+    await page.locator("#signup-class").fill("S1B");
     await page.getByLabel("Full Name").fill("Lea Again");
     await page.getByLabel("Email").fill(USERS.learner.email);
     await page.getByLabel("Password", { exact: true }).fill(PASSWORD);

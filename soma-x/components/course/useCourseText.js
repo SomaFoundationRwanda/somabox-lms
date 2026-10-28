@@ -27,6 +27,7 @@ export const DEFAULT_NAV_LABELS = {
   settings: "Settings",
   insights: "Insights",
   attendance: "Attendance",
+  groups: "Groups",
   ai: "AI drafts",
   progress: "My progress",
 };

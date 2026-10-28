@@ -9,6 +9,11 @@ import { generateUniqueCourseCode, linkDiscussionAssignment } from "../courses/s
 import { createModuleContent, setItemOutcomes, ItemError } from "../courses/items.js";
 import { saveRubric } from "../courses/rubrics.js";
 import { refreshDueDates } from "../courses/schedule.js";
+import { GRADE_CATEGORIES } from "../courses/categories.js";
+
+// The type of graded work, only when set, so bundles of courses without types hash as before.
+const categoryOf = (row) => (row.category ? { category: row.category } : {});
+const knownCategory = (value) => (GRADE_CATEGORIES.includes(value) ? value : null);
 
 export const BUNDLE_FORMAT = "somabox-course-bundle";
 export const BUNDLE_FORMAT_VERSION = 1;
@@ -82,7 +87,7 @@ export async function buildBundleContent(courseId) {
         out.push({
           ...base, ...days, published, outcomeRefs: await tagsOf("assignment", a.id),
           assignment: {
-            description: a.description || "", pointsPossible: Number(a.points_possible),
+            description: a.description || "", pointsPossible: Number(a.points_possible), ...categoryOf(a),
             rubric: rubric ? { title: rubric.title, criteria: criteria.map((c) => ({ title: c.title, description: c.description || "", points: Number(c.points), weight: Number(c.weight), outcomeRef: refOf.get(Number(c.outcome_id)) || null })) } : null,
           },
         });
@@ -93,7 +98,7 @@ export async function buildBundleContent(courseId) {
         out.push({
           ...base, ...days, published, outcomeRefs: await tagsOf("quiz", q.id),
           quiz: {
-            description: q.description || "", kind: q.kind, attemptsAllowed: q.attempts_allowed, timeLimitMinutes: q.time_limit_minutes,
+            description: q.description || "", kind: q.kind, attemptsAllowed: q.attempts_allowed, timeLimitMinutes: q.time_limit_minutes, ...categoryOf(q),
             questions: questions.map((x) => ({ prompt: x.prompt, questionType: x.question_type, options: parseJson(x.options, []), correctOption: x.correct_option, points: Number(x.points), outcomeRef: refOf.get(Number(x.outcome_id)) || null })),
           },
         });
@@ -316,11 +321,11 @@ export async function importBundle(bundle, user) {
         const common = { title: it.title, ...days };
         let data;
         if (it.type === "page") data = { ...common, body: it.page?.body || "", bodyJson: it.page?.bodyJson ?? null, bodyHtml: it.page?.bodyHtml ?? null };
-        else if (it.type === "assignment") data = { ...common, description: it.assignment?.description || "", pointsPossible: it.assignment?.pointsPossible ?? 100, outcomeIds: ids(it.outcomeRefs) };
+        else if (it.type === "assignment") data = { ...common, description: it.assignment?.description || "", pointsPossible: it.assignment?.pointsPossible ?? 100, category: knownCategory(it.assignment?.category), outcomeIds: ids(it.outcomeRefs) };
         else if (it.type === "quiz") {
           data = {
             ...common, description: it.quiz?.description || "", kind: it.quiz?.kind, attemptsAllowed: it.quiz?.attemptsAllowed ?? null,
-            timeLimitMinutes: it.quiz?.timeLimitMinutes ?? null, outcomeIds: ids(it.outcomeRefs),
+            timeLimitMinutes: it.quiz?.timeLimitMinutes ?? null, category: knownCategory(it.quiz?.category), outcomeIds: ids(it.outcomeRefs),
             questions: (it.quiz?.questions || []).map((q) => ({ prompt: q.prompt, questionType: q.questionType, options: q.options || [], correctOption: q.correctOption ?? null, points: q.points, outcomeId: outcomeIds.get(q.outcomeRef) || null })),
           };
         } else data = { ...common, body: it.discussion?.body || "" };

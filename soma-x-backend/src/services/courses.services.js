@@ -17,8 +17,27 @@ import baselineRoutes from "./courses/baseline.routes.js";
 import insightsRoutes from "./courses/insights.routes.js";
 import bundleRoutes from "./courses/bundle.routes.js";
 import attendanceRoutes from "./courses/attendance.routes.js";
+import groupRoutes from "./courses/groups.routes.js";
+import { announceVisible } from "./courses/notify.js";
 
 const router = express.Router();
+
+// After a change to a course succeeds, tell learners about work and discussions they can now see
+// (publishing an item or a week, editing...). Each item is told once (courses/notify.js). One
+// check at a time, after the response, so a burst of edits doesn't tie up database connections.
+let announcing = Promise.resolve();
+router.use("/:id", (req, res, next) => {
+  if (req.method !== "GET") {
+    const courseId = String(req.params.id);
+    res.on("finish", () => {
+      if (res.statusCode >= 400) return;
+      announcing = announcing
+        .then(() => announceVisible(courseId))
+        .catch((err) => console.error("Announcing new work failed:", err));
+    });
+  }
+  next();
+});
 
 // courseRoutes goes first: it defines "/mine" and "/public" ahead of "/:id".
 for (const domain of [
@@ -38,6 +57,7 @@ for (const domain of [
   insightsRoutes,
   bundleRoutes,
   attendanceRoutes,
+  groupRoutes,
 ]) {
   router.use(domain);
 }

@@ -19,9 +19,16 @@ export default function EditorFrame({ asPage = false, title, onClose, backHref, 
       <div>
         <Breadcrumbs sectionKey="modules" itemName={title} />
         <div className={`p-4 md:p-6 ${maxWidth}`}>
-          <Link href={backHref || `/course/${courseId}/modules`} className="inline-flex items-center gap-1.5 text-caption font-semibold text-brand-fg hover:underline">
-            <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" /> {t("editors.backToWeeks")}
-          </Link>
+          {/* Going back is the editor's own close (which asks about unsaved changes). */}
+          {onClose ? (
+            <button type="button" onClick={onClose} className="inline-flex items-center gap-1.5 text-caption font-semibold text-brand-fg hover:underline">
+              <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" /> {t("editors.backToWeeks")}
+            </button>
+          ) : (
+            <Link href={backHref || `/course/${courseId}/modules`} className="inline-flex items-center gap-1.5 text-caption font-semibold text-brand-fg hover:underline">
+              <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" /> {t("editors.backToWeeks")}
+            </Link>
+          )}
           <Heading level={1} className="mt-2">{title}</Heading>
           {/* The editor's body, then its buttons, which stay at the bottom of the screen. */}
           <div className="mt-4 rounded-xl border border-line bg-surface [&>div:last-child]:sticky [&>div:last-child]:bottom-0 [&>div:last-child]:bg-surface [&>div:last-child]:rounded-b-xl">

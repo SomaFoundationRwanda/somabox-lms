@@ -10,6 +10,7 @@ import Link from "next/link";
 import { useLanguage } from "@/context/LanguageContext";
 import { NotEnrolled, SectionUnavailable } from "@/components/course/CourseAccess";
 import CourseStatusBar from "@/components/course/CourseStatusBar";
+import GenderReminder from "@/components/teacher/GenderReminder";
 import { DEFAULT_NAV_LABELS } from "@/components/course/useCourseText";
 
 // Course sections that come from the course menu (course_nav_items). Learners, observers and
@@ -80,6 +81,7 @@ function CourseShell({ children }) {
         )}
         {/* Staff see the course's status (and publish it) on every page. */}
         {courseState.isTeacher && !access?.unavailable ? <CourseStatusBar /> : null}
+        <div className="mx-4 sm:mx-6 mt-4 empty:hidden"><GenderReminder /></div>
         {access?.unavailable ? <SectionUnavailable courseId={courseId} section={access.unavailable} />
           : access?.redirect ? <Loader variant="page" className="min-h-[60vh]" />
           : children}

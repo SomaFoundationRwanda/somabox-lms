@@ -31,19 +31,19 @@ export default {
         "analyticsSection": "Analyses d'accessibilité, d'inclusion et de progression",
         "adminReserved": "Réservé aux administrateurs",
         "openAnalytics": "Ouvrir toutes les analyses",
-        "coursesTitle": "Cours",
-        "coursesDescription": "Tous les cours de ce boîtier, avec leur enseignant et leurs élèves",
+        "coursesTitle": "Matières",
+        "coursesDescription": "Toutes les matières de ce boîtier, avec leur enseignant et leurs élèves",
         "usersDescription": "Gérez les rôles et les identifiants"
     },
     "courses": {
-        "loadFailed": "Impossible de charger les cours",
-        "emptyTitle": "Aucun cours pour l'instant",
-        "emptyText": "Les cours apparaissent ici dès qu'un enseignant en crée un.",
+        "loadFailed": "Impossible de charger les matières",
+        "emptyTitle": "Aucune matière pour l'instant",
+        "emptyText": "Les matières apparaissent ici dès qu'un enseignant en crée une.",
         "searchPlaceholder": "Rechercher par titre, code ou enseignant",
-        "searchLabel": "Rechercher des cours",
-        "caption": "Tous les cours",
-        "noMatch": "Aucun cours ne correspond à votre recherche.",
-        "colCourse": "Cours",
+        "searchLabel": "Rechercher des matières",
+        "caption": "Toutes les matières",
+        "noMatch": "Aucune matière ne correspond à votre recherche.",
+        "colCourse": "Matière",
         "code": "Code {code}",
         "colTeacher": "Enseignant",
         "colStatus": "Statut",
@@ -53,14 +53,14 @@ export default {
         "changeTeacher": "Changer d'enseignant",
         "changeTeacherTitle": "Enseignant de {course}",
         "currentTeachers": "Enseigné par {teachers}.",
-        "noTeacherNow": "Aucun enseignant actif n'enseigne ce cours actuellement.",
+        "noTeacherNow": "Aucun enseignant actif n'enseigne cette matière actuellement.",
         "newTeacher": "Nouvel enseignant",
         "chooseTeacher": "Choisissez un enseignant…",
-        "removeOthers": "Retirer les enseignants actuels de ce cours",
+        "removeOthers": "Retirer les enseignants actuels de cette matière",
         "saveTeacher": "Enregistrer",
         "teacherChanged": "{course} a son nouvel enseignant",
         "changeTeacherFailed": "Impossible de changer l'enseignant",
-        "adminViewNote": "Vous consultez ce cours en tant qu'administrateur : vous pouvez tout lire mais rien modifier.",
+        "adminViewNote": "Vous consultez cette matière en tant qu'administrateur : vous pouvez tout lire mais rien modifier.",
         "adminViewLink": "Retour au portail administrateur",
         "lifecycle": {
             "draft": "Brouillon",
@@ -89,10 +89,10 @@ export default {
     },
     "ai": {
         "features": {
-            "fill_week": "Remplir la semaine",
+            "fill_week": "Remplir la leçon",
             "story": "Histoire",
             "quiz": "Quiz",
-            "outline": "Plan du cours",
+            "outline": "Plan de la matière",
             "outcome_rewrite": "Reformulation d'objectif",
             "rubric": "Grille d'évaluation",
             "grading": "Suggestion de note",
@@ -103,7 +103,7 @@ export default {
             "quiz": "Quiz",
             "assignment": "Devoir",
             "story": "Histoire",
-            "outline": "Plan du cours",
+            "outline": "Plan de la matière",
             "outcome": "Objectif",
             "rubric": "Grille d'évaluation",
             "grading": "Suggestion de note"
@@ -115,7 +115,7 @@ export default {
         "userOff": "IA désactivée pour {name}",
         "pickFromList": "Choisissez un enseignant ou un administrateur dans la liste.",
         "unknown": "Inconnu",
-        "description": "Les enseignants et administrateurs peuvent utiliser l'IA pour préparer du contenu de cours, des grilles et des suggestions de notes. Tout ce qu'elle écrit est un brouillon qu'un enseignant doit approuver puis publier.",
+        "description": "Les enseignants et administrateurs peuvent utiliser l'IA pour préparer du contenu de matière, des grilles et des suggestions de notes. Tout ce qu'elle écrit est un brouillon qu'un enseignant doit approuver puis publier.",
         "schoolSwitch": "Interrupteur pour toute l'école",
         "isOn": "L'assistant IA est activé pour cette école.",
         "isOff": "L'assistant IA est désactivé pour tout le monde dans cette école.",
@@ -138,7 +138,7 @@ export default {
         "colTokens": "Jetons",
         "colAvg": "Secondes (moy.)",
         "draftsTitle": "Ce que sont devenus les brouillons",
-        "draftsHelp": "Par type : ajouté au cours tel quel, ajouté après modification par un enseignant, rejeté, ou en attente.",
+        "draftsHelp": "Par type : ajouté à la matière tel quel, ajouté après modification par un enseignant, rejeté, ou en attente.",
         "draftsCaption": "Brouillons IA par résultat",
         "noDrafts": "Aucun brouillon sur cette période.",
         "colType": "Type",
@@ -151,13 +151,13 @@ export default {
         "events": {
             "explainer_opened": "Aide (« Qu'est-ce que c'est ? ») ouverte",
             "create_helper_used": "Aide à la création utilisée",
-            "course_opened": "Cours ouvert",
-            "item_opened": "Élément ouvert (page, devoir, quiz, discussion)",
+            "course_opened": "Matière ouverte",
+            "item_opened": "Support ouvert (page, devoir, quiz, discussion)",
             "insights_viewed": "Analyses consultées (enseignants)",
             "progress_viewed": "« Ma progression » consultée (élèves)",
             "grading_time": "Corrections chronométrées",
             "ai_suggestion_used": "Suggestion de note IA enregistrée",
-            "item_edited_after_publish": "Élément modifié après publication"
+            "item_edited_after_publish": "Support modifié après publication"
         },
         "seconds": "{s} s",
         "minSec": "{m} min {s} s",
@@ -178,16 +178,16 @@ export default {
         "totals": "Totaux",
         "learners": "Élèves",
         "teachers": "Enseignants",
-        "runningCourses": "Cours en cours",
+        "runningCourses": "Matières en cours",
         "stillDraft": "{count} encore en brouillon",
         "withResults": "Élèves avec résultats",
         "xOfY": "{x} sur {y}",
-        "inRunning": "dans les cours en cours",
+        "inRunning": "dans les matières en cours",
         "active7": "Actifs ces 7 derniers jours",
         "learnersLower": "élèves",
-        "coursesHelp": "Cours publiés et terminés. Choisissez un cours pour ouvrir ses Analyses.",
-        "noRunning": "Aucun cours en cours pour l'instant.",
-        "noRunningHelp": "Les cours apparaissent ici une fois publiés.",
+        "coursesHelp": "Matières publiées et terminées. Choisissez une matière pour ouvrir ses Analyses.",
+        "noRunning": "Aucune matière en cours pour l'instant.",
+        "noRunningHelp": "Les matières apparaissent ici une fois publiées.",
         "colWithResults": "Avec résultats",
         "colMastery": "Maîtrise moy.",
         "colDelta": "Écart / évaluation initiale",
@@ -204,7 +204,7 @@ export default {
         "fromTimed": "sur {count} corrections chronométrées (de l'ouverture du travail à l'enregistrement de la note)",
         "noTimed": "Aucune correction chronométrée",
         "editsAfter": "Modifications après publication",
-        "editsAfterHelp": "changements sur des éléments déjà visibles par les élèves",
+        "editsAfterHelp": "changements sur des supports déjà visibles par les élèves",
         "productUse": "Utilisation",
         "productUseCaption": "Utilisation, {days} derniers jours",
         "noUsage": "Aucune utilisation enregistrée sur cette période.",
@@ -292,16 +292,16 @@ export default {
         },
         "scope": {
             "courses": {
-                "label": "Cours et objectifs",
-                "help": "Titres des cours, semaines, pages, quiz, devoirs et les objectifs visés."
+                "label": "Matières et leçons",
+                "help": "Matières, unités, leçons, quiz et devoirs avec leur type (test de départ, tests…), et les objectifs qu'ils enseignent. Les pages partent sans leur texte."
             },
             "enrollments": {
                 "label": "Inscriptions",
-                "help": "Qui est dans quel cours, comme enseignant ou élève."
+                "help": "Qui est dans quelle matière, comme enseignant ou élève."
             },
             "grades": {
-                "label": "Notes et résultats des quiz",
-                "help": "Notes des devoirs et scores des quiz."
+                "label": "Résultats",
+                "help": "Chaque note et score : tests de départ, quiz, devoirs et autres tests, et la progression de chaque apprenant dans le temps."
             },
             "outcomeResults": {
                 "label": "Résultats par objectif",
@@ -312,8 +312,8 @@ export default {
                 "help": "Qui était présent, en retard, absent ou excusé à chaque appel."
             },
             "events": {
-                "label": "Événements d'utilisation",
-                "help": "Les pages et outils ouverts, pour voir ce qui aide. Aucun travail écrit."
+                "label": "Activité",
+                "help": "Quand chaque apprenant et enseignant se connecte et est actif, les matières et leçons ouvertes, ce qu'il termine et ses réponses aux discussions. Aucun travail écrit."
             }
         },
         "peopleOptions": {
@@ -378,7 +378,11 @@ export default {
         "scopeHelp": "Seul ce qui est coché ici est envoyé vers le cloud. Tout le reste reste sur ce boîtier.",
         "boxId": "Identifiant du boîtier (assistance) :",
         "sendsBy": "envoi par {via}",
-        "webAddress": "adresse web"
+        "webAddress": "adresse web",
+        "alwaysSent": "Toujours envoyé",
+        "alwaysSentHelp": "Le suivi des apprentissages sur lequel le programme fait ses rapports. Il ne peut pas être désactivé, et ce qui a été enregistré avant est aussi envoyé.",
+        "yourChoice": "Votre choix",
+        "filesStay": "Les fichiers et vidéos ne quittent jamais cette box.",
     },
     "library": {
         "uploadFailed": "Échec de l'envoi.",
@@ -442,7 +446,7 @@ export default {
         "provinceDistrict": "Province et district",
         "na": "N/D",
         "locationType": "Type de lieu",
-        "rural": "Élève en milieu rural",
+        "rural": "Rural",
         "urban": "Urbain / périurbain",
         "disability": "Situation de handicap",
         "none": "Aucun",
@@ -455,9 +459,17 @@ export default {
         "pending": "En attente",
         "caughtUp": "Tout est à jour !",
         "noPending": "Aucune révision espacée en attente.",
-        "enrolled": "Cours suivis",
-        "notEnrolled": "Inscrit à aucun cours",
-        "notEnrolledHelp": "Cet élève n'a encore rejoint aucun cours actif."
+        "enrolled": "Matières suivies",
+        "notEnrolled": "Inscrit à aucune matière",
+        "notEnrolledHelp": "Cet apprenant n'a encore rejoint aucune matière active.",
+        "work": "École et enseignement",
+        "classesTaught": "Classes enseignées",
+        "subjectsTaught": "Disciplines enseignées",
+        "noneYet": "Aucune pour l'instant",
+        "annexClasses": "Classes supplémentaires",
+        "teaching": "Ses matières sur ce boîtier",
+        "notTeaching": "N'enseigne encore aucune matière",
+        "notTeachingHelp": "Les matières que cet enseignant crée ou auxquelles il est ajouté comme enseignant s'affichent ici.",
     },
     "users": {
         "resetPassword": "Réinitialiser le mot de passe",
@@ -472,7 +484,7 @@ export default {
         "loadListFailed": "Impossible de charger la liste des utilisateurs",
         "statusFailed": "Impossible de modifier le statut",
         "reactivated": "Utilisateur {name} réactivé",
-        "coursesWithoutTeacher": "Ces cours n'ont plus d'enseignant : {courses}. Attribuez-en un dans Cours (Changer d'enseignant).",
+        "coursesWithoutTeacher": "Ces matières n'ont plus d'enseignant : {courses}. Attribuez-en un dans Matières (Changer d'enseignant).",
         "deactivated": "Utilisateur {name} désactivé",
         "deleteFailed": "Impossible de supprimer l'utilisateur",
         "deleted": "Utilisateur supprimé définitivement",
@@ -501,7 +513,7 @@ export default {
         "clearSearch": "Effacer la recherche",
         "filterRole": "Filtrer par rôle",
         "allRoles": "Tous les rôles",
-        "roleScholar": "Élève",
+        "roleScholar": "Apprenant",
         "roleTeacherMe": "Enseignant / S&E",
         "roleTeacherMeOfficer": "Enseignant / chargé de S&E",
         "roleAdmin": "Administrateur",
@@ -577,7 +589,17 @@ export default {
         "hidePassword": "Masquer le mot de passe",
         "showPassword": "Afficher le mot de passe",
         "saving": "Enregistrement…",
-        "update": "Mettre à jour"
+        "update": "Mettre à jour",
+        "classes": "Classes enseignées",
+        "classesHint": "Les noms de l'école, ex. P1, S1B, S3C. Appuyez sur Entrée après chacun.",
+        "classesPlaceholder": "ex. S1B",
+        "subjects": "Disciplines enseignées",
+        "subjectsHint": "ex. Anglais, Mathématiques, Physique. Appuyez sur Entrée après chacune.",
+        "subjectsPlaceholder": "ex. Anglais",
+        "remove": "Retirer",
+        "staffCode": "Code du personnel",
+        "staffCodeHelp": "Donnez ce code à l'enseignant. Il peut se connecter avec {code} au lieu de son e-mail.",
+        "optionalParen": "(facultatif)",
     },
     "profile": {
         "inactiveAccount": "Compte inactif",

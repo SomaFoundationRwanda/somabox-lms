@@ -19,25 +19,36 @@ export function getSessionToken() {
 }
 
 /**
- * Keeps the token for the next visit, or, on a shared device, only until the browser closes
- * (sessionStorage: tabs opened from the app keep it, the next person to open the browser doesn't).
+ * Keeps the token only until the browser closes (sessionStorage: tabs opened from the app keep
+ * it, the next person to open the browser doesn't). Every device is treated as shared: a learner
+ * may forget to say it is.
  */
-export function setSessionToken(token, { sharedDevice = false } = {}) {
+export function setSessionToken(token) {
     try {
         LEGACY_KEYS.forEach((key) => localStorage.removeItem(key));
         localStorage.removeItem(TOKEN_KEY);
         sessionStorage.removeItem(TOKEN_KEY);
-        (sharedDevice ? sessionStorage : localStorage).setItem(TOKEN_KEY, token);
+        sessionStorage.setItem(TOKEN_KEY, token);
     } catch {
         // storage unavailable (private mode); the user will need to log in again
     }
 }
 
-export function clearSession() {
+/**
+ * Ends the local session. dropDrafts: the person signed out themselves, so the unsent text kept
+ * on this device goes too (lib/drafts.js). A session that simply timed out keeps it, so the same
+ * person finds their writing when they sign back in (drafts are kept per person).
+ */
+export function clearSession({ dropDrafts = false } = {}) {
     try {
+        if (dropDrafts) {
+            for (const k of Object.keys(localStorage)) if (k.startsWith("somabox.draft.")) localStorage.removeItem(k);
+        }
         localStorage.removeItem(TOKEN_KEY);
         sessionStorage.removeItem(TOKEN_KEY);
         LEGACY_KEYS.forEach((key) => localStorage.removeItem(key));
+        // The data kept for fast reloads (lib/persistCache.js) belongs to the session.
+        for (const k of Object.keys(localStorage)) if (k.startsWith("somabox.cache.")) localStorage.removeItem(k);
     } catch {
         // ignore
     }

@@ -3,6 +3,7 @@ import { createContext, useEffect, useState, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { X, AlertCircle, CheckCircle2, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { clearSession, getSessionToken, startMediaSessionKeepAlive } from "@/lib/session";
+import { startActivityKeepAlive } from "@/lib/keepAlive";
 import { clearUserQueue, pendingCount } from "@/lib/submissionQueue";
 import { apiFetch, apiUpload } from "@/lib/api";
 import { queryKeys } from "@/lib/queryKeys";
@@ -176,6 +177,12 @@ export function DataProvider({ children }) {
         return startMediaSessionKeepAlive();
     }, [authenticated, SERVER_URL]);
 
+    // Sessions end after 30 idle minutes: someone typing or reading keeps theirs.
+    useEffect(() => {
+        if (!authenticated) return undefined;
+        return startActivityKeepAlive();
+    }, [authenticated]);
+
     const logout = useCallback(async () => {
         // Shared devices: work waiting in the offline submission queue belongs to this user.
         // Warn if some hasn't reached the box yet, then delete it with the session so the next
@@ -192,7 +199,7 @@ export function DataProvider({ children }) {
         } catch {
             // offline, or already signed out on the box: the local session is still cleared below
         }
-        clearSession();
+        clearSession({ dropDrafts: true });
         // Nothing of this person's stays in memory for the next one on this device.
         queryClient.clear();
         window.location.href = '/';

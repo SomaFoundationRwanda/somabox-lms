@@ -59,6 +59,10 @@ export default function MandatoryProfileSetupModal() {
     const { showToast } = useToast();
 
     const [isOpen, setIsOpen] = useState(false);
+    // An account a teacher made for a learner: the teacher already knows who they are, so the
+    // questions can wait ("Later", asked again next visit) instead of blocking the first one.
+    const [deferrable, setDeferrable] = useState(false);
+    const DEFER_KEY = "somabox.profileSetup.later";
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
     const [checkingStatus, setCheckingStatus] = useState(true);
@@ -123,7 +127,10 @@ export default function MandatoryProfileSetupModal() {
 
                 // The server decides: a profile counts as complete once every required answer was
                 // given explicitly (it records when). Nothing on this device can skip it.
-                setIsOpen(!data.isProfileComplete);
+                let later = false;
+                try { later = !!data.profile_deferred && window.sessionStorage.getItem(DEFER_KEY) === "1"; } catch { /* storage unavailable */ }
+                setDeferrable(!!data.profile_deferred);
+                setIsOpen(!data.isProfileComplete && !later);
             } catch (err) {
                 console.error("Error checking profile completion:", err);
             } finally {
@@ -443,6 +450,17 @@ export default function MandatoryProfileSetupModal() {
                                 >
                                     <ArrowLeft className="w-3.5 h-3.5" />
                                     {t("learner.profileSetup.previous")}
+                                </button>
+                            ) : deferrable ? (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        try { window.sessionStorage.setItem(DEFER_KEY, "1"); } catch { /* storage unavailable */ }
+                                        setIsOpen(false);
+                                    }}
+                                    className="inline-flex items-center px-4 py-2.5 rounded-xl border border-line-strong bg-surface text-caption font-extrabold text-fg-muted hover:bg-surface-hover"
+                                >
+                                    {t("learner.profileSetup.later")}
                                 </button>
                             ) : (
                                 <span className="text-caption font-bold text-fg-subtle">

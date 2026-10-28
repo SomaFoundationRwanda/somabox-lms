@@ -11,6 +11,7 @@ import {
   courseExists,
   requireCourseTeacher,
 } from "./shared.js";
+import { activeLearners, announceVisible, notify } from "./notify.js";
 
 const router = express.Router();
 
@@ -23,7 +24,7 @@ router.patch("/:id/shift-timeline", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
     const course = await courseExists(courseId);
-    if (!course) return res.status(404).json({ message: "Course not found" });
+    if (!course) return res.status(404).json({ message: "Subject not found" });
     if (!await requireCourseTeacher(req, res, courseId)) return;
 
     const days = Number(req.body.days ?? req.body.shiftDays);
@@ -32,7 +33,7 @@ router.patch("/:id/shift-timeline", async (req, res) => {
     const preview = !!req.body.preview;
 
     const before = await loadCourseTimeline(courseId);
-    if (!before.startDate) return res.status(400).json({ message: "Set the course start date first" });
+    if (!before.startDate) return res.status(400).json({ message: "Set the subject start date first" });
 
     let newStart = before.startDate;
     const moved = new Map();
@@ -96,7 +97,7 @@ router.get("/:id/setup-status", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
     const course = await courseExists(courseId);
-    if (!course) return res.status(404).json({ message: "Course not found" });
+    if (!course) return res.status(404).json({ message: "Subject not found" });
     const auth = await requireEnrolled(req, res, courseId);
     if (!auth) return;
     // Learners only need to know whether the course is open.
@@ -124,16 +125,16 @@ router.post("/:id/open-course", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
     const course = await courseExists(courseId);
-    if (!course) return res.status(404).json({ message: "Course not found" });
+    if (!course) return res.status(404).json({ message: "Subject not found" });
     if (!await requireCourseTeacher(req, res, courseId)) return;
 
     if (course.lifecycle !== "draft") {
-      return res.status(400).json({ message: `This course is already ${course.lifecycle}` });
+      return res.status(400).json({ message: `This subject is already ${course.lifecycle}` });
     }
     const report = await getSetupReport(courseId);
     if (!report.canOpen) {
       return res.status(400).json({
-        message: `This course can't open yet: ${report.blocking.map((b) => b.message).join("; ")}`,
+        message: `This subject can't open yet: ${report.blocking.map((b) => b.message).join("; ")}`,
         blocking: report.blocking,
         missingRequirements: report.blocking.map((b) => b.message),
       });
@@ -147,6 +148,9 @@ router.post("/:id/open-course", async (req, res) => {
       }
       publishedWeeks = report.hiddenWeekIds.length;
     }
+    // One "course is open" message, not one per item that's visible now.
+    await announceVisible(courseId, { silent: true });
+    await notify(await activeLearners(courseId), "courseOpened", { course: course.title }, `/course/${courseId}/home`);
     return res.json({ message: "Course successfully opened!", publishedWeeks, course: await courseExists(courseId) });
   } catch (error) {
     return res.status(500).json({ message: error.message });
@@ -162,7 +166,7 @@ router.get("/:id/home-loop", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
     const course = await courseExists(courseId);
-    if (!course) return res.status(404).json({ message: "Course not found" });
+    if (!course) return res.status(404).json({ message: "Subject not found" });
     const auth = await requireEnrolled(req, res, courseId);
     if (!auth) return;
     // Ungraded counts and setup warnings are class-wide teacher data.

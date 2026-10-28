@@ -40,6 +40,9 @@ test("adds a learner, who gets a learner code and must choose their own password
   const code = page.getByText(/^[A-Z]+-\d{4}$/).first();
   await expect(code).toBeVisible();
   const learnerCode = await code.textContent();
+  // The code panel speaks about a learner, not staff.
+  await expect(page.getByText(t("school.users.createdCode").replace("{code}", learnerCode))).toBeVisible();
+  await expect(page.getByText(a("staffCode"), { exact: true })).toHaveCount(0);
   // Closing by clicking outside the drawer (Done can be off-screen: see the known bug below).
   await page.mouse.click(5, 5);
   await expect(page.getByLabel(a("email"), { exact: true })).toBeHidden();
@@ -99,6 +102,15 @@ test("adds a teacher and an admin", async ({ page }) => {
     await page.getByLabel(a("email"), { exact: true }).fill(email);
     await page.getByLabel(a("password"), { exact: true }).fill(PASSWORD);
     await page.getByRole("button", { name: a("addTitle") }).click();
+    // A new teacher's staff code is shown (like a learner's code) until the admin closes it.
+    if (role === "teacher") {
+      await expect(page.getByText(a("staffCode"), { exact: true })).toBeVisible();
+      const staffCode = (await page.getByText(/^[A-Z0-9]+-T\d{3}$/).first().textContent()).trim();
+      // A teacher's code is for the teacher: never "give this code to the learner".
+      await expect(page.getByText(a("staffCodeHelp").replace("{code}", staffCode))).toBeVisible();
+      await expect(page.getByText(t("school.users.createdCode").replace("{code}", staffCode))).toHaveCount(0);
+      await page.getByRole("button", { name: t("school.done") }).click();
+    }
     await expect(page.getByLabel(a("email"), { exact: true })).toBeHidden();
     const { users } = await api("GET", `/users?search=${encodeURIComponent(email)}`, { as: "admin" });
     expect(users[0].role).toBe(role);

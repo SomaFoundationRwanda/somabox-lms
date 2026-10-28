@@ -185,7 +185,7 @@ export function riskReasons({ overall, resultsCount, timeliness, engagement, poi
     reasons.push({ code: "low_mastery", message: `Average across outcomes is ${overall}%, below ${RISK_RULES.lowMastery.below}%` });
   }
   if (timeliness.missing >= RISK_RULES.missingWork.atLeast) {
-    reasons.push({ code: "missing_work", message: `${timeliness.missing} past-due items not handed in` });
+    reasons.push({ code: "missing_work", message: `${timeliness.missing} past-due materials not handed in` });
   }
   const handedIn = timeliness.onTime + timeliness.late;
   if (timeliness.late >= RISK_RULES.oftenLate.atLeast && handedIn > 0 && timeliness.late / handedIn >= RISK_RULES.oftenLate.share) {
@@ -193,7 +193,7 @@ export function riskReasons({ overall, resultsCount, timeliness, engagement, poi
   }
   if (courseRunningDays != null && courseRunningDays >= RISK_RULES.inactive.courseRunningDays) {
     const idle = engagement.lastActivityAt ? diffDays(dateOnly(engagement.lastActivityAt), today) : null;
-    if (idle == null) reasons.push({ code: "inactive", message: "No activity in this course yet" });
+    if (idle == null) reasons.push({ code: "inactive", message: "No activity in this subject yet" });
     else if (idle >= RISK_RULES.inactive.days) reasons.push({ code: "inactive", message: `No activity for ${idle} days` });
   }
   const w = RISK_RULES.falling.window;

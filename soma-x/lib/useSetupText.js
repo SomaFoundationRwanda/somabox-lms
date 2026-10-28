@@ -37,6 +37,11 @@ export default function useSetupText() {
     checklistLabel: (item) => text("checklist", item.labelKey || item.id, {}, item.label),
     blockingText: (b) => text("blocking", b.id, b.params, b.message),
     warningText: (w) => text("warnings", w.id, w.params, w.message),
+    // One line on what a warning means and what to do (warnings aren't errors), and the link's
+    // own words ("Add graded work") instead of a bare "Fix".
+    warningHelp: (w) => t(`teacher.setupHelp.warnings.${w.id}`) || "",
+    blockingHelp: (b) => t(`teacher.setupHelp.blocking.${b.id}`) || "",
+    actionLabel: (row, fallback) => t(`teacher.setupHelp.actions.${row.id}`) || fallback,
     // codes: [{ id, params }] from the server; fallback: its English strings, used when codes are missing.
     baselineProblems: (codes, fallback = []) => (Array.isArray(codes) && codes.length
       ? codes.map((c, i) => text("baseline", c.id, c.params, fallback[i]))

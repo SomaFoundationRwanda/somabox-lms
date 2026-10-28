@@ -405,6 +405,54 @@ export function Switch({ checked, onChange, disabled = false, className, childre
 }
 
 /**
+ * A list of short names typed one by one (e.g. a teacher's classes "S1B", "P4A"): Enter or a comma
+ * adds what was typed, × removes one, Backspace in the empty box removes the last. Repeats
+ * (ignoring case) aren't added. `value`: the names; `onChange(nextNames)`; `removeLabel`: "Remove".
+ */
+export function TagInput({ id, value = [], onChange, placeholder, removeLabel, disabled = false, className, ...props }) {
+    const field = useContext(FieldContext);
+    const inputId = id || field?.id;
+    const [draft, setDraft] = useState("");
+    const add = (raw) => {
+        const parts = String(raw).split(",").map((p) => p.replace(/\s+/g, " ").trim()).filter(Boolean);
+        setDraft("");
+        if (!parts.length) return;
+        const seen = new Set(value.map((v) => v.toLowerCase()));
+        const next = [...value];
+        for (const p of parts) if (!seen.has(p.toLowerCase())) { seen.add(p.toLowerCase()); next.push(p); }
+        if (next.length !== value.length) onChange(next);
+    };
+    return (
+        <div className={cn(BASE, border(false), "flex flex-wrap items-center gap-1.5 min-h-10 py-1.5 focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/25", disabled && "opacity-50", className)}>
+            {value.map((v) => (
+                <span key={v} className="inline-flex items-center gap-1 rounded-full bg-brand-soft text-brand-fg text-caption font-semibold pl-2.5 pr-1 py-0.5">
+                    {v}
+                    <button type="button" disabled={disabled} onClick={() => onChange(value.filter((x) => x !== v))} aria-label={`${removeLabel || "Remove"} ${v}`}
+                        className="rounded-full p-0.5 hover:bg-brand/20">
+                        <X className="w-3 h-3" aria-hidden="true" />
+                    </button>
+                </span>
+            ))}
+            <input
+                id={inputId}
+                aria-describedby={field?.describedBy}
+                {...props}
+                value={draft}
+                disabled={disabled}
+                onChange={(e) => (e.target.value.includes(",") ? add(e.target.value) : setDraft(e.target.value))}
+                onKeyDown={(e) => {
+                    if (e.key === "Enter") { e.preventDefault(); add(draft); }
+                    if (e.key === "Backspace" && !draft && value.length) onChange(value.slice(0, -1));
+                }}
+                onBlur={() => add(draft)}
+                placeholder={value.length ? "" : placeholder}
+                className="flex-1 min-w-[6rem] bg-transparent outline-none text-ui text-fg placeholder:text-fg-subtle"
+            />
+        </div>
+    );
+}
+
+/**
  * Several checkboxes in a bordered, scrolling list (e.g. outcomes, people). `items`: [{ value,
  * label, hint? }]; `selected`: the chosen values; `onChange(nextSelected)`.
  */

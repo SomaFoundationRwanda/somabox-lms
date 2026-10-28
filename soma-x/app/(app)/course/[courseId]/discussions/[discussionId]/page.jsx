@@ -13,6 +13,7 @@ import { useItemOpened } from "@/lib/usage";
 import { useCourseText } from "@/components/course/useCourseText";
 import Loader from "@/components/ui/Loader";
 import { Field, TextInput } from "@/components/form";
+import { useDraftText } from "@/lib/drafts";
 
 export default function DiscussionThreadPage() {
   const { courseId, discussionId } = useParams();
@@ -28,7 +29,8 @@ export default function DiscussionThreadPage() {
   });
   const discussion = thread.data || null;
   const loading = thread.isPending;
-  const [reply, setReply] = useState("");
+  // A reply being written is kept on this device until it's posted.
+  const [reply, setReply, clearReplyDraft] = useDraftText(courseId && discussionId ? `reply:${courseId}:${discussionId}` : null);
   const [pointsInput, setPointsInput] = useState("");
   const [savingGraded, setSavingGraded] = useState(false);
   const [gradedError, setGradedError] = useState("");
@@ -62,7 +64,7 @@ export default function DiscussionThreadPage() {
     setReplyError("");
     try {
       await apiFetch(`/courses/${courseId}/discussions/${discussionId}/replies`, { method: "POST", json: { body: reply.trim() } });
-      setReply("");
+      clearReplyDraft();
       queryClient.invalidateQueries({ queryKey: queryKeys.assignmentSummary });
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboard });
     } catch (err) {

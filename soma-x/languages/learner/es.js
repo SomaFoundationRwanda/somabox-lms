@@ -40,7 +40,7 @@ export default {
         "nav": {
             "tag": "Menú",
             "title": "Tu menú",
-            "body": "Usa el menú de la izquierda para ir al Panel, a Cursos, a la Biblioteca y a tu Cuenta cuando quieras."
+            "body": "Usa el menú de la izquierda para ir al Panel, a Asignaturas, a la Biblioteca y a tu Cuenta cuando quieras."
         },
         "finish": {
             "tag": "Listo",
@@ -118,7 +118,8 @@ export default {
         "mandatory": "Configuración obligatoria (paso 1 de 3)",
         "continue": "Continuar",
         "saving": "Guardando el perfil…",
-        "finish": "Terminar y empezar"
+        "finish": "Terminar y empezar",
+        "later": "Más tarde",
     },
     "practice": {
         "label": "Práctica — no cuenta para el dominio de los objetivos",
@@ -151,31 +152,31 @@ export default {
         "clearSearch": "Borrar la búsqueda"
     },
     "discover": {
-        "loadFailed": "No se pudieron cargar los cursos",
-        "joinFailed": "No se pudo unir al curso",
+        "loadFailed": "No se pudieron cargar las asignaturas",
+        "joinFailed": "No se pudo unir a la asignatura",
         "code": {
           "title": "Unirse con un código",
           "help": "Escribe el código que te dio tu docente.",
           "placeholder": "p. ej. K7M4QX",
           "button": "Unirse",
           "errors": {
-            "INVALID_CODE": "Ningún curso tiene este código. Compruébalo con tu docente.",
-            "NOT_OPEN": "Este curso aún no está abierto. Pregunta a tu docente.",
+            "INVALID_CODE": "Ninguna asignatura tiene este código. Compruébalo con tu docente.",
+            "NOT_OPEN": "Esta asignatura aún no está abierta. Pregunta a tu docente.",
             "TOO_MANY": "Demasiados códigos incorrectos. Espera unos minutos e inténtalo de nuevo."
           }
         },
-        "subtitle": "Explora los cursos públicos y únete al momento, sin invitación",
-        "empty": "No hay cursos públicos disponibles ahora. Vuelve más tarde.",
+        "subtitle": "Explora las asignaturas públicas y únete al momento, sin invitación",
+        "empty": "No hay asignaturas públicas disponibles ahora. Vuelve más tarde.",
         "oneEnrolled": "1 estudiante",
         "nEnrolled": "{n} estudiantes",
         "joining": "Uniéndote…",
-        "join": "Unirse al curso"
+        "join": "Unirse a la asignatura"
     },
     "account": {
         "dataDownloaded": "Se descargaron tus datos",
         "downloadFailed": "No se pudo descargar",
         "yourData": "Tus datos",
-        "yourDataHelp": "Descarga un archivo con todo lo que este equipo guarda sobre ti: perfil, cursos, trabajos, resultados y registros de uso.",
+        "yourDataHelp": "Descarga un archivo con todo lo que este equipo guarda sobre ti: perfil, asignaturas, trabajos, resultados y registros de uso.",
         "preparing": "Preparando…",
         "downloadData": "Descargar mis datos",
         "hide": "Ocultar",
@@ -241,16 +242,16 @@ export default {
         "offlineBody": "Lee los libros y materiales de tu Biblioteca cuando quieras, sin internet.",
         "browseLibrary": "Explorar la Biblioteca",
         "settledTitle": "¡Todo está listo!",
-        "settledBody": "Tu cuenta está lista. Tu docente te añadirá pronto a tu curso; no tienes que hacer nada. Mientras tanto, explora los materiales de la Biblioteca.",
+        "settledBody": "Tu cuenta está lista. Tu docente te añadirá pronto a tu asignatura; no tienes que hacer nada. Mientras tanto, explora los materiales de la Biblioteca.",
         "tryPractice": "Probar temas de práctica",
-        "myCourses": "Mis cursos",
+        "myCourses": "Mis asignaturas",
         "view": {
-          "label": "Mostrar mis cursos como",
+          "label": "Mostrar mis asignaturas como",
           "cards": "Tarjetas",
           "byDate": "Por fecha"
         },
         "upcoming": {
-          "hint": "Lo que hay que entregar y lo que se abre en tus cursos en las próximas 4 semanas.",
+          "hint": "Lo que hay que entregar y lo que se abre en tus asignaturas en las próximas 4 semanas.",
           "empty": "Nada que entregar en las próximas 4 semanas.",
           "loadFailed": "No se pudo cargar lo que viene.",
           "open": "Abrir"
@@ -259,12 +260,12 @@ export default {
         "progress": "Progreso",
         "noGradedWork": "Aún no hay trabajos calificados",
         "continue": "Continuar",
-        "publicCourses": "Explorar cursos públicos",
+        "publicCourses": "Explorar asignaturas públicas",
         "quickAccess": "Acceso rápido",
         "nJoined": "{n} inscritos",
         "notEnrolled": "Aún sin inscribir",
         "viewWork": "Ver tus trabajos",
-        "discoverSub": "Explora cursos públicos y únete",
+        "discoverSub": "Explora asignaturas públicas y únete",
         "interleaved": "Repaso mezclado",
         "interleavedSub": "Práctica por tu cuenta",
         "librarySub": "Libros y materiales"
@@ -285,9 +286,25 @@ export default {
         "revisitedMany": "Repasaste {n} preguntas de tus lecciones terminadas."
     },
     "courses": {
-        "subtitle": "Los cursos en los que estás inscrito.",
-        "joinCourse": "Unirse a un curso",
+        "subtitle": "Las asignaturas en las que estás inscrito.",
+        "joinCourse": "Unirse a una asignatura",
         "join": "Unirse",
-        "empty": "Aún no estás inscrito en ningún curso. Pide a tu docente un código de curso."
-    }
+        "empty": "Aún no estás inscrito en ninguna asignatura. Pide a tu docente un código de asignatura."
+    },
+    "celebrate": {
+        "submittedTitle": "¡Bien hecho! Está entregado.",
+        "submittedNext": "«{title}» está con tu docente. Sigue con el siguiente.",
+        "submittedDone": "«{title}» está con tu docente. ¡Lo tienes todo al día!",
+        "firstTitle": "¡Tu primer trabajo!",
+        "firstMessage": "Has empezado: cada trabajo que entregas le muestra a tu docente cómo creces.",
+        "milestoneTitle": "¡{n} trabajos entregados!",
+        "milestoneMessage": "¡Qué logro! Tu esfuerzo suma: sigue así.",
+        "next": "Siguiente: {title}",
+        "start": "Empezar ahora",
+        "dashboard": "Mi panel",
+        "welcome": "¡Bienvenido de nuevo!",
+        "welcomeNamed": "¡Bienvenido de nuevo, {name}!",
+        "welcomeNext": "Gracias por volver. Lo siguiente para ti: «{title}».",
+        "welcomeDone": "Gracias por volver. Lo tienes todo al día: ¡bien hecho!",
+    },
 };

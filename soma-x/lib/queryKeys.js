@@ -20,6 +20,7 @@ export const queryKeys = {
 
     courses: ["courses"],
     myCourses: ["courses", "mine"],
+    myLearners: ["courses", "mine", "learners"],
     allCourses: ["courses", "all"],
     publicCourses: (page = 1) => ["courses", "public", page],
 

@@ -24,6 +24,9 @@ import Loader from "@/components/ui/Loader";
 import { shownEmail } from "@/lib/session";
 import { accessLabel, genderLabel } from "@/lib/profileOptions";
 
+// A list column (JSON array) as an array of names.
+const list = (value) => (Array.isArray(value) ? value.filter(Boolean) : []);
+
 function getInitials(name, email) {
     if (name?.trim()) return name.trim().split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
     return (email?.[0] || "?").toUpperCase();
@@ -49,10 +52,11 @@ export default function UserProfilePage() {
     
     const userId = params.userId;
 
-    // The account, and for a learner their courses, outcomes and pending practice.
+    // The account; a learner's courses, outcomes and pending practice; a teacher's courses.
     const account = useUser(userId);
     const user = account.data || null;
-    const learnerEmail = user?.role === "scholar" ? encodeURIComponent(user.email) : null;
+    const isLearner = user?.role === "scholar";
+    const learnerEmail = isLearner ? encodeURIComponent(user.email) : null;
     const about = (part, path) => ({
         queryKey: [...queryKeys.user(userId), part],
         queryFn: () => apiFetch(path).catch(() => null),
@@ -61,7 +65,13 @@ export default function UserProfilePage() {
     const classesQuery = useQuery(about("courses", `/courses/mine?userEmail=${learnerEmail}`));
     const analyticsQuery = useQuery(about("outcomes", `/analytics/sol-outcomes?scholarEmail=${learnerEmail}`));
     const spacedQuery = useQuery(about("spaced", `/sol/spaced/pending?scholarEmail=${learnerEmail}`));
+    const teachingQuery = useQuery({
+        queryKey: [...queryKeys.user(userId), "teaching"],
+        queryFn: () => apiFetch(`/courses/mine?userEmail=${encodeURIComponent(user.email)}`).catch(() => null),
+        enabled: user?.role === "teacher",
+    });
     const classes = Array.isArray(classesQuery.data) ? classesQuery.data : [];
+    const teaching = (Array.isArray(teachingQuery.data) ? teachingQuery.data : []).filter((c) => ["teacher", "ta"].includes(c.my_role));
     const analytics = analyticsQuery.data || null;
     // The endpoint returns an array of pending reviews.
     const spacedPractice = spacedQuery.data ? (Array.isArray(spacedQuery.data) ? spacedQuery.data : spacedQuery.data.pendingReviews || []) : null;
@@ -186,7 +196,12 @@ export default function UserProfilePage() {
                                 <span className={`px-2.5 py-0.5 rounded-full text-caption font-extrabold border ${roleStyle.bg} ${roleStyle.text} ${roleStyle.border}`}>
                                     {t(`role.${user.role}`) || user.role}
                                 </span>
-                                {user.learner_code && (
+                                {!isLearner && user.staff_code && (
+                                    <span className="px-2.5 py-0.5 rounded-full text-caption font-bold border border-line text-fg-muted">
+                                        {t("admin.addUser.staffCode")}: <span className="font-mono font-extrabold">{user.staff_code}</span>
+                                    </span>
+                                )}
+                                {isLearner && user.learner_code && (
                                     <span className="px-2.5 py-0.5 rounded-full text-caption font-bold border border-line text-fg-muted">
                                         {t("school.learnerCode")}: <span className="font-mono font-extrabold">{user.learner_code}</span>
                                     </span>
@@ -220,7 +235,7 @@ export default function UserProfilePage() {
                     <Section title={<span className="flex items-center gap-2"><User className="w-4 h-4 text-brand-fg" /> {t("admin.user.personal")}</span>}>
                         <dl className="divide-y divide-line">
                             <Field label={t("admin.user.phone")} icon={Phone}>{user.phone || notSpecified}</Field>
-                            <Field label={t("admin.user.gender")} className="capitalize">
+                            <Field label={t("admin.user.gender")}>
                                 {genderLabel(t, user.gender)}
                             </Field>
                             <Field label={t("admin.user.preferredLanguage")} icon={Globe2}>
@@ -229,23 +244,53 @@ export default function UserProfilePage() {
                         </dl>
                     </Section>
 
-                    <Section divided title={<span className="flex items-center gap-2"><GraduationCap className="w-4 h-4 text-brand-fg" /> {t("admin.user.academic")}</span>}>
-                        <dl className="divide-y divide-line">
-                            <Field label={t("admin.user.school")} icon={Building2}>{user.school_name || t("admin.user.notAssigned")}</Field>
-                            <Field label={t("admin.user.gradeLevel")}>{user.grade_level || notSpecified}</Field>
-                            <Field label={t("admin.user.provinceDistrict")} icon={MapPin}>
-                                {user.region_province || t("admin.user.na")}, {user.region_district || t("admin.user.na")}
-                            </Field>
-                            <Field label={t("admin.user.locationType")}>{user.is_rural === 1 ? t("admin.user.rural") : t("admin.user.urban")}</Field>
-                            <Field label={t("admin.user.disability")}>{accessLabel(t, user.disability_status)}</Field>
-                            <Field label={t("admin.user.joined")} icon={Calendar}>{joined}</Field>
-                        </dl>
-                    </Section>
+                    {isLearner ? (
+                        <Section divided title={<span className="flex items-center gap-2"><GraduationCap className="w-4 h-4 text-brand-fg" /> {t("admin.user.academic")}</span>}>
+                            <dl className="divide-y divide-line">
+                                <Field label={t("admin.user.school")} icon={Building2}>{user.school_name || t("admin.user.notAssigned")}</Field>
+                                <Field label={t("admin.user.gradeLevel")}>{user.grade_level || notSpecified}</Field>
+                                {list(user.annex_classes).length ? <Field label={t("admin.user.annexClasses")}>{list(user.annex_classes).join(", ")}</Field> : null}
+                                <Field label={t("admin.user.provinceDistrict")} icon={MapPin}>
+                                    {user.region_province || t("admin.user.na")}, {user.region_district || t("admin.user.na")}
+                                </Field>
+                                <Field label={t("admin.user.locationType")}>{user.is_rural == null ? notSpecified : Number(user.is_rural) === 1 ? t("admin.user.rural") : t("admin.user.urban")}</Field>
+                                <Field label={t("admin.user.disability")}>{accessLabel(t, user.disability_status)}</Field>
+                                <Field label={t("admin.user.joined")} icon={Calendar}>{joined}</Field>
+                            </dl>
+                        </Section>
+                    ) : (
+                        // Staff: where and what they teach (set by the admin), not a learner's profile.
+                        <Section divided title={<span className="flex items-center gap-2"><Building2 className="w-4 h-4 text-brand-fg" /> {t("admin.user.work")}</span>}>
+                            <dl className="divide-y divide-line">
+                                <Field label={t("admin.user.school")} icon={Building2}>{user.school_name || t("admin.user.notAssigned")}</Field>
+                                {user.role === "teacher" ? (
+                                    <>
+                                        <Field label={t("admin.user.classesTaught")}>{list(user.teacher_classes).join(", ") || t("admin.user.noneYet")}</Field>
+                                        <Field label={t("admin.user.subjectsTaught")}>{list(user.teacher_subjects).join(", ") || t("admin.user.noneYet")}</Field>
+                                    </>
+                                ) : null}
+                                <Field label={t("admin.user.joined")} icon={Calendar}>{joined}</Field>
+                            </dl>
+                        </Section>
+                    )}
                 </div>
 
                 {/* Right Column: Classes, Analytics */}
                 <div className="lg:col-span-2 space-y-8 min-w-0">
-                    {user.role === "scholar" && (
+                    {user.role === "teacher" && (
+                        <Section title={t("admin.user.teaching")}>
+                            {teaching.length > 0 ? (
+                                <DataTable caption={t("admin.user.teaching")} columns={courseColumns.filter((c) => c.key !== "teacher")} rows={teaching} />
+                            ) : (
+                                <EmptyState
+                                    icon={<Building2 className="w-10 h-10" />}
+                                    title={t("admin.user.notTeaching")}
+                                    description={t("admin.user.notTeachingHelp")}
+                                />
+                            )}
+                        </Section>
+                    )}
+                    {isLearner && (
                         <>
                             {/* Outcome pulse tile (allowed card) */}
                             <div className="dark bg-gradient-to-br from-brand-strong to-surface rounded-2xl border border-brand/40 p-5 text-fg relative overflow-hidden">

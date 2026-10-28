@@ -80,7 +80,6 @@ export default function CourseCalendarPage() {
       <div className="p-4 md:p-6 space-y-6">
         <PageHeader help="pages.calendar"
           title={t("nav.calendar")}
-          description={isTeacher ? t("calendar.courseDescription") : undefined}
           actions={noStartDate ? null : downloadButton}
         />
 

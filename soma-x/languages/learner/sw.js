@@ -40,7 +40,7 @@ export default {
         "nav": {
             "tag": "Menyu",
             "title": "Menyu yako",
-            "body": "Tumia menyu iliyo kushoto kuhamia Dashibodi, Kozi, Maktaba na Akaunti yako wakati wowote."
+            "body": "Tumia menyu iliyo kushoto kuhamia Dashibodi, Masomo, Maktaba na Akaunti yako wakati wowote."
         },
         "finish": {
             "tag": "Imekamilika",
@@ -118,7 +118,8 @@ export default {
         "mandatory": "Mpangilio wa lazima (hatua 1 kati ya 3)",
         "continue": "Endelea",
         "saving": "Inahifadhi wasifu…",
-        "finish": "Maliza na uanze"
+        "finish": "Maliza na uanze",
+        "later": "Baadaye",
     },
     "practice": {
         "label": "Mazoezi — hayahesabiwi katika umahiri wa malengo",
@@ -151,31 +152,31 @@ export default {
         "clearSearch": "Futa utafutaji"
     },
     "discover": {
-        "loadFailed": "Imeshindikana kupakia kozi",
-        "joinFailed": "Imeshindikana kujiunga na kozi",
+        "loadFailed": "Imeshindikana kupakia masomo",
+        "joinFailed": "Imeshindikana kujiunga na somo",
         "code": {
           "title": "Jiunge kwa msimbo",
           "help": "Andika msimbo uliopewa na mwalimu wako.",
           "placeholder": "mf. K7M4QX",
           "button": "Jiunge",
           "errors": {
-            "INVALID_CODE": "Hakuna kozi yenye msimbo huu. Uthibitishe na mwalimu wako.",
-            "NOT_OPEN": "Kozi hii bado haijafunguliwa. Muulize mwalimu wako.",
+            "INVALID_CODE": "Hakuna somo lenye msimbo huu. Uthibitishe na mwalimu wako.",
+            "NOT_OPEN": "Somo hili bado halijafunguliwa. Muulize mwalimu wako.",
             "TOO_MANY": "Misimbo mingi isiyo sahihi. Subiri dakika chache kisha ujaribu tena."
           }
         },
-        "subtitle": "Vinjari kozi za wazi na ujiunge mara moja — hakuna mwaliko unaohitajika",
-        "empty": "Hakuna kozi za wazi kwa sasa. Rudi baadaye.",
+        "subtitle": "Vinjari masomo ya wazi na ujiunge mara moja — hakuna mwaliko unaohitajika",
+        "empty": "Hakuna masomo ya wazi kwa sasa. Rudi baadaye.",
         "oneEnrolled": "Mwanafunzi 1",
         "nEnrolled": "Wanafunzi {n}",
         "joining": "Inajiunga…",
-        "join": "Jiunge na kozi"
+        "join": "Jiunge na somo"
     },
     "account": {
         "dataDownloaded": "Data yako imepakuliwa",
         "downloadFailed": "Upakuaji umeshindikana",
         "yourData": "Data yako",
-        "yourDataHelp": "Pakua faili yenye kila kitu kifaa hiki kinachohifadhi kukuhusu: wasifu, kozi, kazi, matokeo na kumbukumbu za matumizi.",
+        "yourDataHelp": "Pakua faili yenye kila kitu kifaa hiki kinachohifadhi kukuhusu: wasifu, masomo, kazi, matokeo na kumbukumbu za matumizi.",
         "preparing": "Inaandaa…",
         "downloadData": "Pakua data yangu",
         "hide": "Ficha",
@@ -241,16 +242,16 @@ export default {
         "offlineBody": "Soma vitabu na vifaa kwenye Maktaba yako wakati wowote — hakuna intaneti inayohitajika.",
         "browseLibrary": "Vinjari Maktaba",
         "settledTitle": "Kila kitu kiko tayari!",
-        "settledBody": "Akaunti yako iko tayari. Mwalimu wako atakuongeza kwenye kozi yako hivi karibuni — huhitaji kufanya chochote. Wakati huo, gundua vifaa vya kujifunzia kwenye Maktaba.",
+        "settledBody": "Akaunti yako iko tayari. Mwalimu wako atakuongeza kwenye somo lako hivi karibuni — huhitaji kufanya chochote. Wakati huo, gundua vifaa vya kujifunzia kwenye Maktaba.",
         "tryPractice": "Jaribu mada za mazoezi",
-        "myCourses": "Kozi zangu",
+        "myCourses": "Masomo yangu",
         "view": {
-          "label": "Onyesha kozi zangu kama",
+          "label": "Onyesha masomo yangu kama",
           "cards": "Kadi",
           "byDate": "Kwa tarehe"
         },
         "upcoming": {
-          "hint": "Kinachotakiwa kuwasilishwa na kinachofunguliwa katika kozi zako kwa wiki 4 zijazo.",
+          "hint": "Kinachotakiwa kuwasilishwa na kinachofunguliwa katika masomo yako kwa wiki 4 zijazo.",
           "empty": "Hakuna cha kuwasilisha katika wiki 4 zijazo.",
           "loadFailed": "Imeshindwa kupakia yanayokuja.",
           "open": "Fungua"
@@ -259,12 +260,12 @@ export default {
         "progress": "Maendeleo",
         "noGradedWork": "Bado hakuna kazi iliyopewa alama",
         "continue": "Endelea",
-        "publicCourses": "Gundua kozi za wazi",
+        "publicCourses": "Gundua masomo ya wazi",
         "quickAccess": "Ufikiaji wa haraka",
         "nJoined": "{n} umejiunga",
         "notEnrolled": "Bado hujajiandikisha",
         "viewWork": "Angalia kazi zako",
-        "discoverSub": "Vinjari na ujiunge na kozi za wazi",
+        "discoverSub": "Vinjari na ujiunge na masomo ya wazi",
         "interleaved": "Marudio mchanganyiko",
         "interleavedSub": "Mazoezi binafsi",
         "librarySub": "Vitabu na vifaa"
@@ -285,9 +286,25 @@ export default {
         "revisitedMany": "Umerudia maswali {n} kutoka masomo uliyomaliza."
     },
     "courses": {
-        "subtitle": "Kozi ulizojiandikisha.",
-        "joinCourse": "Jiunge na kozi",
+        "subtitle": "Masomo uliyojiandikisha.",
+        "joinCourse": "Jiunge na somo",
         "join": "Jiunge",
-        "empty": "Bado hujajiandikisha kwenye kozi yoyote. Muulize mwalimu wako msimbo wa kozi."
-    }
+        "empty": "Bado hujajiandikisha kwenye somo lolote. Muulize mwalimu wako msimbo wa somo."
+    },
+    "celebrate": {
+        "submittedTitle": "Hongera! Imewasilishwa.",
+        "submittedNext": "\"{title}\" iko kwa mwalimu wako. Endelea na inayofuata.",
+        "submittedDone": "\"{title}\" iko kwa mwalimu wako. Umemaliza yote!",
+        "firstTitle": "Kazi yako ya kwanza!",
+        "firstMessage": "Umeanza: kila kazi unayowasilisha inamwonyesha mwalimu wako jinsi unavyokua.",
+        "milestoneTitle": "Kazi {n} zimewasilishwa!",
+        "milestoneMessage": "Hatua kubwa! Juhudi zako zinaongezeka: endelea.",
+        "next": "Inayofuata: {title}",
+        "start": "Anza sasa",
+        "dashboard": "Dashibodi yangu",
+        "welcome": "Karibu tena!",
+        "welcomeNamed": "Karibu tena, {name}!",
+        "welcomeNext": "Asante kwa kurudi. Inayofuata kwako: \"{title}\".",
+        "welcomeDone": "Asante kwa kurudi. Umemaliza yote: hongera!",
+    },
 };

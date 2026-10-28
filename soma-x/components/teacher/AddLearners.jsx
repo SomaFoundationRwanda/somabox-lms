@@ -5,17 +5,17 @@
 // names. A name that may already have an account is shown first, so nobody gets two accounts.
 // New accounts end on the class sheet (codes and temporary passwords, shown once).
 import { useEffect, useState } from "react"
-import { useQueryClient } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { apiFetch, getErrorMessage } from "@/lib/api"
 import { queryKeys } from "@/lib/queryKeys"
 import { useLanguage } from "@/context/LanguageContext"
 import { fill } from "@/lib/fill"
-import { GRADE_LEVELS } from "@/lib/grades"
+import GradeSelect from "@/components/teacher/GradeSelect"
 import Modal from "@/components/ui/Modal"
 import { Button } from "@/components/ui/button"
 import JoinCodePanel from "@/components/teacher/JoinCodePanel"
 import CredentialSheet from "@/components/teacher/CredentialSheet"
-import { Field, Select, TextInput, Textarea } from "@/components/form";
+import { ChoiceGroup, Field, TextInput, Textarea } from "@/components/form";
 
 
 function MatchList({ matches, l }) {
@@ -93,9 +93,75 @@ function FindLearner({ courseId, onAdded, l, t }) {
   )
 }
 
-function NewLearners({ courseId, onCreated, l, t }) {
+// Learners of the course's class (and then of the same level) who aren't in it yet: added in one
+// tap, without knowing their code.
+function ClassLearners({ courseId, onAdded, l }) {
+  const { data, isPending, refetch } = useQuery({
+    queryKey: [...queryKeys.courseSection(courseId, "learner-suggestions")],
+    queryFn: () => apiFetch(`/courses/${courseId}/learner-suggestions`),
+  })
+  const [busy, setBusy] = useState(null)
+  const [error, setError] = useState("")
+  const add = async (learner) => {
+    setBusy(learner.id)
+    setError("")
+    try {
+      await apiFetch(`/courses/${courseId}/people`, { method: "POST", json: { userId: learner.id, role: "student" } })
+      onAdded()
+      refetch()
+    } catch (err) {
+      setError(err?.body?.message || l("addFailed"))
+    } finally {
+      setBusy(null)
+    }
+  }
+  const addAll = async (list) => {
+    for (const learner of list) await add(learner)
+  }
+  if (isPending) return <p className="text-caption text-fg-subtle">{l("loadingClass")}</p>
+  if (!data?.course?.grade) return <p className="text-ui text-fg-muted">{l("noCourseClass")}</p>
+  const groups = [
+    { key: "sameClass", title: fill(l("sameClass"), { grade: data.course.grade }), list: data.sameClass || [] },
+    { key: "sameLevel", title: l("sameLevel"), list: data.sameLevel || [] },
+  ]
+  return (
+    <div className="space-y-4">
+      {groups.map((g) => (
+        <section key={g.key} className="space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-ui font-semibold text-fg">{g.title} <span className="text-fg-subtle font-normal">({g.list.length})</span></h3>
+            {g.key === "sameClass" && g.list.length > 1 ? (
+              <Button type="button" size="sm" variant="outline" onClick={() => addAll(g.list)} disabled={!!busy}>{l("addAll")}</Button>
+            ) : null}
+          </div>
+          {g.list.length === 0 ? <p className="text-caption text-fg-subtle">{l("noneHere")}</p> : (
+            <ul className="divide-y divide-line border border-line rounded-lg max-h-64 overflow-y-auto">
+              {g.list.map((r) => (
+                <li key={r.id} className="flex items-center justify-between gap-2 px-3 py-2">
+                  <span className="min-w-0">
+                    <span className="block text-ui font-medium text-fg truncate">{r.fullName}</span>
+                    <span className="block text-caption text-fg-subtle">{[r.learnerCode, r.grade].filter(Boolean).join(" · ")}</span>
+                  </span>
+                  <Button type="button" size="sm" variant="outline" disabled={busy === r.id} onClick={() => add(r)} aria-label={fill(l("addNamed"), { name: r.fullName })}>{l("add")}</Button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      ))}
+      {error && <p role="alert" className="text-ui text-danger-fg">{error}</p>}
+    </div>
+  )
+}
+
+// courseGrade: the course's class, the new learners' class unless the teacher picks another.
+function NewLearners({ courseId, courseGrade = "", onCreated, l, t }) {
   const [names, setNames] = useState("")
-  const [grade, setGrade] = useState("")
+  const [grade, setGrade] = useState(courseGrade)
+  // "temporary": they choose their own password at first sign-in; "permanent": they keep this one.
+  const [passwordMode, setPasswordMode] = useState("temporary")
+  const { data: profile } = useQuery({ queryKey: queryKeys.profile, queryFn: () => apiFetch("/users/profile/view") })
+  const classes = Array.isArray(profile?.teacher_classes) ? profile.teacher_classes : []
   const [duplicates, setDuplicates] = useState(null) // possible duplicates, waiting for the teacher's choice
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
@@ -107,7 +173,7 @@ function NewLearners({ courseId, onCreated, l, t }) {
     try {
       let data
       try {
-        data = await apiFetch(`/courses/${courseId}/learners`, { method: "POST", json: { names: list, grade, duplicates: choice } })
+        data = await apiFetch(`/courses/${courseId}/learners`, { method: "POST", json: { names: list, grade, duplicates: choice, passwordMode } })
       } catch (err) {
         if (err?.code === "POSSIBLE_DUPLICATES") { setDuplicates(err.body.duplicates); return }
         throw new Error(err?.status === 0 ? getErrorMessage(err, t) : err?.body?.message || l("createFailed"))
@@ -150,8 +216,19 @@ function NewLearners({ courseId, onCreated, l, t }) {
         <Textarea rows={6} value={names} onChange={(e) => setNames(e.target.value)} placeholder={l("namesPlaceholder")} />
       </Field>
       <Field id="new-learner-grade" label={l("gradeLabel")}>
-        <Select value={grade} onChange={(e) => setGrade(e.target.value)} placeholder={t("learner.profileSetup.selectLevel")}
-          options={GRADE_LEVELS.map((g) => ({ value: g.value, label: t(`learner.profileSetup.grades.${g.key}`) }))} />
+        <GradeSelect inField classes={classes} value={grade} onChange={setGrade} />
+      </Field>
+      <Field id="new-learner-passwords" label={l("passwordsLabel")}>
+        <ChoiceGroup
+          columns={2}
+          size="sm"
+          value={passwordMode}
+          onChange={setPasswordMode}
+          options={[
+            { value: "temporary", label: l("passwordTemporary"), description: l("passwordTemporaryHelp") },
+            { value: "permanent", label: l("passwordPermanent"), description: l("passwordPermanentHelp") },
+          ]}
+        />
       </Field>
       <p className="text-caption text-fg-subtle">{l("newHelp")}</p>
       {error && <p role="alert" className="text-ui text-danger-fg">{error}</p>}
@@ -162,7 +239,7 @@ function NewLearners({ courseId, onCreated, l, t }) {
   )
 }
 
-export default function AddLearners({ courseId, courseTitle, isDraft, showJoinCode = false, onClose, onChanged }) {
+export default function AddLearners({ courseId, courseTitle, courseGrade, isDraft, showJoinCode = false, initialTab, onClose, onChanged }) {
   const queryClient = useQueryClient()
   // Whoever shows this course's people or the course lists sees the new learners.
   const changed = () => {
@@ -172,7 +249,8 @@ export default function AddLearners({ courseId, courseTitle, isDraft, showJoinCo
   }
   const { t } = useLanguage()
   const l = (key) => t(`teacher.learners.${key}`)
-  const [tab, setTab] = useState("find")
+  // A course with a class starts on its class's learners (no codes to know).
+  const [tab, setTab] = useState(initialTab || (courseGrade ? "class" : "find"))
   const [result, setResult] = useState(null) // after creating: { created, added, ambiguous }
 
   const created = (data) => {
@@ -208,16 +286,18 @@ export default function AddLearners({ courseId, courseTitle, isDraft, showJoinCo
         </div>
       )}
       <div className="flex items-center gap-1.5 mb-4" role="group" aria-label={l("howLabel")}>
-        {["find", "new"].map((key) => (
+        {["class", "find", "new"].map((key) => (
           <button key={key} type="button" onClick={() => setTab(key)} aria-pressed={tab === key}
             className={`text-caption font-semibold px-3 py-1.5 rounded-full border ${tab === key ? "bg-brand-strong text-on-brand-strong border-brand-strong" : "border-line text-fg-muted"}`}>
-            {l(key === "find" ? "tabFind" : "tabNew")}
+            {l(key === "class" ? "tabClass" : key === "find" ? "tabFind" : "tabNew")}
           </button>
         ))}
       </div>
-      {tab === "find"
+      {tab === "class"
+        ? <ClassLearners courseId={courseId} onAdded={changed} l={l} />
+        : tab === "find"
         ? <FindLearner courseId={courseId} onAdded={changed} l={l} t={t} />
-        : <NewLearners courseId={courseId} onCreated={created} l={l} t={t} />}
+        : <NewLearners courseId={courseId} courseGrade={courseGrade} onCreated={created} l={l} t={t} />}
     </Modal>
   )
 }

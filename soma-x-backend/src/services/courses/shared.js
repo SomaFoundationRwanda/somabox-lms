@@ -2,6 +2,7 @@
 import multer from "multer";
 import { localDb, serverDb, DEFAULT_NAV_ITEMS } from "../../helpers/db-manager.js";
 import { publishCourse } from "../../helpers/live.js";
+import { hiddenByGroup, setAssignmentGroups } from "./groups.js";
 
 // Changes that don't alter what the course's members see: no live update for them.
 const QUIET_PATHS = [/\/ai\/jobs/, /\/reset-password$/, /\/learner-search$/];
@@ -62,7 +63,7 @@ export async function requireTeacher(req, res, courseId) {
   const email = req.user.email;
   const enrollment = await getEnrollment(courseId, email);
   if (!enrollment || !isTeacherRole(enrollment.role) || enrollment.status !== "active") {
-    res.status(403).json({ message: "Not allowed — teacher/TA role required for this course" });
+    res.status(403).json({ message: "Not allowed — teacher/TA role required for this subject" });
     return null;
   }
   announceWhenDone(req, res, courseId, "course");
@@ -78,7 +79,7 @@ export async function requireCourseTeacher(req, res, courseId) {
   const auth = await requireTeacher(req, res, courseId);
   if (!auth) return null;
   if (auth.enrollment.role !== "teacher") {
-    res.status(403).json({ message: "Only the course's teacher can do this", code: "TEACHER_ONLY" });
+    res.status(403).json({ message: "Only the subject's teacher can do this", code: "TEACHER_ONLY" });
     return null;
   }
   return auth;
@@ -95,14 +96,14 @@ export async function requireParticipant(req, res, courseId) {
   const auth = await requireEnrolled(req, res, courseId);
   if (!auth) return null;
   if (auth.enrollment.role === "observer") {
-    res.status(403).json({ message: "Observers can view this course but can't hand in work or reply", code: "OBSERVER" });
+    res.status(403).json({ message: "Observers can view this subject but can't hand in work or reply", code: "OBSERVER" });
     return null;
   }
   // A closed (or archived) course can still be read, but learners can't hand in anything new.
   if (!isTeacherRole(auth.enrollment.role)) {
     const course = await localDb.prepare("SELECT lifecycle FROM courses WHERE id = ?").get(courseId);
     if (course?.lifecycle === "closed" || course?.lifecycle === "archived") {
-      res.status(409).json({ message: "This course has ended, so work can't be handed in any more", code: "COURSE_CLOSED" });
+      res.status(409).json({ message: "This subject has ended, so work can't be handed in any more", code: "COURSE_CLOSED" });
       return null;
     }
   }
@@ -126,14 +127,14 @@ export async function requireEnrolled(req, res, courseId) {
     if (req.user.role === "admin") {
       return { email, enrollment: { course_id: courseId, user_email: email, role: "observer", status: "active", adminView: true } };
     }
-    res.status(403).json({ message: "Not enrolled in this course" });
+    res.status(403).json({ message: "Not enrolled in this subject" });
     return null;
   }
   // Learners can't see a course while it's still being set up.
   if (!isTeacherRole(enrollment.role) && req.user.role !== "admin") {
     const course = await localDb.prepare("SELECT lifecycle FROM courses WHERE id = ?").get(courseId);
     if (course?.lifecycle === "draft") {
-      res.status(403).json({ message: "This course hasn't opened yet", code: "COURSE_NOT_OPEN" });
+      res.status(403).json({ message: "This subject hasn't opened yet", code: "COURSE_NOT_OPEN" });
       return null;
     }
   }
@@ -174,7 +175,9 @@ export async function hiddenFromReader(enrollment, courseId, itemType, row) {
     FROM module_items mi JOIN modules m ON m.id = mi.module_id
     WHERE mi.item_type = ? AND mi.content_id = ? AND m.course_id = ?
   `).all(itemType, row.id, courseId);
-  return listings.length > 0 && listings.every((l) => Number(l.item_published) !== 1 || Number(l.module_published) !== 1);
+  if (listings.length > 0 && listings.every((l) => Number(l.item_published) !== 1 || Number(l.module_published) !== 1)) return true;
+  // Assignments given to some groups, and group discussions, are for those groups' members.
+  return !!enrollment?.user_email && await hiddenByGroup(courseId, enrollment.user_email, itemType, row);
 }
 
 /** The rows of one item type that the reader may see (see hiddenFromReader). */
@@ -194,6 +197,9 @@ export async function getCourseModuleItem(courseId, itemId) {
   `).get(itemId, courseId);
 }
 
+// The class rule for password resets lives with the rest of the class logic.
+export { teachesLearnersClass } from "./classes.js";
+
 export async function courseExists(courseId) {
   return await localDb.prepare("SELECT * FROM courses WHERE id = ?").get(courseId);
 }
@@ -207,12 +213,14 @@ export function normalizeDueAt(value) {
 // A graded discussion is graded through a linked assignment in the discussion's module.
 // It starts unpublished: it's published with its discussion once it has an outcome.
 export async function linkDiscussionAssignment(courseId, discussionId, title, pointsPossible, teacherEmail) {
-  const discussion = await localDb.prepare("SELECT module_id FROM discussions WHERE id = ? AND course_id = ?").get(discussionId, courseId);
+  const discussion = await localDb.prepare("SELECT module_id, group_id FROM discussions WHERE id = ? AND course_id = ?").get(discussionId, courseId);
   const info = await localDb.prepare(`
     INSERT INTO assignments (course_id, module_id, title, description, points_possible, published, created_by_teacher_email)
     VALUES (?, ?, ?, ?, ?, 0, ?)
   `).run(courseId, discussion.module_id, title, "Graded discussion — see Discussions for the conversation.", pointsPossible || 0, teacherEmail);
   await localDb.prepare("UPDATE discussions SET linked_assignment_id = ? WHERE id = ?").run(info.lastInsertRowid, discussionId);
+  // A group discussion's grading is for that group only.
+  if (discussion.group_id != null) await setAssignmentGroups(courseId, info.lastInsertRowid, [discussion.group_id]);
   return info.lastInsertRowid;
 }
 

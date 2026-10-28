@@ -5,6 +5,7 @@ import { localDb } from "../helpers/db-manager.js";
 import { buildIcs } from "../helpers/ics.js";
 import { requireRole } from "../helpers/auth.js";
 import { courseEvents, icsEvents, loadCourseTimeline, schoolToday } from "./courses/schedule.js";
+import { groupHiddenItems } from "./courses/groups.js";
 
 const router = express.Router();
 
@@ -33,7 +34,8 @@ async function myEvents(user, { from, to }) {
     const visible = await localDb.prepare("SELECT visible_to_students FROM course_nav_items WHERE course_id = ? AND nav_key = 'calendar'").get(e.course_id);
     if (!isTeacher && visible && Number(visible.visible_to_students) !== 1) continue;
     const tl = await loadCourseTimeline(e.course_id);
-    events.push(...courseEvents(tl, { isTeacher, from, to, types: ["due", "close", "release"] }));
+    const hidden = isTeacher ? null : await groupHiddenItems(e.course_id, user.email);
+    events.push(...courseEvents(tl, { isTeacher, from, to, types: ["due", "close", "release"], hidden }));
   }
   return events.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
 }

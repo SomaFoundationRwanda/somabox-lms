@@ -12,7 +12,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { fill } from "@/lib/fill";
 import DeviceCard from "@/components/sync/DeviceCard";
 import Loader from "@/components/ui/Loader";
-import { CheckboxField, ChoiceGroup, Field } from "@/components/form";
+import { CheckboxField, ChoiceGroup, Field, Fieldset } from "@/components/form";
 
 // Cloud sync (admins): changes made on this box wait in a queue and are sent to the cloud on a
 // schedule. This shows where the queue stands, lets an admin send now, and sets what may leave
@@ -20,8 +20,10 @@ import { CheckboxField, ChoiceGroup, Field } from "@/components/form";
 
 // Run statuses, scope toggles and people options are translated under admin.cloud.
 const RUN_STATUSES = ["ok", "failed", "not_configured", "nothing_to_send"];
-const SCOPE_TOGGLES = ["courses", "enrollments", "grades", "outcomeResults", "attendance", "events"];
-const PEOPLE_OPTIONS = ["none", "pseudonymous", "full"];
+// The learning record is always sent (the box refuses to switch it off); the admin chooses the rest.
+const ALWAYS_SENT = ["courses", "enrollments", "grades", "outcomeResults", "events"];
+const SCOPE_TOGGLES = ["attendance"];
+const PEOPLE_OPTIONS = ["pseudonymous", "full"];
 
 // Intl locales for the UI language ("rw" falls back to English where Intl lacks Kinyarwanda).
 const intlLocales = (lang) => (lang === "rw" ? ["rw", "en-RW", "en"] : [lang || "en"]);
@@ -143,8 +145,20 @@ function ScopeForm({ scope, onSaved }) {
 
   return (
     <form onSubmit={save} className="space-y-4">
-      <fieldset className="space-y-2">
-        <legend className="sr-only">{t("admin.cloud.kinds")}</legend>
+      <Fieldset legend={t("admin.cloud.alwaysSent")} hint={t("admin.cloud.alwaysSentHelp")}>
+        {ALWAYS_SENT.map((key) => (
+          <CheckboxField
+            key={key}
+            label={t(`admin.cloud.scope.${key}.label`)}
+            hint={t(`admin.cloud.scope.${key}.help`)}
+            checked
+            disabled
+            onCheckedChange={() => {}}
+          />
+        ))}
+      </Fieldset>
+
+      <Fieldset legend={t("admin.cloud.yourChoice")}>
         {SCOPE_TOGGLES.map((key) => (
           <CheckboxField
             key={key}
@@ -154,7 +168,7 @@ function ScopeForm({ scope, onSaved }) {
             onCheckedChange={() => toggle(key)}
           />
         ))}
-      </fieldset>
+      </Fieldset>
 
       <Field label={t("admin.cloud.people")}>
         <ChoiceGroup
@@ -168,6 +182,8 @@ function ScopeForm({ scope, onSaved }) {
           }))}
         />
       </Field>
+
+      <p className="text-caption font-semibold text-fg-muted">{t("admin.cloud.filesStay")}</p>
 
       <CheckboxField
         label={t("admin.cloud.writtenLabel")}

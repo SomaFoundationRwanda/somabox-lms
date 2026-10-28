@@ -53,7 +53,7 @@ test.describe("dashboard", () => {
 
   test("quick access links go where they say", async ({ page }) => {
     await page.goto("/manage/scholar-dashboard");
-    await page.getByRole("link", { name: /^Discover Courses Browse/ }).click();
+    await page.getByRole("link", { name: new RegExp(`^${t("shell.nav.discoverCourses")} ${t("learner.dashboard.discoverSub").split(" ")[0]}`) }).click();
     await page.waitForURL("**/discover-courses");
     await page.goto("/manage/scholar-dashboard");
     await page.getByRole("link", { name: /^Library Books/ }).click();
@@ -80,7 +80,7 @@ test.describe("courses and course home", () => {
   test("course home shows this week; Previous and Next move through the items", async ({ page }) => {
     const c = await seedCourse({ learners: ["learner"] });
     await page.goto(`/course/${c.id}/home`);
-    await expect(page.getByRole("region", { name: /Week 1/ })).toBeVisible();
+    await expect(page.getByRole("region", { name: new RegExp(t("course.weeks.week").replace("{n}", "1")) })).toBeVisible();
     await expect(page.getByRole("heading", { name: ct("learnerHome.nextUp") })).toBeVisible();
     await page.goto(`/course/${c.id}/pages/${c.page.content_id}`);
     await page.getByRole("button", { name: /^Next/ }).click();
@@ -141,14 +141,14 @@ test.describe("courses and course home", () => {
   test("course home doesn't show learners the teacher's weekly-loop guidance", async ({ page }) => {
     const c = await seedCourse({ learners: ["learner"] });
     await page.goto(`/course/${c.id}/home`);
-    await expect(page.getByRole("region", { name: /Week 1/ })).toBeVisible();
+    await expect(page.getByRole("region", { name: new RegExp(t("course.weeks.week").replace("{n}", "1")) })).toBeVisible();
     for (const beat of ["prepare", "release", "collect", "grade", "review"]) await expect(page.getByText(ct(`home.beatHelp.${beat}`))).toHaveCount(0, { timeout: 2_000 });
   });
 
   test("the course menu shows learners only their sections", async ({ page }) => {
     const c = await seedCourse({ learners: ["learner"] });
     await page.goto(`/course/${c.id}/home`);
-    const nav = page.getByRole("navigation", { name: "Course navigation" });
+    const nav = page.getByRole("navigation", { name: t("course.nav.courseNavigation") });
     await expect(nav.getByRole("link", { name: ct("nav.home") })).toBeVisible();
     for (const hidden of ["settings", "ai", "insights"]) await expect(nav.getByRole("link", { name: ct(`nav.${hidden}`) })).toHaveCount(0);
     // A short menu; the rest under More.
@@ -180,7 +180,7 @@ test.describe("discover", () => {
     await page.goto("/discover-courses");
     await expect(page.getByText(priv.title)).toHaveCount(0);
     const card = page.locator("div, article, li").filter({ has: page.getByRole("heading", { name: pub.title }) }).last();
-    await card.getByRole("button", { name: "Join course" }).click();
+    await card.getByRole("button", { name: t("learner.discover.join") }).click();
     await expect.poll(async () => JSON.stringify(await api("GET", "/courses/mine", { as: "learner" }))).toContain(pub.title);
   });
 
@@ -188,7 +188,7 @@ test.describe("discover", () => {
     const pub = await seedCourse({ title: `Already in ${uid()}`, learners: ["learner"], visibility: "public" });
     await page.goto("/discover-courses");
     const card = page.locator("div, article, li").filter({ has: page.getByRole("heading", { name: pub.title }) }).last();
-    await expect(card.getByRole("button", { name: "Join course" })).toHaveCount(0, { timeout: 3_000 });
+    await expect(card.getByRole("button", { name: t("learner.discover.join") })).toHaveCount(0, { timeout: 3_000 });
   });
 
   test("a wrong join code is refused", async ({ page }) => {
@@ -265,9 +265,9 @@ test.describe("account", () => {
   test("edits their profile details", async ({ page }) => {
     await page.goto("/account");
     await page.getByRole("button", { name: lt("account.edit") }).click();
-    // Male, female or other: everyone answers (there's no "prefer not to say").
+    // Male or female: everyone answers (there's no "prefer not to say").
     const gender = page.getByLabel(t("shell.people.gender"));
-    expect(await gender.locator("option:not([disabled])").evaluateAll((os) => os.map((o) => o.value))).toEqual(["male", "female", "other"]);
+    expect(await gender.locator("option:not([disabled])").evaluateAll((os) => os.map((o) => o.value))).toEqual(["male", "female"]);
     await gender.selectOption("male");
     await page.getByRole("button", { name: lt("account.save"), exact: true }).click();
     await expect(page.getByText(lt("account.savedToast")).or(page.getByText(lt("account.saved"))).first()).toBeVisible();

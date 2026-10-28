@@ -1,7 +1,10 @@
 "use client";
 
 import EditorFrame from "./EditorFrame";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { useFormDraft } from "@/lib/drafts";
+import useUnsavedChanges from "@/lib/useUnsavedChanges";
+import DraftBanner from "@/components/ui/DraftBanner";
 import { Plus, Trash2, Check } from "lucide-react";
 import InfoTooltip from "@/components/ui/InfoTooltip";
 import { useCourse } from "@/context/CourseContext";
@@ -12,6 +15,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { queryKeys } from "@/lib/queryKeys";
 import { Label, Select, TextInput, Textarea } from "@/components/form";
+import GradingFields from "./GradingFields";
 
 function QuestionBuilder({ question, index, onChange, onRemove, outcomes }) {
   const { t, tf } = useCourseText();
@@ -126,6 +130,10 @@ export default function QuizEditorModal({ asPage = false, open, onClose, onSave,
   const [description, setDescription] = useState(initialData?.description || "");
   const [schedule, setSchedule] = useState(() => initialScheduleValues(initialDays));
   const [kind, setKind] = useState(initialData?.kind || "graded");
+  const [category, setCategory] = useState(initialData?.category || "");
+  const [scoresHidden, setScoresHidden] = useState(Boolean(initialData?.scores_hidden));
+  // Only graded quizzes count in Grades, so only they need a type.
+  const needsCategory = kind === "graded" && !category;
   const [attemptsAllowed, setAttemptsAllowed] = useState(
     initialData?.attempts_allowed === null || initialData?.attempts_allowed === undefined
       ? ""
@@ -153,8 +161,21 @@ export default function QuizEditorModal({ asPage = false, open, onClose, onSave,
   const updateQuestion = (index, updated) => setQuestions((prev) => prev.map((q, i) => i === index ? updated : q));
   const removeQuestion = (index) => setQuestions((prev) => prev.filter((_, i) => i !== index));
 
+  // Unsaved changes: kept as a draft on this device, and asked about before leaving.
+  const values = { title, description, schedule, kind, attemptsAllowed, questions, category, scoresHidden };
+  const initialValues = useRef(JSON.stringify(values));
+  const dirty = JSON.stringify(values) !== initialValues.current;
+  const draft = useFormDraft(`editor:${courseId}:quiz:${initialData?.id ?? "new"}`, values, dirty);
+  const restoreDraft = () => {
+    const v = draft.restore();
+    if (!v) return;
+    setTitle(v.title ?? ""); setDescription(v.description ?? ""); setSchedule(v.schedule ?? schedule); setKind(v.kind || "graded");
+    setAttemptsAllowed(v.attemptsAllowed ?? ""); setQuestions(Array.isArray(v.questions) ? v.questions : []);
+    setCategory(v.category ?? ""); setScoresHidden(!!v.scoresHidden);
+  };
+
   const handleSave = async () => {
-    if (!title.trim() || scheduleError(schedule)) return;
+    if (!title.trim() || needsCategory || scheduleError(schedule)) return false;
     setSaving(true);
     try {
       await onSave({
@@ -162,23 +183,32 @@ export default function QuizEditorModal({ asPage = false, open, onClose, onSave,
         description,
         ...schedulePayload(schedule),
         kind,
+        ...(kind === "graded" ? { category, scoresHidden } : {}),
         attemptsAllowed: attemptsAllowed === "" ? null : Math.max(1, Number(attemptsAllowed) || 1),
         questions,
       });
+      draft.clear();
+      initialValues.current = JSON.stringify(values);
       onClose();
+      return true;
     } catch {
       // Save failed: the parent already reported the error; keep the editor open.
+      return false;
     } finally {
       setSaving(false);
     }
   };
+  const { confirmLeave, dialog } = useUnsavedChanges({ dirty, onSave: handleSave });
+  const close = () => confirmLeave(() => { draft.clear(); onClose(); });
 
   if (!open && !asPage) return null;
 
   return (
-    <EditorFrame asPage={asPage} title={isEdit ? t("editors.quiz.edit") : t("editors.quiz.new")} onClose={onClose} maxWidth="max-w-2xl">
+    <>
+    <EditorFrame asPage={asPage} title={isEdit ? t("editors.quiz.edit") : t("editors.quiz.new")} onClose={close} maxWidth="max-w-2xl">
 
         <div className="px-6 py-4 space-y-4 max-h-[70vh] overflow-y-auto">
+          <DraftBanner draft={draft.saved} onRestore={restoreDraft} onDiscard={draft.discard} />
           <div>
             <Label>{t("editors.quiz.title")} *</Label>
             <TextInput aria-label={t("editors.quiz.title")} value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("editors.quiz.title")} className="w-full" />
@@ -214,6 +244,10 @@ export default function QuizEditorModal({ asPage = false, open, onClose, onSave,
             </div>
           </div>
 
+          {kind === "graded" ? (
+            <GradingFields id="quiz" category={category} onCategory={setCategory} scoresHidden={scoresHidden} onScoresHidden={setScoresHidden} />
+          ) : null}
+
           {/* Relative timing */}
           <ScheduleFields values={schedule} onChange={setSchedule} moduleStartDate={moduleStartDate} />
 
@@ -236,17 +270,19 @@ export default function QuizEditorModal({ asPage = false, open, onClose, onSave,
         </div>
 
         <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-line">
-          <button onClick={onClose} className="text-caption font-semibold text-fg-muted hover:text-fg px-4 py-2 rounded-lg hover:bg-surface-hover">
+          <button onClick={close} className="text-caption font-semibold text-fg-muted hover:text-fg px-4 py-2 rounded-lg hover:bg-surface-hover">
             {t("common.cancel")}
           </button>
           <button
             onClick={handleSave}
-            disabled={saving || !title.trim() || Boolean(scheduleError(schedule))}
+            disabled={saving || !title.trim() || needsCategory || Boolean(scheduleError(schedule))}
             className="text-caption font-semibold text-on-brand bg-brand hover:bg-brand/90 disabled:opacity-50 rounded-lg px-4 py-2 transition-colors"
           >
             {saving ? t("common.saving") : isEdit ? t("editors.saveChanges") : t("editors.quiz.create")}
           </button>
         </div>
     </EditorFrame>
+    {dialog}
+    </>
   );
 }

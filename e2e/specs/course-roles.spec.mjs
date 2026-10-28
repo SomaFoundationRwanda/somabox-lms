@@ -18,7 +18,7 @@ async function asRole(browser, role) {
 /** A fresh account, signed in, with the profile form done (so pages aren't covered by it). */
 async function asNewUser(browser, { role, courseId, courseRole }) {
   const email = `roles-${uid()}@e2e.test`;
-  await createUser({ email, role, fullName: `Roles ${courseRole || role}` });
+  await createUser({ email, role, fullName: `Roles ${courseRole || (role === "scholar" ? "learner" : role)}` });
   const tok = (await (await fetch("http://localhost:3100/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password: PASSWORD }) })).json()).token;
   await api("PATCH", "/users/profile/update", { token: tok, body: { gender: "female", disabilityStatus: "none", gradeLevel: "Primary 4", completeProfile: true } });
   if (courseRole) await api("POST", `/courses/${courseId}/people`, { as: "teacher", body: { email, role: courseRole } });
@@ -100,7 +100,7 @@ test("a learner's menu leaves out pages, outcomes and attendance", async ({ brow
   }
   // Still open from elsewhere: a page from Weeks.
   await learner.page.goto(`/course/${c.id}/pages/${c.page.content_id}`);
-  await expect(learner.page.getByRole("heading", { level: 1 })).toBeVisible();
+  await expect(learner.page.getByRole("heading", { level: 1, name: c.page.title })).toBeVisible();
   await learner.close();
 });
 

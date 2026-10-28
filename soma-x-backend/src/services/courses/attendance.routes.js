@@ -12,7 +12,7 @@ const DATE = /^\d{4}-\d{2}-\d{2}$/;
 // Course staff take attendance; admins (not enrolled) may look but not mark.
 async function staffOrAdmin(req, res, courseId, { write = false } = {}) {
   if (!await courseExists(courseId)) {
-    res.status(404).json({ message: "Course not found" });
+    res.status(404).json({ message: "Subject not found" });
     return null;
   }
   if (req.user?.role === "admin" && !write) return { email: req.user.email };
@@ -128,7 +128,7 @@ router.put("/:id/attendance/sessions/:sessionId", async (req, res) => {
     if (!records) return res.status(400).json({ message: "records must be a list" });
     const learnerIds = new Set((await courseLearners(courseId)).map((l) => Number(l.id)));
     for (const [i, r] of records.entries()) {
-      if (!learnerIds.has(Number(r?.userId))) return res.status(400).json({ message: `Entry ${i + 1} isn't a learner in this course` });
+      if (!learnerIds.has(Number(r?.userId))) return res.status(400).json({ message: `Entry ${i + 1} isn't a learner in this subject` });
       if (r.status !== null && !STATUSES.includes(r.status)) return res.status(400).json({ message: `Entry ${i + 1}: status must be present, late, absent, or excused` });
     }
     await localDb.transaction(async () => {
@@ -190,11 +190,11 @@ router.delete("/:id/attendance/sessions/:sessionId", async (req, res) => {
 router.get("/:id/attendance/me", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     const auth = await requireNavVisible(req, res, courseId, "attendance");
     if (!auth) return;
     if (isTeacherRole(auth.enrollment.role)) return res.status(400).json({ message: "This shows a learner's own attendance. Teachers see everyone's on the Attendance page." });
-    if (auth.enrollment.role === "observer") return res.status(403).json({ message: "Observers don't have attendance in this course", code: "OBSERVER" });
+    if (auth.enrollment.role === "observer") return res.status(403).json({ message: "Observers don't have attendance in this subject", code: "OBSERVER" });
     const records = await localDb.prepare(`
       SELECT s.session_date::text AS date, s.title, r.status, r.note
       FROM attendance_sessions s LEFT JOIN attendance_records r ON r.session_id = s.id AND r.user_id = ?

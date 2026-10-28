@@ -29,6 +29,26 @@ const MASTERY_LEVELS = [
 // Mastery statuses the server sends (English) -> translation keys.
 const STATUS_KEYS = { "Needs Reteach": "needsReteach", "On Track": "onTrack", "Mastery Achieved": "masteryAchieved" };
 
+// Under the "mastery level criteria" box: what to write, with a worked example (collapsed).
+function MasteryHelp() {
+  const { tp } = useProgressText();
+  return (
+    <details className="mt-1.5 rounded-lg border border-line bg-surface-sunken/60 px-3 py-2 text-caption text-fg-muted">
+      <summary className="cursor-pointer font-semibold text-brand-fg">{tp("outcomes.masteryHelp.summary")}</summary>
+      <div className="mt-2 space-y-2">
+        <p>{tp("outcomes.masteryHelp.what")}</p>
+        <p className="font-semibold text-fg">{tp("outcomes.masteryHelp.exampleTitle")}</p>
+        <ul className="space-y-1">
+          {["exceeds", "meets", "approaching", "below"].map((level) => (
+            <li key={level}><span className="font-semibold text-fg">{tp(`outcomes.levels.${level}`)}:</span> {tp(`outcomes.masteryHelp.example.${level}`)}</li>
+          ))}
+        </ul>
+        <p>{tp("outcomes.masteryHelp.tip")}</p>
+      </div>
+    </details>
+  );
+}
+
 export default function OutcomesPage() {
   const { SERVER_URL, courseId, isTeacher, isLearner } = useCourse();
   const { tp, tpn, tpOr } = useProgressText();
@@ -137,7 +157,6 @@ export default function OutcomesPage() {
       <div className="p-4 md:p-6 space-y-8 max-w-4xl">
         <PageHeader help="pages.outcomes"
           title={tp("outcomes.title")}
-          description={isLearner ? undefined : tp("outcomes.description")}
           actions={isTeacher ? (
             <div className="flex flex-wrap items-center gap-2">
             {/* Write with AI sits next to New outcome so teachers find it without opening the form. */}
@@ -225,6 +244,7 @@ export default function OutcomesPage() {
               <div>
                 <Label htmlFor="outcome-description">{tp("outcomes.descriptionLabel")}</Label>
                 <Textarea id="outcome-description" value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} rows={2} placeholder={tp("outcomes.descriptionPlaceholder")} className="w-full" />
+                <MasteryHelp />
               </div>
 
               <div className="flex justify-end gap-2 pt-1">
@@ -309,6 +329,7 @@ export default function OutcomesPage() {
                       <div>
                         <Label htmlFor={`edit-outcome-description-${m.id}`}>{tp("outcomes.descriptionLabel")}</Label>
                         <Textarea id={`edit-outcome-description-${m.id}`} rows={2} value={editing.description} onChange={(e) => setEditing((p) => ({ ...p, description: e.target.value }))} className="w-full" />
+                        <MasteryHelp />
                       </div>
                       <div className="flex justify-end gap-2">
                         <button type="button" onClick={() => setEditing(null)} className="text-caption font-semibold text-fg-subtle px-3 py-2">{tp("common.cancel")}</button>

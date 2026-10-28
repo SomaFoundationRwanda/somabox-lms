@@ -150,6 +150,10 @@ export default function NotificationBellDrawer({ className = "" }) {
                                     const isProfileReminder = n.type === 'profile_reminder';
                                     const isClassAdded = n.type === 'class_added';
                                     const isGraded = n.type === 'graded';
+                                    // System notifications carry a text key: shown in the reader's language.
+                                    const kind = n.text_key ? (k) => t(`shell.notifications.kinds.${n.text_key}.${k}`) : () => null;
+                                    const title = kind('title') ? fill(kind('title'), n.text_params || {}) : n.title;
+                                    const message = kind('message') ? fill(kind('message'), n.text_params || {}) : n.message;
 
                                     return (
                                         <div
@@ -179,7 +183,7 @@ export default function NotificationBellDrawer({ className = "" }) {
                                                 <div className="flex-1 min-w-0 pr-6">
                                                     <div className="flex items-baseline justify-between gap-2">
                                                         <p className={`text-caption font-bold truncate ${isUnread ? 'text-fg font-extrabold' : 'text-fg-muted'}`}>
-                                                            {n.title}
+                                                            {title}
                                                         </p>
                                                         <span className="text-caption font-medium opacity-60 shrink-0 text-fg-subtle">
                                                             {formatTime(n.created_at)}
@@ -187,7 +191,7 @@ export default function NotificationBellDrawer({ className = "" }) {
                                                     </div>
 
                                                     <p className="text-caption font-medium leading-relaxed mt-0.5 text-fg-muted">
-                                                        {n.message}
+                                                        {message}
                                                     </p>
 
                                                     {/* Keyboard equivalent of clicking an unread notification */}
@@ -221,7 +225,7 @@ export default function NotificationBellDrawer({ className = "" }) {
                                                     onClick={(e) => handleDelete(n.id, e)}
                                                     className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand p-1 text-fg-muted hover:text-danger-fg rounded transition-all absolute right-3 top-3"
                                                     title={t('shell.notifications.dismiss')}
-                                                    aria-label={fill(t('shell.notifications.dismissNamed'), { title: n.title })}
+                                                    aria-label={fill(t('shell.notifications.dismissNamed'), { title })}
                                                 >
                                                     <Trash2 className="w-3.5 h-3.5" />
                                                 </button>

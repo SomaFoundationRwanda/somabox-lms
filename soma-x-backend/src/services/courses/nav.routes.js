@@ -17,7 +17,7 @@ const router = express.Router();
 router.get("/:id/nav", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     const auth = await requireEnrolled(req, res, courseId);
     if (!auth) return;
 
@@ -52,7 +52,7 @@ router.get("/:id/nav", async (req, res) => {
 router.patch("/:id/nav", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     if (!await requireCourseTeacher(req, res, courseId)) return;
 
     const items = Array.isArray(req.body?.items) ? req.body.items : Array.isArray(req.body) ? req.body : [];

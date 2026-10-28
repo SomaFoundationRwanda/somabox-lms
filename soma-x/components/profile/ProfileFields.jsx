@@ -14,7 +14,7 @@ export function GenderField({ value, onChange, variant = "choices", error, requi
         <Field label={t("shell.people.gender")} hint={showHelp ? t("shell.people.genderHelp") : undefined} error={error} required={required}>
             {variant === "select"
                 ? <Select value={value || ""} onChange={(e) => onChange(e.target.value)} options={options} placeholder={t("shell.people.chooseOne")} size={size} />
-                : <ChoiceGroup value={value} onChange={onChange} options={options} columns={3} size={size} />}
+                : <ChoiceGroup value={value} onChange={onChange} options={options} columns={2} size={size} />}
         </Field>
     );
 }

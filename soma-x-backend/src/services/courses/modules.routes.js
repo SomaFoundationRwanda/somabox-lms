@@ -30,6 +30,9 @@ import {
   updateItemDays,
 } from "./items.js";
 import { datesPayload, loadCourseTimeline, parseItemDays, refreshDueDates } from "./schedule.js";
+import { gradingUpdates } from "./categories.js";
+import { isDateString, diffDays } from "@somabox/timeline";
+import { groupHiddenItems, setAssignmentGroups } from "./groups.js";
 
 const router = express.Router();
 
@@ -39,7 +42,7 @@ const router = express.Router();
 router.patch("/:id/modules/reorder", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     if (!await requireTeacher(req, res, courseId)) return;
 
     const moduleIds = Array.isArray(req.body.moduleIds) ? req.body.moduleIds : [];
@@ -62,7 +65,7 @@ router.patch("/:id/modules/reorder", async (req, res) => {
 router.patch("/:id/modules/:moduleId/items/reorder", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     if (!await requireTeacher(req, res, courseId)) return;
 
     const itemIds = Array.isArray(req.body.itemIds) ? req.body.itemIds : [];
@@ -89,22 +92,29 @@ router.patch("/:id/modules/:moduleId/items/reorder", async (req, res) => {
 router.get("/:id/modules", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     const auth = await requireNavVisible(req, res, courseId, "modules");
     if (!auth) return;
     const isTeacher = isTeacherRole(auth.enrollment.role);
 
-    const modules = await localDb.prepare("SELECT * FROM modules WHERE course_id = ? ORDER BY position ASC").all(courseId);
+    // In date order: Week 0 first, then the weeks by when they start (past, this week, upcoming),
+    // Unassigned last.
+    const modules = await localDb.prepare(`
+      SELECT * FROM modules WHERE course_id = ?
+      ORDER BY CASE kind WHEN 'baseline' THEN 0 WHEN 'unassigned' THEN 2 ELSE 1 END, week_offset ASC NULLS LAST, day_offset ASC, position ASC
+    `).all(courseId);
     // Resolved dates and statuses (from the course start date and each item's day offsets).
     const tl = await loadCourseTimeline(courseId);
     const moduleDates = new Map(tl.modules.map((m) => [Number(m.id), m]));
     const itemDates = new Map(tl.items.map((i) => [Number(i.id), i]));
+    // Learners don't see other groups' discussions or assignments given to groups they aren't in.
+    const groupHidden = isTeacher ? new Set() : await groupHiddenItems(courseId, auth.email);
     const result = await Promise.all(modules
       .filter((m) => isTeacher || Number(m.published) === 1)
       .map(async (moduleRow) => {
         const rawItems = await localDb.prepare("SELECT * FROM module_items WHERE module_id = ? ORDER BY position ASC").all(moduleRow.id);
         const items = await Promise.all(rawItems
-          .filter((item) => isTeacher || Number(item.published) === 1)
+          .filter((item) => isTeacher || (Number(item.published) === 1 && !groupHidden.has(`${item.item_type}:${item.content_id}`)))
           .map(async (item) => {
             const enriched = {
               ...item,
@@ -163,7 +173,7 @@ router.get("/:id/modules", async (req, res) => {
 router.post("/:id/modules", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     const auth = await requireTeacher(req, res, courseId);
     if (!auth) return;
 
@@ -174,7 +184,7 @@ router.post("/:id/modules", async (req, res) => {
     const kind = req.body.kind === "baseline" ? "baseline" : "regular";
     if (kind === "baseline") {
       const existing = await localDb.prepare("SELECT id FROM modules WHERE course_id = ? AND kind = 'baseline'").get(courseId);
-      if (existing) return res.status(409).json({ message: "This course already has a Week 0 (baseline)" });
+      if (existing) return res.status(409).json({ message: "This subject already has a Lesson 0 (baseline)" });
     }
     let weekOffset = 0;
     if (kind === "regular") {
@@ -205,15 +215,40 @@ router.post("/:id/modules", async (req, res) => {
 router.patch("/:id/modules/:moduleId", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     if (!await requireTeacher(req, res, courseId)) return;
 
     const moduleRow = await localDb.prepare("SELECT * FROM modules WHERE id = ? AND course_id = ?").get(req.params.moduleId, courseId);
     if (!moduleRow) return res.status(404).json({ message: "Module not found" });
 
-    const { title, description, published, position, weekOffset, dayOffset } = req.body;
+    const { title, description, published, position } = req.body;
+    let { weekOffset, dayOffset } = req.body;
     const updates = [];
     const params = [];
+    // A new start date for the week (YYYY-MM-DD): turned into its week number and day. Week 1 is
+    // the course's start date (Settings, where moving it moves every week); Week 0 is the week
+    // before it.
+    if (req.body.startDate !== undefined) {
+      const date = String(req.body.startDate || "");
+      if (!isDateString(date)) return res.status(400).json({ message: "startDate must look like YYYY-MM-DD" });
+      const course = await courseExists(courseId);
+      if (!course.start_date) return res.status(409).json({ message: "Set the subject start date in Settings first", code: "NO_START" });
+      if (moduleRow.kind === "unassigned") return res.status(400).json({ message: "The Unassigned module has no dates" });
+      const firstWeek = await localDb.prepare("SELECT MIN(week_offset) AS w FROM modules WHERE course_id = ? AND kind = 'regular'").get(courseId);
+      if (moduleRow.kind === "regular" && Number(moduleRow.week_offset) === Number(firstWeek?.w)) {
+        return res.status(409).json({ message: "The first lesson starts on the subject's start date: change it in Settings (every lesson moves with it)", code: "FIRST_WEEK" });
+      }
+      const days = diffDays(String(course.start_date).slice(0, 10), date);
+      if (moduleRow.kind === "baseline") {
+        if (days < -7 || days > -1) return res.status(400).json({ message: "Lesson 0 takes place in the week before the subject starts. To run it later, move the subject start date in Settings.", code: "BASELINE_RANGE" });
+        weekOffset = undefined;
+        dayOffset = days + 7;
+      } else {
+        if (days < 0) return res.status(400).json({ message: "That's before the subject starts. To start earlier, change the subject start date in Settings.", code: "BEFORE_START" });
+        weekOffset = Math.floor(days / 7) + 1;
+        dayOffset = days % 7;
+      }
+    }
     if (weekOffset !== undefined) {
       const week = Number(weekOffset);
       if (moduleRow.kind !== "regular") return res.status(400).json({ message: "Only regular modules have a week number" });
@@ -247,7 +282,7 @@ router.patch("/:id/modules/:moduleId", async (req, res) => {
 router.delete("/:id/modules/:moduleId", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     if (!await requireTeacher(req, res, courseId)) return;
 
     const moduleRow = await localDb.prepare("SELECT id FROM modules WHERE id = ? AND course_id = ?").get(req.params.moduleId, courseId);
@@ -256,7 +291,7 @@ router.delete("/:id/modules/:moduleId", async (req, res) => {
     const contentCount = Number((await localDb.prepare("SELECT COUNT(*) AS c FROM module_items WHERE module_id = ? AND item_type <> 'sub_header'").get(moduleRow.id))?.c || 0);
     if (contentCount > 0) {
       return res.status(409).json({
-        message: `This week still has ${contentCount} item${contentCount === 1 ? "" : "s"}. Move or delete them first.`,
+        message: `This lesson still has ${contentCount} material${contentCount === 1 ? "" : "s"}. Move or delete them first.`,
         code: "MODULE_NOT_EMPTY",
       });
     }
@@ -276,7 +311,7 @@ router.delete("/:id/modules/:moduleId", async (req, res) => {
 router.post("/:id/modules/:moduleId/items", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     const auth = await requireTeacher(req, res, courseId);
     if (!auth) return;
 
@@ -334,7 +369,7 @@ router.post("/:id/modules/:moduleId/items", async (req, res) => {
 router.post("/:id/modules/:moduleId/items/file", upload.single("file"), async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     const auth = await requireTeacher(req, res, courseId);
     if (!auth) return;
 
@@ -384,7 +419,7 @@ router.post("/:id/modules/:moduleId/items/file", upload.single("file"), async (r
 router.patch("/:id/modules/:moduleId/items/:itemId", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     if (!await requireTeacher(req, res, courseId)) return;
 
     const { published, position, title, indentLevel, moduleId } = req.body;
@@ -441,7 +476,7 @@ router.patch("/:id/modules/:moduleId/items/:itemId", async (req, res) => {
 router.patch("/:id/modules/:moduleId/items/:itemId/content", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     if (!await requireTeacher(req, res, courseId)) return;
 
     const item = await getCourseModuleItem(courseId, req.params.itemId);
@@ -502,11 +537,14 @@ router.patch("/:id/modules/:moduleId/items/:itemId/content", async (req, res) =>
       if (description !== undefined) { updates.push("description = ?"); params.push(description); }
       if (pointsPossible !== undefined) { updates.push("points_possible = ?"); params.push(Number(pointsPossible)); }
       if (published !== undefined) { updates.push("published = ?"); params.push(published ? 1 : 0); }
+      gradingUpdates(req.body, updates, params);
       if (updates.length) {
         updates.push("updated_at = CURRENT_TIMESTAMP");
         params.push(contentId, courseId);
         await localDb.prepare(`UPDATE assignments SET ${updates.join(", ")} WHERE id = ? AND course_id = ?`).run(...params);
       }
+      if (Array.isArray(req.body.groupIds)) await setAssignmentGroups(courseId, contentId, req.body.groupIds);
+      if (req.body.groupSubmission !== undefined) await localDb.prepare("UPDATE assignments SET group_submission = ? WHERE id = ?").run(Boolean(req.body.groupSubmission), contentId);
       if (title !== undefined) {
         await localDb.prepare("UPDATE module_items SET title = ? WHERE id = ?").run(title, item.id);
       }
@@ -534,6 +572,7 @@ router.patch("/:id/modules/:moduleId/items/:itemId/content", async (req, res) =>
         if (n !== null && (!Number.isInteger(n) || n < 1)) return res.status(400).json({ message: "timeLimitMinutes must be 1 or more, or empty for no limit" });
         updates.push("time_limit_minutes = ?"); params.push(n);
       }
+      gradingUpdates(req.body, updates, params);
       if (updates.length) {
         updates.push("updated_at = CURRENT_TIMESTAMP");
         params.push(contentId, courseId);
@@ -580,7 +619,7 @@ router.patch("/:id/modules/:moduleId/items/:itemId/content", async (req, res) =>
 router.delete("/:id/modules/:moduleId/items/:itemId", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     if (!await requireTeacher(req, res, courseId)) return;
 
     const mode = String(req.query.mode || "remove_from_module").trim();
@@ -602,7 +641,7 @@ router.delete("/:id/modules/:moduleId/items/:itemId", async (req, res) => {
     // "Unassigned (fix me)" module (unpublished) instead of leaving it orphaned.
     const unassigned = await getUnassignedModule(courseId);
     if (Number(item.module_id) === Number(unassigned.id)) {
-      return res.status(400).json({ message: "This item is already unassigned. Move it into a week or delete it." });
+      return res.status(400).json({ message: "This material is already unassigned. Move it into a lesson or delete it." });
     }
     await moveContentToModule(courseId, item.item_type, item.content_id, unassigned.id);
     await localDb.prepare("UPDATE module_items SET published = 0 WHERE id = ?").run(item.id);
@@ -618,7 +657,11 @@ router.delete("/:id/modules/:moduleId/items/:itemId", async (req, res) => {
 // ===== Module Item Navigation Sequence & Progress =====
 
 async function getCourseSequence(courseId, isTeacher) {
-  const modules = await localDb.prepare("SELECT * FROM modules WHERE course_id = ? ORDER BY position ASC").all(courseId);
+  // The same date order as the Weeks page.
+  const modules = await localDb.prepare(`
+    SELECT * FROM modules WHERE course_id = ?
+    ORDER BY CASE kind WHEN 'baseline' THEN 0 WHEN 'unassigned' THEN 2 ELSE 1 END, week_offset ASC NULLS LAST, day_offset ASC, position ASC
+  `).all(courseId);
   const sequence = [];
 
   for (const mod of modules) {
@@ -663,7 +706,7 @@ async function getCourseSequence(courseId, isTeacher) {
 router.get("/:id/module-items/sequence-position", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     const auth = await requireEnrolled(req, res, courseId);
     if (!auth) return;
 
@@ -702,7 +745,7 @@ router.get("/:id/module-items/sequence-position", async (req, res) => {
 router.post("/:id/module-items/:moduleItemId/progress", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     const auth = await requireEnrolled(req, res, courseId);
     if (!auth) return;
 

@@ -40,6 +40,12 @@ export async function startTestServer() {
   process.env.AI_GATEWAY_URL = fakeGateway.url;
 
   const dbManager = await import("../src/helpers/db-manager.js");
+  // A test file that imported a server module before this would be connected to the real
+  // database: refuse to run rather than write test data into it.
+  const connected = dbManager.pool.options.connectionString || dbManager.pool.options.database;
+  if (!String(connected).endsWith(`/${dbName}`)) {
+    throw new Error(`Tests must use their own database (${dbName}), not ${String(connected).replace(/\/\/.*@/, "//")}: import server modules only after startTestServer().`);
+  }
   await dbManager.initSchemas();
   const { createApp, API_ROUTERS } = await import("../src/app.js");
 

@@ -93,6 +93,7 @@ export default function TeacherDashboardPage() {
         <AddLearners
           courseId={studentModal}
           courseTitle={courses.find((c) => c.id === studentModal)?.title || ""}
+          courseGrade={courses.find((c) => c.id === studentModal)?.grade || ""}
           isDraft={courses.find((c) => c.id === studentModal)?.lifecycle === "draft"}
           showJoinCode
           onClose={() => setStudentModal(null)}

@@ -31,19 +31,19 @@ export default {
         "analyticsSection": "Accessibility, inclusivity & growth analytics",
         "adminReserved": "Admin reserved",
         "openAnalytics": "Open Full Analytics Hub",
-        "coursesTitle": "Courses",
-        "coursesDescription": "Every course on this box, with its teacher and learners",
+        "coursesTitle": "Subjects",
+        "coursesDescription": "Every subject on this box, with its teacher and learners",
         "usersDescription": "Manage roles and credentials"
     },
     "courses": {
-        "loadFailed": "Couldn't load courses",
-        "emptyTitle": "No courses yet",
-        "emptyText": "Courses appear here once a teacher creates one.",
+        "loadFailed": "Couldn't load subjects",
+        "emptyTitle": "No subjects yet",
+        "emptyText": "Subjects appear here once a teacher creates one.",
         "searchPlaceholder": "Search by title, code, or teacher",
-        "searchLabel": "Search courses",
-        "caption": "All courses",
-        "noMatch": "No courses match your search.",
-        "colCourse": "Course",
+        "searchLabel": "Search subjects",
+        "caption": "All subjects",
+        "noMatch": "No subjects match your search.",
+        "colCourse": "Subject",
         "code": "Code {code}",
         "colTeacher": "Teacher",
         "colStatus": "Status",
@@ -53,14 +53,14 @@ export default {
         "changeTeacher": "Change teacher",
         "changeTeacherTitle": "Teacher of {course}",
         "currentTeachers": "Taught by {teachers}.",
-        "noTeacherNow": "No active teacher teaches this course now.",
+        "noTeacherNow": "No active teacher teaches this subject now.",
         "newTeacher": "New teacher",
         "chooseTeacher": "Choose a teacher…",
-        "removeOthers": "Take the current teachers off this course",
+        "removeOthers": "Take the current teachers off this subject",
         "saveTeacher": "Save",
         "teacherChanged": "{course} has its new teacher",
         "changeTeacherFailed": "Couldn't change the teacher",
-        "adminViewNote": "You're viewing this course as an admin: you can read everything but not change it.",
+        "adminViewNote": "You're viewing this subject as an admin: you can read everything but not change it.",
         "adminViewLink": "Back to the admin portal",
         "lifecycle": {
             "draft": "Draft",
@@ -89,10 +89,10 @@ export default {
     },
     "ai": {
         "features": {
-            "fill_week": "Fill the week",
+            "fill_week": "Fill the lesson",
             "story": "Story",
             "quiz": "Quiz",
-            "outline": "Course outline",
+            "outline": "Subject outline",
             "outcome_rewrite": "Outcome rewrite",
             "rubric": "Rubric",
             "grading": "Grading suggestion",
@@ -103,7 +103,7 @@ export default {
             "quiz": "Quiz",
             "assignment": "Assignment",
             "story": "Story",
-            "outline": "Course outline",
+            "outline": "Subject outline",
             "outcome": "Outcome",
             "rubric": "Rubric",
             "grading": "Grading suggestion"
@@ -115,7 +115,7 @@ export default {
         "userOff": "AI switched off for {name}",
         "pickFromList": "Pick a teacher or admin from the list.",
         "unknown": "Unknown",
-        "description": "Teachers and admins can use AI to draft course content, rubrics and grading suggestions. Everything it writes is a draft that a teacher must approve and then publish.",
+        "description": "Teachers and admins can use AI to draft subject content, rubrics and grading suggestions. Everything it writes is a draft that a teacher must approve and then publish.",
         "schoolSwitch": "School-wide switch",
         "isOn": "The AI assistant is on for this school.",
         "isOff": "The AI assistant is off for everyone at this school.",
@@ -138,7 +138,7 @@ export default {
         "colTokens": "Tokens",
         "colAvg": "Avg. seconds",
         "draftsTitle": "What happened to the drafts",
-        "draftsHelp": "Per draft type: added to a course as written, added after a teacher edited it, rejected, or still waiting.",
+        "draftsHelp": "Per draft type: added to a subject as written, added after a teacher edited it, rejected, or still waiting.",
         "draftsCaption": "AI drafts by outcome",
         "noDrafts": "No drafts in this period.",
         "colType": "Type",
@@ -151,13 +151,13 @@ export default {
         "events": {
             "explainer_opened": "Help (“What is this?”) opened",
             "create_helper_used": "Create helper used",
-            "course_opened": "Course opened",
-            "item_opened": "Item opened (page, assignment, quiz, discussion)",
+            "course_opened": "Subject opened",
+            "item_opened": "Material opened (page, assignment, quiz, discussion)",
             "insights_viewed": "Insights viewed (teachers)",
             "progress_viewed": "My progress viewed (learners)",
             "grading_time": "Gradings timed",
             "ai_suggestion_used": "AI grading suggestion saved",
-            "item_edited_after_publish": "Item edited after publishing"
+            "item_edited_after_publish": "Material edited after publishing"
         },
         "seconds": "{s} s",
         "minSec": "{m} min {s} s",
@@ -178,16 +178,16 @@ export default {
         "totals": "Totals",
         "learners": "Learners",
         "teachers": "Teachers",
-        "runningCourses": "Running courses",
+        "runningCourses": "Running subjects",
         "stillDraft": "{count} still in draft",
         "withResults": "Learners with results",
         "xOfY": "{x} of {y}",
-        "inRunning": "in running courses",
+        "inRunning": "in running subjects",
         "active7": "Active last 7 days",
         "learnersLower": "learners",
-        "coursesHelp": "Published and ended courses. Select a course to open its Insights.",
-        "noRunning": "No running courses yet.",
-        "noRunningHelp": "Courses appear here once they are published.",
+        "coursesHelp": "Published and ended subjects. Select a subject to open its Insights.",
+        "noRunning": "No running subjects yet.",
+        "noRunningHelp": "Subjects appear here once they are published.",
         "colWithResults": "With results",
         "colMastery": "Avg mastery",
         "colDelta": "Change vs baseline",
@@ -204,7 +204,7 @@ export default {
         "fromTimed": "from {count} timed gradings (opening a learner's work to saving the grade)",
         "noTimed": "No timed gradings yet",
         "editsAfter": "Edits made after publishing",
-        "editsAfterHelp": "changes to items learners could already see",
+        "editsAfterHelp": "changes to materials learners could already see",
         "productUse": "Product use",
         "productUseCaption": "Product use, last {days} days",
         "noUsage": "No usage recorded in this period.",
@@ -292,16 +292,16 @@ export default {
         },
         "scope": {
             "courses": {
-                "label": "Courses and outcomes",
-                "help": "Course titles, weeks, pages, quizzes, assignments and the outcomes they teach."
+                "label": "Subjects and lessons",
+                "help": "Subjects, units, lessons, quizzes and assignments with their type (baseline, tests…), and the outcomes they teach. Pages go without their text."
             },
             "enrollments": {
                 "label": "Enrollments",
-                "help": "Who is in which course, and as teacher or learner."
+                "help": "Who is in which subject, and as teacher or learner."
             },
             "grades": {
-                "label": "Grades and quiz results",
-                "help": "Marks on assignments and quiz scores."
+                "label": "Results",
+                "help": "Every mark and score: baseline tests, quizzes, assignments and the other tests, and how each learner progresses over time."
             },
             "outcomeResults": {
                 "label": "Outcome results",
@@ -312,8 +312,8 @@ export default {
                 "help": "Who was present, late, absent or excused at each class register."
             },
             "events": {
-                "label": "Usage events",
-                "help": "Which pages and tools are opened, so the team can see what helps. No written work."
+                "label": "Activity",
+                "help": "When each learner and teacher signs in and is active, which subjects and lessons they open, what they finish and their discussion replies. No written work."
             }
         },
         "peopleOptions": {
@@ -378,7 +378,11 @@ export default {
         "scopeHelp": "Only what is ticked here is sent to the cloud. Everything else stays on this box.",
         "boxId": "Box ID (for support):",
         "sendsBy": "sends by {via}",
-        "webAddress": "web address"
+        "webAddress": "web address",
+        "alwaysSent": "Always sent",
+        "alwaysSentHelp": "The learning record the programme reports on. It can't be switched off, and what was recorded before is sent too.",
+        "yourChoice": "Your choice",
+        "filesStay": "Files and videos never leave this box.",
     },
     "library": {
         "uploadFailed": "Upload failed.",
@@ -442,7 +446,7 @@ export default {
         "provinceDistrict": "Province & District",
         "na": "N/A",
         "locationType": "Location Type",
-        "rural": "Rural Learner",
+        "rural": "Rural",
         "urban": "Urban / Semi-urban",
         "disability": "Disability Status",
         "none": "None",
@@ -455,9 +459,17 @@ export default {
         "pending": "Pending",
         "caughtUp": "All Caught Up!",
         "noPending": "No pending spaced practice reviews.",
-        "enrolled": "Enrolled Courses",
-        "notEnrolled": "Not enrolled in any courses",
-        "notEnrolledHelp": "This student has not joined any active courses yet."
+        "enrolled": "Enrolled Subjects",
+        "notEnrolled": "Not enrolled in any subjects",
+        "notEnrolledHelp": "This learner has not joined any active subjects yet.",
+        "work": "School & Teaching",
+        "classesTaught": "Classes they teach",
+        "subjectsTaught": "Subject areas they teach",
+        "noneYet": "None yet",
+        "annexClasses": "Extra classes",
+        "teaching": "Their subjects on this box",
+        "notTeaching": "Not teaching a subject yet",
+        "notTeachingHelp": "Subjects this teacher creates or is added to as a teacher show here.",
     },
     "users": {
         "resetPassword": "Reset Password",
@@ -472,7 +484,7 @@ export default {
         "loadListFailed": "Failed to load users list",
         "statusFailed": "Failed to update status",
         "reactivated": "User {name} reactivated successfully",
-        "coursesWithoutTeacher": "These courses have no teacher now: {courses}. Give them one under Courses (Change teacher).",
+        "coursesWithoutTeacher": "These subjects have no teacher now: {courses}. Give them one under Subjects (Change teacher).",
         "deactivated": "User {name} deactivated successfully",
         "deleteFailed": "Failed to delete user",
         "deleted": "User permanently deleted",
@@ -501,7 +513,7 @@ export default {
         "clearSearch": "Clear search",
         "filterRole": "Filter by role",
         "allRoles": "All Roles",
-        "roleScholar": "Scholar (Student)",
+        "roleScholar": "Learner",
         "roleTeacherMe": "Teacher / M&E",
         "roleTeacherMeOfficer": "Teacher / M&E Officer",
         "roleAdmin": "Administrator",
@@ -577,7 +589,17 @@ export default {
         "hidePassword": "Hide password",
         "showPassword": "Show password",
         "saving": "Saving…",
-        "update": "Update User"
+        "update": "Update User",
+        "classes": "Classes they teach",
+        "classesHint": "The school's own names, e.g. P1, S1B, S3C. Press Enter after each.",
+        "classesPlaceholder": "e.g. S1B",
+        "subjects": "Subject areas they teach",
+        "subjectsHint": "e.g. English, Mathematics, Physics. Press Enter after each.",
+        "subjectsPlaceholder": "e.g. English",
+        "remove": "Remove",
+        "staffCode": "Staff code",
+        "staffCodeHelp": "Give this code to the teacher. They can sign in with {code} instead of their email.",
+        "optionalParen": "(optional)",
     },
     "profile": {
         "inactiveAccount": "Inactive Account",

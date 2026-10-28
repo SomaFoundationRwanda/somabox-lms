@@ -6,7 +6,7 @@ import { useCourseSection } from "@/lib/useCourseSection";
 import { apiFetch } from "@/lib/api";
 import { queryKeys } from "@/lib/queryKeys";
 import { useParams } from "next/navigation";
-import { Target, Clock, Lock, CalendarClock, CloudOff, AlertTriangle } from "lucide-react";
+import { Target, Clock, Lock, CalendarClock, CloudOff, AlertTriangle, UsersRound } from "lucide-react";
 import DataContext from "@/context/DataContext";
 import {
   QUEUE_EVENT, clearNotice, clearPendingSubmission, getNotice, getPendingSubmission, isNetworkFailure, queueSubmission,
@@ -22,6 +22,9 @@ import { fmtPoints, pctOf } from "@/lib/rubric";
 import PrevNextNav from "@/components/course/navigation/PrevNextNav";
 import { useCourseText } from "@/components/course/useCourseText";
 import { useItemOpened } from "@/lib/usage";
+import { useDraftText } from "@/lib/drafts";
+import { celebrateWork } from "@/lib/learnerCelebrations";
+import { useLanguage } from "@/context/LanguageContext";
 import Loader from "@/components/ui/Loader";
 import { Label, Select, Textarea } from "@/components/form";
 
@@ -30,6 +33,7 @@ export default function AssignmentDetailPage() {
   useItemOpened("assignment", assignmentId, courseId);
   const { userEmail, isTeacher, readOnly, canTakePart } = useCourse();
   const { t, tf, weekLabel, fmtDay, fmtDate, fmtDateTime } = useCourseText();
+  const { t: tShell } = useLanguage();
   const formatDate = (d) => fmtDay(d);
   const queryClient = useQueryClient();
   const assignmentKey = queryKeys.courseSection(courseId, `assignments/${assignmentId}`);
@@ -56,11 +60,18 @@ export default function AssignmentDetailPage() {
   const rubric = rubricQuery.data ?? null;
   const setRubric = (next) => queryClient.setQueryData(rubricKey, next);
   const loading = assignmentQuery.isPending || modulesQuery.loading;
-  const [submissionBody, setSubmissionBody] = useState("");
+  // The learner's answer is kept on this device while they type: a refresh doesn't lose it.
+  const [submissionBody, setSubmissionBody, clearSubmissionDraft, submissionRestored] = useDraftText(
+    !isTeacher && courseId && assignmentId ? `submission:${courseId}:${assignmentId}` : null,
+  );
   // Teachers can grade a learner who has no submission (e.g. oral work).
   const { data: peopleData } = useCourseSection(isTeacher ? "people" : null);
   const people = Array.isArray(peopleData) ? peopleData : [];
   const [extraLearner, setExtraLearner] = useState("");
+  // Teachers can look at one group's submissions at a time.
+  const { data: groupData } = useCourseSection(isTeacher ? "groups" : null);
+  const courseGroups = Array.isArray(groupData?.groups) ? groupData.groups : [];
+  const [groupFilter, setGroupFilter] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [submitResult, setSubmitResult] = useState(null);
@@ -104,6 +115,13 @@ export default function AssignmentDetailPage() {
     return () => window.removeEventListener(QUEUE_EVENT, onQueue);
   }, [learnerId, courseId, assignmentId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // "#submissions" (from Grades or the Assignments list): scroll there once the section exists.
+  const loaded = !!assignmentQuery.data && !modulesQuery.loading;
+  useEffect(() => {
+    if (!loaded || !isTeacher || window.location.hash !== "#submissions") return;
+    document.getElementById("submissions")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [loaded, isTeacher]);
+
   const dismissQueueNotice = () => {
     clearNotice({ userId: learnerId, courseId, assignmentId });
     setQueueNotice(null);
@@ -115,7 +133,7 @@ export default function AssignmentDetailPage() {
     const ids = { userId: learnerId, courseId, assignmentId };
     if (!queueSubmission({ ...ids, body: submissionBody })) return false;
     setPendingSubmission(getPendingSubmission(ids));
-    setSubmissionBody("");
+    clearSubmissionDraft();
     return true;
   };
 
@@ -142,7 +160,9 @@ export default function AssignmentDetailPage() {
         setSubmitError(payload.message || fallback || t("assignment.submitFailed"));
       } else {
         setSubmitResult(payload);
-        setSubmissionBody("");
+        clearSubmissionDraft();
+        // Well done (or a milestone), and what's next.
+        if (learnerId) celebrateWork({ t: tShell, userId: learnerId, title: assignment?.title || "", assignmentId });
         showToast(payload.late ? t("assignment.submittedLate") : t("assignment.submitted"), payload.late ? "warning" : "success");
       }
       workChanged();
@@ -170,11 +190,16 @@ export default function AssignmentDetailPage() {
       : assignment.due_at
         ? tf("common.dueOn", { date: fmtDate(assignment.due_at) })
         : t("common.noDueDate");
-  const submissions = Array.isArray(assignment.submissions) ? assignment.submissions : [];
+  const allSubmissions = Array.isArray(assignment.submissions) ? assignment.submissions : [];
+  const shownGroup = courseGroups.find((g) => String(g.id) === groupFilter) || null;
+  const inShownGroup = (email) => !shownGroup || shownGroup.members.some((m) => String(m.email).toLowerCase() === String(email).toLowerCase());
+  const submissions = allSubmissions.filter((x) => inShownGroup(x.scholar_email));
+  const learnerHref = (email) => `/course/${courseId}/assignments/${assignmentId}/submissions/${encodeURIComponent(email)}${shownGroup ? `?group=${shownGroup.id}` : ""}`;
+  const groupNames = (assignment.groups || []).map((g) => g.name).join(", ");
   const rubricSignature = rubric ? `${rubric.id}:${(rubric.criteria || []).map((c) => c.id).join(",")}` : "none";
-  const submittedEmails = new Set(submissions.map((x) => String(x.scholar_email).toLowerCase()));
+  const submittedEmails = new Set(allSubmissions.map((x) => String(x.scholar_email).toLowerCase()));
   // Learners made by their teacher have no shown email: `account` names them for grading.
-  const learnersWithout = people.filter((p) => p.role === "student" && p.status === "active" && p.account && !submittedEmails.has(String(p.account).toLowerCase()));
+  const learnersWithout = people.filter((p) => p.role === "student" && p.status === "active" && p.account && !submittedEmails.has(String(p.account).toLowerCase()) && inShownGroup(p.account));
   const extraPerson = extraLearner ? learnersWithout.find((p) => p.account === extraLearner) : null;
   const extraRow = extraPerson ? { scholar_email: extraPerson.account, fullName: extraPerson.fullName, grade: null, feedback: "", rubricScores: [] } : null;
   const mine = assignment.mySubmission || null;
@@ -197,6 +222,17 @@ export default function AssignmentDetailPage() {
               <span className="text-caption font-semibold text-fg-subtle flex items-center gap-1">
                 <Clock className="w-3.5 h-3.5 text-fg-subtle" /> {dueText}
               </span>
+              {isTeacher ? (
+                <a href="#submissions" className="text-caption font-bold text-brand-fg border border-brand/40 hover:bg-brand-soft px-2.5 py-1 rounded-full">
+                  {t("submission.gradeLink")} · {tf("submission.handedIn", { n: allSubmissions.filter((x) => x.submitted_at).length })}
+                </a>
+              ) : null}
+              {isTeacher || groupNames ? (
+                <span className="text-caption font-bold text-info-fg bg-info-soft px-2.5 py-1 rounded-full flex items-center gap-1">
+                  <UsersRound className="w-3.5 h-3.5" aria-hidden="true" />
+                  {!groupNames ? t("groups.wholeClass") : isTeacher ? tf("groups.forGroups", { groups: groupNames }) : tf("groups.yourGroups", { groups: groupNames })}
+                </span>
+              ) : null}
             </>
           }
           actions={isTeacher ? <ItemStatusActions type="assignment" contentId={assignment.id} published={Boolean(assignment.published)} title={assignment.title} /> : null}
@@ -239,9 +275,15 @@ export default function AssignmentDetailPage() {
                 />
 
                 <Section
+                  id="submissions"
                   divided
                   title={t("assignment.submissions")}
-                  description={rubric ? t("assignment.submissionsRubricHelp") : t("assignment.submissionsHelp")}
+                  actions={courseGroups.length ? (
+                    <Select size="sm" aria-label={t("submission.show")} value={groupFilter} onChange={(e) => setGroupFilter(e.target.value)} className="w-48">
+                      <option value="">{t("submission.everyone")}</option>
+                      {courseGroups.map((g) => <option key={g.id} value={g.id}>{tf("groups.groupBadge", { name: g.name })}</option>)}
+                    </Select>
+                  ) : null}
                 >
                   {submissions.length === 0 && !extraRow ? (
                     <EmptyState compact title={t("assignment.noSubmissions")} />
@@ -268,6 +310,8 @@ export default function AssignmentDetailPage() {
                           rubric={rubric}
                           pointsPossible={assignment.points_possible}
                           onSaved={gradesChanged}
+                          openHref={learnerHref(s.scholar_email)}
+                          openLabel={tf("submission.title", { name: s.fullName || s.scholar_email })}
                         />
                       ))}
                     </List>
@@ -312,12 +356,29 @@ export default function AssignmentDetailPage() {
                       {!deadlines.releaseDate && !deadlines.dueDate && !deadlines.closeDate ? <div>{t("assignment.noDeadlines")}</div> : null}
                     </dl>
 
+                    {/* Group work: one submission counts for the whole group. */}
+                    {assignment.myGroup ? (
+                      <p className="text-caption font-semibold text-info-fg bg-info-soft border border-info/30 rounded-lg px-3 py-2 flex items-start gap-1.5">
+                        <UsersRound className="w-3.5 h-3.5 mt-px shrink-0" aria-hidden="true" />
+                        <span>{tf("groupWork.learnerNote", { group: assignment.myGroup.name, members: assignment.myGroup.members.join(", ") })}</span>
+                      </p>
+                    ) : null}
+
                     {mine ? (
                       <div className="border-l-4 border-brand pl-3 py-1 space-y-1">
                         <p className="text-caption font-semibold text-fg-muted flex flex-wrap items-center gap-2">
                           {mine.submitted_at ? tf("assignment.submittedAt", { date: fmtDateTime(mine.submitted_at) }) : t("assignment.gradedWithout")}
                           {mine.is_late ? <LateBadge /> : null}
                         </p>
+                        {mine.groupName && mine.submittedByName ? (
+                          <p className="text-caption text-fg-muted">{tf("groupWork.handedInBy", { name: mine.submittedByName, group: mine.groupName })}</p>
+                        ) : null}
+                        {mine.body ? (
+                          <div>
+                            <p className="text-caption font-semibold text-fg-subtle">{mine.groupName ? t("groupWork.groupAnswer") : t("assignment.yourAnswer")}</p>
+                            <p className="text-ui text-fg whitespace-pre-wrap">{mine.body}</p>
+                          </div>
+                        ) : null}
                         {mine.grade != null ? (
                           <p className="text-ui font-bold text-fg">
                             {tf("assignment.grade", { grade: fmtPoints(mine.grade), total: fmtPoints(assignment.points_possible) })}
@@ -352,6 +413,7 @@ export default function AssignmentDetailPage() {
                           <p className="text-caption font-semibold text-warning-fg">{t("assignment.latePossible")}</p>
                         ) : null}
                         <Textarea value={submissionBody} onChange={(e) => setSubmissionBody(e.target.value)} rows={6} placeholder={t("assignment.responsePlaceholder")} aria-label={t("assignment.responseLabel")} className="w-full" />
+                        {submissionRestored ? <p role="status" className="text-caption text-info-fg">{tShell("shell.draft.restored")}</p> : null}
                       </>
                     )}
 

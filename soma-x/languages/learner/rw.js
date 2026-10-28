@@ -119,7 +119,8 @@ export default {
         "mandatory": "Ibisabwa (intambwe ya 1 kuri 3)",
         "continue": "Komeza",
         "saving": "Umwirondoro urabikwa…",
-        "finish": "Soza utangire"
+        "finish": "Soza utangire",
+        "later": "Nyuma",
     },
     "practice": {
         "label": "Imyitozo — ntibibarwa mu manota y'intego",
@@ -290,5 +291,21 @@ export default {
         "joinCourse": "Injira mu isomo",
         "join": "Injira",
         "empty": "Ntabwo uriyandikisha mu isomo na rimwe. Saba umwarimu wawe kode y'isomo."
-    }
+    },
+    "celebrate": {
+        "submittedTitle": "Byiza cyane! Byatanzwe.",
+        "submittedNext": "\"{title}\" iri ku mwarimu wawe. Komeza ku ikurikira.",
+        "submittedDone": "\"{title}\" iri ku mwarimu wawe. Nta kindi gisigaye!",
+        "firstTitle": "Umurimo wawe wa mbere!",
+        "firstMessage": "Watangiye: buri murimo utanga werekana umwarimu wawe uko utera imbere.",
+        "milestoneTitle": "Imirimo {n} yatanzwe!",
+        "milestoneMessage": "Intambwe ikomeye! Imbaraga zawe ziriyongera: komereza aho.",
+        "next": "Ikurikira: {title}",
+        "start": "Tangira ubu",
+        "dashboard": "Urubuga rwanjye",
+        "welcome": "Murakaza neza nanone!",
+        "welcomeNamed": "Murakaza neza nanone, {name}!",
+        "welcomeNext": "Urakoze kugaruka. Igikurikira: \"{title}\".",
+        "welcomeDone": "Urakoze kugaruka. Nta kindi gisigaye: byiza cyane!",
+    },
 };

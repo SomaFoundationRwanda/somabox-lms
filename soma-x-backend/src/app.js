@@ -128,16 +128,27 @@ export function createApp({ logRequests = true } = {}) {
     // a bearer token, so they carry the signed media cookie set at sign-in (helpers/media.js).
     // Covers stay public so guests can browse the catalogue before signing up.
     const media = requireMediaAccess();
-    app.use('/khan-academy', media, express.static(config.paths.static.khan));
-    app.use('/w3schools', media, express.static(config.paths.static.w3schools));
-    app.use('/wikipedia', media, express.static(config.paths.static.wikipedia));
-    app.use('/lessons', media, express.static(config.paths.lessons));
-    app.use('/course-files', requireMediaAccess({ courseFiles: true }), express.static(config.paths.courseFiles));
-    app.use('/library-book-covers', express.static(config.paths.libraryCovers));
-    app.use('/course-covers', express.static(config.paths.courseCovers));
-    app.use('/pdf-book-covers', express.static(config.paths.pdfCovers));
+    // Browsers keep files so pages open fast on the box's Wi-Fi: offline content and lessons
+    // don't change (a week), uploaded files and covers rarely do (a day, then checked by ETag),
+    // the school's logo can be replaced (an hour). Signed-in-only files are "private": kept by
+    // the browser, never by a shared proxy.
+    const keep = (maxAge, isPrivate = false) => ({
+        maxAge,
+        etag: true,
+        setHeaders: isPrivate ? (res) => res.setHeader('Cache-Control', `private, max-age=${Math.round(maxAge / 1000)}`) : undefined,
+    });
+    const WEEK = 7 * 24 * 60 * 60 * 1000;
+    const DAY = 24 * 60 * 60 * 1000;
+    app.use('/khan-academy', media, express.static(config.paths.static.khan, keep(WEEK, true)));
+    app.use('/w3schools', media, express.static(config.paths.static.w3schools, keep(WEEK, true)));
+    app.use('/wikipedia', media, express.static(config.paths.static.wikipedia, keep(WEEK, true)));
+    app.use('/lessons', media, express.static(config.paths.lessons, keep(WEEK, true)));
+    app.use('/course-files', requireMediaAccess({ courseFiles: true }), express.static(config.paths.courseFiles, keep(DAY, true)));
+    app.use('/library-book-covers', express.static(config.paths.libraryCovers, keep(DAY)));
+    app.use('/course-covers', express.static(config.paths.courseCovers, keep(DAY)));
+    app.use('/pdf-book-covers', express.static(config.paths.pdfCovers, keep(DAY)));
     // The school's logo (public: shown on the login page).
-    app.use('/branding', express.static(path.join(config.paths.content, 'branding'), { fallthrough: false }));
+    app.use('/branding', express.static(path.join(config.paths.content, 'branding'), { ...keep(60 * 60 * 1000), fallthrough: false }));
 
     // Every API route below requires a session unless listed in PUBLIC_ROUTES.
     app.use(requireAuthUnlessPublic);

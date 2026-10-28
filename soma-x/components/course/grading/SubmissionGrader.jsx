@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, ChevronRight, Clock, Sparkles } from "lucide-react";
+import Link from "next/link";
+import { ChevronDown, ChevronRight, Clock, ExternalLink, Sparkles } from "lucide-react";
 import { useToast } from "@/context/ToastContext";
 import { rubricGradePreview, fmtPoints, pctOf } from "@/lib/rubric";
 import useAiStatus from "@/lib/useAiStatus";
@@ -11,6 +12,8 @@ import { AiDraftLabel, JobProgress } from "@/components/ai/AiBits";
 import { trackEvent } from "@/lib/usage";
 import { useProgressText, fmtDateTime } from "@/components/progress/text";
 import { Fieldset, Label, TextInput, Textarea } from "@/components/form";
+import { useCourseText } from "@/components/course/useCourseText";
+import { useDraftText } from "@/lib/drafts";
 
 // Gradings that take longer than this were left open, not worked on: don't report them.
 const MAX_GRADING_MS = 2 * 60 * 60 * 1000;
@@ -35,16 +38,19 @@ const initialScores = (rubric, submission) => {
 
 // One learner's row in the teacher's submissions list. Collapsed: name, date, late badge,
 // grade. Expanded: the submission body plus rubric scoring (or a plain total without one).
-export default function SubmissionGrader({ courseId, assignmentId, submission, rubric, pointsPossible, onSaved, defaultOpen = false }) {
+// openHref: this learner's own submission page (an "Open" link beside the row).
+export default function SubmissionGrader({ courseId, assignmentId, submission, rubric, pointsPossible, onSaved, defaultOpen = false, openHref, openLabel }) {
   // Still passed to the AI helpers (lib/ai.js).
   const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL;
   const { showToast } = useToast();
   const { tp, locale } = useProgressText();
+  const { tf } = useCourseText();
   const s = submission;
   const [open, setOpen] = useState(defaultOpen);
   const [scores, setScores] = useState(() => initialScores(rubric, s));
   const [grade, setGrade] = useState(s.grade ?? "");
-  const [feedback, setFeedback] = useState(s.feedback ?? "");
+  // Feedback being written is kept on this device until it's saved (it can be long).
+  const [feedback, setFeedback, clearFeedbackDraft] = useDraftText(`feedback:${assignmentId}:${String(s.scholar_email).toLowerCase()}`, s.feedback ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -191,6 +197,7 @@ export default function SubmissionGrader({ courseId, assignmentId, submission, r
           || criteria.some((c) => String(a.scores?.[c.id] ?? "") !== String(scores[c.id] ?? ""));
         trackEvent("ai_suggestion_used", { edited }, courseId);
       }
+      clearFeedbackDraft({ keep: true });
       onSaved?.();
     } catch (err) {
       setError(err.message || tp("grader.saveFailed"));
@@ -201,18 +208,24 @@ export default function SubmissionGrader({ courseId, assignmentId, submission, r
 
   return (
     <li className="text-ui">
+      <div className="flex items-stretch">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-controls={panelId}
-        className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-surface-hover"
+        className="min-w-0 flex-1 flex items-center gap-3 px-3 py-2.5 text-left hover:bg-surface-hover"
       >
         {open ? <ChevronDown className="w-4 h-4 shrink-0 text-fg-subtle" /> : <ChevronRight className="w-4 h-4 shrink-0 text-fg-subtle" />}
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-semibold text-fg truncate">{s.fullName || s.scholar_email}</span>
             {s.is_late ? <LateBadge /> : null}
+            {s.groupName ? (
+              <span className="text-caption font-semibold text-info-fg bg-info-soft rounded-full px-2 py-0.5">
+                {tf("groupWork.badge", { group: s.groupName, name: s.submittedByName || "" })}
+              </span>
+            ) : null}
           </div>
           <p className="text-caption text-fg-subtle">
             {s.submitted_at ? tp("grader.submittedAt", { date: fmtDateTime(s.submitted_at, locale) }) : tp("grader.noSubmission")}
@@ -229,9 +242,16 @@ export default function SubmissionGrader({ courseId, assignmentId, submission, r
           )}
         </div>
       </button>
+      {openHref ? (
+        <Link href={openHref} aria-label={openLabel} title={openLabel} className="shrink-0 flex items-center px-3 text-fg-subtle hover:text-brand-fg hover:bg-surface-hover">
+          <ExternalLink className="w-4 h-4" aria-hidden="true" />
+        </Link>
+      ) : null}
+      </div>
 
       {open ? (
         <div id={panelId} className="px-3 pb-4 pt-1 space-y-4 sm:pl-10">
+          {s.groupName ? <p className="text-caption font-semibold text-info-fg">{tf("groupWork.gradeNote", { group: s.groupName })}</p> : null}
           {s.submitted_at ? (
             <p className="text-caption text-fg-muted font-mono whitespace-pre-wrap border-l-2 border-line pl-3">
               {s.body || tp("grader.noBody")}

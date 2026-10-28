@@ -14,13 +14,13 @@ async function loadCourse(courseId) {
   try {
     return await apiFetch(`/courses/${courseId}`);
   } catch (err) {
-    if (err?.code === "COURSE_NOT_OPEN") throw new Error("This course hasn't opened yet.");
+    if (err?.code === "COURSE_NOT_OPEN") throw new Error("This subject hasn't opened yet.");
     // Not a member: the page offers to join a public course, or says how to get in.
     const code = err?.body?.code;
-    if (code === "NOT_ENROLLED" || code === "REMOVED") {
-      throw Object.assign(new Error(err.body.message || "Not enrolled in this course"), { notEnrolled: code, publicCourse: err.body.course || null });
+    if (code === "NOT_ENROLLED" || code === "REMOVED" || code === "PENDING") {
+      throw Object.assign(new Error(err.body.message || "Not enrolled in this subject"), { notEnrolled: code, publicCourse: err.body.course || null });
     }
-    throw new Error(getErrorMessage(err) || "Failed to load course");
+    throw new Error(getErrorMessage(err) || "Failed to load subject");
   }
 }
 

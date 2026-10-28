@@ -9,7 +9,7 @@ const router = express.Router();
 
 async function requireInsights(req, res, courseId) {
   if (!await courseExists(courseId)) {
-    res.status(404).json({ message: "Course not found" });
+    res.status(404).json({ message: "Subject not found" });
     return false;
   }
   if (req.user?.role === "admin") return true;
@@ -41,7 +41,7 @@ router.get("/:id/insights/learners/:userId", async (req, res) => {
     if (!await requireInsights(req, res, courseId)) return;
     const insights = await courseInsights(courseId, { userId: Number(req.params.userId) });
     const learner = insights.learners[0];
-    if (!learner) return res.status(404).json({ message: "This person isn't a learner in this course" });
+    if (!learner) return res.status(404).json({ message: "This person isn't a learner in this subject" });
     return res.json({ course: insights.course, today: insights.today, thresholds: insights.thresholds, outcomes: insights.outcomes.map(outcomeInfo), learner });
   } catch (error) {
     console.error("Error computing learner insights:", error);
@@ -67,7 +67,7 @@ router.get("/:id/insights/quizzes/:quizId", async (req, res) => {
 router.get("/:id/my-progress", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     const auth = await requireEnrolled(req, res, courseId);
     if (!auth) return;
     if (isTeacherRole(auth.enrollment.role)) return res.status(400).json({ message: "My progress is for learners. Teachers can see everyone's progress in Insights." });

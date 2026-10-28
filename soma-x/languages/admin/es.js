@@ -31,19 +31,19 @@ export default {
         "analyticsSection": "Análisis de accesibilidad, inclusión y progreso",
         "adminReserved": "Solo administradores",
         "openAnalytics": "Abrir todo el análisis",
-        "coursesTitle": "Cursos",
-        "coursesDescription": "Todos los cursos de este equipo, con su docente y estudiantes",
+        "coursesTitle": "Asignaturas",
+        "coursesDescription": "Todas las asignaturas de este equipo, con su docente y estudiantes",
         "usersDescription": "Gestiona roles y credenciales"
     },
     "courses": {
-        "loadFailed": "No se pudieron cargar los cursos",
-        "emptyTitle": "Todavía no hay cursos",
-        "emptyText": "Los cursos aparecen aquí cuando un docente crea uno.",
+        "loadFailed": "No se pudieron cargar las asignaturas",
+        "emptyTitle": "Todavía no hay asignaturas",
+        "emptyText": "Las asignaturas aparecen aquí cuando un docente crea una.",
         "searchPlaceholder": "Buscar por título, código o docente",
-        "searchLabel": "Buscar cursos",
-        "caption": "Todos los cursos",
-        "noMatch": "Ningún curso coincide con tu búsqueda.",
-        "colCourse": "Curso",
+        "searchLabel": "Buscar asignaturas",
+        "caption": "Todas las asignaturas",
+        "noMatch": "Ninguna asignatura coincide con tu búsqueda.",
+        "colCourse": "Asignatura",
         "code": "Código {code}",
         "colTeacher": "Docente",
         "colStatus": "Estado",
@@ -53,14 +53,14 @@ export default {
         "changeTeacher": "Cambiar docente",
         "changeTeacherTitle": "Docente de {course}",
         "currentTeachers": "Lo imparte {teachers}.",
-        "noTeacherNow": "Ningún docente activo imparte este curso ahora.",
+        "noTeacherNow": "Ningún docente activo imparte esta asignatura ahora.",
         "newTeacher": "Nuevo docente",
         "chooseTeacher": "Elige un docente…",
-        "removeOthers": "Quitar a los docentes actuales de este curso",
+        "removeOthers": "Quitar a los docentes actuales de esta asignatura",
         "saveTeacher": "Guardar",
         "teacherChanged": "{course} tiene su nuevo docente",
         "changeTeacherFailed": "No se pudo cambiar el docente",
-        "adminViewNote": "Estás viendo este curso como administrador: puedes leerlo todo pero no cambiar nada.",
+        "adminViewNote": "Estás viendo esta asignatura como administrador: puedes leerlo todo pero no cambiar nada.",
         "adminViewLink": "Volver al portal de administración",
         "lifecycle": {
             "draft": "Borrador",
@@ -89,10 +89,10 @@ export default {
     },
     "ai": {
         "features": {
-            "fill_week": "Completar la semana",
+            "fill_week": "Completar la lección",
             "story": "Historia",
             "quiz": "Cuestionario",
-            "outline": "Esquema del curso",
+            "outline": "Esquema de la asignatura",
             "outcome_rewrite": "Reescritura de resultado",
             "rubric": "Rúbrica",
             "grading": "Sugerencia de calificación",
@@ -103,7 +103,7 @@ export default {
             "quiz": "Cuestionario",
             "assignment": "Tarea",
             "story": "Historia",
-            "outline": "Esquema del curso",
+            "outline": "Esquema de la asignatura",
             "outcome": "Resultado",
             "rubric": "Rúbrica",
             "grading": "Sugerencia de calificación"
@@ -115,7 +115,7 @@ export default {
         "userOff": "IA desactivada para {name}",
         "pickFromList": "Elige un docente o administrador de la lista.",
         "unknown": "Desconocido",
-        "description": "Docentes y administradores pueden usar la IA para preparar contenido, rúbricas y sugerencias de calificación. Todo lo que escribe es un borrador que un docente debe aprobar y luego publicar.",
+        "description": "Docentes y administradores pueden usar la IA para preparar contenido de asignaturas, rúbricas y sugerencias de calificación. Todo lo que escribe es un borrador que un docente debe aprobar y luego publicar.",
         "schoolSwitch": "Interruptor para toda la escuela",
         "isOn": "El asistente de IA está activado para esta escuela.",
         "isOff": "El asistente de IA está desactivado para toda la escuela.",
@@ -138,7 +138,7 @@ export default {
         "colTokens": "Tokens",
         "colAvg": "Segundos (media)",
         "draftsTitle": "Qué pasó con los borradores",
-        "draftsHelp": "Por tipo: añadido al curso tal cual, añadido tras editarlo un docente, rechazado o aún pendiente.",
+        "draftsHelp": "Por tipo: añadido a la asignatura tal cual, añadido tras editarlo un docente, rechazado o aún pendiente.",
         "draftsCaption": "Borradores de IA por resultado",
         "noDrafts": "Sin borradores en este periodo.",
         "colType": "Tipo",
@@ -151,13 +151,13 @@ export default {
         "events": {
             "explainer_opened": "Ayuda («¿Qué es esto?») abierta",
             "create_helper_used": "Asistente de creación usado",
-            "course_opened": "Curso abierto",
-            "item_opened": "Elemento abierto (página, tarea, cuestionario, debate)",
+            "course_opened": "Asignatura abierta",
+            "item_opened": "Material abierto (página, tarea, cuestionario, debate)",
             "insights_viewed": "Análisis consultados (docentes)",
             "progress_viewed": "«Mi progreso» consultado (estudiantes)",
             "grading_time": "Calificaciones cronometradas",
             "ai_suggestion_used": "Sugerencia de nota de IA guardada",
-            "item_edited_after_publish": "Elemento editado tras publicarse"
+            "item_edited_after_publish": "Material editado tras publicarse"
         },
         "seconds": "{s} s",
         "minSec": "{m} min {s} s",
@@ -178,16 +178,16 @@ export default {
         "totals": "Totales",
         "learners": "Estudiantes",
         "teachers": "Docentes",
-        "runningCourses": "Cursos en marcha",
+        "runningCourses": "Asignaturas en marcha",
         "stillDraft": "{count} aún en borrador",
         "withResults": "Estudiantes con resultados",
         "xOfY": "{x} de {y}",
-        "inRunning": "en cursos en marcha",
+        "inRunning": "en asignaturas en marcha",
         "active7": "Activos en los últimos 7 días",
         "learnersLower": "estudiantes",
-        "coursesHelp": "Cursos publicados y terminados. Elige un curso para abrir su análisis.",
-        "noRunning": "Aún no hay cursos en marcha.",
-        "noRunningHelp": "Los cursos aparecen aquí cuando se publican.",
+        "coursesHelp": "Asignaturas publicadas y terminadas. Elige una asignatura para abrir su análisis.",
+        "noRunning": "Aún no hay asignaturas en marcha.",
+        "noRunningHelp": "Las asignaturas aparecen aquí cuando se publican.",
         "colWithResults": "Con resultados",
         "colMastery": "Dominio medio",
         "colDelta": "Cambio vs. inicial",
@@ -204,7 +204,7 @@ export default {
         "fromTimed": "de {count} calificaciones cronometradas (de abrir el trabajo a guardar la nota)",
         "noTimed": "Aún no hay calificaciones cronometradas",
         "editsAfter": "Ediciones tras publicar",
-        "editsAfterHelp": "cambios en elementos que los estudiantes ya veían",
+        "editsAfterHelp": "cambios en materiales que los estudiantes ya veían",
         "productUse": "Uso",
         "productUseCaption": "Uso, últimos {days} días",
         "noUsage": "Sin uso registrado en este periodo.",
@@ -292,16 +292,16 @@ export default {
         },
         "scope": {
             "courses": {
-                "label": "Cursos y resultados",
-                "help": "Títulos, semanas, páginas, cuestionarios, tareas y los resultados que enseñan."
+                "label": "Asignaturas y lecciones",
+                "help": "Asignaturas, unidades, lecciones, cuestionarios y tareas con su tipo (prueba inicial, exámenes…), y los resultados que enseñan. Las páginas van sin su texto."
             },
             "enrollments": {
                 "label": "Inscripciones",
-                "help": "Quién está en cada curso, como docente o estudiante."
+                "help": "Quién está en cada asignatura, como docente o estudiante."
             },
             "grades": {
-                "label": "Notas y resultados de cuestionarios",
-                "help": "Notas de tareas y puntuaciones de cuestionarios."
+                "label": "Resultados",
+                "help": "Cada nota y puntuación: pruebas iniciales, cuestionarios, tareas y otros exámenes, y cómo progresa cada estudiante con el tiempo."
             },
             "outcomeResults": {
                 "label": "Resultados por objetivo",
@@ -312,8 +312,8 @@ export default {
                 "help": "Quién estuvo presente, llegó tarde, faltó o tuvo excusa en cada lista de clase."
             },
             "events": {
-                "label": "Eventos de uso",
-                "help": "Qué páginas y herramientas se abren, para ver qué ayuda. Sin trabajos escritos."
+                "label": "Actividad",
+                "help": "Cuándo cada estudiante y docente inicia sesión y está activo, qué asignaturas y lecciones abre, qué termina y sus respuestas en debates. Ningún trabajo escrito."
             }
         },
         "peopleOptions": {
@@ -378,7 +378,11 @@ export default {
         "scopeHelp": "Solo lo marcado aquí se envía a la nube. Todo lo demás se queda en este equipo.",
         "boxId": "ID del equipo (para soporte):",
         "sendsBy": "envía por {via}",
-        "webAddress": "dirección web"
+        "webAddress": "dirección web",
+        "alwaysSent": "Siempre se envía",
+        "alwaysSentHelp": "El registro de aprendizaje sobre el que informa el programa. No se puede desactivar, y lo registrado antes también se envía.",
+        "yourChoice": "Tu elección",
+        "filesStay": "Los archivos y videos nunca salen de esta caja.",
     },
     "library": {
         "uploadFailed": "Error al subir.",
@@ -442,7 +446,7 @@ export default {
         "provinceDistrict": "Provincia y distrito",
         "na": "N/D",
         "locationType": "Tipo de zona",
-        "rural": "Estudiante rural",
+        "rural": "Rural",
         "urban": "Urbano / semiurbano",
         "disability": "Situación de discapacidad",
         "none": "Ninguna",
@@ -455,9 +459,17 @@ export default {
         "pending": "Pendiente",
         "caughtUp": "¡Todo al día!",
         "noPending": "No hay repasos espaciados pendientes.",
-        "enrolled": "Cursos inscritos",
-        "notEnrolled": "No está inscrito en ningún curso",
-        "notEnrolledHelp": "Este estudiante aún no se ha unido a ningún curso activo."
+        "enrolled": "Asignaturas inscritas",
+        "notEnrolled": "No está inscrito en ninguna asignatura",
+        "notEnrolledHelp": "Este estudiante aún no se ha unido a ninguna asignatura activa.",
+        "work": "Escuela y docencia",
+        "classesTaught": "Clases que enseña",
+        "subjectsTaught": "Áreas de estudio que enseña",
+        "noneYet": "Ninguna todavía",
+        "annexClasses": "Clases adicionales",
+        "teaching": "Sus asignaturas en este equipo",
+        "notTeaching": "Aún no enseña ninguna asignatura",
+        "notTeachingHelp": "Aquí aparecen las asignaturas que este docente crea o en las que se le añade como docente.",
     },
     "users": {
         "resetPassword": "Restablecer contraseña",
@@ -472,7 +484,7 @@ export default {
         "loadListFailed": "No se pudo cargar la lista de usuarios",
         "statusFailed": "No se pudo cambiar el estado",
         "reactivated": "Usuario {name} reactivado",
-        "coursesWithoutTeacher": "Estos cursos ya no tienen docente: {courses}. Asígnales uno en Cursos (Cambiar docente).",
+        "coursesWithoutTeacher": "Estas asignaturas ya no tienen docente: {courses}. Asígnales uno en Asignaturas (Cambiar docente).",
         "deactivated": "Usuario {name} desactivado",
         "deleteFailed": "No se pudo eliminar el usuario",
         "deleted": "Usuario eliminado definitivamente",
@@ -577,7 +589,17 @@ export default {
         "hidePassword": "Ocultar contraseña",
         "showPassword": "Mostrar contraseña",
         "saving": "Guardando…",
-        "update": "Actualizar usuario"
+        "update": "Actualizar usuario",
+        "classes": "Clases que enseña",
+        "classesHint": "Los nombres de la escuela, p. ej. P1, S1B, S3C. Pulsa Intro después de cada uno.",
+        "classesPlaceholder": "p. ej. S1B",
+        "subjects": "Áreas de estudio que enseña",
+        "subjectsHint": "p. ej. Inglés, Matemáticas, Física. Pulsa Intro después de cada una.",
+        "subjectsPlaceholder": "p. ej. Inglés",
+        "remove": "Quitar",
+        "staffCode": "Código de personal",
+        "staffCodeHelp": "Da este código al docente. Puede iniciar sesión con {code} en lugar de su correo.",
+        "optionalParen": "(opcional)",
     },
     "profile": {
         "inactiveAccount": "Cuenta inactiva",
