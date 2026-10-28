@@ -73,6 +73,25 @@ pnpm setup:code
 Open `http://<device-ip>:3001` in a browser, enter the code, and create the admin
 (e.g. `admin@mail.com`).
 
+## 8. Device serial number
+
+So the server can tell each device apart (serial number, network cards). This only writes
+`/etc/somabox/device.json` at every boot; the LMS reads it when it syncs.
+
+```bash
+sudo apt install -y dmidecode          # reads the serial number
+cd ~/somabox/scripts/linux
+sudo install -m 0755 somabox-device-info.sh /usr/local/sbin/somabox-device-info.sh
+sudo install -m 0644 somabox-device-info.service /etc/systemd/system/somabox-device-info.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now somabox-device-info.service
+cat /etc/somabox/device.json           # check: "serial" should not be null
+cd ~/somabox
+pnpm exec pm2 restart soma-x-backend
+```
+
+The admin **Sync** page then shows "This box" with the serial number and MAC addresses.
+
 ## Updating later
 
 ```bash
