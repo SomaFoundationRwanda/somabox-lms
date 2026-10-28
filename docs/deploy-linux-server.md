@@ -9,6 +9,24 @@ What runs: the **backend** (Express, port 3000), the **frontend** (Next.js, port
 nightly **backup** job, all kept alive by pm2. The backend creates and updates the database
 tables itself on every start (migrations).
 
+## Quick way: one script
+
+On a box whose PostgreSQL database already exists (empty):
+
+```bash
+git clone https://github.com/SomaFoundationRwanda/somabox-lms.git
+cd somabox-lms
+git checkout dev
+# copy your working .env into this folder, then:
+bash scripts/linux/setup-box.sh
+```
+
+It installs pnpm if needed, adds `PUBLIC_BACKEND_URL` with the box's address if `.env` lacks it,
+creates the tables, builds, starts everything with pm2 (also after a reboot), and prints the
+one-time setup code. The box starts empty; nothing comes from another machine. It stops if the
+database already has users (`--existing-db` to update such a box). Give each box its own
+`SYNC_TOKEN`. The steps below do the same by hand.
+
 ## 1. Check what's installed
 
 ```bash
