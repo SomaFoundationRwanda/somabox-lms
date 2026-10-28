@@ -69,6 +69,14 @@ const GROUPS = {
 if (target === "build") {
   // The backend address is built into the frontend (soma-x/next.config.mjs reads the .env).
   console.log(`Building the frontend to call ${serverUrl}`);
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)[:/]/.test(serverUrl)) {
+    // "localhost" in a browser means the browser's own machine: other devices would reach their
+    // own backend (or none), not this box's.
+    console.warn(
+      `\nWARNING: browsers will call ${serverUrl}, which only works when the browser runs on this same machine.\n` +
+        `For a box used from other devices, set PUBLIC_BACKEND_URL=http://<this-box-ip>:${ports.BACKEND_PORT} in .env and build again.\n`,
+    );
+  }
   const child = spawn("pnpm --filter soma-x run build", { cwd: ROOT, stdio: "inherit", shell: true });
   child.on("exit", (code) => process.exit(code ?? 1));
 } else if (target === "check") {

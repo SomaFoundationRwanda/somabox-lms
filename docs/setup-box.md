@@ -25,8 +25,10 @@ nano .env
 
 - `SYNC_TOKEN`: this device's token from the server
 - `PGPASSWORD`: this device's `postgres` password
-- add `PUBLIC_BACKEND_URL=http://<device-ip>:3000` (find the IP with `hostname -I`), so other
-  devices can reach it
+- add `PUBLIC_BACKEND_URL=http://<device-ip>:3000` (find the IP with `hostname -I`). **Required,
+  and before step 5:** it is built into the website. Without it the website calls `localhost`,
+  which is whichever computer opens the browser: on your own computer that is your local SOMABOX,
+  with all its users.
 
 ## 3. Install
 
@@ -89,4 +91,5 @@ pnpm exec pm2 restart soma-x-backend soma-x-frontend --update-env
 | `password authentication failed` | `PGUSER`/`PGPASSWORD` in `.env` are wrong |
 | `database "somabox_lms" does not exist` | `sudo -u postgres createdb somabox_lms` |
 | Site opens but says the server can't be reached | `PUBLIC_BACKEND_URL` is wrong: fix it, `pnpm build`, restart |
+| Login page instead of setup, or users from another computer | `PUBLIC_BACKEND_URL` is missing or `localhost`: set the device's IP, `pnpm build`, `pnpm exec pm2 restart soma-x-frontend` |
 | Anything else | `pnpm exec pm2 logs soma-x-backend --lines 50` |
