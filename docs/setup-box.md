@@ -6,8 +6,10 @@ database. Everything runs as your normal user.
 ## 1. Clone and bring main up to date
 
 ```bash
-git clone https://github.com/SomaFoundationRwanda/somabox-lms.git somabox
-cd somabox
+sudo mkdir -p /var/www/somabox
+sudo chown "$USER": /var/www/somabox
+git clone https://github.com/SomaFoundationRwanda/somabox-lms.git /var/www/somabox
+cd /var/www/somabox
 git fetch --all
 git checkout main
 git merge origin/dev
@@ -80,13 +82,13 @@ So the server can tell each device apart (serial number, network cards). This on
 
 ```bash
 sudo apt install -y dmidecode          # reads the serial number
-cd ~/somabox/scripts/linux
+cd /var/www/somabox/scripts/linux
 sudo install -m 0755 somabox-device-info.sh /usr/local/sbin/somabox-device-info.sh
 sudo install -m 0644 somabox-device-info.service /etc/systemd/system/somabox-device-info.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now somabox-device-info.service
 cat /etc/somabox/device.json           # check: "serialNumber" should not be null
-cd ~/somabox
+cd /var/www/somabox
 pnpm exec pm2 restart soma-x-backend
 ```
 
@@ -95,7 +97,7 @@ The admin **Sync** page then shows "This box" with the serial number and MAC add
 ## Updating later
 
 ```bash
-cd somabox
+cd /var/www/somabox
 git fetch --all
 git merge origin/dev
 pnpm install --frozen-lockfile
