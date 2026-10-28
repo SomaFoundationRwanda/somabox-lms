@@ -22,6 +22,18 @@ import calendarServices from './services/calendar.services.js';
 import syncServices from './services/sync.services.js';
 import bundleServices from './services/bundles.services.js';
 import schoolServices from './services/school.services.js';
+import setupServices from './services/setup.services.js';
+import liveServices from './services/live.services.js';
+import { publish } from './helpers/live.js';
+
+const WRITES = ['POST', 'PUT', 'PATCH', 'DELETE'];
+const BOX_CHANGES = [
+    { kind: 'school', methods: WRITES, path: /^\/school(\/|$)/ },
+    { kind: 'school', methods: ['POST'], path: /^\/analytics\/branding$/ },
+    { kind: 'catalogue', methods: ['POST', 'DELETE'], path: /^\/library\/(upload|book\/)/ },
+    { kind: 'catalogue', methods: WRITES, path: /^\/content\/manager\// },
+    { kind: 'catalogue', methods: ['PATCH', 'DELETE'], path: /^\/content\/summary$/ },
+];
 
 // API routers in mount order. Exported so tests can enumerate every route.
 export const API_ROUTERS = [
@@ -39,6 +51,8 @@ export const API_ROUTERS = [
     ['/sync', syncServices],
     ['/bundles', bundleServices],
     ['/school', schoolServices],
+    ['/setup', setupServices],
+    ['/live', liveServices],
 ];
 
 export function createApp({ logRequests = true } = {}) {
@@ -114,19 +128,38 @@ export function createApp({ logRequests = true } = {}) {
     // a bearer token, so they carry the signed media cookie set at sign-in (helpers/media.js).
     // Covers stay public so guests can browse the catalogue before signing up.
     const media = requireMediaAccess();
-    app.use('/khan-academy', media, express.static(config.paths.static.khan));
-    app.use('/w3schools', media, express.static(config.paths.static.w3schools));
-    app.use('/wikipedia', media, express.static(config.paths.static.wikipedia));
-    app.use('/lessons', media, express.static(config.paths.lessons));
-    app.use('/course-files', requireMediaAccess({ courseFiles: true }), express.static(config.paths.courseFiles));
-    app.use('/library-book-covers', express.static(config.paths.libraryCovers));
-    app.use('/course-covers', express.static(config.paths.courseCovers));
-    app.use('/pdf-book-covers', express.static(config.paths.pdfCovers));
+    // Browsers keep files so pages open fast on the box's Wi-Fi: offline content and lessons
+    // don't change (a week), uploaded files and covers rarely do (a day, then checked by ETag),
+    // the school's logo can be replaced (an hour). Signed-in-only files are "private": kept by
+    // the browser, never by a shared proxy.
+    const keep = (maxAge, isPrivate = false) => ({
+        maxAge,
+        etag: true,
+        setHeaders: isPrivate ? (res) => res.setHeader('Cache-Control', `private, max-age=${Math.round(maxAge / 1000)}`) : undefined,
+    });
+    const WEEK = 7 * 24 * 60 * 60 * 1000;
+    const DAY = 24 * 60 * 60 * 1000;
+    app.use('/khan-academy', media, express.static(config.paths.static.khan, keep(WEEK, true)));
+    app.use('/w3schools', media, express.static(config.paths.static.w3schools, keep(WEEK, true)));
+    app.use('/wikipedia', media, express.static(config.paths.static.wikipedia, keep(WEEK, true)));
+    app.use('/lessons', media, express.static(config.paths.lessons, keep(WEEK, true)));
+    app.use('/course-files', requireMediaAccess({ courseFiles: true }), express.static(config.paths.courseFiles, keep(DAY, true)));
+    app.use('/library-book-covers', express.static(config.paths.libraryCovers, keep(DAY)));
+    app.use('/course-covers', express.static(config.paths.courseCovers, keep(DAY)));
+    app.use('/pdf-book-covers', express.static(config.paths.pdfCovers, keep(DAY)));
     // The school's logo (public: shown on the login page).
-    app.use('/branding', express.static(path.join(config.paths.content, 'branding'), { fallthrough: false }));
+    app.use('/branding', express.static(path.join(config.paths.content, 'branding'), { ...keep(60 * 60 * 1000), fallthrough: false }));
 
     // Every API route below requires a session unless listed in PUBLIC_ROUTES.
     app.use(requireAuthUnlessPublic);
+
+    // Changes everyone sees (the school's look, books, Explore content): open browsers are told
+    // once the change succeeds (helpers/live.js). Course changes are announced by the course guards.
+    app.use((req, res, next) => {
+        const kind = BOX_CHANGES.find((c) => c.methods.includes(req.method) && c.path.test(req.path))?.kind;
+        if (kind) res.on('finish', () => { if (res.statusCode >= 200 && res.statusCode < 300) publish({ kind }, { everyone: true }); });
+        next();
+    });
 
     for (const [prefix, router] of API_ROUTERS) app.use(prefix, router);
 

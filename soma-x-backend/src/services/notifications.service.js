@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { localDb, serverDb } from '../helpers/db-manager.js';
 import { requireRole } from '../helpers/auth.js';
+import { profileComplete } from './users.service.js';
+import { publish } from '../helpers/live.js';
 
 const router = Router();
 const requireAdmin = requireRole('admin');
@@ -13,17 +15,20 @@ function safeInternalLink(link) {
 }
 
 /**
- * Helper utility to create a system notification
+ * Helper utility to create a system notification. `key` and `params`: the text's key under
+ * shell.notifications.kinds (with {placeholders} filled from params), shown in the reader's
+ * language; title and message are the English, kept as the fallback.
  */
-export async function createNotification({ userEmail, title, message, type = 'system', link = null }) {
+export async function createNotification({ userEmail, title, message, type = 'system', link = null, key = null, params = null }) {
     if (!userEmail) return null;
     const normalizedEmail = userEmail.trim().toLowerCase();
     try {
         const stmt = localDb.prepare(`
-            INSERT INTO user_notifications (user_email, title, message, type, link)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO user_notifications (user_email, title, message, type, link, text_key, text_params)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         `);
-        const info = await stmt.run(normalizedEmail, title, message, type, link);
+        const info = await stmt.run(normalizedEmail, title, message, type, link, key, params ? JSON.stringify(params) : null);
+        publish({ kind: 'notifications' }, { emails: [normalizedEmail] });
         return info.lastInsertRowid;
     } catch (err) {
         console.error("Failed to create notification:", err);
@@ -39,42 +44,28 @@ router.get('/', async (req, res) => {
     const userEmail = req.user.email;
 
     try {
-        // 1. Check if user's profile is incomplete in serverDb
-        const user = await serverDb.prepare(`
-            SELECT gender, region_province, region_district, is_rural
-            FROM users WHERE LOWER(email) = LOWER(?)
-        `).get(userEmail);
-
-        let isProfileIncomplete = false;
-        if (user) {
-            const hasGender = user.gender && user.gender !== 'prefer_not_to_say';
-            const hasProvince = !!(user.region_province && user.region_province.trim());
-            const hasDistrict = !!(user.region_district && user.region_district.trim());
-            
-            if (!hasGender || !hasProvince || !hasDistrict) {
-                isProfileIncomplete = true;
-
-                // Check if an unread profile_reminder already exists
-                const existingReminder = await localDb.prepare(`
-                    SELECT id FROM user_notifications
-                    WHERE LOWER(user_email) = LOWER(?) AND type = 'profile_reminder' AND is_read = 0
-                `).get(userEmail);
-
-                if (!existingReminder) {
-                    await createNotification({
-                        userEmail,
-                        title: "Complete Your Profile",
-                        message: "Please fill in your gender, province, and district information to complete your SomaBox profile.",
-                        type: "profile_reminder",
-                        link: "/account",
-                    });
-                }
+        // 1. A reminder while their first-visit profile isn't finished (the same rule as the profile form).
+        const user = await serverDb.prepare('SELECT role, gender, profile_completed_at FROM users WHERE LOWER(email) = LOWER(?)').get(userEmail);
+        const isProfileIncomplete = !!user && !profileComplete(user);
+        if (isProfileIncomplete) {
+            const existingReminder = await localDb.prepare(`
+                SELECT id FROM user_notifications
+                WHERE LOWER(user_email) = LOWER(?) AND type = 'profile_reminder' AND is_read = 0
+            `).get(userEmail);
+            if (!existingReminder) {
+                await createNotification({
+                    userEmail,
+                    title: "Finish your profile",
+                    message: "Answer the few questions about you (gender and accessibility needs) to finish your SOMABOX profile.",
+                    type: "profile_reminder",
+                    link: user.role === 'teacher' ? "/teacher/settings" : "/account",
+                });
             }
         }
 
         // 2. Fetch all notifications for user
         const notifications = await localDb.prepare(`
-            SELECT id, user_email, title, message, type, link, is_read, created_at
+            SELECT id, user_email, title, message, type, link, is_read, created_at, text_key, text_params
             FROM user_notifications
             WHERE LOWER(user_email) = LOWER(?)
             ORDER BY created_at DESC
@@ -146,6 +137,20 @@ router.post('/read-all', async (req, res) => {
 });
 
 /**
+ * DELETE /notifications/:id
+ * Dismisses one of the user's own notifications for good (the bell's Dismiss button)
+ */
+router.delete('/:id', async (req, res) => {
+    try {
+        await localDb.prepare(`DELETE FROM user_notifications WHERE id = ? AND LOWER(user_email) = LOWER(?)`).run(req.params.id, req.user.email);
+        res.json({ message: "Notification dismissed" });
+    } catch (err) {
+        console.error("DELETE /notifications/:id error:", err);
+        res.status(500).json({ message: "Failed to dismiss notification" });
+    }
+});
+
+/**
  * POST /notifications/send
  * Allows Admin users to broadcast notifications to students, teachers, admins, or specific users
  */
@@ -192,6 +197,7 @@ router.post('/send', requireAdmin, async (req, res) => {
             sentCount++;
         }
 
+        publish({ kind: 'notifications' }, { emails: recipientEmails });
         return res.status(201).json({
             count: sentCount,
             message: `Notification broadcast successfully sent to ${sentCount} recipient(s)`

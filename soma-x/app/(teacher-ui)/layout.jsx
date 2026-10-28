@@ -8,18 +8,18 @@ import MandatoryProfileSetupModal from "@/components/onboarding/MandatoryProfile
 import BrightnessSlider from "@/components/ui/BrightnessSlider";
 import Header from "@/components/global/Header";
 import { useLanguage } from "@/context/LanguageContext";
-import { BookOpen, CalendarDays, Compass, LayoutDashboard, LogOut, PanelLeftClose, PanelLeftOpen, Settings } from "lucide-react"
+import { BookOpen, CalendarDays, Compass, LayoutDashboard, LogOut, PanelLeftClose, PanelLeftOpen, Settings, Users } from "lucide-react"
 import Loader from "@/components/ui/Loader";
 import { startRouteLoading } from "@/components/global/RouteLoader";
+import GenderReminder from "@/components/teacher/GenderReminder";
 
-const ACCENT_LIGHT = "var(--brand-primary)"
-const ACCENT_DARK = "var(--brand-secondary)"
 const EXPANDED_WIDTH = 180
 const COLLAPSED_WIDTH = 64
 
 const mainNavItems = [
   { id: "dashboard", labelKey: "teacher.nav.dashboard", Icon: LayoutDashboard, href: "/teacher/dashboard" },
   { id: "courses", labelKey: "teacher.nav.courses", Icon: BookOpen, href: "/teacher/courses" },
+  { id: "learners", labelKey: "teacher.nav.learners", Icon: Users, href: "/teacher/learners" },
   { id: "explore", labelKey: "teacher.nav.explore", Icon: Compass, href: "/teacher/explore" },
   { id: "calendar", labelKey: "teacher.nav.calendar", Icon: CalendarDays, href: "/calendar" },
 ]
@@ -31,20 +31,20 @@ const otherNavItems = [
 export default function TeacherUILayout({ children }) {
   const pathname = usePathname()
   const router = useRouter()
-  const { logout, isDark, authLoading, authenticated, user } = useContext(DataContext)
+  const { logout, authLoading, authenticated, user } = useContext(DataContext)
   const { t } = useLanguage()
-  const dm = isDark
   const [collapsed, setCollapsed] = useState(false)
   const allowed = authenticated && ["teacher", "admin"].includes(user?.role)
 
   // Teacher pages need a teacher or admin session (the API enforces this too).
   useEffect(() => {
     if (authLoading) return
-    if (!allowed || user?.mustChangePassword) startRouteLoading()
+    const changingPassword = user?.mustChangePassword && pathname !== "/teacher/settings"
+    if (!allowed || changingPassword) startRouteLoading()
     if (!authenticated) router.replace("/")
-    else if (user?.mustChangePassword) router.replace("/account")
     else if (!allowed) router.replace("/manage/auth")
-  }, [authLoading, authenticated, allowed, user, router])
+    else if (changingPassword) router.replace("/teacher/settings")
+  }, [authLoading, authenticated, allowed, user, router, pathname])
 
   // Same collapse mechanism and localStorage key as the scholar/admin shell
   // (Nav.jsx) — kept in sync so the preference carries over between shells.
@@ -61,31 +61,17 @@ export default function TeacherUILayout({ children }) {
     })
   }
 
-  const sidebarBg = dm ? "#080B0F" : "#ffffff"
-  const borderColor = dm ? "rgba(255,255,255,0.07)" : "#f1f5f9"
-  const labelColor = dm ? "#7A8595" : "#475569"
-  const logoutColor = dm ? "#7A8595" : "#393F30"
-  const logoutHover = dm ? "rgba(255,255,255,0.05)" : "#f1f5f9"
-
   const isActive = (href) => pathname === href || pathname.startsWith(href + "/")
 
   const NavRow = ({ href, label, Icon, onClick, iconOnly }) => {
     const on = isActive(href)
-    const activeStyle = dm
-      ? { backgroundColor: "color-mix(in srgb, var(--brand-secondary) 10%, transparent)", color: "var(--brand-secondary)", border: "1px solid color-mix(in srgb, var(--brand-secondary) 18%, transparent)", boxShadow: "0 0 14px color-mix(in srgb, var(--brand-secondary) 10%, transparent)" }
-      : { backgroundColor: ACCENT_LIGHT, color: "#fff" }
-    const inactiveColor = dm ? "#7A8595" : "#393F30"
-    const hoverBg = dm ? "rgba(255,255,255,0.05)" : "#f1f5f9"
     return (
       <Link href={href} onClick={onClick} title={iconOnly ? label : undefined}>
         <div
-          className={`flex items-center gap-3 py-2.5 rounded-full transition-colors duration-150 cursor-pointer ${iconOnly ? "justify-center px-2.5" : "px-3"}`}
-          style={on ? activeStyle : { color: inactiveColor }}
-          onMouseEnter={e => { if (!on) e.currentTarget.style.backgroundColor = hoverBg }}
-          onMouseLeave={e => { if (!on) e.currentTarget.style.backgroundColor = "transparent" }}
+          className={`flex items-center gap-3 py-2.5 rounded-full transition-colors duration-150 cursor-pointer ${iconOnly ? "justify-center px-2.5" : "px-3"} ${on ? "bg-brand-strong text-on-brand-strong" : "text-fg-muted hover:bg-surface-hover"}`}
         >
           <Icon size={16} strokeWidth={1.75} className="shrink-0" />
-          {!iconOnly && <span className="text-[13px] font-semibold leading-none truncate">{label}</span>}
+          {!iconOnly && <span className="text-small font-semibold leading-none truncate">{label}</span>}
         </div>
       </Link>
     )
@@ -108,10 +94,7 @@ export default function TeacherUILayout({ children }) {
           onClick={toggleCollapsed}
           title={collapsed ? t("teacher.nav.expandSidebar") : t("teacher.nav.collapseSidebar")}
           aria-label={collapsed ? t("teacher.nav.expandSidebar") : t("teacher.nav.collapseSidebar")}
-          className="w-6 h-6 shrink-0 flex items-center justify-center rounded-full transition-colors"
-          style={{ color: labelColor }}
-          onMouseEnter={e => { e.currentTarget.style.backgroundColor = dm ? "rgba(255,255,255,0.06)" : "#f1f5f9" }}
-          onMouseLeave={e => { e.currentTarget.style.backgroundColor = "transparent" }}
+          className="w-6 h-6 shrink-0 flex items-center justify-center rounded-full transition-colors text-fg-muted hover:bg-surface-hover"
         >
           {collapsed ? <PanelLeftOpen size={15} strokeWidth={1.75} /> : <PanelLeftClose size={15} strokeWidth={1.75} />}
         </button>
@@ -125,24 +108,21 @@ export default function TeacherUILayout({ children }) {
       </div>
 
       {/* Bottom pinned */}
-      <div className={`shrink-0 pt-6 pb-5 space-y-5 ${iconOnly ? "px-2" : "px-4"}`} style={{ borderTop: `1px solid ${borderColor}` }}>
+      <div className={`shrink-0 pt-6 pb-5 space-y-5 border-t border-line ${iconOnly ? "px-2" : "px-4"}`}>
         {!iconOnly && (
           <div className="space-y-3">
-            <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: labelColor }}>{t("teacher.nav.brightness")}</p>
-            <BrightnessSlider labelColor={labelColor} trackAccent={dm ? ACCENT_DARK : ACCENT_LIGHT} />
+            <p className="text-caption font-bold text-fg-muted">{t("teacher.nav.brightness")}</p>
+            <BrightnessSlider labelColor="var(--fg-muted)" />
           </div>
         )}
 
         <button
           onClick={logout}
           title={iconOnly ? t("teacher.nav.logout") : undefined}
-          className={`flex items-center w-full py-2.5 rounded-full transition-colors ${iconOnly ? "justify-center px-2.5" : "gap-3 px-3"}`}
-          style={{ color: logoutColor }}
-          onMouseEnter={e => e.currentTarget.style.backgroundColor = logoutHover}
-          onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}
+          className={`flex items-center w-full py-2.5 rounded-full transition-colors text-fg-muted hover:bg-surface-hover ${iconOnly ? "justify-center px-2.5" : "gap-3 px-3"}`}
         >
           <LogOut size={15} strokeWidth={1.75} className="shrink-0" />
-          {!iconOnly && <span className="text-[13px] font-semibold">{t("teacher.nav.logout")}</span>}
+          {!iconOnly && <span className="text-small font-semibold">{t("teacher.nav.logout")}</span>}
         </button>
       </div>
     </>
@@ -150,19 +130,19 @@ export default function TeacherUILayout({ children }) {
 
   if (authLoading || !allowed) {
     return (
-      <div className="min-h-screen w-full bg-[#EFEFEF] dark:bg-slate-950">
+      <div className="min-h-screen w-full bg-surface-sunken">
         <Loader variant="page" className="min-h-screen" />
       </div>
     )
   }
 
   return (
-    <div className="flex w-full h-screen overflow-hidden" style={{ backgroundColor: sidebarBg }}>
+    <div className="flex w-full h-screen overflow-hidden bg-surface">
       {/* Sidebar — collapsible, expanded by default (same behavior as the
           scholar/admin shell's Nav.jsx) */}
       <aside
-        className="flex flex-col flex-shrink-0 h-full transition-[width] duration-200 ease-in-out"
-        style={{ backgroundColor: sidebarBg, width: `${collapsed ? COLLAPSED_WIDTH : EXPANDED_WIDTH}px` }}
+        className="flex flex-col flex-shrink-0 h-full transition-[width] duration-200 ease-in-out bg-surface"
+        style={{ width: `${collapsed ? COLLAPSED_WIDTH : EXPANDED_WIDTH}px` }}
       >
         <SidebarContent iconOnly={collapsed} />
       </aside>
@@ -172,7 +152,8 @@ export default function TeacherUILayout({ children }) {
       <div className="flex flex-col flex-1 overflow-hidden min-w-0">
         {/* The shared Header carries the language switcher, so every teacher page has it (phones too). */}
         <Header />
-        <main className="flex-1 overflow-y-auto px-8 py-6" style={{ backgroundColor: sidebarBg }}>
+        <main className="flex-1 overflow-y-auto px-8 py-6 bg-surface">
+          <GenderReminder />
           {children}
         </main>
       </div>

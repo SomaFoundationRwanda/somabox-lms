@@ -11,6 +11,9 @@ import { FileAttachmentNode } from "./nodes/FileAttachmentNode";
 import { VideoEmbedNode } from "./nodes/VideoEmbedNode";
 import { useCourse } from "@/context/CourseContext";
 import { useCourseText } from "@/components/course/useCourseText";
+import { useQueryClient } from "@tanstack/react-query";
+import { apiFetch, getErrorMessage } from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
 
 function detectVideoUrl(url = "") {
   const isYt = /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/.test(url);
@@ -28,6 +31,7 @@ const RichTextEditor = forwardRef(function RichTextEditor(
 ) {
   const { SERVER_URL, courseId } = useCourse();
   const { t, tf } = useCourseText();
+  const queryClient = useQueryClient();
 
   const handleFileUploadAndInsert = useCallback(
     async (file, editorInstance) => {
@@ -60,13 +64,12 @@ const RichTextEditor = forwardRef(function RichTextEditor(
         const formData = new FormData();
         formData.append("file", file);
 
-        const res = await fetch(`${SERVER_URL}/courses/${courseId}/files/upload`, {
-          method: "POST",
-          body: formData,
-        });
-
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || t("editor.uploadFailed"));
+        const data = await apiFetch(`/courses/${courseId}/files/upload`, { method: "POST", body: formData })
+          .catch((err) => {
+            throw new Error(err?.status === 0 ? getErrorMessage(err) : err?.body?.message || t("editor.uploadFailed"));
+          });
+        // The course's Files list has it now.
+        queryClient.invalidateQueries({ queryKey: queryKeys.courseSection(courseId, "files") });
 
         const mime = (file.type || data.mime_type || "").toLowerCase();
         const fileId = data.file_id || data.id;
@@ -186,7 +189,7 @@ const RichTextEditor = forwardRef(function RichTextEditor(
         }
       }
     },
-    [SERVER_URL, courseId, t, tf]
+    [SERVER_URL, courseId, t, tf, queryClient]
   );
 
   const editor = useEditor({
@@ -197,7 +200,7 @@ const RichTextEditor = forwardRef(function RichTextEditor(
       Underline,
       Link.configure({
         openOnClick: false,
-        HTMLAttributes: { class: "text-teal-700 underline cursor-pointer" },
+        HTMLAttributes: { class: "text-brand-fg underline cursor-pointer" },
       }),
       CustomImageNode,
       FileAttachmentNode,
@@ -322,9 +325,9 @@ const RichTextEditor = forwardRef(function RichTextEditor(
   if (!editor) return null;
 
   return (
-    <div className="border border-slate-200 rounded-xl overflow-hidden bg-white">
+    <div className="border border-line rounded-xl overflow-hidden bg-surface">
       <EditorToolbar editor={editor} />
-      <div className="border-t border-slate-100">
+      <div className="border-t border-line">
         <EditorContent editor={editor} />
       </div>
       <style jsx global>{`
@@ -369,7 +372,7 @@ const RichTextEditor = forwardRef(function RichTextEditor(
           color: #334155;
         }
         .ProseMirror a {
-          color: #0f766e;
+          color: var(--color-teal-700);
           text-decoration: underline;
         }
         .ProseMirror p.is-editor-empty:first-child::before {

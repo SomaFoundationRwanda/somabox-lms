@@ -25,8 +25,8 @@ export function outcomeIdFor(context, code) {
   return match ? match.id : null;
 }
 
-// The model refers to outcomes by code, so codes must be unique. Older courses often have the
-// column default "OUT-1" on every outcome: repeated codes are replaced by OUT-<position>.
+// The model refers to outcomes by code, so codes must be unique. Migration 0016 made them unique
+// per course (and an index keeps them so); this only still matters for an outcome with no code.
 function uniqueCodes(outcomes) {
   const counts = new Map();
   for (const o of outcomes) counts.set(o.code, (counts.get(o.code) || 0) + 1);

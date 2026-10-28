@@ -1,16 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { ClipboardCheck, Loader2, Pencil, Trash2 } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
+import { useCourseSection } from "@/lib/useCourseSection";
+import { apiFetch } from "@/lib/api";
 import { useToast } from "@/context/ToastContext";
 import { PageHeader, Section, List, DataTable, EmptyState } from "@/components/layout";
 import { LoadingRows, ErrorNote } from "@/components/insights/bits";
 import { formatDate, toDateString } from "@/lib/dates";
 import Register, { StatusCounts } from "./Register";
 import { useAttendanceText, attendanceFlags, pct, attended } from "./text";
+import { Field, TextInput } from "@/components/form";
 
-const inputCls = "h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-[var(--brand-secondary)] dark:border-slate-700 dark:bg-slate-900";
 
 // Sort values for the learners table; nulls always go last.
 const SORTS = {
@@ -24,11 +26,11 @@ const SORTS = {
 
 function FlagChips({ flags }) {
   const { tx } = useAttendanceText();
-  if (!flags.length) return <span className="text-xs text-slate-400">{tx("noFlags")}</span>;
+  if (!flags.length) return <span className="text-caption text-fg-subtle">{tx("noFlags")}</span>;
   return (
     <ul className="flex flex-wrap gap-1" aria-label={tx("flagsLabel")}>
       {flags.map((f) => (
-        <li key={f.code} className="whitespace-nowrap rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[11px] font-semibold text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
+        <li key={f.code} className="whitespace-nowrap rounded-full border border-warning/30 bg-warning-soft px-1.5 py-0.5 text-caption font-semibold text-warning-fg">
           {f.code === "absent_in_a_row" ? tx("flagAbsentInARow", { n: f.n }) : tx("flagLowAttendance", { pct: f.pct, n: f.n })}
         </li>
       ))}
@@ -39,13 +41,16 @@ function FlagChips({ flags }) {
 // Teachers: take the register, see past registers, and see each learner's attendance.
 // Admins (readOnly) can look at everything but not mark.
 export default function TeacherAttendance({ readOnly = false }) {
-  const { SERVER_URL, courseId } = useCourse();
+  const { courseId } = useCourse();
   const { showToast } = useToast();
   const { tx, txn } = useAttendanceText();
 
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  // The register overview (sessions and rates); the session being taken is a working copy below.
+  const overview = useCourseSection("attendance");
+  const data = overview.data;
+  const loading = overview.loading;
+  const error = overview.error ? overview.error || tx("loadFailed") : "";
+  const load = overview.refetch;
 
   const [date, setDate] = useState("");
   const [title, setTitle] = useState("");
@@ -65,23 +70,6 @@ export default function TeacherAttendance({ readOnly = false }) {
   const chosenDate = date || today;
   const chosenTitle = title || defaultTitle;
 
-  const load = useCallback(async () => {
-    if (!SERVER_URL || !courseId) return;
-    setError("");
-    try {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/attendance`);
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(payload.message || tx("loadFailed"));
-      setData(payload);
-    } catch (err) {
-      setError(err.message || tx("loadFailed"));
-    } finally {
-      setLoading(false);
-    }
-  }, [SERVER_URL, courseId, tx]);
-
-  useEffect(() => { load(); }, [load]);
-
   const confirmDiscard = () => !dirty || window.confirm(tx("discardConfirm"));
 
   const openById = async (id, { skipConfirm = false } = {}) => {
@@ -93,9 +81,8 @@ export default function TeacherAttendance({ readOnly = false }) {
     if (!skipConfirm && openSession?.id !== id && !confirmDiscard()) return;
     setSessionLoadingId(id);
     try {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/attendance/sessions/${id}`);
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(payload.message || tx("openFailed"));
+      const payload = await apiFetch(`/courses/${courseId}/attendance/sessions/${id}`)
+        .catch((err) => { throw new Error(err?.body?.message || tx("openFailed")); });
       setOpenSession(payload);
       scrollToRegister();
     } catch (err) {
@@ -114,18 +101,18 @@ export default function TeacherAttendance({ readOnly = false }) {
     if (!confirmDiscard()) return;
     setOpening(true);
     try {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/attendance/sessions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date: chosenDate, title: chosenTitle.trim() || defaultTitle }),
-      });
-      const payload = await res.json().catch(() => ({}));
-      if (res.status === 409 && payload.sessionId) {
-        showToast(`${payload.message || tx("alreadyExists")}. ${tx("openedExisting")}`, "info");
-        await openById(payload.sessionId, { skipConfirm: true });
-        return;
+      let payload;
+      try {
+        payload = await apiFetch(`/courses/${courseId}/attendance/sessions`, { method: "POST", json: { date: chosenDate, title: chosenTitle.trim() || defaultTitle } });
+      } catch (err) {
+        // 409: there's already a register for that day; open it instead.
+        if (err?.status === 409 && err.body?.sessionId) {
+          showToast(`${err.body.message || tx("alreadyExists")}. ${tx("openedExisting")}`, "info");
+          await openById(err.body.sessionId, { skipConfirm: true });
+          return;
+        }
+        throw new Error(err?.body?.message || tx("openFailed"));
       }
-      if (!res.ok) throw new Error(payload.message || tx("openFailed"));
       await openById(payload.id, { skipConfirm: true });
       load();
     } catch (err) {
@@ -149,13 +136,8 @@ export default function TeacherAttendance({ readOnly = false }) {
     }
     setBusyId(editing.id);
     try {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/attendance/sessions/${editing.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date: editing.date, title: editing.title.trim() }),
-      });
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(payload.message || tx("updateFailed"));
+      const payload = await apiFetch(`/courses/${courseId}/attendance/sessions/${editing.id}`, { method: "PATCH", json: { date: editing.date, title: editing.title.trim() } })
+        .catch((err) => { throw new Error(err?.body?.message || tx("updateFailed")); });
       if (openSession?.id === editing.id) setOpenSession((s) => ({ ...s, date: payload.date ?? editing.date, title: payload.title ?? editing.title.trim() }));
       showToast(tx("updated"), "success");
       setEditing(null);
@@ -171,11 +153,8 @@ export default function TeacherAttendance({ readOnly = false }) {
     if (!window.confirm(tx("deleteConfirm", { title: s.title, date: formatDate(s.date) }))) return;
     setBusyId(s.id);
     try {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/attendance/sessions/${s.id}`, { method: "DELETE" });
-      if (!res.ok) {
-        const payload = await res.json().catch(() => ({}));
-        throw new Error(payload.message || tx("deleteFailed"));
-      }
+      await apiFetch(`/courses/${courseId}/attendance/sessions/${s.id}`, { method: "DELETE" })
+        .catch((err) => { throw new Error(err?.body?.message || tx("deleteFailed")); });
       if (openSession?.id === s.id) {
         setDirty(false);
         setOpenSession(null);
@@ -223,18 +202,16 @@ export default function TeacherAttendance({ readOnly = false }) {
           {!readOnly ? (
             <Section title={tx("takeTitle")} description={tx("takeDescription")}>
               <form onSubmit={openRegister} className="grid gap-3 sm:grid-cols-[minmax(0,11rem)_minmax(0,1fr)_auto] sm:items-end">
-                <div>
-                  <label htmlFor="att-date" className="block text-xs font-semibold text-slate-600 dark:text-slate-300">{tx("date")}</label>
-                  <input id="att-date" type="date" value={chosenDate} max={today} onChange={(e) => setDate(e.target.value)} required className={`mt-1 ${inputCls}`} />
-                </div>
-                <div>
-                  <label htmlFor="att-title" className="block text-xs font-semibold text-slate-600 dark:text-slate-300">{tx("sessionName")}</label>
-                  <input id="att-title" type="text" value={title} placeholder={defaultTitle} maxLength={80} onChange={(e) => setTitle(e.target.value)} className={`mt-1 ${inputCls}`} />
-                </div>
+                <Field id="att-date" label={tx("date")}>
+                  <TextInput type="date" value={chosenDate} max={today} onChange={(e) => setDate(e.target.value)} required size="lg" />
+                </Field>
+                <Field id="att-title" label={tx("sessionName")}>
+                  <TextInput value={title} placeholder={defaultTitle} maxLength={80} onChange={(e) => setTitle(e.target.value)} size="lg" />
+                </Field>
                 <button
                   type="submit"
                   disabled={opening}
-                  className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-[var(--brand-secondary)] px-5 text-sm font-bold text-white hover:bg-[var(--brand-secondary-dark)] disabled:opacity-60"
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-brand px-5 text-ui font-bold text-on-brand hover:bg-brand/90 disabled:opacity-60"
                 >
                   {opening ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : <ClipboardCheck aria-hidden="true" className="h-4 w-4" />}
                   {tx("openRegister")}
@@ -246,8 +223,8 @@ export default function TeacherAttendance({ readOnly = false }) {
                       type="button"
                       aria-pressed={chosenTitle === q}
                       onClick={() => setTitle(q === defaultTitle ? "" : q)}
-                      className={`inline-flex h-11 items-center rounded-full border px-4 text-sm font-semibold ${
-                        chosenTitle === q ? "border-[var(--brand-secondary)] bg-[var(--brand-secondary)]/10 text-[var(--brand-secondary)]" : "border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900"
+                      className={`inline-flex h-11 items-center rounded-full border px-4 text-ui font-semibold ${
+                        chosenTitle === q ? "border-brand bg-brand/10 text-brand-fg" : "border-line text-fg-muted hover:bg-surface-hover"
                       }`}
                     >
                       {q}
@@ -282,36 +259,34 @@ export default function TeacherAttendance({ readOnly = false }) {
                     return (
                       <li key={s.id} className="px-3 py-3">
                         <form onSubmit={saveEdit} className="grid gap-2 sm:grid-cols-[minmax(0,11rem)_minmax(0,1fr)_auto_auto] sm:items-end">
-                          <div>
-                            <label htmlFor={`att-edit-date-${s.id}`} className="block text-xs font-semibold text-slate-600 dark:text-slate-300">{tx("date")}</label>
-                            <input id={`att-edit-date-${s.id}`} type="date" max={today} required value={editing.date} onChange={(e) => setEditing((v) => ({ ...v, date: e.target.value }))} className={`mt-1 ${inputCls}`} />
-                          </div>
-                          <div>
-                            <label htmlFor={`att-edit-title-${s.id}`} className="block text-xs font-semibold text-slate-600 dark:text-slate-300">{tx("sessionName")}</label>
-                            <input id={`att-edit-title-${s.id}`} type="text" required maxLength={80} value={editing.title} onChange={(e) => setEditing((v) => ({ ...v, title: e.target.value }))} className={`mt-1 ${inputCls}`} />
-                          </div>
-                          <button type="submit" disabled={busyId === s.id} className="inline-flex h-11 items-center justify-center rounded-lg bg-[var(--brand-secondary)] px-4 text-sm font-bold text-white hover:bg-[var(--brand-secondary-dark)] disabled:opacity-60">{tx("saveChanges")}</button>
-                          <button type="button" onClick={() => setEditing(null)} className="inline-flex h-11 items-center justify-center rounded-lg px-4 text-sm font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">{tx("cancel")}</button>
+                          <Field id={`att-edit-date-${s.id}`} label={tx("date")}>
+                            <TextInput type="date" max={today} required value={editing.date} onChange={(e) => setEditing((v) => ({ ...v, date: e.target.value }))} size="lg" />
+                          </Field>
+                          <Field id={`att-edit-title-${s.id}`} label={tx("sessionName")}>
+                            <TextInput required maxLength={80} value={editing.title} onChange={(e) => setEditing((v) => ({ ...v, title: e.target.value }))} size="lg" />
+                          </Field>
+                          <button type="submit" disabled={busyId === s.id} className="inline-flex h-11 items-center justify-center rounded-lg bg-brand px-4 text-ui font-bold text-on-brand hover:bg-brand/90 disabled:opacity-60">{tx("saveChanges")}</button>
+                          <button type="button" onClick={() => setEditing(null)} className="inline-flex h-11 items-center justify-center rounded-lg px-4 text-ui font-semibold text-fg-muted hover:bg-surface-hover">{tx("cancel")}</button>
                         </form>
                       </li>
                     );
                   }
                   return (
-                    <li key={s.id} className={`flex items-center gap-1 pr-2 ${isOpen ? "bg-[var(--brand-secondary)]/5" : ""}`}>
+                    <li key={s.id} className={`flex items-center gap-1 pr-2 ${isOpen ? "bg-brand/5" : ""}`}>
                       <button
                         type="button"
                         onClick={() => openById(s.id)}
                         aria-current={isOpen ? "true" : undefined}
-                        className="flex min-h-14 min-w-0 flex-1 flex-col items-start gap-1 px-3 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-slate-900/40 sm:flex-row sm:items-center sm:gap-3"
+                        className="flex min-h-14 min-w-0 flex-1 flex-col items-start gap-1 px-3 py-2.5 text-left hover:bg-surface-hover sm:flex-row sm:items-center sm:gap-3"
                       >
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-semibold text-slate-900 dark:text-white">
+                          <span className="block truncate text-ui font-semibold text-fg">
                             {s.title}
                             {sessionLoadingId === s.id ? <Loader2 aria-hidden="true" className="ml-2 inline h-3.5 w-3.5 animate-spin" /> : null}
                           </span>
-                          <span className="block text-xs text-slate-500">{formatDate(s.date, { weekday: "short", day: "numeric", month: "short", year: "numeric" })}</span>
+                          <span className="block text-caption text-fg-subtle">{formatDate(s.date, { weekday: "short", day: "numeric", month: "short", year: "numeric" })}</span>
                         </span>
-                        <StatusCounts counts={s.counts} unmarked={s.unmarked} className="text-xs text-slate-600 dark:text-slate-300" />
+                        <StatusCounts counts={s.counts} unmarked={s.unmarked} className="text-caption text-fg-muted" />
                       </button>
                       {!readOnly ? (
                         <>
@@ -320,7 +295,7 @@ export default function TeacherAttendance({ readOnly = false }) {
                             onClick={() => setEditing({ id: s.id, date: s.date, title: s.title })}
                             aria-label={tx("editSession", { title: s.title, date: formatDate(s.date) })}
                             title={tx("rename")}
-                            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-white"
+                            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-fg-subtle hover:bg-surface-hover hover:text-fg"
                           >
                             <Pencil aria-hidden="true" className="h-4 w-4" />
                           </button>
@@ -330,7 +305,7 @@ export default function TeacherAttendance({ readOnly = false }) {
                             disabled={busyId === s.id}
                             aria-label={tx("deleteSession", { title: s.title, date: formatDate(s.date) })}
                             title={tx("delete")}
-                            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-slate-500 hover:bg-rose-50 hover:text-rose-700 disabled:opacity-50 dark:hover:bg-rose-950/30"
+                            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-fg-subtle hover:bg-danger-soft hover:text-danger-fg disabled:opacity-50"
                           >
                             <Trash2 aria-hidden="true" className="h-4 w-4" />
                           </button>
@@ -347,7 +322,7 @@ export default function TeacherAttendance({ readOnly = false }) {
             divided
             title={tx("learnersTitle")}
             description={tx("learnersDescription", { n: rules?.consecutiveAbsences ?? 3, pct: lowRatePct })}
-            actions={flaggedCount ? <span className="text-xs font-semibold text-amber-800 dark:text-amber-300">{txn("flaggedCount", flaggedCount)}</span> : null}
+            actions={flaggedCount ? <span className="text-caption font-semibold text-warning-fg">{txn("flaggedCount", flaggedCount)}</span> : null}
           >
             <DataTable
               caption={tx("learnersTitle")}
@@ -355,25 +330,25 @@ export default function TeacherAttendance({ readOnly = false }) {
               rowKey={(l) => l.id}
               sort={sort}
               onSort={onSort}
-              rowClassName={(l) => (l.flags.length ? "bg-amber-50/60 dark:bg-amber-950/20" : "")}
+              rowClassName={(l) => (l.flags.length ? "bg-warning-soft/60" : "")}
               empty={tx("noLearners")}
               columns={[
-                { key: "name", header: tx("colLearner"), sortable: true, className: "min-w-[10rem] font-medium text-slate-800 dark:text-slate-100" },
+                { key: "name", header: tx("colLearner"), sortable: true, className: "min-w-[10rem] font-medium text-fg" },
                 {
                   key: "rate",
                   header: tx("colRate"),
                   sortable: true,
                   align: "right",
-                  render: (l) => (l.rate == null ? <span className="whitespace-nowrap text-xs text-slate-400">{tx("noneCounted")}</span> : <span className="font-semibold">{pct(l.rate)}</span>),
+                  render: (l) => (l.rate == null ? <span className="whitespace-nowrap text-caption text-fg-subtle">{tx("noneCounted")}</span> : <span className="font-semibold">{pct(l.rate)}</span>),
                 },
                 { key: "attended", header: tx("colAttended"), sortable: true, align: "right", className: "whitespace-nowrap", render: (l) => (l.counted ? tx("attendedOf", { a: attended(l), n: l.counted }) : "—") },
                 { key: "absent", header: tx("colAbsences"), sortable: true, align: "right", render: (l) => l.absent ?? 0 },
-                { key: "run", header: tx("colRun"), sortable: true, align: "right", render: (l) => <span className={l.consecutiveAbsences >= (rules?.consecutiveAbsences ?? 3) ? "font-semibold text-rose-700 dark:text-rose-400" : ""}>{l.consecutiveAbsences ?? 0}</span> },
-                { key: "lastAbsent", header: tx("colLastAbsent"), sortable: true, hideOnMobile: true, className: "whitespace-nowrap text-xs", render: (l) => (l.lastAbsentOn ? formatDate(l.lastAbsentOn) : "—") },
+                { key: "run", header: tx("colRun"), sortable: true, align: "right", render: (l) => <span className={l.consecutiveAbsences >= (rules?.consecutiveAbsences ?? 3) ? "font-semibold text-danger-fg" : ""}>{l.consecutiveAbsences ?? 0}</span> },
+                { key: "lastAbsent", header: tx("colLastAbsent"), sortable: true, hideOnMobile: true, className: "whitespace-nowrap text-caption", render: (l) => (l.lastAbsentOn ? formatDate(l.lastAbsentOn) : "—") },
                 { key: "flags", header: tx("colFlags"), className: "min-w-[11rem]", render: (l) => <FlagChips flags={l.flags} /> },
               ]}
             />
-            <p className="mt-2 text-xs text-slate-500">{tx("countingRule")}</p>
+            <p className="mt-2 text-caption text-fg-subtle">{tx("countingRule")}</p>
           </Section>
         </>
       )}

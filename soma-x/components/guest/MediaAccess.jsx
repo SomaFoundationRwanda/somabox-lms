@@ -77,9 +77,9 @@ export function MediaAccessNotice({ state, next, tone = "light", compact = false
 
     if (state === "forbidden") {
         return (
-            <div className={`w-full h-full min-h-[8rem] flex flex-col items-center justify-center gap-2 p-4 text-center ${dark ? "text-white" : "text-slate-700"}`} role="alert">
-                <ShieldAlert className="w-7 h-7 text-amber-500" aria-hidden="true" />
-                <p className="text-sm font-semibold">{t("guest.mediaForbidden")}</p>
+            <div className={`w-full h-full min-h-[8rem] flex flex-col items-center justify-center gap-2 p-4 text-center ${dark ? "text-white" : "text-fg-muted"}`} role="alert">
+                <ShieldAlert className="w-7 h-7 text-warning-fg" aria-hidden="true" />
+                <p className="text-ui font-semibold">{t("guest.mediaForbidden")}</p>
             </div>
         );
     }
@@ -93,16 +93,16 @@ export function MediaAccessNotice({ state, next, tone = "light", compact = false
 
     return (
         <div className={`w-full h-full ${compact ? "min-h-[8rem]" : "min-h-[14rem]"} flex items-center justify-center p-4`} role="alert">
-            <div className={`max-w-sm text-center rounded-2xl p-6 ${dark ? "bg-white/10 text-white" : "bg-white border border-slate-200 text-slate-800 shadow-sm"}`}>
-                <LogIn className={`w-7 h-7 mx-auto mb-3 ${dark ? "text-teal-300" : "text-[var(--brand-primary)]"}`} aria-hidden="true" />
+            <div className={`max-w-sm text-center rounded-2xl p-6 ${dark ? "bg-white/10 text-white" : "bg-surface border border-line text-fg shadow-sm"}`}>
+                <LogIn className={`w-7 h-7 mx-auto mb-3 ${dark ? "text-white/80" : "text-brand-fg"}`} aria-hidden="true" />
                 <p className="font-bold leading-snug">{t("guest.mediaExpiredTitle")}</p>
                 {!compact ? (
-                    <p className={`text-sm mt-1.5 ${dark ? "text-white/75" : "text-slate-600"}`}>{t("guest.mediaExpiredBody")}</p>
+                    <p className={`text-ui mt-1.5 ${dark ? "text-white/75" : "text-fg-muted"}`}>{t("guest.mediaExpiredBody")}</p>
                 ) : null}
                 <button
                     type="button"
                     onClick={signInAgain}
-                    className="mt-4 h-10 px-5 rounded-xl bg-[var(--brand-primary)] hover:bg-black text-white text-sm font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-teal-400"
+                    className="mt-4 h-10 px-5 rounded-xl bg-brand-strong hover:bg-brand-strong/90 text-on-brand-strong text-ui font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-brand"
                 >
                     {t("guest.signInAgain")}
                 </button>

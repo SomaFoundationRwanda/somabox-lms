@@ -4,7 +4,7 @@
 export default {
   title: "Attendance",
   description: "Take the register in class, then see who has been coming.",
-  descriptionAdmin: "Registers and attendance for this course. Only the course's teachers can mark attendance.",
+  descriptionAdmin: "Registers and attendance for this subject. Only the subject's teachers can mark attendance.",
   loadFailed: "Couldn't load attendance.",
 
   // Statuses
@@ -36,7 +36,7 @@ export default {
   // The register
   registerRegion: "Register",
   registerHint: "Tap a letter for each learner. Tap it again to clear it.",
-  readOnlyHint: "You can look at this register, but only the course's teachers can mark it.",
+  readOnlyHint: "You can look at this register, but only the subject's teachers can mark it.",
   registerListLabel: "Learners in {title}",
   statusFor: "Attendance for {name}",
   markAllPresent: "Mark everyone present",

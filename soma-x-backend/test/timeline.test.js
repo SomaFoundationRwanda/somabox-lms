@@ -184,6 +184,17 @@ test("my calendar spans my courses; drafts stay hidden from learners", async () 
   assert.match(body, /BEGIN:VCALENDAR/);
   assert.match(body, /DTSTART;VALUE=DATE:20260106/);
 
+  // The dashboard's "By date" view: ?days=N counts from the school's today, and events carry the
+  // bare item title so the page can build a translated label.
+  const soon = await course({ start: today });
+  await addItem(soon.courseId, soon.w1.id, { itemType: "assignment", title: "Due this week", outcomeIds: [soon.outcomeId], dueDay: 2 });
+  const upcoming = await asStudent("GET", "/calendar/me?days=28");
+  assert.equal(upcoming.status, 200);
+  const dueSoon = upcoming.body.events.find((e) => e.courseId === soon.courseId && e.type === "due");
+  assert.equal(dueSoon.itemTitle, "Due this week");
+  assert.ok(upcoming.body.events.every((e) => e.date >= today && e.date <= addDays(today, 28)));
+  assert.ok(!upcoming.body.events.some((e) => e.courseId === courseId), "January 2026 is outside the window");
+
   assert.equal((await asStudent("GET", "/calendar/school")).status, 403);
   const school = await call("admin")("GET", "/calendar/school?from=2026-01-01&to=2026-01-31");
   assert.equal(school.status, 200);
@@ -201,6 +212,11 @@ test("the Home loop follows real dates", async () => {
   assert.equal(loop.body.currentModuleId, w1.id);
   assert.equal(loop.body.currentBeat, "collect");
   assert.match(loop.body.beatTitle, new RegExp(addDays(start, 4)));
+  // Keys + params let the page translate the title and button.
+  assert.equal(loop.body.beatKey, "openNow");
+  assert.deepEqual(loop.body.beatParams, { week: { kind: "regular", week_offset: 1 }, n: 1, date: addDays(start, 4) });
+  // A learner's next step is the week itself.
+  assert.equal(loop.body.primaryAction.key, "openModules");
 
   const future = await course({ start: addDays(today, 10) });
   const upcoming = await asTeacher("GET", `/courses/${future.courseId}/home-loop`);
@@ -209,5 +225,6 @@ test("the Home loop follows real dates", async () => {
 
   const undated = await course({ start: null });
   const noStart = await asTeacher("GET", `/courses/${undated.courseId}/home-loop`);
-  assert.ok(noStart.body.needsAttention.some((n) => n.id === "no-start-date"));
+  assert.ok(noStart.body.needsAttention.some((n) => n.id === "no-start-date" && n.key === "noStartDate" && n.actionKey === "setStartDate"));
+  assert.equal(noStart.body.beatKey, "noStartDate");
 });

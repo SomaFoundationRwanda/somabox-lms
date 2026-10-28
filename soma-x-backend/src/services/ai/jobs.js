@@ -8,6 +8,7 @@ import { generateStructured, AiError } from "./gateway.js";
 import { buildContext } from "./context.js";
 import { createDraft, toPayload } from "./drafts.js";
 import { courseInsights, classSummaryStats } from "../insights/metrics.js";
+import { publish } from "../../helpers/live.js";
 
 const MAX_SOURCE = 4000;
 const concurrency = () => Math.max(1, Number(process.env.AI_JOB_CONCURRENCY) || 1);
@@ -211,6 +212,9 @@ async function execute(job) {
     const message = error instanceof AiError || error instanceof ItemError ? error.message : "Something went wrong while generating";
     if (!(error instanceof AiError)) console.error(`AI job ${job.id} failed:`, error);
     await localDb.prepare("UPDATE ai_jobs SET status = 'failed', error = ?, finished_at = CURRENT_TIMESTAMP WHERE id = ?").run(message, job.id);
+  } finally {
+    // The course's teachers see the job end (and its drafts) straight away.
+    if (job.course_id) publish({ kind: "course-work", id: String(job.course_id) }, { courseId: String(job.course_id), staffOnly: true });
   }
 }
 

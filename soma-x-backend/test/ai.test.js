@@ -125,6 +125,8 @@ test("an approved outline adds outcomes and numbered weeks", async () => {
 
 test("grading help hides who the learner is, and the teacher's save decides", async () => {
   const c = await course();
+  // Learners hand in work only in a released week.
+  await asTeacher("PATCH", `/courses/${c.courseId}/modules/${c.week.id}`, { published: true });
   const a = await asTeacher("POST", `/courses/${c.courseId}/modules/${c.week.id}/items`, { itemType: "assignment", title: "Essay", outcomeIds: [c.o1.id], pointsPossible: 8 });
   const assignmentId = a.body.content_id;
   const rubric = (await asTeacher("PUT", `/courses/${c.courseId}/assignments/${assignmentId}/rubric`, { criteria: [{ title: "Method", points: 4, outcomeId: c.o1.id }, { title: "Answer", points: 4 }] })).body;

@@ -84,7 +84,7 @@ const AdminPortal = () => {
                     actions={
                         <button
                             onClick={() => setSendNotifModal(true)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-dark)] text-white text-xs font-bold transition-colors"
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand hover:bg-brand/90 text-on-brand text-caption font-bold transition-colors"
                         >
                             <Megaphone size={13} />
                             <span className="hidden sm:inline">{t("admin.home.broadcast")}</span>
@@ -96,14 +96,14 @@ const AdminPortal = () => {
                 {userRole === 'admin' && schoolLoaded && !school.configured && (
                     <Link
                         href="/manage/admin/school"
-                        className={`flex items-center gap-3 rounded-2xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 px-4 py-3 text-amber-900 dark:text-amber-100 hover:bg-amber-100 dark:hover:bg-amber-500/20 transition-colors ${FOCUS_RING}`}
+                        className={`flex items-center gap-3 rounded-2xl border border-warning/30 bg-warning-soft px-4 py-3 text-warning-fg hover:bg-warning-soft transition-colors ${FOCUS_RING}`}
                     >
-                        <span className="w-9 h-9 shrink-0 rounded-xl bg-white/70 dark:bg-white/10 flex items-center justify-center" aria-hidden="true">
+                        <span className="w-9 h-9 shrink-0 rounded-xl bg-surface/70 flex items-center justify-center" aria-hidden="true">
                             <Palette className="w-4 h-4" />
                         </span>
                         <span className="flex-1 min-w-0">
-                            <span className="block text-sm font-bold">{t("school.banner.title")}</span>
-                            <span className="block text-xs mt-0.5">{t("school.banner.body")}</span>
+                            <span className="block text-ui font-bold">{t("school.banner.title")}</span>
+                            <span className="block text-caption mt-0.5">{t("school.banner.body")}</span>
                         </span>
                         <ChevronRight className="w-4 h-4 shrink-0" aria-hidden="true" />
                     </Link>
@@ -121,7 +121,7 @@ const AdminPortal = () => {
                                     title={option.title}
                                     href={option.href}
                                     subtitle={option.subtitle}
-                                    actions={<ChevronRight className="w-4 h-4 text-slate-400" aria-hidden="true" />}
+                                    actions={<ChevronRight className="w-4 h-4 text-fg-subtle" aria-hidden="true" />}
                                 />
                             );
                         })}
@@ -137,7 +137,7 @@ const AdminPortal = () => {
                         actions={
                             <Link
                                 href="/manage/admin/analytics"
-                                className="inline-flex items-center gap-1 text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline"
+                                className="inline-flex items-center gap-1 text-caption font-bold text-brand-fg hover:underline"
                             >
                                 {t("admin.home.openAnalytics")}
                                 <ChevronRight className="w-3.5 h-3.5" />
@@ -145,8 +145,8 @@ const AdminPortal = () => {
                         }
                     >
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 min-w-0">
-                            <InclusivityGapReport serverUrl={SERVER_URL} />
-                            <GrowthCurvesChart serverUrl={SERVER_URL} />
+                            <InclusivityGapReport />
+                            <GrowthCurvesChart />
                         </div>
                     </Section>
                 )}
@@ -154,7 +154,7 @@ const AdminPortal = () => {
                 {/* Courses on this box */}
                 {userRole === 'admin' && (
                     <Section title={t("admin.home.coursesTitle")} description={t("admin.home.coursesDescription")} divided>
-                        <AllCourses serverUrl={SERVER_URL} />
+                        <AllCourses />
                     </Section>
                 )}
 
@@ -167,7 +167,7 @@ const AdminPortal = () => {
                         actions={
                             <AddUserDrawer
                                 trigger={
-                                    <Button className="h-8 px-4 gap-1.5 text-[12px] rounded-[5px]">
+                                    <Button className="h-8 px-4 gap-1.5 text-caption rounded-[5px]">
                                         <Plus className="w-3.5 h-3.5" />
                                         {t("AdminTable.tableButton")}
                                     </Button>

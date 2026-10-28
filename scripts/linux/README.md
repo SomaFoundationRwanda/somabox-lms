@@ -22,7 +22,7 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now somabox-device-info.service
 cat /etc/somabox/device.json          # check it
 ```
-Then restart the LMS backend (`npm run pm2:restart`). The admin **Sync** page shows "This box"
+Then restart the LMS backend (`pnpm pm2:restart`). The admin **Sync** page shows "This box"
 with the serial number and MAC addresses.
 
 ### Run it by hand
@@ -39,5 +39,5 @@ sudo ./somabox-device-info.sh          # writes /etc/somabox/device.json
 can see itself (hostname, MAC addresses, machine id), with no serial number.
 
 **Settings:**
-- `DEVICE_INFO_PATH` (backend `.env`): where the backend reads the file. The default is
+- `DEVICE_INFO_PATH` (the root `.env`): where the backend reads the file. The default is
   `/etc/somabox/device.json`.

@@ -1,14 +1,19 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, ChevronRight, Clock, Sparkles } from "lucide-react";
+import Link from "next/link";
+import { ChevronDown, ChevronRight, Clock, ExternalLink, Sparkles } from "lucide-react";
 import { useToast } from "@/context/ToastContext";
 import { rubricGradePreview, fmtPoints, pctOf } from "@/lib/rubric";
 import useAiStatus from "@/lib/useAiStatus";
-import { aiFetch, startAiJob, rejectDraft, useAiJob } from "@/lib/ai";
+import { startAiJob, rejectDraft, useAiJob } from "@/lib/ai";
+import { apiFetch, getErrorMessage } from "@/lib/api";
 import { AiDraftLabel, JobProgress } from "@/components/ai/AiBits";
 import { trackEvent } from "@/lib/usage";
 import { useProgressText, fmtDateTime } from "@/components/progress/text";
+import { Fieldset, Label, TextInput, Textarea } from "@/components/form";
+import { useCourseText } from "@/components/course/useCourseText";
+import { useDraftText } from "@/lib/drafts";
 
 // Gradings that take longer than this were left open, not worked on: don't report them.
 const MAX_GRADING_MS = 2 * 60 * 60 * 1000;
@@ -16,7 +21,7 @@ const MAX_GRADING_MS = 2 * 60 * 60 * 1000;
 export function LateBadge() {
   const { tp } = useProgressText();
   return (
-    <span className="inline-flex items-center gap-0.5 text-[10px] font-bold uppercase text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-1.5 py-0.5">
+    <span className="inline-flex items-center gap-0.5 text-caption font-bold text-warning-fg bg-warning-soft border border-warning/30 rounded-full px-1.5 py-0.5">
       <Clock className="w-3 h-3" aria-hidden="true" /> {tp("common.late")}
     </span>
   );
@@ -33,14 +38,19 @@ const initialScores = (rubric, submission) => {
 
 // One learner's row in the teacher's submissions list. Collapsed: name, date, late badge,
 // grade. Expanded: the submission body plus rubric scoring (or a plain total without one).
-export default function SubmissionGrader({ SERVER_URL, courseId, assignmentId, submission, rubric, pointsPossible, onSaved, defaultOpen = false }) {
+// openHref: this learner's own submission page (an "Open" link beside the row).
+export default function SubmissionGrader({ courseId, assignmentId, submission, rubric, pointsPossible, onSaved, defaultOpen = false, openHref, openLabel }) {
+  // Still passed to the AI helpers (lib/ai.js).
+  const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL;
   const { showToast } = useToast();
   const { tp, locale } = useProgressText();
+  const { tf } = useCourseText();
   const s = submission;
   const [open, setOpen] = useState(defaultOpen);
   const [scores, setScores] = useState(() => initialScores(rubric, s));
   const [grade, setGrade] = useState(s.grade ?? "");
-  const [feedback, setFeedback] = useState(s.feedback ?? "");
+  // Feedback being written is kept on this device until it's saved (it can be long).
+  const [feedback, setFeedback, clearFeedbackDraft] = useDraftText(`feedback:${assignmentId}:${String(s.scholar_email).toLowerCase()}`, s.feedback ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -61,12 +71,17 @@ export default function SubmissionGrader({ SERVER_URL, courseId, assignmentId, s
   const [aiJob, setAiJob] = useState(null);
   const [aiError, setAiError] = useState("");
   const [aiBusy, setAiBusy] = useState(false);
-  const suggestionUrl = `${SERVER_URL}/courses/${courseId}/ai/grading-suggestion?assignmentId=${encodeURIComponent(assignmentId)}&scholarEmail=${encodeURIComponent(s.scholar_email)}`;
+  const suggestionPath = `/courses/${courseId}/ai/grading-suggestion?assignmentId=${encodeURIComponent(assignmentId)}&scholarEmail=${encodeURIComponent(s.scholar_email)}`;
 
   const fetchSuggestion = async () => {
-    const r = await aiFetch(suggestionUrl);
-    if (!r.ok) { setAiError(r.message); return null; }
-    const sug = r.data && r.data.status === "pending" ? r.data : null;
+    let data;
+    try {
+      data = await apiFetch(suggestionPath);
+    } catch (err) {
+      setAiError(getErrorMessage(err));
+      return null;
+    }
+    const sug = data && data.status === "pending" ? data : null;
     setSuggestion(sug);
     return sug;
   };
@@ -137,7 +152,7 @@ export default function SubmissionGrader({ SERVER_URL, courseId, assignmentId, s
   const preview = rubric ? rubricGradePreview(criteria, scores, pointsPossible) : null;
   const pct = pctOf(s.grade, pointsPossible);
   const panelId = `grade-panel-${s.scholar_email.replace(/[^a-z0-9]/gi, "-")}`;
-  const gradeUrl = `${SERVER_URL}/courses/${courseId}/assignments/${assignmentId}/grade/${encodeURIComponent(s.scholar_email)}`;
+  const gradePath = `/courses/${courseId}/assignments/${assignmentId}/grade/${encodeURIComponent(s.scholar_email)}`;
 
   const save = async () => {
     setError("");
@@ -151,29 +166,23 @@ export default function SubmissionGrader({ SERVER_URL, courseId, assignmentId, s
         if (v < 0 || v > Number(c.points)) { setError(tp("grader.outOfRange", { title: c.title, max: fmtPoints(c.points) })); return; }
         payloadScores.push({ criterionId: c.id, points: v });
       }
-      req = fetch(`${gradeUrl}/rubric`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scores: payloadScores, feedback, ...(aiApplied ? { aiDraftId: aiApplied.draftId } : {}) }),
-      });
+      req = () => apiFetch(`${gradePath}/rubric`, { method: "PUT", json: { scores: payloadScores, feedback, ...(aiApplied ? { aiDraftId: aiApplied.draftId } : {}) } });
     } else {
       const v = Number(grade);
       if (grade === "" || !Number.isFinite(v)) { setError(tp("grader.enterGrade")); return; }
-      req = fetch(gradeUrl, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ grade: v, feedback }),
-      });
+      req = () => apiFetch(gradePath, { method: "PATCH", json: { grade: v, feedback } });
     }
     setSaving(true);
     try {
-      const res = await req;
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(payload.code === "RUBRIC_REQUIRED"
-          ? payload.message || tp("grader.rubricRequired")
-          : payload.message || tp("grader.saveFailed"));
-        if (payload.code === "RUBRIC_REQUIRED") onSaved?.();
+      const refused = await req().then(() => null).catch((err) => {
+        if (err?.status === 0) throw new Error(getErrorMessage(err));
+        return err?.body || {};
+      });
+      if (refused) {
+        setError(refused.code === "RUBRIC_REQUIRED"
+          ? refused.message || tp("grader.rubricRequired")
+          : refused.message || tp("grader.saveFailed"));
+        if (refused.code === "RUBRIC_REQUIRED") onSaved?.();
         return;
       }
       showToast(tp("grader.savedFor", { name: s.fullName || s.scholar_email }), "success");
@@ -188,6 +197,7 @@ export default function SubmissionGrader({ SERVER_URL, courseId, assignmentId, s
           || criteria.some((c) => String(a.scores?.[c.id] ?? "") !== String(scores[c.id] ?? ""));
         trackEvent("ai_suggestion_used", { edited }, courseId);
       }
+      clearFeedbackDraft({ keep: true });
       onSaved?.();
     } catch (err) {
       setError(err.message || tp("grader.saveFailed"));
@@ -196,43 +206,54 @@ export default function SubmissionGrader({ SERVER_URL, courseId, assignmentId, s
     }
   };
 
-  const inputClass = "text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-lg px-2.5 py-1.5 outline-none focus:border-[var(--brand-secondary)]";
-
   return (
-    <li className="text-sm">
+    <li className="text-ui">
+      <div className="flex items-stretch">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-controls={panelId}
-        className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-slate-900/40"
+        className="min-w-0 flex-1 flex items-center gap-3 px-3 py-2.5 text-left hover:bg-surface-hover"
       >
-        {open ? <ChevronDown className="w-4 h-4 shrink-0 text-slate-400" /> : <ChevronRight className="w-4 h-4 shrink-0 text-slate-400" />}
+        {open ? <ChevronDown className="w-4 h-4 shrink-0 text-fg-subtle" /> : <ChevronRight className="w-4 h-4 shrink-0 text-fg-subtle" />}
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="font-semibold text-slate-900 dark:text-white truncate">{s.fullName || s.scholar_email}</span>
+            <span className="font-semibold text-fg truncate">{s.fullName || s.scholar_email}</span>
             {s.is_late ? <LateBadge /> : null}
+            {s.groupName ? (
+              <span className="text-caption font-semibold text-info-fg bg-info-soft rounded-full px-2 py-0.5">
+                {tf("groupWork.badge", { group: s.groupName, name: s.submittedByName || "" })}
+              </span>
+            ) : null}
           </div>
-          <p className="text-xs text-slate-500">
+          <p className="text-caption text-fg-subtle">
             {s.submitted_at ? tp("grader.submittedAt", { date: fmtDateTime(s.submitted_at, locale) }) : tp("grader.noSubmission")}
           </p>
         </div>
         <div className="shrink-0 text-right">
           {s.grade != null ? (
             <>
-              <p className="font-semibold text-slate-800 dark:text-slate-100">{fmtPoints(s.grade)} / {fmtPoints(pointsPossible)}</p>
-              {pct != null ? <p className="text-[11px] text-slate-500">{fmtPoints(pct)}%</p> : null}
+              <p className="font-semibold text-fg">{fmtPoints(s.grade)} / {fmtPoints(pointsPossible)}</p>
+              {pct != null ? <p className="text-caption text-fg-subtle">{fmtPoints(pct)}%</p> : null}
             </>
           ) : (
-            <span className="text-[10px] font-semibold uppercase text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-1.5 py-0.5">{tp("grader.notGraded")}</span>
+            <span className="text-caption font-semibold text-warning-fg bg-warning-soft border border-warning/30 rounded-full px-1.5 py-0.5">{tp("grader.notGraded")}</span>
           )}
         </div>
       </button>
+      {openHref ? (
+        <Link href={openHref} aria-label={openLabel} title={openLabel} className="shrink-0 flex items-center px-3 text-fg-subtle hover:text-brand-fg hover:bg-surface-hover">
+          <ExternalLink className="w-4 h-4" aria-hidden="true" />
+        </Link>
+      ) : null}
+      </div>
 
       {open ? (
         <div id={panelId} className="px-3 pb-4 pt-1 space-y-4 sm:pl-10">
+          {s.groupName ? <p className="text-caption font-semibold text-info-fg">{tf("groupWork.gradeNote", { group: s.groupName })}</p> : null}
           {s.submitted_at ? (
-            <p className="text-xs text-slate-700 dark:text-slate-300 font-mono whitespace-pre-wrap border-l-2 border-slate-200 dark:border-slate-700 pl-3">
+            <p className="text-caption text-fg-muted font-mono whitespace-pre-wrap border-l-2 border-line pl-3">
               {s.body || tp("grader.noBody")}
             </p>
           ) : null}
@@ -240,12 +261,12 @@ export default function SubmissionGrader({ SERVER_URL, courseId, assignmentId, s
           {aiAvailable ? (
             <div className="space-y-2">
               {aiApplied ? (
-                <div role="status" className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-violet-200 dark:border-violet-800 bg-violet-50/60 dark:bg-violet-950/20 px-3 py-2">
+                <div role="status" className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-info/30 bg-info-soft/60 px-3 py-2">
                   <div className="space-y-0.5">
                     <AiDraftLabel text={tp("grader.aiLabel")} />
-                    <p className="text-[11px] text-slate-600 dark:text-slate-400">{tp("grader.aiFilled")}</p>
+                    <p className="text-caption text-fg-muted">{tp("grader.aiFilled")}</p>
                   </div>
-                  <button type="button" onClick={dismissSuggestion} disabled={aiBusy} className="text-xs font-semibold text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 disabled:opacity-50 px-3 py-1.5 rounded-lg">
+                  <button type="button" onClick={dismissSuggestion} disabled={aiBusy} className="text-caption font-semibold text-fg-muted border border-line hover:bg-surface disabled:opacity-50 px-3 py-1.5 rounded-lg">
                     {tp("grader.dismiss")}
                   </button>
                 </div>
@@ -253,30 +274,29 @@ export default function SubmissionGrader({ SERVER_URL, courseId, assignmentId, s
                 <JobProgress job={aiJobLive} label={tp("grader.suggesting")} onCancel={cancelAiJob} cancelling={aiCancelling} />
               ) : suggestion ? (
                 <div className="flex flex-wrap items-center gap-2">
-                  <button type="button" onClick={() => applySuggestion(suggestion)} className="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-800 dark:text-violet-200 border border-violet-200 dark:border-violet-800 hover:bg-violet-50 dark:hover:bg-violet-950/30 px-3 py-1.5 rounded-lg">
+                  <button type="button" onClick={() => applySuggestion(suggestion)} className="inline-flex items-center gap-1.5 text-caption font-semibold text-info-fg border border-info/30 hover:bg-info-soft px-3 py-1.5 rounded-lg">
                     <Sparkles className="w-3.5 h-3.5" /> {tp("grader.useSuggestion")}
                   </button>
-                  <button type="button" onClick={dismissSuggestion} disabled={aiBusy} className="text-xs font-semibold text-slate-500 hover:text-slate-700 px-2 py-1.5">{tp("grader.dismissIt")}</button>
-                  <span className="text-[11px] text-slate-500">{tp("grader.suggestionReady")}</span>
+                  <button type="button" onClick={dismissSuggestion} disabled={aiBusy} className="text-caption font-semibold text-fg-subtle hover:text-fg-muted px-2 py-1.5">{tp("grader.dismissIt")}</button>
+                  <span className="text-caption text-fg-subtle">{tp("grader.suggestionReady")}</span>
                 </div>
               ) : (
                 <div className="flex flex-wrap items-center gap-2">
-                  <button type="button" onClick={startSuggestion} disabled={aiBusy} className="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-800 dark:text-violet-200 border border-violet-200 dark:border-violet-800 hover:bg-violet-50 dark:hover:bg-violet-950/30 disabled:opacity-50 px-3 py-1.5 rounded-lg">
+                  <button type="button" onClick={startSuggestion} disabled={aiBusy} className="inline-flex items-center gap-1.5 text-caption font-semibold text-info-fg border border-info/30 hover:bg-info-soft disabled:opacity-50 px-3 py-1.5 rounded-lg">
                     <Sparkles className="w-3.5 h-3.5" /> {aiBusy ? tp("common.starting") : tp("grader.suggest")}
                   </button>
-                  <span className="text-[11px] text-slate-500">{tp("grader.privacy")}</span>
+                  <span className="text-caption text-fg-subtle">{tp("grader.privacy")}</span>
                 </div>
               )}
               {!aiStatus.modelRunning && !aiApplied ? (
-                <p className="text-[11px] text-amber-800 dark:text-amber-300">{tp("grader.modelDown")}</p>
+                <p className="text-caption text-warning-fg">{tp("grader.modelDown")}</p>
               ) : null}
-              {aiError ? <p role="alert" className="text-xs text-rose-600">{aiError}</p> : null}
+              {aiError ? <p role="alert" className="text-caption text-danger-fg">{aiError}</p> : null}
             </div>
           ) : null}
 
           {rubric ? (
-            <fieldset className="space-y-3">
-              <legend className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{tp("grader.rubricScores")}</legend>
+            <Fieldset legend={tp("grader.rubricScores")} className="space-y-3">
               {criteria.map((c) => {
                 const max = Number(c.points);
                 const inputId = `${panelId}-c${c.id}`;
@@ -285,30 +305,19 @@ export default function SubmissionGrader({ SERVER_URL, courseId, assignmentId, s
                 return (
                   <div key={c.id} className="space-y-1">
                     <div className="flex flex-wrap items-baseline justify-between gap-2">
-                      <label htmlFor={inputId} className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-                        {c.title}
-                        {c.outcome_code ? <span className="ml-2 text-[10px] font-bold text-[var(--brand-secondary)]">{c.outcome_code}</span> : null}
-                      </label>
-                      <span className="text-[11px] text-slate-500">{tp("grader.maxWeight", { max: fmtPoints(max), weight: fmtPoints(c.weight) })}</span>
+                      <Label htmlFor={inputId} className="mb-0">
+                        {c.title}{c.outcome_code ? ` · ${c.outcome_code}` : ""}
+                      </Label>
+                      <span className="text-caption text-fg-subtle">{tp("grader.maxWeight", { max: fmtPoints(max), weight: fmtPoints(c.weight) })}</span>
                     </div>
-                    {c.description ? <p className="text-xs text-slate-500">{c.description}</p> : null}
+                    {c.description ? <p className="text-caption text-fg-subtle">{c.description}</p> : null}
                     {aiApplied?.reasons?.[c.id] ? (
-                      <p className="text-xs text-violet-800 dark:text-violet-300 border-l-2 border-violet-300 dark:border-violet-700 pl-2">
+                      <p className="text-caption text-info-fg border-l-2 border-info/30 pl-2">
                         <span className="font-semibold">{tp("grader.aiReason")}</span> {aiApplied.reasons[c.id]}
                       </p>
                     ) : null}
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <input
-                        id={inputId}
-                        type="number"
-                        min={0}
-                        max={max}
-                        step="any"
-                        inputMode="decimal"
-                        value={current ?? ""}
-                        onChange={(e) => setScores((p) => ({ ...p, [c.id]: e.target.value }))}
-                        className={`${inputClass} w-20`}
-                      />
+                      <TextInput id={inputId} type="number" min={0} max={max} step="any" inputMode="decimal" value={current ?? ""} onChange={(e) => setScores((p) => ({ ...p, [c.id]: e.target.value }))} size="sm" className="w-20" />
                       {quick.map((v) => {
                         const active = current !== undefined && current !== "" && Number(current) === v;
                         return (
@@ -318,10 +327,10 @@ export default function SubmissionGrader({ SERVER_URL, courseId, assignmentId, s
                             onClick={() => setScores((p) => ({ ...p, [c.id]: String(v) }))}
                             aria-pressed={active}
                             aria-label={tp("grader.quickAria", { title: c.title, v, max: fmtPoints(max) })}
-                            className={`min-w-[2.25rem] h-9 rounded-lg text-xs font-bold border transition-colors ${
+                            className={`min-w-[2.25rem] h-9 rounded-lg text-caption font-bold border transition-colors ${
                               active
-                                ? "bg-[var(--brand-secondary)] border-[var(--brand-secondary)] text-white"
-                                : "border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-[var(--brand-secondary)]"
+                                ? "bg-brand border-brand text-on-brand"
+                                : "border-line text-fg-muted hover:border-brand"
                             }`}
                           >
                             {v}
@@ -332,41 +341,26 @@ export default function SubmissionGrader({ SERVER_URL, courseId, assignmentId, s
                   </div>
                 );
               })}
-              <p className="text-sm font-semibold text-slate-800 dark:text-slate-100" aria-live="polite">
+              <p className="text-ui font-semibold text-fg" aria-live="polite">
                 {tp("grader.total")} {preview != null ? `${fmtPoints(preview)} / ${fmtPoints(pointsPossible)} (${fmtPoints(pctOf(preview, pointsPossible))}%)` : tp("grader.scoreToSee")}
               </p>
-            </fieldset>
+            </Fieldset>
           ) : (
             <div>
-              <label htmlFor={`${panelId}-grade`} className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{tp("grader.gradeOutOf", { n: fmtPoints(pointsPossible) })}</label>
-              <input
-                id={`${panelId}-grade`}
-                type="number"
-                min={0}
-                step="any"
-                inputMode="decimal"
-                value={grade}
-                onChange={(e) => setGrade(e.target.value)}
-                className={`${inputClass} w-28`}
-              />
+              <Label htmlFor={`${panelId}-grade`}>{tp("grader.gradeOutOf", { n: fmtPoints(pointsPossible) })}</Label>
+              <TextInput id={`${panelId}-grade`} type="number" min={0} step="any" inputMode="decimal" value={grade} onChange={(e) => setGrade(e.target.value)} size="sm" className="w-28" />
             </div>
           )}
 
           <div>
-            <label htmlFor={`${panelId}-feedback`} className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{tp("common.feedback")}</label>
-            <textarea
-              id={`${panelId}-feedback`}
-              rows={3}
-              value={feedback}
-              onChange={(e) => setFeedback(e.target.value)}
-              className={`${inputClass} w-full`}
-            />
+            <Label htmlFor={`${panelId}-feedback`}>{tp("common.feedback")}</Label>
+            <Textarea id={`${panelId}-feedback`} rows={3} value={feedback} onChange={(e) => setFeedback(e.target.value)} size="sm" className="w-full" />
           </div>
 
-          {error ? <p role="alert" className="text-xs font-semibold text-rose-600">{error}</p> : null}
+          {error ? <p role="alert" className="text-caption font-semibold text-danger-fg">{error}</p> : null}
 
           <div className="flex justify-end">
-            <button type="button" onClick={save} disabled={saving} className="text-xs font-bold text-white bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-dark)] disabled:opacity-60 px-5 py-2.5 rounded-lg">
+            <button type="button" onClick={save} disabled={saving} className="text-caption font-bold text-on-brand bg-brand hover:bg-brand/90 disabled:opacity-60 px-5 py-2.5 rounded-lg">
               {saving ? tp("common.saving") : tp("grader.save")}
             </button>
           </div>

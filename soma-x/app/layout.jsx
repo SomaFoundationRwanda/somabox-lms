@@ -5,6 +5,7 @@ import { LanguageProvider } from "@/context/LanguageContext";
 import { ToastProvider } from "@/context/ToastContext";
 import { SchoolBrandingProvider } from "@/context/SchoolContext";
 import RouteLoader from "@/components/global/RouteLoader";
+import QueryProvider from "@/components/global/QueryProvider";
 
 // Self-hosted from public/fonts/poppins/ instead of next/font/google.
 // SomaBox is an offline-first app, and next/font/google needs a one-time
@@ -16,12 +17,12 @@ import RouteLoader from "@/components/global/RouteLoader";
 // builds no longer need network access at all to get Poppins.
 //
 // No 900 (Black) weight on purpose: Manrope (the previous typeface) tops
-// out at 800 (Extra Bold), so every existing `font-black` (font-weight:900)
+// out at 800 (Extra Bold), so every existing `font-extrabold` (font-weight:900)
 // usage across the app was always silently clamping to 800. Poppins does
 // ship a true 900, and loading it made those same headings render visibly
 // heavier than the design was ever tuned for. Omitting 900 keeps the browser
 // falling back to the nearest loaded weight (800), preserving the original
-// look without having to touch every `font-black` usage individually.
+// look without having to touch every `font-extrabold` usage individually.
 const poppins = localFont({
   variable: "--font-poppins",
   display: "swap",
@@ -43,18 +44,21 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${poppins.className} antialiased flex min-h-screen`} suppressHydrationWarning>
-        <DataProvider>
-          <LanguageProvider>
-            {/* The school's name, logo and colours (for guests too). */}
-            <SchoolBrandingProvider>
-              {/* The SOMABOX logo loader in the centre of the screen while pages change. */}
-              <RouteLoader />
-              <ToastProvider>
-                {children}
-              </ToastProvider>
-            </SchoolBrandingProvider>
-          </LanguageProvider>
-        </DataProvider>
+        {/* Server data (lib/queryClient.js), available to the contexts below. */}
+        <QueryProvider>
+          <DataProvider>
+            <LanguageProvider>
+              {/* The school's name, logo and colours (for guests too). */}
+              <SchoolBrandingProvider>
+                {/* The SOMABOX logo loader in the centre of the screen while pages change. */}
+                <RouteLoader />
+                <ToastProvider>
+                  {children}
+                </ToastProvider>
+              </SchoolBrandingProvider>
+            </LanguageProvider>
+          </DataProvider>
+        </QueryProvider>
       </body>
     </html>
   );

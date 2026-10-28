@@ -2,6 +2,7 @@
 // Kinyarwanda: please have a native-speaking teacher review.
 export default {
     "common": {
+        "cantReachBox": "Ntibishoboka kugera kuri SOMABOX. Reba Wi-Fi wongere ugerageze.",
         "somethingWrong": "Habaye ikibazo. Ongera ugerageze.",
         "loading": "Tegereza gato…",
         "close": "Funga",
@@ -14,6 +15,8 @@ export default {
     },
     "login": {
         "invalidCredentials": "Imeli cyangwa ijambo ry'ibanga si byo. Ongera ugerageze.",
+        "tooManyAttempts": "Mwagerageje inshuro nyinshi. Tegereza umunota umwe wongere ugerageze.",
+        "autoSignOut": "Ku bw'umutekano wawe, usohorwa iyo ufunze mushakisha, cyangwa nyuma y'iminota 30 udakoresha.",
         "mustChangePassword": "Banza ushyireho ijambo ry'ibanga rishya mbere yo gukomeza.",
         "welcomeToast": "Murakaza neza, {name}! Winjiye neza.",
         "userFallback": "Umukoresha",
@@ -26,6 +29,28 @@ export default {
         "or": "cyangwa",
         "noAccount": "Nta konti ufite?",
         "signUp": "Iyandikishe"
+    },
+    "setup": {
+        "title": "Gutunganya SOMABOX",
+        "subtitle": "Igutunganya rikorwa rimwe gusa kuri iyi box",
+        "formTitle": "Tunganya iyi box",
+        "formSubtitle": "Andika izina ry'ishuri kandi ukore konti ya mbere y'umuyobozi.",
+        "recoverTitle": "Garura uburenganzira bw'umuyobozi",
+        "recoverSubtitle": "Shyiriraho umuyobozi ijambo ry'ibanga rishya, cyangwa wongereho undi muyobozi.",
+        "code": "Kode yo gutunganya",
+        "codeHint": "Igaragara kuri ecran ya box cyangwa mu nyandiko zayo iyo itangiye. Kuri box, koresha pnpm setup:code ubone indi nshya.",
+        "schoolName": "Izina ry'ishuri",
+        "schoolNameHint": "Aho riherereye, ikirango n'amabara wabyongeraho nyuma ku rupapuro rw'Ishuri.",
+        "adminName": "Amazina yose y'umuyobozi",
+        "adminEmail": "Imeyili y'umuyobozi",
+        "recoverEmailHint": "Imeyili y'umuyobozi usanzwe imuha ijambo ry'ibanga rishya; imeyili nshya yongeraho umuyobozi.",
+        "password": "Ijambo ry'ibanga (inyuguti 8 cyangwa zirenga)",
+        "passwordTooShort": "Ijambo ry'ibanga rigomba kugira nibura inyuguti 8",
+        "badCode": "Iyo kode si yo cyangwa yararangiye. Koresha pnpm setup:code kuri box ubone indi nshya.",
+        "submit": "Tunganya box",
+        "recoverSubmit": "Garura uburenganzira",
+        "doneTitle": "Iyi box yaratunganyijwe",
+        "doneText": "Injira ukoresheje konti yawe. Umuyobozi udashobora kwinjira yabona kode yo kugarura akoresheje pnpm setup:code kuri box."
     },
     "signup": {
         "strengthShort": "Ni rigufi cyane (nibura inyuguti 6)",
@@ -52,7 +77,11 @@ export default {
         "creating": "Konti iri gufungurwa…",
         "create": "Fungura konti",
         "haveAccount": "Usanzwe ufite konti?",
-        "signIn": "Injira"
+        "signIn": "Injira",
+        "className": "Ishuri ryawe",
+        "classHint": "Ishuri wigamo, urugero S1B cyangwa P4. Abarimu bawe bakubona bakoresheje iryo.",
+        "classPlaceholder": "urugero: S1B",
+        "classRequired": "Banza wandike ishuri ryawe (urugero: S1B).",
     },
     "header": {
         "adminTitle": "Urubuga rw'umuyobozi",
@@ -81,7 +110,32 @@ export default {
         "openMenu": "Fungura menyu",
         "closeMenu": "Funga menyu"
     },
+    "people": {
+        "gender": "Igitsina",
+        "genderHelp": "Bikoreshwa gusa mu mibare y'ishuri ku buringanire mu kwiga.",
+        "accessibility": "Ubufasha bwihariye",
+        "chooseOne": "Hitamo kimwe",
+        "genders": {
+            "male": "Gabo",
+            "female": "Gore",
+            "other": "Ikindi"
+        },
+        "access": {
+            "none": "Nta bumuga cyangwa ubufasha nkeneye",
+            "visual": "Kutabona neza (amabara akomeye / gusomerwa)",
+            "hearing": "Kutumva neza (inyandiko z'amajwi / ibimenyetso)",
+            "mobility": "Kugenda bigoranye (ubufasha bwo kugenda)",
+            "cognitive": "Ubufasha mu kwiga no gutekereza",
+            "other": "Ubundi bufasha nkeneye"
+        },
+        "notAnswered": "Ntibyagaragajwe"
+    },
     "toasts": {
+        "success": "Byakozwe",
+        "failed": "Hari ikitagenze neza",
+        "warning": "Icyitonderwa",
+        "notice": "Ku makuru yawe",
+        "dismiss": "Funga iri tangazo",
         "workSent": "Umukoro wawe woherejwe"
     },
     "profile": {
@@ -106,7 +160,45 @@ export default {
         "completeProfile": "Uzuza umwirondoro",
         "viewDetails": "Reba ibisobanuro",
         "dismiss": "Siba",
-        "dismissNamed": "Siba ubutumwa: {title}"
+        "dismissNamed": "Siba ubutumwa: {title}",
+        "kinds": {
+            "addedToCourse": {
+                "title": "Wongewe muri {course}",
+                "message": "Rifungure uhereye ku Masomo yanjye.",
+            },
+            "teachingCourse": {
+                "title": "Ubu wigisha {course}",
+                "message": "Rifungure uhereye ku Masomo yanjye.",
+            },
+            "workPublished": {
+                "title": "Umukoro mushya: {item}",
+                "message": "Muri {course}.",
+            },
+            "workMarked": {
+                "title": "{item} yakosowe",
+                "message": "Reba amanota yawe muri {course}, ku Manota.",
+            },
+            "scoresPublished": {
+                "title": "Amanota yatangajwe: {item}",
+                "message": "Reba amanota yawe muri {course}, ku Manota.",
+            },
+            "announcement": {
+                "title": "{title}",
+                "message": "Itangazo rishya muri {course}.",
+            },
+            "urgentAnnouncement": {
+                "title": "Byihutirwa: {title}",
+                "message": "Itangazo ryihutirwa muri {course}.",
+            },
+            "discussionStarted": {
+                "title": "Ikiganiro gishya: {title}",
+                "message": "Muri {course}. Ongeraho igisubizo cyawe.",
+            },
+            "courseOpened": {
+                "title": "{course} ryafunguwe",
+                "message": "Umwarimu wawe yafunguye iri somo. Tangirira kuri iki cyumweru.",
+            },
+        },
     },
     "assignments": {
         "noDueDate": "Nta tariki ntarengwa",
@@ -119,8 +211,8 @@ export default {
         "viewAll": "Reba inshingano zose"
     },
     "profileBanner": {
-        "title": "Uzuza umwirondoro wawe",
-        "body": "Shyiramo igitsina, intara n'akarere byawe kugira ngo SomaBox ihuze n'uko wiga.",
+        "title": "Rangiza umwirondoro wawe",
+        "body": "Subiza ibibazo bike bikwerekeye (igitsina n'ibyo ukeneye ku bufasha) kugira ngo SOMABOX ihuze n'imyigire yawe.",
         "dismiss": "Funga iri tangazo"
     },
     "broadcast": {
@@ -193,15 +285,15 @@ export default {
         "unreachable": "Ntibyashobotse kugera kuri SomaBox. Reba ihuzanzira wongere ugerageze.",
         "bundleLoadFailed": "Ntibyashobotse gufungura iri paki.",
         "loadingPreview": "Igaragazwa riri kuza…",
-        "weekBaseline": "Icyumweru 0 (isuzuma ry'ibanze)",
-        "weekN": "Icyumweru {n}",
-        "weeks": "Ibyumweru",
-        "noWeeks": "Nta byumweru.",
+        "weekBaseline": "Inyigisho 0 (isuzuma ry'ibanze)",
+        "weekN": "Inyigisho {n}",
+        "weeks": "Inyigisho",
+        "noWeeks": "Nta nyigisho.",
         "emptyWeek": "Nta kintu muri iki cyumweru.",
         "outcomes": "Intego z'isomo",
         "noOutcomes": "Nta ntego.",
         "grade": "Umwaka {grade}",
-        "oneWeek": "Icyumweru 1",
+        "oneWeek": "Inyigisho 1",
         "nWeeks": "Ibyumweru {n}",
         "oneOutcome": "Intego 1",
         "nOutcomes": "Intego {n}",
@@ -230,7 +322,7 @@ export default {
         "backAdmin": "Ubuyobozi",
         "backCourses": "Amasomo yanjye",
         "title": "Isomero ry'amasomo",
-        "description": "Amasomo asangiwe ushobora guheraho. Ipaki irimo intego, ibyumweru, amapaji, amasuzuma, inshingano n'ibiganiro by'isomo, ariko nta banyeshuri, nta mikoro kandi nta matariki.",
+        "description": "Amasomo asangiwe ushobora guheraho. Ipaki irimo intego, inyigisho, amapaji, amasuzuma, inshingano n'ibiganiro by'isomo, ariko nta banyeshuri, nta mikoro kandi nta matariki.",
         "noteStrong": "Gukora isomo uhereye ku ipaki bihora bikora isomo rishya ry'agateganyo.",
         "noteRest": "Uba umwarimu waryo. Nta banyeshuri na tariki yo gutangira rifite, kandi urutonde rwo kuritegura ruzakuyobora. Ntirijya rihindura isomo risanzwe, n'iryakozwe muri iyo paki imwe.",
         "createdNamed": "Isomo rishya ry'agateganyo ryakozwe: {title}",
@@ -244,5 +336,19 @@ export default {
         "emptyTitle": "Isomero ry'amasomo ririmo ubusa",
         "emptyDescription": "Amapaki agera hano iyo umwarimu yohereje isomo kuri iyi SomaBox (Igenamiterere, hanyuma Sangiza), cyangwa iyo umuntu yohereje dosiye y'ipaki hejuru.",
         "listLabel": "Amapaki y'amasomo"
-    }
+    },
+    "unsaved": {
+        "title": "Kubika ibyo wahinduye?",
+        "body": "Hari ibyo wahinduye hano bitarabikwa.",
+        "keepEditing": "Komeza uhindura",
+        "discard": "Reka ibyo wahinduye",
+        "save": "Bika",
+        "saving": "Birabikwa…",
+    },
+    "draft": {
+        "found": "Ufite ibyo wahinduye bitabitswe kuva {time}.",
+        "restore": "Bigarure",
+        "discard": "Bireke",
+        "restored": "Inyandiko yawe itoherejwe yagaruwe.",
+    },
 };

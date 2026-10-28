@@ -3,28 +3,36 @@
   "version": "1.0.0",
   "private": true,
   "description": "SOMA-BOX LMS Monorepo (Frontend + Backend)",
-  "workspaces": [
-    "shared/*",
-    "soma-x",
-    "soma-x-backend"
-  ],
   "scripts": {
-    "dev": "concurrently -n \"BACKEND,FRONTEND\" -c \"cyan,magenta\" \"npm run dev --workspace=soma-x-backend\" \"npm run dev --workspace=soma-x\"",
-    "build": "npm run build --workspace=soma-x",
-    "start": "pm2 start ecosystem.config.cjs",
-    "start:dev": "npm run dev",
-    "setup:db": "npm run setup --workspace=soma-x-backend",
-    "migrate:sqlite-to-pg": "node soma-x-backend/src/scripts/migrate-sqlite-to-pg.js",
-    "pm2:start": "pm2 start ecosystem.config.cjs",
+    "dev": "node scripts/somabox.mjs dev",
+    "dev:all": "node scripts/somabox.mjs dev:all",
+    "dev:ai": "node scripts/somabox.mjs dev:ai",
+    "build": "node scripts/somabox.mjs build",
+    "start": "node scripts/somabox.mjs check && pm2 start ecosystem.config.cjs",
+    "setup:db": "pnpm --filter soma-x-backend run setup",
+    "setup:code": "pnpm --filter soma-x-backend run setup:code",
+    "pm2:start": "node scripts/somabox.mjs check && pm2 start ecosystem.config.cjs",
     "pm2:stop": "pm2 stop ecosystem.config.cjs",
-    "pm2:restart": "pm2 restart ecosystem.config.cjs",
+    "pm2:restart": "pm2 restart ecosystem.config.cjs --update-env",
     "pm2:status": "pm2 status",
     "pm2:logs": "pm2 logs",
-    "test": "npm test --workspaces --if-present && npm test --prefix ai/gateway",
-    "backup": "npm run backup --workspace=soma-x-backend --"
+    "test": "pnpm -r --if-present test",
+    "backup": "pnpm --filter soma-x-backend run backup",
+    "test:e2e": "playwright test -c e2e/playwright.config.mjs",
+    "test:e2e:ui": "playwright test -c e2e/playwright.config.mjs --ui",
+    "restore": "pnpm --filter soma-x-backend run restore",
+    "backup:verify": "pnpm --filter soma-x-backend run backup:verify",
+    "env:migrate": "node scripts/somabox.mjs env:migrate"
   },
   "devDependencies": {
+    "@playwright/test": "^1.56.1",
+    "@somabox/config": "workspace:*",
     "concurrently": "^9.2.4",
     "pm2": "^5.4.3"
+  },
+  "packageManager": "pnpm@10.28.1",
+  "engines": {
+    "node": "^22.12.0 || ^24.0.0 || ^25.0.0",
+    "pnpm": ">=10"
   }
 }

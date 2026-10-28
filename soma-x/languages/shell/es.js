@@ -1,6 +1,7 @@
 // shell screen text (es): app shell (navigation, header, notifications, login, sign-up, shared UI). Keys must match en.js; checked by scripts/check-ui-translations.mjs.
 export default {
     "common": {
+        "cantReachBox": "No se puede conectar con SOMABOX. Revisa el Wi-Fi e inténtalo de nuevo.",
         "somethingWrong": "Algo salió mal. Inténtalo de nuevo.",
         "loading": "Cargando…",
         "close": "Cerrar",
@@ -13,6 +14,8 @@ export default {
     },
     "login": {
         "invalidCredentials": "Datos de acceso incorrectos. Inténtalo de nuevo.",
+        "tooManyAttempts": "Demasiados intentos. Espera un minuto e inténtalo de nuevo.",
+        "autoSignOut": "Por tu seguridad, se cierra tu sesión al cerrar el navegador o tras 30 minutos sin uso.",
         "mustChangePassword": "Crea una contraseña nueva antes de continuar.",
         "welcomeToast": "¡Bienvenido de nuevo, {name}! Has iniciado sesión.",
         "userFallback": "Usuario",
@@ -25,6 +28,28 @@ export default {
         "or": "o",
         "noAccount": "¿No tienes cuenta?",
         "signUp": "Regístrate"
+    },
+    "setup": {
+        "title": "Configurar SOMABOX",
+        "subtitle": "Configuración única de esta caja",
+        "formTitle": "Configurar esta caja",
+        "formSubtitle": "Pon nombre a la escuela y crea su primera cuenta de administrador.",
+        "recoverTitle": "Recuperar el acceso de administrador",
+        "recoverSubtitle": "Pon una contraseña nueva a un administrador o añade otro.",
+        "code": "Código de configuración",
+        "codeHint": "Aparece en la pantalla de la caja o en sus registros al arrancar. En la caja, ejecuta pnpm setup:code para obtener uno nuevo.",
+        "schoolName": "Nombre de la escuela",
+        "schoolNameHint": "Podrás añadir la ubicación, el logotipo y los colores más tarde en la página Escuela.",
+        "adminName": "Nombre completo del administrador",
+        "adminEmail": "Correo del administrador",
+        "recoverEmailHint": "El correo de un administrador le pone una contraseña nueva; un correo nuevo añade un administrador.",
+        "password": "Contraseña (8 caracteres o más)",
+        "passwordTooShort": "La contraseña debe tener al menos 8 caracteres",
+        "badCode": "Ese código es incorrecto o ha caducado. Ejecuta pnpm setup:code en la caja para obtener uno nuevo.",
+        "submit": "Configurar la caja",
+        "recoverSubmit": "Recuperar el acceso",
+        "doneTitle": "Esta caja ya está configurada",
+        "doneText": "Inicia sesión con tu cuenta. Un administrador que no pueda entrar puede obtener un código de recuperación ejecutando pnpm setup:code en la caja."
     },
     "signup": {
         "strengthShort": "Demasiado corta (mínimo 6 caracteres)",
@@ -51,7 +76,11 @@ export default {
         "creating": "Creando la cuenta…",
         "create": "Crear cuenta",
         "haveAccount": "¿Ya tienes cuenta?",
-        "signIn": "Inicia sesión"
+        "signIn": "Inicia sesión",
+        "className": "Tu clase",
+        "classHint": "La clase en la que estás en la escuela, p. ej. S1B o P4. Tus docentes te encuentran por ella.",
+        "classPlaceholder": "p. ej. S1B",
+        "classRequired": "Escribe primero tu clase (p. ej. S1B).",
     },
     "header": {
         "adminTitle": "Portal de administración",
@@ -69,9 +98,9 @@ export default {
         "calendar": "Calendario",
         "content": "Contenidos",
         "sync": "Sincronizar",
-        "courseLibrary": "Biblioteca de cursos",
-        "discoverCourses": "Descubrir cursos",
-        "courses": "Cursos",
+        "courseLibrary": "Biblioteca de asignaturas",
+        "discoverCourses": "Descubrir asignaturas",
+        "courses": "Asignaturas",
         "expandSidebar": "Expandir el menú",
         "collapseSidebar": "Contraer el menú",
         "brightness": "Brillo",
@@ -80,7 +109,32 @@ export default {
         "openMenu": "Abrir el menú",
         "closeMenu": "Cerrar el menú"
     },
+    "people": {
+        "gender": "Género",
+        "genderHelp": "Solo se usa para las estadísticas de la escuela sobre igualdad de acceso al aprendizaje.",
+        "accessibility": "Accesibilidad y apoyo",
+        "chooseOne": "Elige una opción",
+        "genders": {
+            "male": "Masculino",
+            "female": "Femenino",
+            "other": "Otro"
+        },
+        "access": {
+            "none": "Sin discapacidad ni necesidad de apoyo",
+            "visual": "Dificultad para ver (alto contraste / lector de pantalla)",
+            "hearing": "Dificultad para oír (subtítulos / señales visuales)",
+            "mobility": "Dificultad para moverse (apoyo de movilidad)",
+            "cognitive": "Apoyo para aprender o pensar",
+            "other": "Otra necesidad de apoyo"
+        },
+        "notAnswered": "Sin especificar"
+    },
     "toasts": {
+        "success": "Hecho",
+        "failed": "Algo salió mal",
+        "warning": "Ten en cuenta",
+        "notice": "Para tu información",
+        "dismiss": "Cerrar notificación",
         "workSent": "Tu trabajo se ha enviado"
     },
     "profile": {
@@ -105,7 +159,45 @@ export default {
         "completeProfile": "Completar perfil",
         "viewDetails": "Ver detalles",
         "dismiss": "Descartar",
-        "dismissNamed": "Descartar la notificación: {title}"
+        "dismissNamed": "Descartar la notificación: {title}",
+        "kinds": {
+            "addedToCourse": {
+                "title": "Te añadieron a {course}",
+                "message": "Ábrela desde Mis asignaturas.",
+            },
+            "teachingCourse": {
+                "title": "Ahora enseñas {course}",
+                "message": "Ábrela desde Mis asignaturas.",
+            },
+            "workPublished": {
+                "title": "Nuevo trabajo: {item}",
+                "message": "En {course}.",
+            },
+            "workMarked": {
+                "title": "{item} fue corregido",
+                "message": "Mira tu nota en {course}, en Notas.",
+            },
+            "scoresPublished": {
+                "title": "Notas publicadas: {item}",
+                "message": "Mira tu nota en {course}, en Notas.",
+            },
+            "announcement": {
+                "title": "{title}",
+                "message": "Nuevo anuncio en {course}.",
+            },
+            "urgentAnnouncement": {
+                "title": "Urgente: {title}",
+                "message": "Anuncio urgente en {course}.",
+            },
+            "discussionStarted": {
+                "title": "Nueva discusión: {title}",
+                "message": "En {course}. Añade tu respuesta.",
+            },
+            "courseOpened": {
+                "title": "{course} está abierto",
+                "message": "Tu docente abrió esta asignatura. Empieza por esta semana.",
+            },
+        },
     },
     "assignments": {
         "noDueDate": "Sin fecha de entrega",
@@ -118,8 +210,8 @@ export default {
         "viewAll": "Ver todas las tareas"
     },
     "profileBanner": {
-        "title": "Completa la información de tu perfil",
-        "body": "Indica tu género, provincia y distrito para que SomaBox se adapte a tu aprendizaje.",
+        "title": "Completa tu perfil",
+        "body": "Responde las pocas preguntas sobre ti (género y necesidades de accesibilidad) para que SOMABOX se adapte a tu aprendizaje.",
         "dismiss": "Cerrar el aviso"
     },
     "broadcast": {
@@ -177,7 +269,7 @@ export default {
     "courseLibrary": {
         "sources": {
             "upload": "Subido",
-            "export": "Exportado de un curso de este equipo",
+            "export": "Exportado de una asignatura de este equipo",
             "cloud": "Desde la nube"
         },
         "itemTypes": {
@@ -192,15 +284,15 @@ export default {
         "unreachable": "No se pudo conectar con el equipo. Revisa la conexión e inténtalo de nuevo.",
         "bundleLoadFailed": "No se pudo cargar este paquete.",
         "loadingPreview": "Cargando la vista previa…",
-        "weekBaseline": "Semana 0 (evaluación inicial)",
-        "weekN": "Semana {n}",
-        "weeks": "Semanas",
-        "noWeeks": "No hay semanas.",
+        "weekBaseline": "Lección 0 (evaluación inicial)",
+        "weekN": "Lección {n}",
+        "weeks": "Lecciones",
+        "noWeeks": "No hay lecciones.",
         "emptyWeek": "No hay nada en esta semana.",
         "outcomes": "Objetivos",
         "noOutcomes": "No hay objetivos.",
         "grade": "Curso {grade}",
-        "oneWeek": "1 semana",
+        "oneWeek": "1 lección",
         "nWeeks": "{n} semanas",
         "oneOutcome": "1 objetivo",
         "nOutcomes": "{n} objetivos",
@@ -210,7 +302,7 @@ export default {
         "hidePreview": "Ocultar vista previa",
         "preview": "Vista previa",
         "creating": "Creando…",
-        "createFrom": "Crear un curso a partir de esto",
+        "createFrom": "Crear una asignatura a partir de esto",
         "yourCopies": "Tus copias:",
         "olderVersions": "Versiones anteriores ({n})",
         "notBundle": "No es un archivo de paquete. Los paquetes terminan en .somabox.json.",
@@ -220,28 +312,42 @@ export default {
         "orDrop": "o suéltalo aquí (.somabox.json)",
         "uploading": "Subiendo…",
         "addToLibrary": "Añadir a la biblioteca",
-        "addAndCreate": "Añadir y crear un curso",
+        "addAndCreate": "Añadir y crear una asignatura",
         "addedResult": "Añadido: {title} (versión {n}).",
         "alreadyResult": "Ya está en tu biblioteca: {title} (versión {n}).",
-        "loadFailed": "No se pudo cargar la biblioteca de cursos.",
-        "createdToast": "Nuevo curso en borrador creado",
-        "createFailed": "No se pudo crear un curso a partir de este paquete.",
+        "loadFailed": "No se pudo cargar la biblioteca de asignaturas.",
+        "createdToast": "Nueva asignatura en borrador creada",
+        "createFailed": "No se pudo crear una asignatura a partir de este paquete.",
         "backAdmin": "Administración",
-        "backCourses": "Mis cursos",
-        "title": "Biblioteca de cursos",
-        "description": "Cursos compartidos desde los que puedes empezar. Un paquete contiene los objetivos, semanas, páginas, cuestionarios, tareas y debates de un curso, pero no estudiantes, trabajos ni fechas.",
-        "noteStrong": "Crear un curso a partir de un paquete siempre crea un curso nuevo en borrador.",
-        "noteRest": "Tú pasas a ser su docente. Aún no tiene estudiantes ni fecha de inicio, y la lista de preparación te guiará. Nunca cambia un curso existente, aunque se haya creado con el mismo paquete.",
-        "createdNamed": "Nuevo curso en borrador creado: {title}",
-        "alreadyOneCopy": "Ya tienes 1 copia de este curso; se ha creado una nueva.",
-        "alreadyNCopies": "Ya tienes {n} copias de este curso; se ha creado una nueva.",
-        "openNew": "Abrir el curso nuevo",
+        "backCourses": "Mis asignaturas",
+        "title": "Biblioteca de asignaturas",
+        "description": "Asignaturas compartidas desde las que puedes empezar. Un paquete contiene los objetivos, lecciones, páginas, cuestionarios, tareas y debates de una asignatura, pero no estudiantes, trabajos ni fechas.",
+        "noteStrong": "Crear una asignatura a partir de un paquete siempre crea una asignatura nueva en borrador.",
+        "noteRest": "Tú pasas a ser su docente. Aún no tiene estudiantes ni fecha de inicio, y la lista de preparación te guiará. Nunca cambia una asignatura existente, aunque se haya creado con el mismo paquete.",
+        "createdNamed": "Nueva asignatura en borrador creada: {title}",
+        "alreadyOneCopy": "Ya tienes 1 copia de esta asignatura; se ha creado una nueva.",
+        "alreadyNCopies": "Ya tienes {n} copias de esta asignatura; se ha creado una nueva.",
+        "openNew": "Abrir la asignatura nueva",
         "addTitle": "Añadir un paquete",
-        "addDescription": "Sube un archivo de paquete que alguien te haya compartido. Para compartir uno de tus cursos, ábrelo y ve a Ajustes y luego a Compartir.",
+        "addDescription": "Sube un archivo de paquete que alguien te haya compartido. Para compartir una de tus asignaturas, ábrela y ve a Ajustes y luego a Compartir.",
         "bundlesTitle": "Paquetes en este equipo",
-        "loading": "Cargando la biblioteca de cursos",
-        "emptyTitle": "La biblioteca de cursos está vacía",
-        "emptyDescription": "Los paquetes llegan aquí cuando un docente exporta un curso en este equipo (Ajustes y luego Compartir) o cuando alguien sube un archivo de paquete arriba.",
-        "listLabel": "Paquetes de cursos"
-    }
+        "loading": "Cargando la biblioteca de asignaturas",
+        "emptyTitle": "La biblioteca de asignaturas está vacía",
+        "emptyDescription": "Los paquetes llegan aquí cuando un docente exporta una asignatura en este equipo (Ajustes y luego Compartir) o cuando alguien sube un archivo de paquete arriba.",
+        "listLabel": "Paquetes de asignaturas"
+    },
+    "unsaved": {
+        "title": "¿Guardar los cambios?",
+        "body": "Cambiaste cosas aquí que aún no están guardadas.",
+        "keepEditing": "Seguir editando",
+        "discard": "Descartar cambios",
+        "save": "Guardar",
+        "saving": "Guardando…",
+    },
+    "draft": {
+        "found": "Tienes cambios sin guardar de {time}.",
+        "restore": "Recuperarlos",
+        "discard": "Descartar",
+        "restored": "Tu texto sin enviar se ha recuperado.",
+    },
 };

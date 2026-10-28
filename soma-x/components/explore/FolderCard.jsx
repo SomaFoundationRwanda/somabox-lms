@@ -5,7 +5,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Folder } from "lucide-react";
-import Typography from "@/components/ui/Typography";
+import { Heading } from "@/components/typography";
 import { useLanguage } from "@/context/LanguageContext";
 
 /** A public file under the API (e.g. a cover "/pdf-book-covers/x/y.avif"), or null. */
@@ -41,9 +41,9 @@ export default function FolderCard({ folder }) {
     return (
         <Link
             href={`/${folder.slug}`}
-            className="group block rounded-xl overflow-hidden bg-white shadow-md hover:shadow-xl transition-all duration-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-dark focus-visible:ring-offset-2"
+            className="group block rounded-xl overflow-hidden bg-surface shadow-md hover:shadow-xl transition-all duration-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-strong focus-visible:ring-offset-2"
         >
-            <div className="relative aspect-[4/3] bg-slate-700 flex items-center justify-center overflow-hidden">
+            <div className="relative aspect-[4/3] bg-black flex items-center justify-center overflow-hidden">
                 {cover ? (
                     <img
                         src={cover}
@@ -58,14 +58,14 @@ export default function FolderCard({ folder }) {
                         <Folder className="relative w-12 h-12 text-white/80" aria-hidden="true" />
                     </>
                 )}
-                <span className="absolute bottom-2 right-2 bg-black/70 text-white text-xs font-semibold px-2 py-1 rounded-full">
+                <span className="absolute bottom-2 right-2 bg-black/70 text-white text-caption font-semibold px-2 py-1 rounded-full">
                     {count === 1 ? t("explore.oneFile") : `${count} ${t("explore.files")}`}
                 </span>
             </div>
             <div className="px-4 py-4">
-                <Typography variant="title" as="h3" className="line-clamp-2 group-hover:text-accent-dark transition-colors">
+                <Heading level={3} variant="item" className="line-clamp-2 group-hover:text-brand-fg transition-colors">
                     {title}
-                </Typography>
+                </Heading>
             </div>
         </Link>
     );

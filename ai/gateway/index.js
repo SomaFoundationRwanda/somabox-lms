@@ -7,6 +7,10 @@ import { fileURLToPath } from 'url';
 import { insertFeedback, getAllFeedback } from './db.js';
 import { generate, GenerateError } from './generate.js';
 import { TASKS } from './tasks.js';
+import somabox from '@somabox/config';
+
+// The repository's .env: AI_GATEWAY_PORT and AI_RUNTIME_PORT win over config.yaml.
+const settings = somabox.readConfig();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const configPath = path.resolve(__dirname, '../config.yaml');
@@ -16,7 +20,10 @@ const promptsDir = path.resolve(__dirname, '../prompts');
 function loadConfig() {
     try {
         const fileContent = fs.readFileSync(configPath, 'utf8');
-        return yaml.load(fileContent);
+        const loaded = yaml.load(fileContent);
+        // The .env's AI_RUNTIME_PORT wins over config.yaml (when set there or in the environment).
+        if (process.env.AI_RUNTIME_PORT) loaded.runtime = { ...loaded.runtime, port: Number(process.env.AI_RUNTIME_PORT) };
+        return loaded;
     } catch (err) {
         console.error('Error loading config.yaml:', err);
         process.exit(1);
@@ -291,7 +298,7 @@ app.post('/feedback', (req, res) => {
     }
 });
 
-const PORT = process.env.AI_GATEWAY_PORT || config.gateway.port || 5000;
+const PORT = process.env.AI_GATEWAY_PORT ? settings.ports.AI_GATEWAY_PORT : (config.gateway.port || settings.ports.AI_GATEWAY_PORT);
 const HOST = config.gateway.host || '127.0.0.1';
 
 app.listen(PORT, HOST, () => {

@@ -145,7 +145,7 @@ test("the school's location is everyone's; learners and teachers are never asked
   assert.notEqual(admin.region_district, "Musanze", "admins aren't changed");
 
   // A new learner: profile done with only gender, accessibility and grade; location is the school's.
-  const reg = await ctx.api("POST", "/auth/register", { body: { email: "rural@test.local", password: PASSWORD, fullName: "Rural" } });
+  const reg = await ctx.api("POST", "/auth/register", { body: { email: "rural@test.local", password: PASSWORD, fullName: "Rural", className: "P4" } });
   const token = reg.body.token;
   const done = await ctx.api("PATCH", "/users/profile/update", { token, body: { fullName: "Rural", gender: "male", disabilityStatus: "none", gradeLevel: "S1", regionProvince: "Kigali", isRural: false, completeProfile: true } });
   assert.equal(done.status, 200, JSON.stringify(done.body));

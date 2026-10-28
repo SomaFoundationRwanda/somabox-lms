@@ -130,7 +130,8 @@ const TYPE_LABELS = { page: "Page", assignment: "Assignment", quiz: "Quiz", disc
  * date, at, title, itemType, moduleItemId, contentId, moduleId, moduleTitle, courseId,
  * courseTitle, published, url, canReschedule }.
  */
-export function courseEvents(tl, { isTeacher, from, to, types } = {}) {
+// hidden: "assignment:12"-style keys of items this learner isn't given (groups.js).
+export function courseEvents(tl, { isTeacher, from, to, types, hidden } = {}) {
   const events = [];
   const inRange = (d) => d && (!from || d >= from) && (!to || d <= to);
   const want = (t) => !types || types.includes(t);
@@ -155,9 +156,11 @@ export function courseEvents(tl, { isTeacher, from, to, types } = {}) {
     if (!m || !m.startDate) continue;
     const visible = Number(item.published) === 1 && Number(m.published) === 1;
     if (!isTeacher && !visible) continue;
+    if (hidden?.has(`${item.item_type}:${item.content_id}`)) continue;
     const url = ITEM_PATHS[item.item_type] ? `/course/${tl.course.id}/${ITEM_PATHS[item.item_type]}/${item.content_id}` : `/course/${tl.course.id}/files`;
     const common = {
-      ...base, itemType: item.item_type, moduleItemId: item.id, contentId: item.content_id,
+      // itemTitle: the bare title, for screens that build their own (translated) label.
+      ...base, itemType: item.item_type, itemTitle: item.title, moduleItemId: item.id, contentId: item.content_id,
       moduleId: m.id, moduleTitle: m.title, published: visible, url, canReschedule: !!isTeacher,
     };
     const label = TYPE_LABELS[item.item_type] || "Item";

@@ -10,14 +10,14 @@ import { useLanguage } from "@/context/LanguageContext";
 
 function Row({ label, children }) {
     return (
-        <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-3 py-2 border-b border-slate-100 dark:border-slate-800 last:border-b-0">
-            <dt className="sm:w-40 shrink-0 text-xs font-bold text-slate-600 dark:text-slate-400">{label}</dt>
-            <dd className="min-w-0 text-sm text-slate-900 dark:text-slate-100 break-words">{children}</dd>
+        <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-3 py-2 border-b border-line last:border-b-0">
+            <dt className="sm:w-40 shrink-0 text-caption font-bold text-fg-muted">{label}</dt>
+            <dd className="min-w-0 text-ui text-fg break-words">{children}</dd>
         </div>
     );
 }
 
-const mono = "font-mono text-[13px] select-all break-all";
+const mono = "font-mono text-small select-all break-all";
 
 export default function DeviceCard({ device }) {
     const { t, lang } = useLanguage();
@@ -28,7 +28,7 @@ export default function DeviceCard({ device }) {
     };
     const fromScript = device.source === "script";
     const macs = Array.isArray(device.macAddresses) ? device.macAddresses : [];
-    const none = <span className="text-slate-500">{t("school.device.unknown")}</span>;
+    const none = <span className="text-fg-subtle">{t("school.device.unknown")}</span>;
     const size = (n) => {
         try { return formatSize(n); } catch { return String(n); }
     };
@@ -37,13 +37,13 @@ export default function DeviceCard({ device }) {
         <Section divided title={t("school.device.title")} description={t("school.device.description")}>
             <div className="space-y-4">
                 {!fromScript ? (
-                    <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/40 px-4 py-3 text-sm text-amber-900 dark:text-amber-100" role="note">
+                    <div className="flex items-start gap-2.5 rounded-xl border border-warning/30 bg-warning-soft px-4 py-3 text-ui text-warning-fg" role="note">
                         <Info className="w-4 h-4 mt-0.5 shrink-0" aria-hidden="true" />
                         <div className="space-y-1.5">
                             <p>{t("school.device.noSerial")}</p>
-                            <code className="block rounded bg-white/70 dark:bg-black/30 px-2 py-1 font-mono text-[13px] break-all">sudo scripts/linux/somabox-device-info.sh</code>
+                            <code className="block rounded bg-surface/70 px-2 py-1 font-mono text-small break-all">sudo scripts/linux/somabox-device-info.sh</code>
                             <p>{t("school.device.enableService")}</p>
-                            <code className="block rounded bg-white/70 dark:bg-black/30 px-2 py-1 font-mono text-[13px] break-all">sudo systemctl enable somabox-device-info.service</code>
+                            <code className="block rounded bg-surface/70 px-2 py-1 font-mono text-small break-all">sudo systemctl enable somabox-device-info.service</code>
                         </div>
                     </div>
                 ) : null}
@@ -58,7 +58,7 @@ export default function DeviceCard({ device }) {
                                     <li key={`${m.interface}-${m.mac}-${i}`}>
                                         <span className="font-semibold">{m.interface}</span>{" "}
                                         <span className={mono}>{m.mac}</span>
-                                        {m.physical === false ? <span className="text-xs text-slate-500"> ({t("school.device.virtual")})</span> : null}
+                                        {m.physical === false ? <span className="text-caption text-fg-subtle"> ({t("school.device.virtual")})</span> : null}
                                     </li>
                                 ))}
                             </ul>
@@ -77,10 +77,10 @@ export default function DeviceCard({ device }) {
                     ) : null}
                     <Row label={t("school.device.source")}>
                         <span className="inline-flex items-center gap-1.5">
-                            <Cpu className="w-3.5 h-3.5 text-slate-500" aria-hidden="true" />
+                            <Cpu className="w-3.5 h-3.5 text-fg-subtle" aria-hidden="true" />
                             {fromScript ? t("school.device.sourceScript") : t("school.device.sourceServer")}
                             {fromScript && device.collectedAt ? (
-                                <span className="text-xs text-slate-500">
+                                <span className="text-caption text-fg-subtle">
                                     {" "}({collected(device.collectedAt)})
                                 </span>
                             ) : null}

@@ -135,8 +135,9 @@ if (isMain) {
   const [command, ...rest] = process.argv.slice(2);
   const arg = (name) => { const i = rest.indexOf(`--${name}`); return i >= 0 ? rest[i + 1] : undefined; };
   const flag = (name) => rest.includes(`--${name}`);
-  const { default: dotenv } = await import("dotenv");
-  dotenv.config();
+  // The repository's .env (BACKUP_DIR, database settings), as the server reads it.
+  const { default: somabox } = await import("@somabox/config");
+  somabox.readConfig();
   try {
     if (command === "backup") {
       const { dir, manifest } = await backup({ out: arg("out") || process.env.BACKUP_DIR || "backups", url: arg("database-url"), keep: arg("keep") ? Number(arg("keep")) : null });

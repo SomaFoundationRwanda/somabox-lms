@@ -6,7 +6,7 @@ import {
   DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors,
 } from "@dnd-kit/core";
 import {
-  SortableContext, verticalListSortingStrategy, arrayMove, useSortable,
+  SortableContext, verticalListSortingStrategy, arrayMove, useSortable, sortableKeyboardCoordinates,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
@@ -26,7 +26,8 @@ function SortableRow({ id, row, render }) {
 function SortableList({ rows, onReorder, render, distance }) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance } }),
-    useSensor(KeyboardSensor)
+    // Arrow keys move to the next or previous row (the default moves a few pixels at a time).
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
   const ids = rows.map((r) => r.id);
 

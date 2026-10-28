@@ -2,7 +2,7 @@
 export default {
   title: "Présences",
   description: "Faites l'appel en classe, puis voyez qui est venu.",
-  descriptionAdmin: "Les feuilles d'appel et les présences de ce cours. Seuls les enseignants du cours peuvent faire l'appel.",
+  descriptionAdmin: "Les feuilles d'appel et les présences de cette matière. Seuls les enseignants de la matière peuvent faire l'appel.",
   loadFailed: "Impossible de charger les présences.",
 
   // Statuses
@@ -34,7 +34,7 @@ export default {
   // The register
   registerRegion: "Feuille d'appel",
   registerHint: "Touchez une lettre pour chaque apprenant. Touchez-la à nouveau pour l'effacer.",
-  readOnlyHint: "Vous pouvez consulter cette feuille d'appel, mais seuls les enseignants du cours peuvent la remplir.",
+  readOnlyHint: "Vous pouvez consulter cette feuille d'appel, mais seuls les enseignants de la matière peuvent la remplir.",
   registerListLabel: "Apprenants de la séance {title}",
   statusFor: "Présence de {name}",
   markAllPresent: "Marquer tout le monde présent",

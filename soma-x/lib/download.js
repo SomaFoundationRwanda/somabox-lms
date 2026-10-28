@@ -1,11 +1,13 @@
-// Downloads a backend file (auth is added by the global fetch wrapper) as `filename`.
+import { apiFetch, getErrorMessage } from "@/lib/api";
+
+// Downloads a backend file (a path like "/calendar/me.ics", or a full backend URL) as `filename`.
 export async function downloadFile(url, filename) {
-  const res = await fetch(url);
-  if (!res.ok) {
-    const payload = await res.json().catch(() => ({}));
-    throw new Error(payload?.message || "Download failed");
+  let blob;
+  try {
+    blob = await apiFetch(url, { responseType: "blob" });
+  } catch (err) {
+    throw new Error(err?.status === 0 ? getErrorMessage(err) : err?.body?.message || "Download failed");
   }
-  const blob = await res.blob();
   const href = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = href;

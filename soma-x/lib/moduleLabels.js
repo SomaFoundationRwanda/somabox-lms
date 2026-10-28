@@ -7,10 +7,10 @@ export function isUnassignedModule(m) {
 
 export function moduleWeekLabel(m) {
   if (!m) return "";
-  if (m.kind === "baseline") return "Week 0 · Baseline";
+  if (m.kind === "baseline") return "Lesson 0 · Baseline";
   if (m.kind === "unassigned") return "Unassigned";
   if (m.week_offset === null || m.week_offset === undefined) return "Unassigned";
-  return `Week ${m.week_offset}`;
+  return `Lesson ${m.week_offset}`;
 }
 
 const LIFECYCLE_LABELS = {

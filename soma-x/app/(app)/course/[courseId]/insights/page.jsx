@@ -1,12 +1,11 @@
 "use client";
 
-import { Suspense, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import DataContext from "@/context/DataContext";
 import { useCourse } from "@/context/CourseContext";
+import { useCourseSection } from "@/lib/useCourseSection";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
 import { PageHeader } from "@/components/layout";
-import MyProgress from "@/components/progress/MyProgress";
 import { trackEvent } from "@/lib/usage";
 import { LoadingRows, ErrorNote } from "@/components/insights/bits";
 import ClassTab from "@/components/insights/ClassTab";
@@ -24,7 +23,7 @@ const TABS = [
 ];
 
 function TeacherInsights() {
-  const { SERVER_URL, courseId, course } = useCourse();
+  const { courseId, course } = useCourse();
   const { tp, locale } = useProgressText();
   const router = useRouter();
   const pathname = usePathname();
@@ -34,28 +33,12 @@ function TeacherInsights() {
   const flaggedOnly = searchParams.get("flagged") === "1";
   const tabRefs = useRef({});
 
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  const load = useCallback(async () => {
-    if (!SERVER_URL || !courseId) return;
-    setLoading(true);
-    setError("");
-    try {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/insights`);
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(payload.message || tp("insights.loadFailed"));
-      setData(payload);
-    } catch (err) {
-      setError(err.message || tp("insights.loadFailed"));
-    } finally {
-      setLoading(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [SERVER_URL, courseId]);
-
-  useEffect(() => { load(); }, [load]);
+  // The class report: kept until the app reloads (or Refresh), not rebuilt on every visit.
+  const report = useCourseSection("insights");
+  const data = report.data;
+  const loading = report.loading;
+  const error = report.error ? report.error || tp("insights.loadFailed") : "";
+  const load = report.refetch;
 
   useEffect(() => {
     if (courseId) trackEvent("insights_viewed", { tab }, courseId);
@@ -100,7 +83,7 @@ function TeacherInsights() {
           meta={data?.today ? <span>{tp("insights.figuresAsOf", { date: fmtDateTime(new Date(`${data.today}T12:00:00`), locale, { day: "numeric", month: "short", year: "numeric" }) })}</span> : null}
         />
 
-        <div role="tablist" aria-label={tp("insights.tabsLabel")} className="flex gap-1 overflow-x-auto border-b border-slate-200 dark:border-slate-800" onKeyDown={onTabKey}>
+        <div role="tablist" aria-label={tp("insights.tabsLabel")} className="flex gap-1 overflow-x-auto border-b border-line" onKeyDown={onTabKey}>
           {TABS.map((t) => {
             const selected = t.key === tab;
             return (
@@ -114,8 +97,8 @@ function TeacherInsights() {
                 aria-controls={`insights-panel-${t.key}`}
                 tabIndex={selected ? 0 : -1}
                 onClick={() => selectTab(t.key)}
-                className={`shrink-0 px-3 py-2 text-sm font-semibold border-b-2 -mb-px transition-colors ${
-                  selected ? "border-[var(--brand-secondary)] text-[var(--brand-secondary)]" : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                className={`shrink-0 px-3 py-2 text-ui font-semibold border-b-2 -mb-px transition-colors ${
+                  selected ? "border-brand text-brand-fg" : "border-transparent text-fg-subtle hover:text-fg"
                 }`}
               >
                 {tp(`insights.tabs.${t.key}`)}
@@ -124,7 +107,7 @@ function TeacherInsights() {
           })}
         </div>
 
-        <div role="tabpanel" id={`insights-panel-${tab}`} aria-labelledby={`insights-tab-${tab}`} tabIndex={0} className="focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]">
+        <div role="tabpanel" id={`insights-panel-${tab}`} aria-labelledby={`insights-tab-${tab}`} tabIndex={0} className="focus:outline-none focus-visible:ring-2 focus-visible:ring-brand">
           {loading && !data ? (
             <LoadingRows count={4} />
           ) : error ? (
@@ -145,13 +128,11 @@ function TeacherInsights() {
 }
 
 function InsightsRoute() {
-  const { isTeacher, course } = useCourse();
-  const { role } = useContext(DataContext);
-  // Teachers (and admins) see the class view. Learners only reach this page when the teacher
-  // shows the Insights nav item to them: they see their own progress instead.
-  if (isTeacher || role === "admin") return <TeacherInsights />;
-  if (!course) return null;
-  return <MyProgress sectionKey="insights" />;
+  const { isTeacher, adminView } = useCourse();
+  // The class view, for staff and admins reading the course. Learners have My progress (the
+  // course layout sends them there), and observers don't get either.
+  if (isTeacher || adminView) return <TeacherInsights />;
+  return null;
 }
 
 export default function InsightsPage() {

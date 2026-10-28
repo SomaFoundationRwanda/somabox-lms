@@ -1,9 +1,13 @@
 import crypto from 'crypto';
 import { serverDb } from './db-manager.js';
+import { closeSessionStreams, closeUserStreams } from './live.js';
+import { noteActiveDay } from '../services/insights/events.js';
 
-// Sessions end after 7 days, or after 12 hours without any request (shared school devices).
-const SESSION_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
-const SESSION_IDLE_MS = 12 * 60 * 60 * 1000;
+// Every device may be shared (a classroom tablet, a family phone), and a learner may forget to say
+// so: every session ends after 12 hours, or after 30 minutes without any request. (The app keeps
+// the session alive while the person is actually typing or clicking: lib/keepAlive.js.)
+const SESSION_MAX_AGE_MS = 12 * 60 * 60 * 1000;
+const SESSION_IDLE_MS = 30 * 60 * 1000;
 // Avoid a write on every request: refresh last_seen_at at most once a minute.
 const LAST_SEEN_RESOLUTION_MS = 60 * 1000;
 
@@ -20,18 +24,20 @@ function readBearerToken(req) {
 export async function createSession(userId, userAgent) {
     const token = crypto.randomBytes(32).toString('base64url');
     await serverDb.prepare(`
-        INSERT INTO sessions (token_hash, user_id, expires_at, user_agent)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO sessions (token_hash, user_id, expires_at, user_agent, shared_device)
+        VALUES (?, ?, ?, ?, 1)
     `).run(hashToken(token), userId, new Date(Date.now() + SESSION_MAX_AGE_MS).toISOString(), userAgent || null);
     return token;
 }
 
 export async function revokeSession(token) {
     if (!token) return;
+    closeSessionStreams(token);
     await serverDb.prepare('UPDATE sessions SET revoked_at = CURRENT_TIMESTAMP WHERE token_hash = ? AND revoked_at IS NULL').run(hashToken(token));
 }
 
 export async function revokeUserSessions(userId, exceptToken) {
+    closeUserStreams(Number(userId), exceptToken);
     if (exceptToken) {
         await serverDb.prepare('UPDATE sessions SET revoked_at = CURRENT_TIMESTAMP WHERE user_id = ? AND revoked_at IS NULL AND token_hash <> ?').run(userId, hashToken(exceptToken));
     } else {
@@ -50,7 +56,7 @@ export async function authenticate(req, res, next) {
     if (!token) return next();
     try {
         const row = await serverDb.prepare(`
-            SELECT s.id AS session_id, s.last_seen_at, s.expires_at,
+            SELECT s.id AS session_id, s.last_seen_at, s.expires_at, s.shared_device,
                    u.id, u.email, u.full_name, u.role, u.is_active, u.must_change_password
             FROM sessions s
             JOIN users u ON u.id = s.user_id
@@ -75,6 +81,8 @@ export async function authenticate(req, res, next) {
             mustChangePassword: Number(row.must_change_password) === 1,
         };
         req.sessionToken = token;
+        // Not awaited: counting active days never slows a request down.
+        noteActiveDay(req.user);
         next();
     } catch (error) {
         next(error);
@@ -85,10 +93,17 @@ export async function authenticate(req, res, next) {
 const PUBLIC_ROUTES = [
     { method: 'POST', path: '/auth/login' },
     { method: 'POST', path: '/auth/register' },
+    // The school's classes, picked first when a learner signs up.
+    { method: 'GET', path: '/auth/classes' },
     { method: 'GET', path: '/analytics/branding' },
     { method: 'POST', path: '/auth/media-session' },
     // The school's name, logo and colours (login page), and visitor previews.
     { method: 'GET', path: '/school/public' },
+    // Setting up a new box (or recovering its admin) with the code printed on the box.
+    { method: 'GET', path: '/setup/status' },
+    { method: 'POST', path: '/setup' },
+    // Live updates: authenticated by a single-use ticket (helpers/live.js).
+    { method: 'GET', path: '/live' },
     { method: 'POST', path: '/content/preview' },
     // The catalogue guests may browse before signing up (titles, categories, covers).
     { method: 'GET', path: '/content/explore' },

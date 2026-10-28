@@ -7,6 +7,7 @@ import { isTeacherRole, requireTeacher, requireNavVisible, courseExists, getCour
 import {
   ScheduleError, courseEvents, dayOffsetFor, icsEvents, loadCourseTimeline, parseItemDays, refreshDueDates,
 } from "./schedule.js";
+import { groupHiddenItems } from "./groups.js";
 
 const router = express.Router();
 
@@ -20,7 +21,7 @@ function rangeFrom(query) {
 router.get("/:id/calendar", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     const auth = await requireNavVisible(req, res, courseId, "calendar");
     if (!auth) return;
     const isTeacher = isTeacherRole(auth.enrollment.role);
@@ -28,7 +29,7 @@ router.get("/:id/calendar", async (req, res) => {
     return res.json({
       today: tl.today,
       startDate: tl.startDate,
-      events: courseEvents(tl, { isTeacher, ...rangeFrom(req.query) }),
+      events: courseEvents(tl, { isTeacher, ...rangeFrom(req.query), hidden: isTeacher ? null : await groupHiddenItems(courseId, auth.email) }),
     });
   } catch (error) {
     if (error instanceof ScheduleError) return res.status(400).json({ message: error.message });
@@ -40,11 +41,12 @@ router.get("/:id/calendar", async (req, res) => {
 router.get("/:id/calendar.ics", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     const auth = await requireNavVisible(req, res, courseId, "calendar");
     if (!auth) return;
     const tl = await loadCourseTimeline(courseId);
-    const events = courseEvents(tl, { isTeacher: isTeacherRole(auth.enrollment.role) });
+    const isTeacher = isTeacherRole(auth.enrollment.role);
+    const events = courseEvents(tl, { isTeacher, hidden: isTeacher ? null : await groupHiddenItems(courseId, auth.email) });
     res.setHeader("Content-Type", "text/calendar; charset=utf-8");
     res.setHeader("Content-Disposition", `attachment; filename="course-${courseId}.ics"`);
     return res.send(buildIcs(tl.course.title, icsEvents(events)));
@@ -59,7 +61,7 @@ router.get("/:id/calendar.ics", async (req, res) => {
 router.patch("/:id/calendar/items/:moduleItemId", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     if (!await requireTeacher(req, res, courseId)) return;
 
     const item = await getCourseModuleItem(courseId, req.params.moduleItemId);
@@ -73,7 +75,7 @@ router.patch("/:id/calendar/items/:moduleItemId", async (req, res) => {
     const offset = dayOffsetFor(mod?.startDate, req.body.date);
     const days = parseItemDays(item.item_type, { [key]: offset }, item);
     if (field !== "release" && days[`${field}_day`] === null) {
-      return res.status(400).json({ message: "This kind of item has no due date" });
+      return res.status(400).json({ message: "This kind of material has no due date" });
     }
     await localDb.prepare("UPDATE module_items SET release_day = ?, due_day = ?, close_day = ? WHERE id = ?")
       .run(days.release_day, days.due_day, days.close_day, item.id);

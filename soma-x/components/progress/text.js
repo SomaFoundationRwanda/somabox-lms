@@ -25,7 +25,8 @@ export const plural = (tp, key, n, vars = {}) => tp(`${key}${Number(n) === 1 ? "
 
 /** A locale Intl can format with for the UI language ("rw" falls back to "en-RW", then "en"). */
 export function intlLocale(lang) {
-  const wanted = lang === "rw" ? ["rw", "en-RW", "en"] : [lang || "en", "en"];
+  // English as written in Rwanda: day before month, like en-GB (same as the course screens).
+  const wanted = lang === "rw" ? ["rw", "en-RW", "en-GB", "en"] : !lang || lang === "en" ? ["en-GB", "en"] : [lang, "en"];
   try {
     return Intl.DateTimeFormat.supportedLocalesOf(wanted)[0] || "en";
   } catch {
@@ -33,8 +34,11 @@ export function intlLocale(lang) {
   }
 }
 
-/** Date/time string in the UI language; falls back to the browser default if Intl refuses. */
-export function fmtDateTime(value, locale, opts) {
+/**
+ * Date/time string in the UI language, to the minute unless opts say otherwise; falls back to
+ * the browser default if Intl refuses.
+ */
+export function fmtDateTime(value, locale, opts = { dateStyle: "medium", timeStyle: "short" }) {
   const d = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(d.getTime())) return "";
   try {
@@ -98,10 +102,23 @@ export function jobStatus(tp, job) {
     return job.total > 1 ? tp("ai.status.workingStep", { step: Math.min(job.progress + 1, job.total), total: job.total }) : tp("ai.status.working");
   }
   if (job.status === "done") return tp("ai.status.done");
-  if (job.status === "failed") return job.error || tp("ai.status.failed");
+  if (job.status === "failed") return job.error ? aiErrorText(tp, job.error) : tp("ai.status.failed");
   if (job.status === "cancelled") return tp("ai.status.cancelled");
   return job.status;
 }
+
+// AI job errors are stored as the server's English text (soma-x-backend/src/services/ai/gateway.js
+// MESSAGES and jobs.js); show the ones teachers meet in the UI language.
+const AI_ERROR_KEYS = {
+  "The AI model isn't running on this box. Ask your administrator to start it.": "runtimeUnavailable",
+  "The AI assistant is busy with other teachers' requests. Try again in a few minutes.": "busy",
+  "The AI model took too long to answer. Try again, or ask for less at once.": "timeout",
+  "The AI couldn't produce a usable answer this time. Try again or rephrase.": "invalidOutput",
+  "The AI service can't be reached on this box.": "unreachable",
+  "Interrupted by a restart. Start it again.": "interrupted",
+  "Something went wrong while generating": "generic",
+};
+export const aiErrorText = (tp, message) => (AI_ERROR_KEYS[message] ? tp(`ai.errors.${AI_ERROR_KEYS[message]}`) : message);
 
 // draftResultLink() (lib/ai.js) returns English labels; show them in the UI language.
 const RESULT_LINK_KEYS = {

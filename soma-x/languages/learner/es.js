@@ -18,32 +18,32 @@ export default {
     },
     "tour": {
         "welcome": {
-            "tag": "BIENVENIDA",
+            "tag": "Bienvenida",
             "title": "¡Hola!",
             "body": "¡Bienvenido a SOMABOX, tu espacio para aprender! Aquí tienes un recorrido rápido. Solo dura unos 30 segundos."
         },
         "stats": {
-            "tag": "ESTADÍSTICAS",
+            "tag": "Estadísticas",
             "title": "Tus estadísticas",
             "body": "Estas tarjetas muestran tus clases, las lecciones en curso y lo que has terminado. ¡Cuanto más aprendes, más crecen estos números!"
         },
         "lessons": {
-            "tag": "LECCIONES",
+            "tag": "Lecciones",
             "title": "Lecciones recientes",
             "body": "Aquí ves tus últimas lecciones y en qué punto vas. Haz clic en una lección para seguir donde lo dejaste."
         },
         "quick-access": {
-            "tag": "ACCESO RÁPIDO",
+            "tag": "Acceso rápido",
             "title": "Acceso rápido",
             "body": "Ve directamente a tus clases, lecciones, la biblioteca o tus trabajos terminados con un solo toque."
         },
         "nav": {
-            "tag": "MENÚ",
+            "tag": "Menú",
             "title": "Tu menú",
-            "body": "Usa el menú de la izquierda para ir al Panel, a Cursos, a la Biblioteca y a tu Cuenta cuando quieras."
+            "body": "Usa el menú de la izquierda para ir al Panel, a Asignaturas, a la Biblioteca y a tu Cuenta cuando quieras."
         },
         "finish": {
-            "tag": "LISTO",
+            "tag": "Listo",
             "title": "¡Todo listo!",
             "body": "¡Genial, ya sabes moverte! Ahora empieza a aprender. Cada lección te acerca a tus metas."
         },
@@ -80,11 +80,6 @@ export default {
         "namePlaceholder": "p. ej. Mugisha Jean Claude",
         "phone": "Número de teléfono",
         "optional": "(opcional)",
-        "gender": "Género",
-        "genderHelp": "Solo se usa para las estadísticas de la escuela sobre igualdad de acceso al aprendizaje.",
-        "male": "Masculino",
-        "female": "Femenino",
-        "otherGender": "Otro",
         "locationTitle": "Dónde estás",
         "locationHelp": "Nos ayuda a ofrecer lecciones locales y apoyo de accesibilidad.",
         "province": "Provincia / región",
@@ -97,14 +92,6 @@ export default {
         "whereLive": "¿Dónde vives?",
         "rural": "Zona rural / remota",
         "urban": "Ciudad / pueblo",
-        "accessibility": "Accesibilidad y apoyo",
-        "chooseOne": "Elige una opción",
-        "disNone": "Sin discapacidad ni necesidad de apoyo",
-        "disVisual": "Dificultad para ver (alto contraste / lector de pantalla)",
-        "disHearing": "Dificultad para oír (subtítulos / señales visuales)",
-        "disMobility": "Dificultad para moverse (apoyo de movilidad)",
-        "disCognitive": "Apoyo para aprender o pensar",
-        "disOther": "Otra necesidad de apoyo",
         "academicTitle": "Tus estudios",
         "academicHelp": "Para que las lecciones y sugerencias se ajusten a tu nivel.",
         "grade": "Curso / nivel de estudios actual",
@@ -131,7 +118,8 @@ export default {
         "mandatory": "Configuración obligatoria (paso 1 de 3)",
         "continue": "Continuar",
         "saving": "Guardando el perfil…",
-        "finish": "Terminar y empezar"
+        "finish": "Terminar y empezar",
+        "later": "Más tarde",
     },
     "practice": {
         "label": "Práctica — no cuenta para el dominio de los objetivos",
@@ -164,20 +152,31 @@ export default {
         "clearSearch": "Borrar la búsqueda"
     },
     "discover": {
-        "loadFailed": "No se pudieron cargar los cursos",
-        "joinFailed": "No se pudo unir al curso",
-        "subtitle": "Explora los cursos públicos y únete al momento, sin invitación",
-        "empty": "No hay cursos públicos disponibles ahora. Vuelve más tarde.",
+        "loadFailed": "No se pudieron cargar las asignaturas",
+        "joinFailed": "No se pudo unir a la asignatura",
+        "code": {
+          "title": "Unirse con un código",
+          "help": "Escribe el código que te dio tu docente.",
+          "placeholder": "p. ej. K7M4QX",
+          "button": "Unirse",
+          "errors": {
+            "INVALID_CODE": "Ninguna asignatura tiene este código. Compruébalo con tu docente.",
+            "NOT_OPEN": "Esta asignatura aún no está abierta. Pregunta a tu docente.",
+            "TOO_MANY": "Demasiados códigos incorrectos. Espera unos minutos e inténtalo de nuevo."
+          }
+        },
+        "subtitle": "Explora las asignaturas públicas y únete al momento, sin invitación",
+        "empty": "No hay asignaturas públicas disponibles ahora. Vuelve más tarde.",
         "oneEnrolled": "1 estudiante",
         "nEnrolled": "{n} estudiantes",
         "joining": "Uniéndote…",
-        "join": "Unirse al curso"
+        "join": "Unirse a la asignatura"
     },
     "account": {
         "dataDownloaded": "Se descargaron tus datos",
         "downloadFailed": "No se pudo descargar",
         "yourData": "Tus datos",
-        "yourDataHelp": "Descarga un archivo con todo lo que este equipo guarda sobre ti: perfil, cursos, trabajos, resultados y registros de uso.",
+        "yourDataHelp": "Descarga un archivo con todo lo que este equipo guarda sobre ti: perfil, asignaturas, trabajos, resultados y registros de uso.",
         "preparing": "Preparando…",
         "downloadData": "Descargar mis datos",
         "hide": "Ocultar",
@@ -192,26 +191,11 @@ export default {
         "pwFailed": "No se pudo cambiar la contraseña",
         "pwUpdated": "Contraseña cambiada.",
         "notSpecified": "Sin especificar",
-        "genders": {
-            "male": "Masculino",
-            "female": "Femenino",
-            "other": "Otro",
-            "non_binary": "No binario",
-            "prefer_not_to_say": "Prefiero no decirlo"
-        },
-        "access": {
-            "none": "Ninguna",
-            "visual": "Dificultad para ver",
-            "hearing": "Dificultad para oír",
-            "mobility": "Dificultad para moverse",
-            "cognitive": "Apoyo para aprender",
-            "other": "Otra necesidad"
-        },
         "active": "Activa",
         "ruralBadge": "Estudiante de zona rural",
         "lessons": "Lecciones",
         "classes": "Clases",
-        "defaultPassword": "Esta cuenta aún usa una contraseña predeterminada. Crea una nueva para continuar.",
+        "defaultPassword": "Te dieron una contraseña temporal. Elige la tuya para continuar.",
         "tabProfile": "Perfil",
         "tabSecurity": "Seguridad",
         "personalTitle": "Datos personales",
@@ -223,7 +207,6 @@ export default {
         "district": "Distrito",
         "districtPlaceholder": "p. ej. Gasabo, Nyarugenge, Musanze, Huye",
         "ruralCheckbox": "Vivo en una zona rural / remota",
-        "accessibility": "Accesibilidad",
         "saving": "Guardando…",
         "save": "Guardar",
         "fullName": "Nombre completo",
@@ -259,19 +242,30 @@ export default {
         "offlineBody": "Lee los libros y materiales de tu Biblioteca cuando quieras, sin internet.",
         "browseLibrary": "Explorar la Biblioteca",
         "settledTitle": "¡Todo está listo!",
-        "settledBody": "Tu cuenta está lista. Tu docente te añadirá pronto a tu curso; no tienes que hacer nada. Mientras tanto, explora los materiales de la Biblioteca.",
+        "settledBody": "Tu cuenta está lista. Tu docente te añadirá pronto a tu asignatura; no tienes que hacer nada. Mientras tanto, explora los materiales de la Biblioteca.",
         "tryPractice": "Probar temas de práctica",
-        "myCourses": "Mis cursos",
+        "myCourses": "Mis asignaturas",
+        "view": {
+          "label": "Mostrar mis asignaturas como",
+          "cards": "Tarjetas",
+          "byDate": "Por fecha"
+        },
+        "upcoming": {
+          "hint": "Lo que hay que entregar y lo que se abre en tus asignaturas en las próximas 4 semanas.",
+          "empty": "Nada que entregar en las próximas 4 semanas.",
+          "loadFailed": "No se pudo cargar lo que viene.",
+          "open": "Abrir"
+        },
         "viewAll": "Ver todo",
         "progress": "Progreso",
         "noGradedWork": "Aún no hay trabajos calificados",
         "continue": "Continuar",
-        "publicCourses": "Explorar cursos públicos",
+        "publicCourses": "Explorar asignaturas públicas",
         "quickAccess": "Acceso rápido",
         "nJoined": "{n} inscritos",
         "notEnrolled": "Aún sin inscribir",
         "viewWork": "Ver tus trabajos",
-        "discoverSub": "Explora cursos públicos y únete",
+        "discoverSub": "Explora asignaturas públicas y únete",
         "interleaved": "Repaso mezclado",
         "interleavedSub": "Práctica por tu cuenta",
         "librarySub": "Libros y materiales"
@@ -292,10 +286,25 @@ export default {
         "revisitedMany": "Repasaste {n} preguntas de tus lecciones terminadas."
     },
     "courses": {
-        "subtitle": "Los cursos en los que estás inscrito.",
-        "joinCourse": "Unirse a un curso",
-        "codeLabel": "Código de curso de 6 dígitos",
+        "subtitle": "Las asignaturas en las que estás inscrito.",
+        "joinCourse": "Unirse a una asignatura",
         "join": "Unirse",
-        "empty": "Aún no estás inscrito en ningún curso. Pide a tu docente un código de curso."
-    }
+        "empty": "Aún no estás inscrito en ninguna asignatura. Pide a tu docente un código de asignatura."
+    },
+    "celebrate": {
+        "submittedTitle": "¡Bien hecho! Está entregado.",
+        "submittedNext": "«{title}» está con tu docente. Sigue con el siguiente.",
+        "submittedDone": "«{title}» está con tu docente. ¡Lo tienes todo al día!",
+        "firstTitle": "¡Tu primer trabajo!",
+        "firstMessage": "Has empezado: cada trabajo que entregas le muestra a tu docente cómo creces.",
+        "milestoneTitle": "¡{n} trabajos entregados!",
+        "milestoneMessage": "¡Qué logro! Tu esfuerzo suma: sigue así.",
+        "next": "Siguiente: {title}",
+        "start": "Empezar ahora",
+        "dashboard": "Mi panel",
+        "welcome": "¡Bienvenido de nuevo!",
+        "welcomeNamed": "¡Bienvenido de nuevo, {name}!",
+        "welcomeNext": "Gracias por volver. Lo siguiente para ti: «{title}».",
+        "welcomeDone": "Gracias por volver. Lo tienes todo al día: ¡bien hecho!",
+    },
 };

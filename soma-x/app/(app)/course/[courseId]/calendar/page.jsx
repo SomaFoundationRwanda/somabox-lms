@@ -1,6 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiFetch } from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
 import Link from "next/link";
 import { CalendarDays, Download } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
@@ -16,31 +19,19 @@ export default function CourseCalendarPage() {
   const { showToast } = useToast();
   const { t, tf, fmtDay } = useCourseText();
   const [range, setRange] = useState(null);
-  const [data, setData] = useState(null); // { today, startDate, events }
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const [downloading, setDownloading] = useState(false);
-  const requestId = useRef(0);
+  const queryClient = useQueryClient();
 
-  const load = useCallback(async () => {
-    if (!SERVER_URL || !courseId || !range) return;
-    const id = ++requestId.current;
-    setLoading(true);
-    setError("");
-    try {
-      const qs = new URLSearchParams({ from: range.from, to: range.to });
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/calendar?${qs}`);
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(payload?.message || t("calendar.loadFailed"));
-      if (id === requestId.current) setData(payload);
-    } catch (err) {
-      if (id === requestId.current) setError(err.message || t("calendar.loadFailed"));
-    } finally {
-      if (id === requestId.current) setLoading(false);
-    }
-  }, [SERVER_URL, courseId, range, t]);
-
-  useEffect(() => { load(); }, [load]);
+  // { today, startDate, events } for the range on screen; kept per range.
+  const calendar = useQuery({
+    queryKey: [...queryKeys.courseSection(courseId, "calendar"), range?.from, range?.to],
+    queryFn: () => apiFetch(`/courses/${courseId}/calendar?${new URLSearchParams({ from: range.from, to: range.to })}`),
+    enabled: !!courseId && !!range,
+    placeholderData: keepPreviousData,
+  });
+  const data = calendar.data || null;
+  const loading = calendar.isFetching;
+  const error = calendar.isError ? calendar.error?.body?.message || t("calendar.loadFailed") : "";
 
   const handleRangeChange = useCallback(({ from, to }) => {
     setRange((prev) => (prev && prev.from === from && prev.to === to ? prev : { from, to }));
@@ -49,18 +40,13 @@ export default function CourseCalendarPage() {
   const handleMove = async (event, date) => {
     if (!event.moduleItemId || event.type === "module") return;
     try {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/calendar/items/${event.moduleItemId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ field: event.type, date }),
-      });
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(payload?.message || t("calendar.moveFailed"));
+      await apiFetch(`/courses/${courseId}/calendar/items/${event.moduleItemId}`, { method: "PATCH", json: { field: event.type, date } });
       showToast(tf("calendar.moved", { title: event.title, date: fmtDay(date) }), "success");
     } catch (err) {
-      showToast(err.message || t("calendar.moveFailed"), "error");
+      showToast(err?.body?.message || t("calendar.moveFailed"), "error");
     }
-    await load();
+    // Dates show on the weeks, items and calendar alike.
+    await queryClient.invalidateQueries({ queryKey: queryKeys.course(courseId) });
   };
 
   const downloadIcs = async () => {
@@ -81,7 +67,7 @@ export default function CourseCalendarPage() {
       type="button"
       onClick={downloadIcs}
       disabled={downloading}
-      className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900/40 disabled:opacity-50 rounded-lg px-3 py-2 transition-colors"
+      className="flex items-center gap-1.5 text-caption font-semibold text-fg-muted border border-line hover:bg-surface-hover disabled:opacity-50 rounded-lg px-3 py-2 transition-colors"
       title={t("calendar.icsHelp")}
     >
       <Download className="w-3.5 h-3.5" aria-hidden="true" /> {downloading ? t("calendar.downloading") : t("calendar.downloadIcs")}
@@ -94,11 +80,10 @@ export default function CourseCalendarPage() {
       <div className="p-4 md:p-6 space-y-6">
         <PageHeader help="pages.calendar"
           title={t("nav.calendar")}
-          description={t("calendar.courseDescription")}
           actions={noStartDate ? null : downloadButton}
         />
 
-        {error && <p className="text-sm text-rose-600" role="alert">{error}</p>}
+        {error && <p className="text-ui text-danger-fg" role="alert">{error}</p>}
 
         {noStartDate ? (
           <EmptyState
@@ -109,7 +94,7 @@ export default function CourseCalendarPage() {
             action={isTeacher ? (
               <Link
                 href={`/course/${courseId}/settings`}
-                className="text-xs font-semibold text-white bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] rounded-lg px-3 py-2 transition-colors"
+                className="text-caption font-semibold text-on-brand-strong bg-brand-strong hover:bg-brand-strong/90 rounded-lg px-3 py-2 transition-colors"
               >
                 {t("calendar.setStart")}
               </Link>

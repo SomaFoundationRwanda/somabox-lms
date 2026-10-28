@@ -1,8 +1,12 @@
 "use client";
 
 import { useState, useCallback, useEffect, lazy, Suspense } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiFetch, getErrorMessage } from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
 import Link from "next/link";
-import dynamic from "next/dynamic";
+import { useRouter, useSearchParams } from "next/navigation";
+import { editItemHref, newItemHref } from "@/components/course/modules/useItemEditor";
 import { Plus, Sparkles } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
 import { useToast } from "@/context/ToastContext";
@@ -13,20 +17,16 @@ import Explainer, { ExplainerText } from "@/components/help/Explainer";
 import WhatShouldICreate from "@/components/help/WhatShouldICreate";
 import { useLanguage } from "@/context/LanguageContext";
 import { useCourseText } from "@/components/course/useCourseText";
-import InfoTooltip from "@/components/ui/InfoTooltip";
 import ModuleCard from "@/components/course/modules/ModuleCard";
 import DeleteItemDialog from "@/components/course/modules/DeleteItemDialog";
 import useAiStatus from "@/lib/useAiStatus";
 import { AiStatusNote } from "@/components/ai/AiBits";
 import Loader from "@/components/ui/Loader";
+import { Label, TextInput } from "@/components/form";
+import { todayIn } from "@somabox/timeline";
 
 // Teacher-only code is loaded on demand so learners on low-end devices don't download it:
-// the editor modals (TipTap etc.) when one is opened, and drag-and-drop for teachers.
-const PageEditorModal = dynamic(() => import("@/components/course/modules/editors/PageEditorModal"), { ssr: false });
-const AssignmentEditorModal = dynamic(() => import("@/components/course/modules/editors/AssignmentEditorModal"), { ssr: false });
-const QuizEditorModal = dynamic(() => import("@/components/course/modules/editors/QuizEditorModal"), { ssr: false });
-const FileUploadModal = dynamic(() => import("@/components/course/modules/editors/FileUploadModal"), { ssr: false });
-const SortableModuleList = lazy(() => import("@/components/course/modules/sortable").then((m) => ({ default: m.SortableModuleList })));
+// drag-and-drop for teachers (the item editors are pages of their own).
 
 // Labels come from course.items.<value>.
 const ITEM_TYPE_OPTIONS = [
@@ -38,51 +38,78 @@ const ITEM_TYPE_OPTIONS = [
   { value: "discussion" },
 ];
 
-// A module item's day offsets, for the editor modals.
-const itemDays = (item) => ({ release_day: item.release_day, due_day: item.due_day, close_day: item.close_day });
+// The kinds of item a teacher can show on their own (Weeks filter).
+const ITEM_FILTERS = ["all", "page", "assignment", "quiz", "discussion", "file"];
+
+// Teachers: the weeks wait for the drag-and-drop code (items are reordered by dragging), so the
+// rows aren't swapped for draggable ones under the teacher's hand (a menu opened on one would
+// vanish with it).
+const DragReady = lazy(() => import("@/components/course/modules/sortable").then(() => ({ default: ({ children }) => children })));
 
 export default function ModulesPage() {
-  const { SERVER_URL, courseId, userEmail, isTeacher } = useCourse();
-  const { data: modules, loading, error, refetch } = useCourseSection("modules");
+  const { SERVER_URL, courseId, isTeacher } = useCourse();
+  const { data: modules, loading, error } = useCourseSection("modules");
+  const queryClient = useQueryClient();
+  // After a teacher's change on this page: the weeks, and everything else that lists or counts
+  // items (pages, quizzes, assignments, outcome tags, setup status, calendar); not the course's
+  // own details, menu or people.
+  const refetch = useCallback(() => queryClient.invalidateQueries({
+    predicate: ({ queryKey: [scope, id, section] }) =>
+      scope === "course" && id === String(courseId) && !["info", "nav", "people", "join-code", "ai"].includes(section),
+  }), [queryClient, courseId]);
   const { showToast } = useToast();
   const aiStatus = useAiStatus();
   const { t, tf } = useCourseText();
 
-  // AI: pending drafts and running jobs, for the header link and per-week buttons.
-  const [aiActiveJobs, setAiActiveJobs] = useState([]);
-  const [aiPendingCount, setAiPendingCount] = useState(0);
-  const loadAiSummary = useCallback(async () => {
-    if (!SERVER_URL || !courseId || !isTeacher) return;
-    try {
-      const [jobsRes, draftsRes] = await Promise.all([
-        fetch(`${SERVER_URL}/courses/${courseId}/ai/jobs?active=1`),
-        fetch(`${SERVER_URL}/courses/${courseId}/ai/drafts?status=pending`),
-      ]);
-      if (jobsRes.ok) setAiActiveJobs(await jobsRes.json().catch(() => []));
-      if (draftsRes.ok) {
-        const drafts = await draftsRes.json().catch(() => []);
-        setAiPendingCount(Array.isArray(drafts) ? drafts.length : 0);
-      }
-    } catch {
-      /* the link still works without counts */
-    }
-  }, [SERVER_URL, courseId, isTeacher]);
-  useEffect(() => { loadAiSummary(); }, [loadAiSummary]);
-  // While jobs run, refresh every few seconds so the counts and buttons stay current.
+  // AI: pending drafts and running jobs, for the header link and per-week buttons. While jobs
+  // run (and only then) both are asked again every few seconds, so counts and buttons stay current.
+  const activeJobsKey = queryKeys.courseSection(courseId, "ai/jobs/active");
+  const aiReady = !!SERVER_URL && !!courseId && isTeacher;
+  const jobsQuery = useQuery({
+    queryKey: activeJobsKey,
+    queryFn: () => apiFetch(`/courses/${courseId}/ai/jobs?active=1`),
+    enabled: aiReady,
+    refetchInterval: (q) => (q.state.data?.length ? 5000 : false),
+  });
+  const aiActiveJobs = Array.isArray(jobsQuery.data) ? jobsQuery.data : [];
+  const draftsQuery = useQuery({
+    queryKey: queryKeys.courseSection(courseId, "ai/drafts/pending"),
+    queryFn: () => apiFetch(`/courses/${courseId}/ai/drafts?status=pending`),
+    enabled: aiReady,
+    refetchInterval: aiActiveJobs.length ? 5000 : false,
+  });
+  const aiPendingCount = Array.isArray(draftsQuery.data) ? draftsQuery.data.length : 0;
+  // Learners see one week open: the one a "#module-<id>" link points to, else the week they're
+  // in, else the next one to come (or the last, once the course is over). The rest open on a tap.
+  const [openWeekId, setOpenWeekId] = useState(null);
   useEffect(() => {
-    if (aiActiveJobs.length === 0) return undefined;
-    const t = setTimeout(loadAiSummary, 5000);
-    return () => clearTimeout(t);
-  }, [aiActiveJobs, loadAiSummary]);
-  const aiProps = { status: aiStatus, activeJobs: aiActiveJobs, onStarted: (job) => { setAiActiveJobs((list) => [...list, job]); } };
+    if (isTeacher || !modules?.length || typeof window === "undefined") return;
+    const hashId = window.location.hash.startsWith("#module-") ? window.location.hash.slice("#module-".length) : null;
+    const today = todayIn();
+    const dated = modules.filter((m) => m.kind === "regular" || m.kind === "baseline");
+    const pick = modules.find((m) => String(m.id) === hashId)
+      || dated.find((m) => m.startDate && m.endDate && m.startDate <= today && today <= m.endDate)
+      || dated.find((m) => m.endDate && m.endDate >= today)
+      || dated[dated.length - 1];
+    setOpenWeekId(pick ? String(pick.id) : "none");
+  }, [isTeacher, modules]);
+  // "#module-<id>" links (from the Home timeline) scroll to that week once the list has loaded.
+  useEffect(() => {
+    if (!modules?.length || typeof window === "undefined" || (!isTeacher && !openWeekId)) return;
+    const id = window.location.hash.slice(1);
+    if (id.startsWith("module-")) document.getElementById(id)?.scrollIntoView({ block: "start" });
+  }, [modules, isTeacher, openWeekId]);
+  const aiProps = { status: aiStatus, activeJobs: aiActiveJobs, onStarted: (job) => queryClient.setQueryData(activeJobsKey, (list) => [...(list || []), job]) };
 
-  // Reads a JSON response; on failure shows the server message and throws so
-  // editor modals stay open. On success, surfaces any `notice` (e.g. a graded
-  // item saved unpublished because it has no outcome tag).
-  const handleResponse = async (res, fallbackError) => {
-    const payload = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      const message = payload?.message || fallbackError;
+  // Sends a change; on failure shows the server message and throws so editor modals stay open.
+  // On success, surfaces any `notice` (e.g. a graded item saved unpublished because it has no
+  // outcome tag).
+  const request = async (path, options, fallbackError) => {
+    let payload;
+    try {
+      payload = await apiFetch(path, options);
+    } catch (err) {
+      const message = err?.status === 0 ? getErrorMessage(err) : err?.body?.message || fallbackError;
       showToast(message, "error");
       throw new Error(message);
     }
@@ -92,6 +119,10 @@ export default function ModulesPage() {
 
   // Module creation
   const [creating, setCreating] = useState(false);
+  // Teachers find a kind of item here (the separate Pages/Assignments/Quizzes/Discussions lists
+  // aren't in their menu); ?type=assignment opens the page filtered.
+  const searchParams = useSearchParams();
+  const [typeFilter, setTypeFilter] = useState(() => (ITEM_FILTERS.includes(searchParams?.get("type")) ? searchParams.get("type") : "all"));
   const [newTitle, setNewTitle] = useState("");
 
   // Add item flow
@@ -101,11 +132,7 @@ export default function ModulesPage() {
   const { explain } = useLanguage();
   const [subHeaderTitle, setSubHeaderTitle] = useState("");
 
-  // Editor modals
-  const [pageModal, setPageModal] = useState({ open: false, moduleId: null, data: null, itemId: null });
-  const [assignmentModal, setAssignmentModal] = useState({ open: false, moduleId: null, data: null, itemId: null });
-  const [quizModal, setQuizModal] = useState({ open: false, moduleId: null, data: null, itemId: null });
-  const [fileModal, setFileModal] = useState({ open: false, moduleId: null });
+  const router = useRouter();
 
   // Delete flow
   const [deleteTarget, setDeleteTarget] = useState({ open: false, module: null, item: null });
@@ -113,27 +140,9 @@ export default function ModulesPage() {
   // ===== Module CRUD =====
   const createModule = async () => {
     if (!newTitle.trim()) return;
-    const res = await fetch(`${SERVER_URL}/courses/${courseId}/modules`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: newTitle.trim() }),
-    });
-    if (!res.ok) {
-      const payload = await res.json().catch(() => ({}));
-      showToast(payload?.message || t("modules.errors.createModule"), "error");
-      return;
-    }
+    try { await request(`/courses/${courseId}/modules`, { method: "POST", json: { title: newTitle.trim() } }, t("modules.errors.createModule")); } catch { return; }
     setNewTitle("");
     setCreating(false);
-    refetch();
-  };
-
-  const handleModuleReorder = async (moduleIds) => {
-    await fetch(`${SERVER_URL}/courses/${courseId}/modules/reorder`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ moduleIds }),
-    });
     refetch();
   };
 
@@ -167,117 +176,15 @@ export default function ModulesPage() {
       return;
     }
 
-    if (selectedItemType === "file") {
-      setFileModal({ open: true, moduleId });
-      setAddingItemFor(null);
-      return;
-    }
-
-    if (selectedItemType === "page") {
-      setPageModal({ open: true, moduleId, data: null, itemId: null });
-      setAddingItemFor(null);
-      return;
-    }
-
-    if (selectedItemType === "assignment") {
-      setAssignmentModal({ open: true, moduleId, data: null, itemId: null, days: null, startDate: moduleRow.startDate || null });
-      setAddingItemFor(null);
-      return;
-    }
-
-    if (selectedItemType === "quiz") {
-      setQuizModal({ open: true, moduleId, data: quizKind ? { kind: quizKind } : null, itemId: null, days: null, startDate: moduleRow.startDate || null });
-      setAddingItemFor(null);
-      return;
-    }
-
-    if (selectedItemType === "discussion") {
-      // Simple discussion creation
-      createSimpleItem(moduleId, "discussion", t("modules.newDiscussion"));
-      return;
-    }
+    // Everything else is written on its own page, with room for it (and a real Back).
+    setAddingItemFor(null);
+    router.push(newItemHref(courseId, moduleId, selectedItemType, selectedItemType === "quiz" ? quizKind : undefined));
   };
 
   const createSubHeader = async (moduleId, title) => {
-    const res = await fetch(`${SERVER_URL}/courses/${courseId}/modules/${moduleId}/items`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ itemType: "sub_header", title }),
-    });
-    try { await handleResponse(res, t("modules.errors.addSubHeader")); } catch { return; }
+    try { await request(`/courses/${courseId}/modules/${moduleId}/items`, { method: "POST", json: { itemType: "sub_header", title } }, t("modules.errors.addSubHeader")); } catch { return; }
     setAddingItemFor(null);
     setSubHeaderTitle("");
-    refetch();
-  };
-
-  const createSimpleItem = async (moduleId, itemType, title) => {
-    const res = await fetch(`${SERVER_URL}/courses/${courseId}/modules/${moduleId}/items`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ itemType, title }),
-    });
-    try { await handleResponse(res, t("modules.errors.addItem")); } catch { return; }
-    setAddingItemFor(null);
-    refetch();
-  };
-
-  // ===== Save handlers for editor modals =====
-  const handlePageSave = async (data) => {
-    let res;
-    if (pageModal.itemId) {
-      // Edit existing
-      res = await fetch(`${SERVER_URL}/courses/${courseId}/modules/${pageModal.moduleId}/items/${pageModal.itemId}/content`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data }),
-      });
-    } else {
-      // Create new
-      res = await fetch(`${SERVER_URL}/courses/${courseId}/modules/${pageModal.moduleId}/items`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ itemType: "page", ...data }),
-      });
-    }
-    await handleResponse(res, t("modules.errors.savePage"));
-    refetch();
-  };
-
-  const handleAssignmentSave = async (data) => {
-    let res;
-    if (assignmentModal.itemId) {
-      res = await fetch(`${SERVER_URL}/courses/${courseId}/modules/${assignmentModal.moduleId}/items/${assignmentModal.itemId}/content`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data }),
-      });
-    } else {
-      res = await fetch(`${SERVER_URL}/courses/${courseId}/modules/${assignmentModal.moduleId}/items`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ itemType: "assignment", ...data }),
-      });
-    }
-    await handleResponse(res, t("modules.errors.saveAssignment"));
-    refetch();
-  };
-
-  const handleQuizSave = async (data) => {
-    let res;
-    if (quizModal.itemId) {
-      res = await fetch(`${SERVER_URL}/courses/${courseId}/modules/${quizModal.moduleId}/items/${quizModal.itemId}/content`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data }),
-      });
-    } else {
-      res = await fetch(`${SERVER_URL}/courses/${courseId}/modules/${quizModal.moduleId}/items`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ itemType: "quiz", ...data }),
-      });
-    }
-    await handleResponse(res, t("modules.errors.saveQuiz"));
     refetch();
   };
 
@@ -286,35 +193,19 @@ export default function ModulesPage() {
     if (item.item_type === "sub_header") {
       const newTitle = prompt(t("modules.editSubHeaderPrompt"), item.title);
       if (newTitle !== null && newTitle.trim()) {
-        const res = await fetch(`${SERVER_URL}/courses/${courseId}/modules/${moduleRow.id}/items/${item.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title: newTitle.trim() }),
-        });
-        try { await handleResponse(res, t("modules.errors.renameSubHeader")); } catch { /* toast shown */ }
+        try {
+          await request(`/courses/${courseId}/modules/${moduleRow.id}/items/${item.id}`, { method: "PATCH", json: { title: newTitle.trim() } }, t("modules.errors.renameSubHeader"));
+        } catch { /* toast shown */ }
         refetch();
       }
       return;
     }
 
-    // For content types, fetch the content data first
-    const contentId = item.content_id;
-    if (!contentId) return;
-
-    if (item.item_type === "page") {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/pages/${contentId}`);
-      const data = await res.json();
-      setPageModal({ open: true, moduleId: moduleRow.id, data, itemId: item.id });
-    } else if (item.item_type === "assignment") {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/assignments/${contentId}`);
-      const data = await res.json();
-      setAssignmentModal({ open: true, moduleId: moduleRow.id, data, itemId: item.id, days: itemDays(item), startDate: moduleRow.startDate || null });
-    } else if (item.item_type === "quiz") {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/quizzes/${contentId}`);
-      const data = await res.json();
-      setQuizModal({ open: true, moduleId: moduleRow.id, data, itemId: item.id, days: itemDays(item), startDate: moduleRow.startDate || null });
+    // Everything else is edited on its own page.
+    if (item.content_id && ["page", "assignment", "quiz", "discussion"].includes(item.item_type)) {
+      router.push(editItemHref(courseId, item.item_type, item.content_id));
     }
-  }, [SERVER_URL, courseId, userEmail, refetch, showToast, t]);
+  }, [courseId, queryClient, refetch, showToast, t]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ===== Delete item =====
   const handleDeleteItem = (moduleRow, item) => {
@@ -323,19 +214,17 @@ export default function ModulesPage() {
 
   const removeFromModule = async () => {
     const { module: m, item } = deleteTarget;
-    const res = await fetch(`${SERVER_URL}/courses/${courseId}/modules/${m.id}/items/${item.id}?mode=remove_from_module`, {
-      method: "DELETE",
-    });
-    try { await handleResponse(res, t("modules.errors.removeItem")); } catch { /* toast shown */ }
+    try {
+      await request(`/courses/${courseId}/modules/${m.id}/items/${item.id}?mode=remove_from_module`, { method: "DELETE" }, t("modules.errors.removeItem"));
+    } catch { /* toast shown */ }
     refetch();
   };
 
   const deletePermanently = async () => {
     const { module: m, item } = deleteTarget;
-    const res = await fetch(`${SERVER_URL}/courses/${courseId}/modules/${m.id}/items/${item.id}?mode=delete_permanently`, {
-      method: "DELETE",
-    });
-    try { await handleResponse(res, t("modules.errors.deleteItem")); } catch { /* toast shown */ }
+    try {
+      await request(`/courses/${courseId}/modules/${m.id}/items/${item.id}?mode=delete_permanently`, { method: "DELETE" }, t("modules.errors.deleteItem"));
+    } catch { /* toast shown */ }
     refetch();
   };
 
@@ -346,19 +235,24 @@ export default function ModulesPage() {
   };
   const selectedExplainer = explain(`items.${selectedItemType}`).entry;
 
+  // The first regular week starts on the course's start date (changed in Settings).
+  const regularOffsets = (modules || []).filter((m) => m.kind === "regular").map((m) => Number(m.week_offset));
+  const firstWeekOffset = regularOffsets.length ? Math.min(...regularOffsets) : null;
   const renderTeacherModule = (moduleRow, dnd = null) => (
     <ModuleCard
       key={moduleRow.id}
       module={moduleRow}
       courseId={courseId}
       isTeacher={isTeacher}
-      SERVER_URL={SERVER_URL}
       onRefetch={refetch}
       onAddItem={handleAddItem}
       onEditItem={handleEditItem}
       onDeleteItem={handleDeleteItem}
       ai={aiProps}
-      dnd={dnd}
+      dnd={typeFilter === "all" ? dnd : null}
+      isFirstWeek={moduleRow.kind === "regular" && Number(moduleRow.week_offset) === firstWeekOffset}
+      itemFilter={typeFilter}
+      weeks={modules || []}
     />
   );
 
@@ -368,33 +262,32 @@ export default function ModulesPage() {
       <div className="p-4 md:p-6 space-y-6">
         <PageHeader help="pages.modules"
           title={t("modules.title")}
-          description={t("modules.description")}
           actions={isTeacher ? (
             <>
             <Link
               href={`/course/${courseId}/ai`}
-              className="flex items-center gap-1.5 text-xs font-semibold text-violet-800 dark:text-violet-200 border border-violet-200 dark:border-violet-800 hover:bg-violet-50 dark:hover:bg-violet-950/30 rounded-lg px-3 py-2 transition-colors"
+              className="flex items-center gap-1.5 text-caption font-semibold text-info-fg border border-info/30 hover:bg-info-soft rounded-lg px-3 py-2 transition-colors"
             >
               <Sparkles className="w-3.5 h-3.5" aria-hidden="true" /> {t("nav.ai")}
               {aiPendingCount > 0 ? (
-                <span className="rounded-full bg-violet-600 text-white text-[10px] font-bold px-1.5 py-0.5" aria-label={tf("modules.waitingForReview", { n: aiPendingCount })}>{aiPendingCount}</span>
+                <span className="rounded-full bg-info text-on-info text-caption font-bold px-1.5 py-0.5" aria-label={tf("modules.waitingForReview", { n: aiPendingCount })}>{aiPendingCount}</span>
               ) : null}
               {aiActiveJobs.length > 0 ? (
-                <span className="text-[10px] font-semibold text-violet-700 dark:text-violet-300">{tf("modules.running", { n: aiActiveJobs.length })}</span>
+                <span className="text-caption font-semibold text-info-fg">{tf("modules.running", { n: aiActiveJobs.length })}</span>
               ) : null}
             </Link>
             <button
               type="button"
               onClick={() => setHelperOpen(true)}
               disabled={!modules || modules.filter((m) => m.kind !== "unassigned").length === 0}
-              className="flex items-center gap-1.5 text-xs font-semibold text-[var(--brand-primary)] border border-slate-200 hover:bg-slate-50 disabled:opacity-40 rounded-lg px-3 py-2 transition-colors"
+              className="flex items-center gap-1.5 text-caption font-semibold text-brand-fg border border-line hover:bg-surface-hover disabled:opacity-40 rounded-lg px-3 py-2 transition-colors"
             >
               {explain("helper").entry?.button || "What should I create?"}
             </button>
             <button
               onClick={() => setCreating((v) => !v)}
               aria-expanded={creating}
-              className="flex items-center gap-1.5 text-xs font-semibold text-white bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] rounded-lg px-3 py-2 transition-colors"
+              className="flex items-center gap-1.5 text-caption font-semibold text-on-brand-strong bg-brand-strong hover:bg-brand-strong/90 rounded-lg px-3 py-2 transition-colors"
             >
               <Plus className="w-3.5 h-3.5" /> {t("modules.addModule")}
             </button>
@@ -404,22 +297,30 @@ export default function ModulesPage() {
 
         {isTeacher ? <AiStatusNote status={aiStatus} /> : null}
 
+        {isTeacher && modules && modules.length > 0 ? (
+          <div className="flex items-center gap-1.5 flex-wrap" role="group" aria-label={t("modules.filterLabel")}>
+            {ITEM_FILTERS.map((key) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setTypeFilter(key)}
+                aria-pressed={typeFilter === key}
+                className={`text-caption font-semibold px-2.5 py-1 rounded-full border ${typeFilter === key ? "bg-brand-strong text-on-brand-strong border-brand-strong" : "border-line text-fg-muted hover:bg-surface-hover"}`}
+              >
+                {key === "all" ? t("modules.filterAll") : t(`modules.filter.${key}`)}
+              </button>
+            ))}
+          </div>
+        ) : null}
+
         {/* Create module form */}
         {creating && (
           <div className="flex flex-wrap items-center gap-2">
-            <input
-              value={newTitle}
-              onChange={(e) => setNewTitle(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") createModule(); }}
-              placeholder={t("modules.newModulePlaceholder")}
-              aria-label={t("modules.newModuleTitle")}
-              className="flex-1 min-w-[12rem] text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[var(--brand-primary)]"
-              autoFocus
-            />
-            <button onClick={createModule} className="text-xs font-semibold text-white bg-[var(--brand-primary)] rounded-lg px-3 py-2">
+            <TextInput value={newTitle} onChange={(e) => setNewTitle(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") createModule(); }} placeholder={t("modules.newModulePlaceholder")} aria-label={t("modules.newModuleTitle")} className="flex-1 min-w-[12rem]" autoFocus />
+            <button onClick={createModule} className="text-caption font-semibold text-on-brand-strong bg-brand-strong rounded-lg px-3 py-2">
               {t("common.create")}
             </button>
-            <button onClick={() => setCreating(false)} className="text-xs text-slate-400 hover:text-slate-600 px-2">
+            <button onClick={() => setCreating(false)} className="text-caption text-fg-subtle hover:text-fg-muted px-2">
               {t("common.cancel")}
             </button>
           </div>
@@ -427,7 +328,7 @@ export default function ModulesPage() {
 
         {/* Loading / Error */}
         {loading && <Loader variant="page" size={56} className="min-h-[30vh]" label={t("modules.loading")} />}
-        {error && <p className="text-sm text-rose-600">{error}</p>}
+        {error && <p className="text-ui text-danger-fg">{error}</p>}
         {!loading && !error && (!modules || modules.length === 0) && (
           <EmptyState
             compact
@@ -440,25 +341,27 @@ export default function ModulesPage() {
         {modules && modules.length > 0 && (
           isTeacher ? (
             <div className="space-y-10">
-              <Suspense fallback={modules.map((moduleRow) => renderTeacherModule(moduleRow))}>
-                <SortableModuleList modules={modules} onReorder={handleModuleReorder} renderModule={renderTeacherModule} />
+              {/* Weeks follow their dates (Week 0, then past, this week, upcoming): a week moves by
+                  changing its date (its ⋯ menu), not by dragging. */}
+              <Suspense fallback={<Loader variant="page" size={48} className="min-h-[20vh]" label={t("modules.loading")} />}>
+                <DragReady>{modules.map((moduleRow) => renderTeacherModule(moduleRow))}</DragReady>
               </Suspense>
             </div>
           ) : (
-            <div className="space-y-10">
-              {modules.map((moduleRow) => (
+            <div className="space-y-6">
+              {openWeekId ? modules.map((moduleRow) => (
                 <ModuleCard
                   key={moduleRow.id}
                   module={moduleRow}
                   courseId={courseId}
                   isTeacher={false}
-                  SERVER_URL={SERVER_URL}
+                  defaultCollapsed={(moduleRow.kind === "regular" || moduleRow.kind === "baseline") && String(moduleRow.id) !== openWeekId}
                   onRefetch={refetch}
                   onAddItem={() => {}}
                   onEditItem={() => {}}
                   onDeleteItem={() => {}}
                 />
-              ))}
+              )) : <Loader variant="page" size={48} className="min-h-[20vh]" label={t("modules.loading")} />}
             </div>
           )
         )}
@@ -466,13 +369,13 @@ export default function ModulesPage() {
         {/* Add Item Drawer (shown inline when a module is selected) */}
         {addingItemFor && (
           <div className="fixed inset-0 z-40 flex items-end sm:items-center justify-center bg-black/30 backdrop-blur-sm">
-            <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full max-w-md shadow-2xl mx-0 sm:mx-4 p-5 animate-in slide-in-from-bottom-4 duration-200">
-              <h3 className="text-sm font-bold text-slate-900 mb-3">
-                {t("modules.addItemTo")} <span className="text-[var(--brand-primary)]">{addingItemFor.title}</span>
+            <div className="bg-surface rounded-t-2xl sm:rounded-2xl w-full max-w-md shadow-2xl mx-0 sm:mx-4 p-5 animate-in slide-in-from-bottom-4 duration-200">
+              <h3 className="text-ui font-bold text-fg mb-3">
+                {t("modules.addItemTo")} <span className="text-brand-fg">{addingItemFor.title}</span>
               </h3>
               <div className="space-y-3">
                 <div>
-                  <p className="block text-xs font-semibold text-slate-600 mb-1.5">{t("modules.itemType")}</p>
+                  <p className="block text-caption font-semibold text-fg-muted mb-1.5">{t("modules.itemType")}</p>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
                     {ITEM_TYPE_OPTIONS.map((opt) => (
                       <div key={opt.value} className="flex items-center gap-1">
@@ -480,10 +383,10 @@ export default function ModulesPage() {
                           type="button"
                           onClick={() => setSelectedItemType(opt.value)}
                           aria-pressed={selectedItemType === opt.value}
-                          className={`flex-1 text-xs font-medium py-2 rounded-lg border transition-colors ${
+                          className={`flex-1 text-caption font-medium py-2 rounded-lg border transition-colors ${
                             selectedItemType === opt.value
-                              ? "border-[var(--brand-primary)] bg-[var(--brand-primary)] text-white"
-                              : "border-slate-200 text-slate-600 hover:border-slate-300"
+                              ? "border-brand-strong bg-brand-strong text-on-brand-strong"
+                              : "border-line text-fg-muted hover:border-line-strong"
                           }`}
                         >
                           {t(`items.${opt.value}`)}
@@ -493,24 +396,16 @@ export default function ModulesPage() {
                     ))}
                   </div>
                   {selectedExplainer ? (
-                    <p className="mt-2 text-xs text-slate-500">
-                      {selectedExplainer.what} <span className="text-slate-400">{selectedExplainer.when}</span>
+                    <p className="mt-2 text-caption text-fg-subtle">
+                      {selectedExplainer.what} <span className="text-fg-subtle">{selectedExplainer.when}</span>
                     </p>
                   ) : null}
                 </div>
 
                 {selectedItemType === "sub_header" && (
                   <div>
-                    <label htmlFor="new-subheader-title" className="block text-xs font-semibold text-slate-600 mb-1.5">{t("modules.subHeaderTitle")}</label>
-                    <input
-                      id="new-subheader-title"
-                      value={subHeaderTitle}
-                      onChange={(e) => setSubHeaderTitle(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter") startItemCreation(); }}
-                      placeholder={t("modules.subHeaderPlaceholder")}
-                      className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[var(--brand-primary)]"
-                      autoFocus
-                    />
+                    <Label htmlFor="new-subheader-title">{t("modules.subHeaderTitle")}</Label>
+                    <TextInput id="new-subheader-title" value={subHeaderTitle} onChange={(e) => setSubHeaderTitle(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") startItemCreation(); }} placeholder={t("modules.subHeaderPlaceholder")} className="w-full" autoFocus />
                   </div>
                 )}
 
@@ -518,13 +413,13 @@ export default function ModulesPage() {
                   <button
                     onClick={startItemCreation}
                     disabled={selectedItemType === "sub_header" && !subHeaderTitle.trim()}
-                    className="flex-1 text-xs font-semibold text-white bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] disabled:opacity-50 rounded-lg py-2.5 transition-colors"
+                    className="flex-1 text-caption font-semibold text-on-brand-strong bg-brand-strong hover:bg-brand-strong/90 disabled:opacity-50 rounded-lg py-2.5 transition-colors"
                   >
                     {t(`modules.addType.${selectedItemType}`)}
                   </button>
                   <button
                     onClick={() => setAddingItemFor(null)}
-                    className="text-xs font-medium text-slate-500 hover:text-slate-700 px-3 py-2.5"
+                    className="text-caption font-medium text-fg-subtle hover:text-fg-muted px-3 py-2.5"
                   >
                     {t("common.cancel")}
                   </button>
@@ -542,43 +437,7 @@ export default function ModulesPage() {
         onChoose={chooseFromHelper}
       />
 
-      {/* ===== Modals ===== */}
-      {pageModal.open && <PageEditorModal
-        key={`page-${pageModal.open}-${pageModal.moduleId}-${pageModal.itemId}`}
-        open={pageModal.open}
-        onClose={() => setPageModal({ open: false, moduleId: null, data: null, itemId: null })}
-        onSave={handlePageSave}
-        initialData={pageModal.data}
-      />}
 
-      {assignmentModal.open && <AssignmentEditorModal
-        key={`assignment-${assignmentModal.open}-${assignmentModal.moduleId}-${assignmentModal.itemId}`}
-        open={assignmentModal.open}
-        onClose={() => setAssignmentModal({ open: false, moduleId: null, data: null, itemId: null })}
-        onSave={handleAssignmentSave}
-        initialData={assignmentModal.data}
-        initialDays={assignmentModal.days}
-        moduleStartDate={assignmentModal.startDate}
-      />}
-
-      {quizModal.open && <QuizEditorModal
-        key={`quiz-${quizModal.open}-${quizModal.moduleId}-${quizModal.itemId}`}
-        open={quizModal.open}
-        onClose={() => setQuizModal({ open: false, moduleId: null, data: null, itemId: null })}
-        onSave={handleQuizSave}
-        initialData={quizModal.data}
-        initialDays={quizModal.days}
-        moduleStartDate={quizModal.startDate}
-      />}
-
-      {fileModal.open && <FileUploadModal
-        open={fileModal.open}
-        onClose={() => setFileModal({ open: false, moduleId: null })}
-        onUpload={() => refetch()}
-        courseId={courseId}
-        moduleId={fileModal.moduleId}
-        SERVER_URL={SERVER_URL}
-      />}
 
       <DeleteItemDialog
         open={deleteTarget.open}

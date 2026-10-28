@@ -1,12 +1,18 @@
 "use client";
 
+import EditorFrame from "./EditorFrame";
 import { useState, useRef } from "react";
-import { X, AlertCircle } from "lucide-react";
+import { useCourse } from "@/context/CourseContext";
+import { useFormDraft } from "@/lib/drafts";
+import useUnsavedChanges from "@/lib/useUnsavedChanges";
+import DraftBanner from "@/components/ui/DraftBanner";
+import { AlertCircle } from "lucide-react";
 import RichTextEditor from "@/components/course/editor/RichTextEditor";
 import AIAssistantWidget from "@/components/course/editor/AIAssistantWidget";
 import { useCourseText } from "@/components/course/useCourseText";
+import { Label, TextInput } from "@/components/form";
 
-export default function PageEditorModal({ open, onClose, onSave, initialData }) {
+export default function PageEditorModal({ asPage = false, open, onClose, onSave, initialData }) {
   const isEdit = Boolean(initialData?.id);
   const { t, tf } = useCourseText();
   const [title, setTitle] = useState(initialData?.title || "");
@@ -15,12 +21,28 @@ export default function PageEditorModal({ open, onClose, onSave, initialData }) 
   const [altWarning, setAltWarning] = useState(null);
   const editorRef = useRef(null);
 
-  const initialContent = initialData?.body_json
+  const { courseId } = useCourse();
+  // A restored draft replaces the editor's starting content (the editor is remounted with it).
+  const [restoredContent, setRestoredContent] = useState(null);
+  const [contentTouched, setContentTouched] = useState(false);
+  const initialContent = restoredContent ?? (initialData?.body_json
     ? (typeof initialData.body_json === "string" ? JSON.parse(initialData.body_json) : initialData.body_json)
-    : initialData?.body_html || initialData?.body || "";
+    : initialData?.body_html || initialData?.body || "");
+
+  // Unsaved changes: kept as a draft on this device, and asked about before leaving.
+  const initialTitle = useRef(initialData?.title || "");
+  const dirty = title !== initialTitle.current || contentTouched;
+  const draft = useFormDraft(`editor:${courseId}:page:${initialData?.id ?? "new"}`, { title, json: editorData.json }, dirty);
+  const restoreDraft = () => {
+    const v = draft.restore();
+    if (!v) return;
+    setTitle(v.title ?? "");
+    if (v.json) { setRestoredContent(v.json); setContentTouched(true); }
+  };
+  const onEditorUpdate = (data) => { setEditorData(data); setContentTouched(true); };
 
   const handleSave = async () => {
-    if (!title.trim()) return;
+    if (!title.trim()) return false;
     setAltWarning(null);
 
     if (editorRef.current) {
@@ -39,39 +61,33 @@ export default function PageEditorModal({ open, onClose, onSave, initialData }) 
         bodyJson: editorData.json ? JSON.stringify(editorData.json) : null,
         bodyHtml: editorData.html || "",
       });
+      draft.clear();
+      initialTitle.current = title;
+      setContentTouched(false);
       onClose();
+      return true;
     } catch {
       // Save failed: the parent already reported the error; keep the editor open.
+      return false;
     } finally {
       setSaving(false);
     }
   };
+  const { confirmLeave, dialog } = useUnsavedChanges({ dirty, onSave: handleSave });
+  const close = () => confirmLeave(() => { draft.clear(); onClose(); });
 
-  if (!open) return null;
+  if (!open && !asPage) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 backdrop-blur-sm overflow-auto py-8">
-      <div className="bg-white rounded-2xl w-full max-w-3xl shadow-2xl mx-4 animate-in fade-in slide-in-from-bottom-2 duration-200">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-          <h2 className="text-base font-bold text-slate-900">
-            {isEdit ? t("editors.editPage") : t("editors.newPage")}
-          </h2>
-          <button aria-label={t("common.close")} onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
+    <>
+    <EditorFrame asPage={asPage} title={isEdit ? t("editors.editPage") : t("editors.newPage")} onClose={close} maxWidth="max-w-3xl">
 
         {/* Body */}
         <div className="px-6 py-4 space-y-4">
+          <DraftBanner draft={draft.saved} onRestore={restoreDraft} onDiscard={draft.discard} />
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5">{t("common.title")}</label>
-            <input aria-label={t("common.title")}
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder={t("editors.pageTitle")}
-              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[var(--brand-primary)] transition-colors"
-            />
+            <Label>{t("common.title")}</Label>
+            <TextInput aria-label={t("common.title")} value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("editors.pageTitle")} className="w-full" />
           </div>
 
           {/* Teacher AI Assistant Widget */}
@@ -82,37 +98,39 @@ export default function PageEditorModal({ open, onClose, onSave, initialData }) 
           />
 
           {altWarning && (
-            <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl text-xs font-semibold">
-              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+            <div className="flex items-center gap-2 p-3 bg-warning-soft border border-warning/30 text-warning-fg rounded-xl text-caption font-semibold">
+              <AlertCircle className="w-4 h-4 text-warning-fg shrink-0" />
               <span>{altWarning}</span>
             </div>
           )}
 
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5">{t("editors.content")}</label>
+            <Label>{t("editors.content")}</Label>
             <RichTextEditor
+              key={restoredContent ? "restored" : "initial"}
               ref={editorRef}
               content={initialContent}
-              onUpdate={setEditorData}
+              onUpdate={onEditorUpdate}
               minHeight="300px"
             />
           </div>
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-100">
-          <button onClick={onClose} className="text-xs font-semibold text-slate-600 hover:text-slate-800 px-4 py-2 rounded-lg hover:bg-slate-50">
+        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-line">
+          <button onClick={close} className="text-caption font-semibold text-fg-muted hover:text-fg px-4 py-2 rounded-lg hover:bg-surface-hover">
             {t("common.cancel")}
           </button>
           <button
             onClick={handleSave}
             disabled={saving || !title.trim()}
-            className="text-xs font-semibold text-white bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] disabled:opacity-50 rounded-lg px-4 py-2 transition-colors"
+            className="text-caption font-semibold text-on-brand-strong bg-brand-strong hover:bg-brand-strong/90 disabled:opacity-50 rounded-lg px-4 py-2 transition-colors"
           >
             {saving ? t("common.saving") : isEdit ? t("editors.saveChanges") : t("editors.createPage")}
           </button>
         </div>
-      </div>
-    </div>
+    </EditorFrame>
+    {dialog}
+    </>
   );
 }

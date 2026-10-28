@@ -44,13 +44,13 @@ export default function Header() {
     >
       <div className="min-w-0">
         <h1
-          className="text-[16px] sm:text-[18px] md:text-[20px] font-black leading-tight tracking-tight truncate"
+          className="text-item sm:text-section md:text-section font-extrabold leading-tight tracking-tight truncate"
           style={{ color: titleColor }}
         >
           {title}
         </h1>
         {subtitle ? (
-          <p className="text-[11px] mt-0.5 hidden sm:block" style={{ color: subColor }}>
+          <p className="text-caption mt-0.5 hidden sm:block" style={{ color: subColor }}>
             {subtitle}
           </p>
         ) : null}

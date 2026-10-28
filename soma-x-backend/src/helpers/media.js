@@ -74,9 +74,11 @@ export function cookieValue(req, name) {
 }
 
 // Same host on another port is the same site, so SameSite=Lax cookies reach the API from the app.
+// Every device may be shared: the cookie is dropped when the browser closes (the token inside
+// still expires).
 export async function setMediaCookie(res, userId) {
     res.cookie(MEDIA_COOKIE, await mediaToken(userId), {
-        httpOnly: true, sameSite: 'lax', path: '/', maxAge: MEDIA_TTL_MS,
+        httpOnly: true, sameSite: 'lax', path: '/',
         secure: process.env.MEDIA_COOKIE_SECURE === 'true',
     });
 }
@@ -97,18 +99,45 @@ async function activeUser(id) {
 
 const memberCache = new Map();
 /** Course files: members of the course (learners only once it has opened), and admins. */
-async function canOpenCourseFiles(user, courseId) {
-    if (user.role === 'admin') return true;
+async function courseMembership(user, courseId) {
     const key = `${user.id}:${courseId}`;
     const hit = memberCache.get(key);
-    if (hit && hit.at > Date.now() - CACHE_MS) return hit.ok;
+    if (hit && hit.at > Date.now() - CACHE_MS) return hit.value;
     const row = await localDb.prepare(`
         SELECT e.role, c.lifecycle FROM enrollments e JOIN courses c ON c.id = e.course_id
         WHERE e.course_id = ? AND LOWER(e.user_email) = LOWER(?) AND e.status = 'active'
     `).get(courseId, user.email);
-    const ok = !!row && (['teacher', 'ta'].includes(row.role) || row.lifecycle !== 'draft');
-    memberCache.set(key, { at: Date.now(), ok });
-    return ok;
+    const value = !row ? null : { staff: ['teacher', 'ta'].includes(row.role), open: row.lifecycle !== 'draft' };
+    memberCache.set(key, { at: Date.now(), value });
+    return value;
+}
+
+/**
+ * Staff open every file of their course. Learners and observers open a file when the course
+ * shows them its Files section, or when the file is used in something they can see: a published
+ * page in a published week, or a published file item in a published week.
+ */
+async function canOpenCourseFiles(user, courseId, filename) {
+    if (user.role === 'admin') return true;
+    const member = await courseMembership(user, courseId);
+    if (!member) return false;
+    if (member.staff) return true;
+    if (!member.open) return false;
+    const filesShown = await localDb.prepare(
+        "SELECT 1 FROM course_nav_items WHERE course_id = ? AND nav_key = 'files' AND visible_to_students = 1",
+    ).get(courseId);
+    if (filesShown) return true;
+    const used = await localDb.prepare(`
+        SELECT 1 FROM course_files f
+        WHERE f.course_id = ? AND f.filename = ? AND (
+            EXISTS (SELECT 1 FROM page_file_references r JOIN course_pages p ON p.id = r.page_id
+                    JOIN modules pm ON pm.id = p.module_id
+                    WHERE r.file_id = f.id AND p.published = 1 AND pm.published = 1)
+            OR EXISTS (SELECT 1 FROM module_items mi JOIN modules m ON m.id = mi.module_id
+                       WHERE mi.item_type = 'file' AND mi.content_id = f.id AND mi.published = 1
+                         AND m.published = 1 AND m.course_id = f.course_id))
+    `).get(courseId, filename);
+    return !!used;
 }
 
 /**
@@ -133,9 +162,10 @@ export function requireMediaAccess({ courseFiles = false, allowGuests = false } 
                 return res.status(401).json({ message: 'Sign up or log in to open this', code: 'LOGIN_REQUIRED' });
             }
             if (courseFiles) {
-                const courseId = decodeURIComponent(String(req.path || '').split('/').filter(Boolean)[0] || '');
-                if (!courseId || !await canOpenCourseFiles(user, courseId)) {
-                    return res.status(403).json({ message: "This file belongs to a course you're not in" });
+                const [first, ...rest] = String(req.path || '').split('/').filter(Boolean).map((part) => decodeURIComponent(part));
+                const courseId = first || '';
+                if (!courseId || !await canOpenCourseFiles(user, courseId, rest.join('/'))) {
+                    return res.status(403).json({ message: "This file belongs to a subject you're not in" });
                 }
             }
             req.mediaUser = user;

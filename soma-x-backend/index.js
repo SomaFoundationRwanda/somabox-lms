@@ -6,9 +6,12 @@ import { createApp } from './src/app.js';
 import { recoverJobs } from './src/services/ai/jobs.js';
 import { scheduleUsagePurge } from './src/services/analytics.services.js';
 import { scheduleSync } from './src/services/sync/outbox.js';
+import { prepareFirstRun } from './src/services/setup.services.js';
 
 // Schema and migrations must be applied before any request is served.
 await initSchemas();
+// A box without an admin prints a one-time setup code here (see services/setup.services.js).
+await prepareFirstRun();
 // AI jobs that were running when the server stopped can't resume: mark them failed.
 await recoverJobs();
 scheduleUsagePurge();
@@ -26,7 +29,7 @@ app.listen(config.port)
   .on('listening', () => console.log(`Server running on port ${config.port}`))
   .on('error', err => {
       if (err.code === 'EADDRINUSE') {
-          console.error(`Port ${config.port} is already in use`);
+          console.error(`Port ${config.port} is already in use. Pick another with BACKEND_PORT in the repo's .env (or PORT in soma-x-backend/.env).`);
           process.exit(1);
       } else {
           throw err;

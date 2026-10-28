@@ -2,70 +2,79 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCourse } from "@/context/CourseContext";
+import { apiFetch, getErrorMessage } from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
+import ItemStatusActions from "@/components/course/modules/ItemStatusActions";
 import { PageHeader, Section, List } from "@/components/layout";
 import { useItemOpened } from "@/lib/usage";
 import { useCourseText } from "@/components/course/useCourseText";
 import Loader from "@/components/ui/Loader";
+import { Field, TextInput } from "@/components/form";
+import { useDraftText } from "@/lib/drafts";
 
 export default function DiscussionThreadPage() {
   const { courseId, discussionId } = useParams();
   useItemOpened("discussion", discussionId, courseId);
-  const { SERVER_URL, userEmail, isTeacher } = useCourse();
-  const { t, tf } = useCourseText();
-  const [discussion, setDiscussion] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [reply, setReply] = useState("");
+  const { userEmail, isTeacher, canTakePart } = useCourse();
+  const { t, tf, tpts } = useCourseText();
+  const queryClient = useQueryClient();
+  const threadKey = queryKeys.courseSection(courseId, `discussions/${discussionId}`);
+  const thread = useQuery({
+    queryKey: threadKey,
+    queryFn: () => apiFetch(`/courses/${courseId}/discussions/${discussionId}`),
+    enabled: !!courseId && !!discussionId && !!userEmail,
+  });
+  const discussion = thread.data || null;
+  const loading = thread.isPending;
+  // A reply being written is kept on this device until it's posted.
+  const [reply, setReply, clearReplyDraft] = useDraftText(courseId && discussionId ? `reply:${courseId}:${discussionId}` : null);
   const [pointsInput, setPointsInput] = useState("");
   const [savingGraded, setSavingGraded] = useState(false);
   const [gradedError, setGradedError] = useState("");
+  const [replyError, setReplyError] = useState("");
 
-  const load = async () => {
-    setLoading(true);
-    const res = await fetch(`${SERVER_URL}/courses/${courseId}/discussions/${discussionId}`);
-    const payload = await res.json();
-    if (res.ok) {
-      setDiscussion(payload);
-      setPointsInput(payload.points_possible ? String(payload.points_possible) : "");
-    }
-    setLoading(false);
-  };
+  useEffect(() => {
+    if (discussion) setPointsInput(discussion.points_possible ? String(discussion.points_possible) : "");
+  }, [discussion?.points_possible]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const load = () => queryClient.invalidateQueries({ queryKey: threadKey });
 
   const toggleGraded = async () => {
     setSavingGraded(true);
     setGradedError("");
-    const res = await fetch(`${SERVER_URL}/courses/${courseId}/discussions/${discussionId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        graded: !discussion.graded,
-        pointsPossible: Number(pointsInput) || 0,
-      }),
-    });
-    if (!res.ok) {
-      const payload = await res.json().catch(() => ({}));
-      setGradedError(payload.message || t("discussions.updateFailed"));
+    try {
+      await apiFetch(`/courses/${courseId}/discussions/${discussionId}`, {
+        method: "PATCH",
+        json: { graded: !discussion.graded, pointsPossible: Number(pointsInput) || 0 },
+      });
+      // Grading a discussion adds or removes its assignment in the weeks and gradebook.
+      queryClient.invalidateQueries({ queryKey: queryKeys.course(courseId) });
+    } catch (err) {
+      setGradedError(err?.body?.message || t("discussions.updateFailed"));
+      load();
     }
     setSavingGraded(false);
-    load();
   };
-
-  useEffect(() => { if (SERVER_URL && userEmail) load(); }, [SERVER_URL, userEmail]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const postReply = async () => {
     if (!reply.trim()) return;
-    await fetch(`${SERVER_URL}/courses/${courseId}/discussions/${discussionId}/replies`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ body: reply.trim() }),
-    });
-    setReply("");
+    setReplyError("");
+    try {
+      await apiFetch(`/courses/${courseId}/discussions/${discussionId}/replies`, { method: "POST", json: { body: reply.trim() } });
+      clearReplyDraft();
+      queryClient.invalidateQueries({ queryKey: queryKeys.assignmentSummary });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard });
+    } catch (err) {
+      setReplyError(getErrorMessage(err, t));
+    }
     load();
   };
 
   if (loading) return <Loader variant="page" />;
-  if (!discussion) return <div className="p-6"><p className="text-sm text-rose-600">{t("discussions.notFound")}</p></div>;
+  if (!discussion) return <div className="p-6"><p className="text-ui text-fg-muted">{t("discussions.notFound")}</p></div>;
 
   return (
     <div>
@@ -73,62 +82,59 @@ export default function DiscussionThreadPage() {
       <div className="p-4 md:p-6 space-y-6 max-w-2xl">
         <PageHeader help="items.discussion"
           title={discussion.title}
-          meta={discussion.graded ? <span className="text-[10px] font-bold uppercase text-teal-600 bg-teal-50 rounded-full px-1.5 py-0.5">{t("quizKinds.graded")}</span> : null}
+          actions={isTeacher ? <ItemStatusActions type="discussion" contentId={discussion.id} published={Boolean(discussion.published)} title={discussion.title} /> : null}
+          meta={discussion.graded ? <span className="text-caption font-bold text-brand-fg bg-brand-soft rounded-full px-1.5 py-0.5">{t("quizKinds.graded")}</span> : null}
         >
-          {discussion.body ? <p className="text-sm text-slate-700 dark:text-slate-300 mt-2 whitespace-pre-wrap">{discussion.body}</p> : null}
+          {discussion.body ? <p className="text-ui text-fg-muted mt-2 whitespace-pre-wrap">{discussion.body}</p> : null}
         </PageHeader>
 
         {isTeacher ? (
           <Section title={t("discussions.grading")}>
-            <div className="flex flex-wrap items-center gap-2">
+            {!discussion.graded ? <p className="mb-2 text-caption text-fg-subtle">{t("discussions.gradeHint")}</p> : null}
+            <div className="flex flex-wrap items-end gap-2">
               {!discussion.graded ? (
-                <input
-                  type="number"
-                  min="0"
-                  value={pointsInput}
-                  onChange={(e) => setPointsInput(e.target.value)}
-                  placeholder={t("editors.pointsPossible")}
-                  aria-label={t("editors.pointsPossible")}
-                  className="w-28 text-sm border border-slate-200 rounded-lg px-2 py-1.5 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]"
-                />
+                <Field id="discussion-points" label={t("editors.pointsPossible")}>
+                  <TextInput id="discussion-points" size="sm" type="number" min="1" value={pointsInput} onChange={(e) => setPointsInput(e.target.value)} className="w-28" />
+                </Field>
               ) : null}
               <button
                 onClick={toggleGraded}
                 disabled={savingGraded}
-                className="text-xs font-semibold text-white bg-[var(--brand-primary)] rounded-lg px-3 py-1.5 disabled:opacity-50"
+                className="text-caption font-semibold text-on-brand-strong bg-brand-strong rounded-lg px-3 py-1.5 disabled:opacity-50"
               >
                 {discussion.graded ? t("discussions.removeGrading") : t("discussions.markGraded")}
               </button>
               {discussion.graded ? (
-                <span className="text-xs text-slate-500">
-                  {tf("common.points", { n: discussion.points_possible })} · {t("discussions.syncs")}
+                <span className="text-caption text-fg-subtle">
+                  {tpts(discussion.points_possible)} · {t("discussions.syncs")}
                 </span>
               ) : null}
             </div>
             {gradedError ? (
-              <p className="mt-2 text-xs font-semibold text-rose-600">{gradedError}</p>
+              <p className="mt-2 text-caption font-semibold text-danger-fg">{gradedError}</p>
             ) : null}
           </Section>
         ) : null}
 
         <Section title={tf("discussions.repliesCount", { n: discussion.replies.length })}>
           {discussion.replies.length === 0 ? (
-            <p className="text-sm text-slate-500">{t("discussions.noReplies")}</p>
+            <p className="text-ui text-fg-subtle">{t("discussions.noReplies")}</p>
           ) : (
             <List label={t("discussions.replies")}>
               {discussion.replies.map((r) => (
                 <li key={r.id} className="px-3 py-3">
-                  <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">{r.authorName}</p>
-                  <p className="text-sm text-slate-600 dark:text-slate-300 mt-1 whitespace-pre-wrap">{r.body}</p>
+                  <p className="text-caption font-semibold text-fg-muted">{r.authorName}</p>
+                  <p className="text-ui text-fg-muted mt-1 whitespace-pre-wrap">{r.body}</p>
                 </li>
               ))}
             </List>
           )}
 
-          <div className="mt-3 flex items-center gap-2">
-            <input value={reply} onChange={(e) => setReply(e.target.value)} placeholder={t("discussions.replyPlaceholder")} aria-label={t("discussions.replyPlaceholder")} className="flex-1 min-w-0 text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-[var(--brand-primary)]" />
-            <button onClick={postReply} className="text-xs font-semibold text-white bg-[var(--brand-primary)] rounded-lg px-3 py-2">{t("discussions.reply")}</button>
-          </div>
+          {!canTakePart ? null : <div className="mt-3 flex items-center gap-2">
+            <TextInput value={reply} onChange={(e) => setReply(e.target.value)} placeholder={t("discussions.replyPlaceholder")} aria-label={t("discussions.replyPlaceholder")} className="flex-1 min-w-0" />
+            <button onClick={postReply} className="text-caption font-semibold text-on-brand-strong bg-brand-strong rounded-lg px-3 py-2">{t("discussions.reply")}</button>
+          </div>}
+          {replyError ? <p role="alert" className="mt-2 text-caption font-semibold text-danger-fg">{replyError}</p> : null}
         </Section>
       </div>
     </div>

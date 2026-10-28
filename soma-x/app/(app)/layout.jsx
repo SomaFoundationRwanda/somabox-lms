@@ -7,12 +7,18 @@ import { GuestBanner, GuestHeader, GuestNav } from "@/components/guest/GuestShel
 import DataContext from "@/context/DataContext";
 import { useToast } from "@/context/ToastContext";
 import { useLanguage } from "@/context/LanguageContext";
-import { loginUrlWithNext } from "@/lib/session";
+import { accountPage, loginUrlWithNext } from "@/lib/session";
 import { startSubmissionQueue } from "@/lib/submissionQueue";
+import { useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/queryKeys";
 import { useContext, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Loader from "@/components/ui/Loader";
 import { startRouteLoading } from "@/components/global/RouteLoader";
+import { useTrackPages } from "@/lib/inAppHistory";
+import CelebrationHost from "@/components/celebrate/CelebrationHost";
+import { useWelcomeBack } from "@/lib/learnerCelebrations";
+import { usePersistedCache } from "@/lib/persistCache";
 
 // Routes in this group that need an account. Everything else here is for exploring as a
 // guest: /home, /library, /discover-courses and the content browser (/[...slug]).
@@ -22,7 +28,7 @@ const isExploreRoute = (pathname = "") =>
 
 // While the session is being checked: the SOMABOX logo loader, centred on the screen.
 const Spinner = () => (
-  <div className="min-h-screen w-full bg-[#EFEFEF] dark:bg-slate-950">
+  <div className="min-h-screen w-full bg-surface-sunken">
     <Loader variant="page" className="min-h-screen" />
   </div>
 );
@@ -30,12 +36,25 @@ const Spinner = () => (
 export default function AppLayout({ children }) {
   const { authLoading, authenticated, user, SERVER_URL } = useContext(DataContext);
   const { showToast } = useToast();
+  const queryClient = useQueryClient();
   const { t } = useLanguage();
   // The submission queue lives across language changes; read the current t when it reports.
   const tRef = useRef(t);
   tRef.current = t;
   const router = useRouter();
   const pathname = usePathname();
+  // For the course pages' Back button (lib/inAppHistory.js).
+  useTrackPages();
+  // Learners: a welcome when they come back after a while.
+  useWelcomeBack();
+  // What was loaded before is shown at once after a reload, then checked with the box.
+  usePersistedCache(authenticated && !authLoading ? user?.id : null);
+  // The app's own files kept on the device (public/sw.js). Not in development: it would keep
+  // stale builds around while the code changes.
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "production" || !("serviceWorker" in navigator)) return;
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  }, []);
   const explore = isExploreRoute(pathname);
   const guest = !authLoading && !authenticated;
 
@@ -47,13 +66,15 @@ export default function AppLayout({ children }) {
     }
   }, [guest, explore, router]);
 
-  // Accounts flagged by the server (e.g. the default admin) must change their password
-  // first. The backend enforces this too; this just avoids a screen full of errors.
+  // Accounts with a temporary password (made or reset by an admin) must change it first. The
+  // backend enforces this too; this just avoids a screen full of errors. Teachers manage their
+  // account in Teacher Settings, so they're sent there from /account too.
   useEffect(() => {
     if (authLoading || !authenticated) return;
-    if (user?.mustChangePassword && pathname !== "/account") {
+    const target = accountPage(user?.role);
+    if ((user?.mustChangePassword || pathname === "/account") && pathname !== target) {
       startRouteLoading();
-      router.replace("/account");
+      router.replace(target);
     }
   }, [authLoading, authenticated, user, pathname, router]);
 
@@ -64,10 +85,16 @@ export default function AppLayout({ children }) {
   useEffect(() => {
     if (!learnerId) return undefined;
     return startSubmissionQueue(SERVER_URL, learnerId, {
-      onSent: () => showToast(tRef.current("shell.toasts.workSent"), "success"),
+      onSent: (entry) => {
+        showToast(tRef.current("shell.toasts.workSent"), "success");
+        // The work is on the box now: what shows it (the assignment, grades, what's due) reloads.
+        queryClient.invalidateQueries({ queryKey: queryKeys.courseSection(entry.courseId, `assignments/${entry.assignmentId}`) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.assignmentSummary });
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard });
+      },
       onRefused: (_entry, message) => showToast(message, "error", 8000),
     });
-  }, [learnerId, SERVER_URL, showToast]);
+  }, [learnerId, SERVER_URL, showToast, queryClient]);
 
   if (authLoading || (guest && !explore)) return <Spinner />;
 
@@ -102,6 +129,7 @@ export default function AppLayout({ children }) {
         </div>
       </div>
       <MandatoryProfileSetupModal />
+      <CelebrationHost />
     </GuestGateProvider>
   );
 }

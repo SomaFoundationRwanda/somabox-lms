@@ -13,9 +13,15 @@ import { startTestServer, USERS, PASSWORD } from "./helpers.js";
 const POLICY = {
   "POST /auth/login": "public",
   "POST /auth/register": "public",
+  "GET /auth/classes": "public",
+  "GET /setup/status": "public",
+  "POST /setup": "public",
   "GET /auth/me": "any",
   "GET /auth/verify-auth": "any",
   "POST /auth/logout": "any",
+  "POST /auth/logout-others": "any",
+  "POST /live/ticket": "any",
+  "GET /live": "public", // the single-use ticket is the authentication
   "POST /auth/media-session": "any",
   "GET /analytics/branding": "public",
   "GET /ai/health": "any",
@@ -39,6 +45,7 @@ const POLICY = {
   "POST /notifications": "admin",
   "PATCH /notifications/:id/read": "any",
   "POST /notifications/read-all": "any",
+  "DELETE /notifications/:id": "any",
   "POST /notifications/send": "admin",
 
   "GET /sol/spaced/pending": "any",
@@ -110,11 +117,13 @@ const POLICY = {
   // Course routes that aren't about one existing course the caller belongs to.
   "POST /courses": "staff",
   "GET /courses/mine": "any",
+  "GET /courses/mine/learners": "staff",
   "GET /courses/public": "public", // catalogue guests may browse
   "GET /courses/all": "admin",
+  "PUT /courses/:id/teacher": "admin",
   "POST /courses/:id/join": "any",
+  "POST /courses/join-by-code": "any",
   "POST /courses/:id/enroll": "any",
-  "POST /courses/:id/accept-invite": "any",
 
   "GET /calendar/me": "any",
   "GET /calendar/me.ics": "any",
@@ -272,14 +281,14 @@ test("course items can't be edited through another course", async () => {
 });
 
 test("register creates a scholar with a session, never another role", async () => {
-  const res = await ctx.api("POST", "/auth/register", { body: { email: "New.Learner@test.local", password: "secret123", fullName: "New Learner", role: "admin" } });
+  const res = await ctx.api("POST", "/auth/register", { body: { email: "New.Learner@test.local", password: "secret123", fullName: "New Learner", role: "admin", className: "S1B" } });
   assert.equal(res.status, 201, JSON.stringify(res.body));
   assert.equal(res.body.user.role, "scholar");
   const me = await ctx.api("GET", "/auth/me", { token: res.body.token });
   assert.equal(me.status, 200);
   assert.equal(me.body.user.email, "new.learner@test.local");
 
-  const dup = await ctx.api("POST", "/auth/register", { body: { email: "new.learner@test.local", password: "secret123" } });
+  const dup = await ctx.api("POST", "/auth/register", { body: { email: "new.learner@test.local", password: "secret123", className: "S1B" } });
   assert.equal(dup.status, 409);
 });
 
@@ -308,9 +317,11 @@ test("user records never include password hashes", async () => {
 
 test("role changes and deactivation apply to existing sessions immediately", async () => {
   const email = "promote.me@test.local";
-  const created = await ctx.api("POST", "/users", { token: ctx.tokens.admin, body: { email, password: PASSWORD, role: "scholar" } });
+  const created = await ctx.api("POST", "/users", { token: ctx.tokens.admin, body: { email, password: "temporary1", role: "scholar" } });
   assert.equal(created.status, 201);
   const user = await ctx.db.prepare("SELECT id FROM users WHERE email = ?").get(email);
+  const first = await ctx.login(email, "temporary1");
+  await ctx.api("PATCH", "/users/profile/password", { token: first, body: { currentPassword: "temporary1", newPassword: PASSWORD } });
   const token = await ctx.login(email);
 
   // Promotion revokes sessions so the user logs in again with the new role.
@@ -326,6 +337,109 @@ test("role changes and deactivation apply to existing sessions immediately", asy
   assert.equal((await ctx.api("PATCH", `/users/${user.id}/status`, { token: ctx.tokens.admin, body: { isActive: false } })).status, 200);
   assert.equal((await ctx.api("GET", "/auth/me", { token: token2 })).status, 401);
   assert.equal((await ctx.api("POST", "/auth/login", { body: { email, password: PASSWORD } })).status, 403);
+  // Without the password, a deactivated account looks like any wrong sign-in.
+  const guess = await ctx.api("POST", "/auth/login", { body: { email, password: "not-the-password" } });
+  assert.equal(guess.status, 401);
+  assert.equal(guess.body.message, "Invalid email, learner code, or password");
+});
+
+test("four failed sign-ins a minute per account, then 429 even with the right password", async () => {
+  const { resetLoginThrottle } = await import("../src/helpers/login-throttle.js");
+  resetLoginThrottle();
+  const email = USERS.otherTeacher.email;
+  for (let i = 0; i < 4; i++) {
+    assert.equal((await ctx.api("POST", "/auth/login", { body: { email, password: "wrong" } })).status, 401);
+  }
+  const blocked = await ctx.api("POST", "/auth/login", { body: { email: email.toUpperCase(), password: PASSWORD } });
+  assert.equal(blocked.status, 429);
+  assert.equal(blocked.body.code, "TOO_MANY_ATTEMPTS");
+  assert.ok(blocked.body.retryAfter > 0 && blocked.body.retryAfter <= 60);
+  // An unknown account gives the same answers, and other accounts aren't affected.
+  for (let i = 0; i < 4; i++) {
+    assert.equal((await ctx.api("POST", "/auth/login", { body: { email: "nobody@test.local", password: "wrong" } })).status, 401);
+  }
+  assert.equal((await ctx.api("POST", "/auth/login", { body: { email: "nobody@test.local", password: "wrong" } })).status, 429);
+  await ctx.login(USERS.student.email);
+  resetLoginThrottle();
+  await ctx.login(email);
+});
+
+test("one device address is limited across accounts, and a correct sign-in clears the account", async () => {
+  const { resetLoginThrottle, loginRetryAfter, recordLoginFailure } = await import("../src/helpers/login-throttle.js");
+  resetLoginThrottle();
+  const now = Date.now();
+  for (let i = 0; i < 20; i++) recordLoginFailure(`person${i}@x`, "10.0.0.9", now);
+  assert.ok(loginRetryAfter("someone.new@x", "10.0.0.9", now) > 0);
+  assert.equal(loginRetryAfter("someone.new@x", "10.0.0.10", now), 0);
+  assert.equal(loginRetryAfter("someone.new@x", "10.0.0.9", now + 60 * 1000), 0, "the window is one minute");
+  resetLoginThrottle();
+
+  const email = USERS.otherTeacher.email;
+  for (let i = 0; i < 3; i++) await ctx.api("POST", "/auth/login", { body: { email, password: "wrong" } });
+  await ctx.login(email);
+  for (let i = 0; i < 3; i++) await ctx.api("POST", "/auth/login", { body: { email, password: "wrong" } });
+  await ctx.login(email);
+  resetLoginThrottle();
+});
+
+test("every session ends after 30 idle minutes and 12 hours at most, without anyone ticking a box", async () => {
+  const login = await ctx.api("POST", "/auth/login", { body: { email: USERS.otherTeacher.email, password: PASSWORD } });
+  assert.equal(login.status, 200);
+  // The media cookie is dropped when the browser closes.
+  const cookie = (await fetch(`${ctx.baseUrl}/auth/login`, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: USERS.otherTeacher.email, password: PASSWORD }),
+  })).headers.get("set-cookie") || "";
+  assert.match(cookie, /somabox|media/i);
+  assert.doesNotMatch(cookie, /Max-Age/i);
+  const active = await ctx.login(USERS.otherTeacher.email);
+  const row = await ctx.db.prepare("SELECT expires_at, created_at FROM sessions ORDER BY id DESC LIMIT 1").get();
+  assert.ok(new Date(row.expires_at) - new Date(row.created_at) <= 12 * 60 * 60 * 1000 + 5000, "sessions last 12 hours at most");
+
+  // 29 idle minutes: still signed in (and the request counts as activity).
+  await ctx.db.prepare("UPDATE sessions SET last_seen_at = NOW() - INTERVAL '29 minutes' WHERE user_id = (SELECT id FROM users WHERE email = ?)").run(USERS.otherTeacher.email);
+  assert.equal((await ctx.api("GET", "/auth/me", { token: active })).status, 200);
+  // 31 idle minutes: signed out.
+  await ctx.db.prepare("UPDATE sessions SET last_seen_at = NOW() - INTERVAL '31 minutes' WHERE user_id = (SELECT id FROM users WHERE email = ?)").run(USERS.otherTeacher.email);
+  assert.equal((await ctx.api("GET", "/auth/me", { token: login.body.token })).status, 401);
+  assert.equal((await ctx.api("GET", "/auth/me", { token: active })).status, 401);
+});
+
+test("an admin-created account must change its temporary password; its profile is the person's own", async () => {
+  const email = "new.teacher@test.local";
+  const created = await ctx.api("POST", "/users", {
+    token: ctx.tokens.admin,
+    body: { email, password: "temporary1", role: "teacher", fullName: "New Teacher", gender: "male", disabilityStatus: "visual" },
+  });
+  assert.equal(created.status, 201);
+  const login = await ctx.api("POST", "/auth/login", { body: { email, password: "temporary1" } });
+  assert.equal(login.body.user.must_change_password, true);
+  assert.equal((await ctx.api("GET", "/courses/mine", { token: login.body.token })).body.code, "PASSWORD_CHANGE_REQUIRED");
+  const profile = await ctx.api("GET", "/users/profile/view", { token: login.body.token });
+  // Teachers get no first-visit questions (the admin enters their classes and subjects), and
+  // the admin still can't answer the personal ones for them.
+  assert.equal(profile.body.isProfileComplete, true, "teachers aren't asked first-visit questions");
+  assert.notEqual(profile.body.disability_status, "visual", "the admin can't answer for them");
+});
+
+test("signing out everywhere else keeps only this session", async () => {
+  const email = USERS.otherTeacher.email;
+  const here = await ctx.login(email);
+  const elsewhere = await ctx.login(email);
+  assert.equal((await ctx.api("POST", "/auth/logout-others", { token: here })).status, 200);
+  assert.equal((await ctx.api("GET", "/auth/me", { token: elsewhere })).status, 401);
+  assert.equal((await ctx.api("GET", "/auth/me", { token: here })).status, 200);
+});
+
+test("gender is male or female: 'prefer not to say' or 'other' isn't an answer, and the reminder follows the profile form", async () => {
+  const token = ctx.tokens.outsider;
+  const finish = (gender) => ctx.api("PATCH", "/users/profile/update", { token, body: { gender, disabilityStatus: "none", gradeLevel: "Primary 4", completeProfile: true } });
+  for (const gender of ["prefer_not_to_say", "non_binary", "other", ""]) assert.equal((await finish(gender)).status, 400, gender);
+  const before = await ctx.api("GET", "/notifications", { token });
+  assert.equal(before.body.isProfileIncomplete, true);
+  assert.equal((await finish("female")).status, 200);
+  assert.equal((await ctx.api("GET", "/users/profile/view", { token })).body.isProfileComplete, true);
+  assert.equal((await ctx.api("GET", "/notifications", { token })).body.isProfileIncomplete, false);
 });
 
 test("admins cannot lock themselves out", async () => {
@@ -374,6 +488,13 @@ test("notifications are scoped to their owner and links stay inside the app", as
 
   const outsiderList = await ctx.api("GET", `/notifications?userEmail=${encodeURIComponent(USERS.student.email)}`, { token: ctx.tokens.outsider });
   assert.ok(outsiderList.body.notifications.every((n) => n.user_email === USERS.outsider.email));
+
+  // Only the owner can dismiss it, and then it's gone.
+  await ctx.api("DELETE", `/notifications/${note.id}`, { token: ctx.tokens.outsider });
+  assert.ok(await ctx.db.prepare("SELECT 1 FROM user_notifications WHERE id = ?").get(note.id));
+  const dismissed = await ctx.api("DELETE", `/notifications/${note.id}`, { token: ctx.tokens.student });
+  assert.equal(dismissed.status, 200);
+  assert.equal(await ctx.db.prepare("SELECT 1 FROM user_notifications WHERE id = ?").get(note.id), undefined);
 });
 
 test("scholars only see their own analytics; teachers only learners they teach", async () => {

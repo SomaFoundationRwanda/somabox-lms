@@ -2,6 +2,12 @@
 // an email change must be carried into every one of them, or the person's history is orphaned.
 import { localDb } from './db-manager.js';
 
+// Learners created without an email (by their teacher) get an internal address from their
+// learner code, because people are still identified by email across the database. ".invalid"
+// can never be a real address (RFC 2606). It's never shown or sent anywhere.
+export const LEARNER_EMAIL_DOMAIN = 'learner.invalid';
+export const isInternalEmail = (email) => String(email || '').toLowerCase().endsWith(`@${LEARNER_EMAIL_DOMAIN}`);
+
 // Columns that hold a person's email without "email" in their name.
 const ACTOR_COLUMNS = ['changed_by', 'graded_by', 'granted_by', 'requested_by', 'created_by', 'decided_by', 'baseline_decided_by', 'added_by', 'updated_by'];
 
@@ -37,4 +43,23 @@ export async function releaseEmail(email) {
     for (const [table, column] of [['enrollments', 'user_email'], ['user_notifications', 'user_email'], ['collaboration_members', 'user_email']]) {
         await localDb.prepare(`DELETE FROM ${table} WHERE LOWER(${column}) = LOWER(?)`).run(email);
     }
+}
+
+/**
+ * Courses that would have no active teacher left without these people (emails): those where
+ * every active teacher with an active account is one of them. [{ id, title }]
+ */
+export async function coursesOnlyTaughtBy(emails) {
+    const list = emails.map((e) => String(e).toLowerCase());
+    if (!list.length) return [];
+    const marks = list.map(() => '?').join(', ');
+    return localDb.prepare(`
+        SELECT c.id, c.title FROM courses c
+        WHERE EXISTS (SELECT 1 FROM enrollments e WHERE e.course_id = c.id AND e.role = 'teacher' AND e.status = 'active' AND LOWER(e.user_email) IN (${marks}))
+          AND NOT EXISTS (
+            SELECT 1 FROM enrollments e JOIN users u ON LOWER(u.email) = LOWER(e.user_email) AND u.is_active = 1
+            WHERE e.course_id = c.id AND e.role = 'teacher' AND e.status = 'active' AND LOWER(e.user_email) NOT IN (${marks})
+          )
+        ORDER BY c.title
+    `).all(...list, ...list);
 }

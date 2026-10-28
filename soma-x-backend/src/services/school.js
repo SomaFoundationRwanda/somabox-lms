@@ -5,7 +5,7 @@ import { initialsOf } from '../db/migrations/0020_school_identity.js';
 export { initialsOf };
 
 export const DEFAULT_PRIMARY = '#203A3A';
-export const DEFAULT_SECONDARY = '#0D9488';
+export const DEFAULT_SECONDARY = '#0F766E';
 
 export async function getSchool() {
     await localDb.prepare('INSERT INTO unit_branding (id) VALUES (1) ON CONFLICT (id) DO NOTHING').run();
@@ -63,6 +63,26 @@ export async function assignLearnerCode(userId) {
         }
         await localDb.prepare('UPDATE unit_branding SET next_learner_number = ? WHERE id = 1').run(n);
         await localDb.prepare('UPDATE users SET learner_code = ? WHERE id = ?').run(code, userId);
+        return code;
+    })();
+}
+
+/** Gives a teacher their staff code ("GSK-T001") if they have none; returns it. */
+export async function assignStaffCode(userId) {
+    return localDb.transaction(async () => {
+        const user = await localDb.prepare('SELECT staff_code FROM users WHERE id = ?').get(userId);
+        if (!user || user.staff_code) return user?.staff_code ?? null;
+        const school = await localDb.prepare('SELECT school_name, school_code, next_staff_number FROM unit_branding WHERE id = 1 FOR UPDATE').get();
+        const prefix = school?.school_code || initialsOf(school?.school_name);
+        let n = Number(school?.next_staff_number || 1);
+        let code;
+        for (;;) {
+            code = `${prefix}-T${String(n).padStart(3, '0')}`;
+            n += 1;
+            if (!await localDb.prepare('SELECT 1 FROM users WHERE UPPER(staff_code) = UPPER(?)').get(code)) break;
+        }
+        await localDb.prepare('UPDATE unit_branding SET next_staff_number = ? WHERE id = 1').run(n);
+        await localDb.prepare('UPDATE users SET staff_code = ? WHERE id = ?').run(code, userId);
         return code;
     })();
 }

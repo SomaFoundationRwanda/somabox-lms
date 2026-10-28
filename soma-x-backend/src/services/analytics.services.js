@@ -463,7 +463,7 @@ router.get('/branding', async (req, res) => {
         if (!branding) {
             await localDb.prepare(`
                 INSERT INTO unit_branding (id, school_name, logo_url, primary_color, secondary_color, me_sync_url)
-                VALUES (1, 'SOMABOX Partner School', '', '#203A3A', '#0D9488', '')
+                VALUES (1, 'SOMABOX Partner School', '', '#203A3A', '#0F766E', '')
                 ON CONFLICT (id) DO NOTHING
             `).run();
             branding = await localDb.prepare(`SELECT * FROM unit_branding WHERE id = 1`).get();
@@ -485,7 +485,7 @@ router.post('/branding', requireAdmin, async (req, res) => {
         const schoolName = String(req.body.schoolName || 'SOMABOX Partner School').trim();
         const logoUrl = String(req.body.logoUrl || '').trim();
         const primaryColor = String(req.body.primaryColor || '#203A3A').trim();
-        const secondaryColor = String(req.body.secondaryColor || '#0D9488').trim();
+        const secondaryColor = String(req.body.secondaryColor || '#0F766E').trim();
         const meSyncUrl = String(req.body.meSyncUrl || '').trim();
 
         await localDb.prepare(`

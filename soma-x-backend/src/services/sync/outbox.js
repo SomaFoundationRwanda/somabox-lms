@@ -14,39 +14,84 @@ export const DEFAULT_SCOPE = {
   outcomeResults: true,
   events: true,
   attendance: true,
-  people: "pseudonymous", // "none" | "pseudonymous" | "full"
+  people: "pseudonymous", // "pseudonymous" | "full"
   submissionText: false,
 };
+
+// The learning record the foundation needs: always sent, whatever the admin chooses (lessons,
+// every result including baselines, and how people use the box). The admin still chooses names
+// and emails (people), attendance and written work (submissionText). Migration 0040.
+export const REQUIRED_SCOPE = { courses: true, enrollments: true, grades: true, outcomeResults: true, events: true };
 
 // Which scope switch each synced table falls under.
 const CATEGORY = {
   courses: "courses",
   outcomes: "courses",
+  modules: "courses",
+  module_items: "courses",
+  assignments: "courses",
+  quizzes: "courses",
+  course_pages: "courses",
+  discussions: "courses",
+  item_outcomes: "courses",
   enrollments: "enrollments",
   assignment_submissions: "grades",
   submission_scores: "grades",
   grade_audit_log: "grades",
   quiz_attempts: "grades",
+  student_outcome_baselines: "grades",
+  diagnostic_results: "grades",
+  longitudinal_progress: "grades",
   outcome_results: "outcomeResults",
   usage_events: "events",
+  module_item_progress: "events",
+  page_views: "events",
+  discussion_replies: "events",
   attendance_sessions: "attendance",
   attendance_records: "attendance",
   users: "people",
 };
+
+// Never synced: files and videos (course_files, books, cloud content, a page's file references)
+// stay on the box. Lesson pages go without their body, which can embed them.
+export const NEVER_SYNCED = ["course_files", "page_file_references", "books", "cloud_content", "content_items"];
+const DROPPED_COLUMNS = { course_pages: ["body", "body_json", "body_html"] };
 
 // Columns holding an email address, per table. Outside "full" people mode they're replaced by
 // the person's sync_id, so the cloud can join records without learning who anyone is.
 const EMAIL_COLUMNS = {
   courses: ["created_by_teacher_email"],
   enrollments: ["user_email"],
-  assignment_submissions: ["scholar_email", "graded_by_teacher_email"],
+  // submitted_by: the group member who handed group work in for the others.
+  assignment_submissions: ["scholar_email", "graded_by_teacher_email", "submitted_by"],
   grade_audit_log: ["scholar_email", "changed_by"],
   submission_scores: ["graded_by"],
   attendance_sessions: ["created_by"],
   attendance_records: ["marked_by"],
+  modules: ["created_by_teacher_email"],
+  assignments: ["created_by_teacher_email"],
+  quizzes: ["created_by_teacher_email"],
+  course_pages: ["created_by_teacher_email"],
+  discussions: ["created_by_teacher_email"],
+  student_outcome_baselines: ["scholar_email"],
+  diagnostic_results: ["scholar_email"],
+  longitudinal_progress: ["scholar_email"],
+  module_item_progress: ["user_email"],
+  page_views: ["user_email"],
+  discussion_replies: ["author_email"],
 };
-const TEXT_COLUMNS = { assignment_submissions: ["body", "feedback"] };
-const PSEUDONYMOUS_USER_FIELDS = ["id", "sync_id", "role", "grade_level", "is_active", "created_at"];
+const TEXT_COLUMNS = { assignment_submissions: ["body", "feedback"], discussion_replies: ["body"] };
+// What the cloud learns about a person outside "full" mode: no name, email or phone, but the
+// school-issued learner code and the profile answers the foundation reports on (share of girls,
+// rural learners, learners with a disability, languages...). profile_completed_at tells real
+// answers apart from the old column defaults ("prefer_not_to_say", "Not Specified", urban, none).
+const PSEUDONYMOUS_USER_FIELDS = [
+  "id", "sync_id", "role", "grade_level", "is_active", "created_at",
+  "learner_code", "gender", "disability_status", "is_rural", "region_province", "region_district",
+  "preferred_language", "profile_completed_at", "profile_deferred", "annex_classes",
+  // Teachers: their staff code and the classes and subjects the admin gave them.
+  "staff_code", "teacher_classes", "teacher_subjects",
+];
 
 const BATCH_SIZE = () => Math.max(1, Number(process.env.SYNC_BATCH_SIZE) || 200);
 const MAX_BATCHES = 50;
@@ -59,7 +104,9 @@ export async function getSetting(key, fallback) {
 
 export async function syncScope() {
   const stored = await getSetting("sync_scope", {});
-  return { ...DEFAULT_SCOPE, ...(stored && typeof stored === "object" ? stored : {}) };
+  const scope = { ...DEFAULT_SCOPE, ...(stored && typeof stored === "object" ? stored : {}), ...REQUIRED_SCOPE };
+  if (scope.people === "none") scope.people = "pseudonymous";
+  return scope;
 }
 
 export async function boxId() {
@@ -72,9 +119,11 @@ export async function saveSyncScope(changes, actorEmail) {
   for (const [key, value] of Object.entries(changes || {})) {
     if (!(key in DEFAULT_SCOPE)) throw Object.assign(new Error(`Unknown sync setting: ${key}`), { status: 400 });
     if (key === "people") {
-      if (!["none", "pseudonymous", "full"].includes(value)) throw Object.assign(new Error("people must be none, pseudonymous or full"), { status: 400 });
+      if (!["pseudonymous", "full"].includes(value)) throw Object.assign(new Error("people must be pseudonymous or full: results always say whose they are, at least by an anonymous ID"), { status: 400 });
     } else if (typeof value !== "boolean") {
       throw Object.assign(new Error(`${key} must be true or false`), { status: 400 });
+    } else if (key in REQUIRED_SCOPE && value !== true) {
+      throw Object.assign(new Error(`${key} is always sent`), { status: 400, code: "REQUIRED" });
     }
     next[key] = value;
   }
@@ -92,10 +141,14 @@ export async function saveSyncScope(changes, actorEmail) {
 export async function toCloudRecord(row, { scope, box, personRef }) {
   const category = CATEGORY[row.entity];
   if (!category) return null;
+  // Old usage events are deleted on the box to save space (retention), not because they were
+  // wrong: the cloud keeps them.
+  if (row.entity === "usage_events" && row.op === "delete") return null;
   if (category === "people" ? scope.people === "none" : !scope[category]) return null;
 
   let data = { ...row.payload };
   delete data.password_hash;
+  for (const col of DROPPED_COLUMNS[row.entity] || []) delete data[col];
   if (row.entity === "users" && scope.people !== "full") {
     data = Object.fromEntries(PSEUDONYMOUS_USER_FIELDS.filter((k) => k in data).map((k) => [k, data[k]]));
   }

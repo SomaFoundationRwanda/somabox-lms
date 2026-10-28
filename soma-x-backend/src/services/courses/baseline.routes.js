@@ -13,7 +13,7 @@ const router = express.Router();
 router.get("/:id/baseline", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     const auth = await requireEnrolled(req, res, courseId);
     if (!auth) return;
     const state = await getBaselineState(courseId);
@@ -43,7 +43,7 @@ async function ensureBaselineModule(courseId, actorEmail) {
 router.post("/:id/baseline/generate", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     const auth = await requireTeacher(req, res, courseId);
     if (!auth) return;
 
@@ -97,13 +97,13 @@ router.post("/:id/baseline/generate", async (req, res) => {
 router.post("/:id/baseline/approve", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     const auth = await requireTeacher(req, res, courseId);
     if (!auth) return;
 
     const state = await getBaselineState(courseId);
     if (!state.canApprove) {
-      return res.status(422).json({ message: `The baseline isn't ready: ${state.problems.join("; ")}`, problems: state.problems });
+      return res.status(422).json({ message: `The baseline isn't ready: ${state.problems.join("; ")}`, problems: state.problems, problemCodes: state.problemCodes });
     }
     await localDb.transaction(async () => {
       // A baseline is taken once, before teaching; it's visible to learners once the course opens.
@@ -125,7 +125,7 @@ router.post("/:id/baseline/approve", async (req, res) => {
 router.post("/:id/baseline/skip", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     const auth = await requireTeacher(req, res, courseId);
     if (!auth) return;
 
@@ -147,9 +147,9 @@ router.post("/:id/baseline/reset", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
     const course = await courseExists(courseId);
-    if (!course) return res.status(404).json({ message: "Course not found" });
+    if (!course) return res.status(404).json({ message: "Subject not found" });
     if (!await requireTeacher(req, res, courseId)) return;
-    if (course.lifecycle !== "draft") return res.status(400).json({ message: "The baseline decision can't change after the course opens" });
+    if (course.lifecycle !== "draft") return res.status(400).json({ message: "The baseline decision can't change after the subject opens" });
     await localDb.prepare(`
       UPDATE courses SET baseline_status = 'pending', baseline_skip_reason = NULL, baseline_decided_by = NULL, baseline_decided_at = NULL
       WHERE id = ?

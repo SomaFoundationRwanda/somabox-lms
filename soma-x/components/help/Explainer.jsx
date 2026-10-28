@@ -68,7 +68,7 @@ export default function Explainer({ k, variant = "link", label, className = "", 
         aria-expanded={open}
         aria-controls={panelId}
         aria-label={variant === "icon" ? `${buttonLabel}: ${entry.title}` : undefined}
-        className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--brand-secondary)] hover:text-[#0b7c72] focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-300 rounded"
+        className="inline-flex items-center gap-1 text-caption font-semibold text-brand-fg hover:text-brand-fg focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 rounded"
       >
         <HelpCircle className="w-3.5 h-3.5" aria-hidden="true" />
         {variant === "icon" ? null : <span>{buttonLabel}</span>}
@@ -78,27 +78,27 @@ export default function Explainer({ k, variant = "link", label, className = "", 
           id={panelId}
           role="dialog"
           aria-label={entry.title}
-          className={`absolute z-30 top-full mt-1.5 w-72 max-w-[85vw] rounded-xl border border-slate-200 bg-white p-3 text-left shadow-lg dark:border-slate-700 dark:bg-slate-900 ${align === "right" ? "right-0" : "left-0"}`}
+          className={`absolute z-30 top-full mt-1.5 w-72 max-w-[85vw] rounded-xl border border-line bg-surface p-3 text-left shadow-lg ${align === "right" ? "right-0" : "left-0"}`}
         >
           <span className="flex items-start justify-between gap-2">
-            <span className="text-sm font-bold text-slate-900 dark:text-white">{entry.title}</span>
-            <button type="button" onClick={() => setOpen(false)} aria-label={ui.close || "Close"} className="text-slate-400 hover:text-slate-600">
+            <span className="text-ui font-bold text-fg">{entry.title}</span>
+            <button type="button" onClick={() => setOpen(false)} aria-label={ui.close || "Close"} className="text-fg-subtle hover:text-fg-muted">
               <X className="w-3.5 h-3.5" />
             </button>
           </span>
-          <span className="mt-1 block text-xs leading-relaxed text-slate-600 dark:text-slate-300">{entry.what}</span>
+          <span className="mt-1 block text-caption leading-relaxed text-fg-muted">{entry.what}</span>
           {entry.when ? (
-            <span className="mt-2 block text-xs leading-relaxed text-slate-600 dark:text-slate-300">
-              <strong className="text-slate-800 dark:text-slate-100">{ui.useItWhen || "Use it when"}:</strong> {entry.when}
+            <span className="mt-2 block text-caption leading-relaxed text-fg-muted">
+              <strong className="text-fg">{ui.useItWhen || "Use it when"}:</strong> {entry.when}
             </span>
           ) : null}
           {entry.mistake ? (
-            <span className="mt-2 block rounded-lg bg-amber-50 px-2 py-1.5 text-xs leading-relaxed text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+            <span className="mt-2 block rounded-lg bg-warning-soft px-2 py-1.5 text-caption leading-relaxed text-warning-fg">
               <strong>{ui.commonMistake || "Common mistake"}:</strong> {entry.mistake}
             </span>
           ) : null}
           {isFallback ? (
-            <span className="mt-2 block text-[10px] italic text-slate-400">{ui.shownInEnglish || "Not translated yet: shown in English"}</span>
+            <span className="mt-2 block text-caption italic text-fg-subtle">{ui.shownInEnglish || "Not translated yet: shown in English"}</span>
           ) : null}
         </span>
       ) : null}

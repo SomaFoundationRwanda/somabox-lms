@@ -16,6 +16,7 @@ import { useSchool } from "@/context/SchoolContext";
 import { authLinks, useGuestGate } from "@/components/guest/GuestGate";
 import { rememberNext } from "@/lib/session";
 import { fill } from "@/lib/fill";
+import { apiFetch } from "@/lib/api";
 
 const PREVIEWABLE = new Set(["video", "audio", "book", "pdf", "document", "epub"]);
 
@@ -32,7 +33,6 @@ export const formatPreviewTime = (seconds) => {
  * ok is false. `starting` is true while the box is asked.
  */
 export function useGuestPreview() {
-    const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL;
     const { authenticated } = useContext(DataContext);
     const { school, loaded } = useSchool();
     const { requireAccount } = useGuestGate();
@@ -51,16 +51,14 @@ export function useGuestPreview() {
         busy.current = true;
         setStarting(true);
         try {
-            const res = await fetch(`${SERVER_URL}/content/preview`, {
-                method: "POST",
-                credentials: "include", // keeps the visitor cookie the box uses to count previews
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ path }),
-            });
-            const data = await res.json().catch(() => null);
-            if (!res.ok) {
+            // The visitor cookie the box uses to count previews travels with it (credentials).
+            let data;
+            try {
+                data = await apiFetch("/content/preview", { method: "POST", json: { path }, allowUnauthenticated: true });
+            } catch (err) {
+                if (err?.status === 0) throw err;
                 // PREVIEW_LIMIT / PREVIEW_ENDED / PREVIEW_OFF: the sign-up prompt, with the box's words.
-                requireAccount(next, { message: data?.message || t("guest.previewFailed") });
+                requireAccount(next, { message: err?.body?.message || t("guest.previewFailed") });
                 return { ok: false, preview: null };
             }
             if (data?.signedIn) return { ok: true, preview: null };
@@ -77,7 +75,7 @@ export function useGuestPreview() {
             busy.current = false;
             setStarting(false);
         }
-    }, [SERVER_URL, authenticated, loaded, school.guestPreview.enabled, school.guestPreview.seconds, requireAccount, t]);
+    }, [authenticated, loaded, school.guestPreview.enabled, school.guestPreview.seconds, requireAccount, t]);
 
     return { open, starting };
 }
@@ -130,14 +128,14 @@ export function PreviewChip({ left, next, reading = false, tone = "dark" }) {
     const links = authLinks(next);
     const dark = tone === "dark";
     return (
-        <div className={`flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-1.5 text-[12px] font-semibold ${dark ? "bg-amber-400 text-slate-950" : "bg-amber-50 text-amber-950 border-b border-amber-200"}`}>
+        <div className={`flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-1.5 text-caption font-semibold ${dark ? "bg-warning text-fg" : "bg-warning-soft text-warning-fg border-b border-warning/30"}`}>
             <Clock className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
             <span role="timer" aria-live="off" className="tabular-nums">
                 {fill(t("guest.previewChip"), { time: formatPreviewTime(left) })}
             </span>
             <span aria-hidden="true">·</span>
             <a href={links.signup} onClick={() => rememberNext(next)}
-                className="font-bold underline underline-offset-2 hover:no-underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900">
+                className="font-bold underline underline-offset-2 hover:no-underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fg">
                 {t(reading ? "guest.previewSignUpRead" : "guest.previewSignUpWatch")}
             </a>
         </div>
@@ -153,24 +151,24 @@ export function PreviewEndedPanel({ next, reading = false }) {
     const remember = () => rememberNext(next);
 
     return (
-        <div className="absolute inset-0 z-30 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md">
+        <div className="absolute inset-0 z-30 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
             <div role="alertdialog" aria-modal="false" aria-labelledby="preview-ended-title" aria-describedby="preview-ended-why"
-                className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-200 p-6 sm:p-8 text-center">
-                <div className="w-14 h-14 rounded-2xl bg-teal-50 text-[var(--brand-primary)] flex items-center justify-center mx-auto mb-4">
+                className="w-full max-w-md bg-surface-raised rounded-2xl shadow-2xl border border-line p-6 sm:p-8 text-center">
+                <div className="w-14 h-14 rounded-2xl bg-brand-soft text-brand-fg flex items-center justify-center mx-auto mb-4">
                     <LockKeyhole className="w-7 h-7" aria-hidden="true" />
                 </div>
-                <h2 id="preview-ended-title" className="text-xl font-bold text-slate-900 leading-snug">
+                <h2 id="preview-ended-title" className="text-section font-bold text-fg leading-snug">
                     {t(reading ? "guest.previewEndedRead" : "guest.previewEndedWatch")}
                 </h2>
-                <p id="preview-ended-why" className="text-sm text-slate-600 mt-2">{t("guest.gateWhy")}</p>
-                <p className="text-xs text-slate-500 mt-1">{t("guest.gateReturn")}</p>
+                <p id="preview-ended-why" className="text-ui text-fg-muted mt-2">{t("guest.gateWhy")}</p>
+                <p className="text-caption text-fg-subtle mt-1">{t("guest.gateReturn")}</p>
                 <div className="mt-6 flex flex-col gap-2.5">
                     <a ref={signUpRef} href={links.signup} onClick={remember}
-                        className="w-full h-11 rounded-xl bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] text-white text-[15px] font-bold flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--brand-secondary)]">
+                        className="w-full h-11 rounded-xl bg-brand-strong hover:bg-brand-strong/90 text-on-brand-strong text-item font-bold flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-brand">
                         {t("guest.signUp")}
                     </a>
                     <a href={links.login} onClick={remember}
-                        className="w-full h-11 rounded-xl border-2 border-slate-300 hover:border-slate-400 text-slate-800 text-[15px] font-bold flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--brand-secondary)]">
+                        className="w-full h-11 rounded-xl border-2 border-line-strong hover:border-line-strong text-fg text-item font-bold flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-brand">
                         {t("guest.haveAccount")}
                     </a>
                 </div>

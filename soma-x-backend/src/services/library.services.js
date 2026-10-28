@@ -17,6 +17,7 @@ import { getCatalog, invalidateCatalog } from './explore/catalog.js';
 import { guestMayOpen, limitGuestRange } from './explore/preview.js';
 import { recordContentOpen } from './explore/usage.js';
 import { cloudFetch, cloudFiles, downloadTo, forgetCloudFiles, isCurrent, rememberCloudFile } from './sync/cloud-content.js';
+import { publish } from '../helpers/live.js';
 
 const router = express.Router();
 const requireAdmin = requireRole('admin');
@@ -112,6 +113,7 @@ router.post('/download', requireAdmin, async (req, res) => {
             await syncExploreIndex({ root: 'library' });
             for (const d of done) if (d.pathKey && d.title) await setTitle(d.pathKey, d.title);
             downloadStatus = 'finished';
+            publish({ kind: 'catalogue' }, { everyone: true });
         } catch (err) {
             console.error('Download failed:', err);
             downloadStatus = 'failed';

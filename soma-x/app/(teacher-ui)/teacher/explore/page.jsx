@@ -1,10 +1,14 @@
 "use client"
-import { useContext, useEffect, useMemo, useState } from "react"
+import { useContext, useMemo, useState } from "react"
 import Link from "next/link"
 import DataContext from "@/context/DataContext"
 import { useLanguage } from "@/context/LanguageContext"
 import { folderTitle, serverAsset } from "@/components/explore/FolderCard"
 import Loader from "@/components/ui/Loader";
+import { useQuery } from "@tanstack/react-query"
+import { apiFetch } from "@/lib/api"
+import { queryKeys } from "@/lib/queryKeys"
+import { TextInput } from "@/components/form"
 
 const CATEGORY_IMAGES = {
   math: "/images/math.webp",
@@ -58,8 +62,8 @@ function BookCover({ book, SERVER_URL }) {
   const [failed, setFailed] = useState(false)
   if (failed || !book.cover) {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-slate-200 dark:bg-slate-700 px-2">
-        <span className="text-xs text-slate-600 dark:text-slate-300 text-center leading-snug">{book.name}</span>
+      <div className="w-full h-full flex items-center justify-center bg-line px-2">
+        <span className="text-caption text-fg-muted text-center leading-snug">{book.name}</span>
       </div>
     )
   }
@@ -78,34 +82,14 @@ export default function TeacherExplorePage() {
   const { SERVER_URL, mainCategories } = useContext(DataContext)
   const { t } = useLanguage()
 
-  const [books, setBooks] = useState([])
-  const [booksError, setBooksError] = useState("")
+  // The box's books, kept with the rest of the catalogue (same copy as the Library pages).
+  const library = useQuery({ queryKey: queryKeys.libraryBooks, queryFn: () => apiFetch("/library/books") })
+  const books = Array.isArray(library.data) ? library.data : library.data?.books || []
+  const booksError = library.isError ? (library.error?.body?.message || t("explore.teacher.booksFailed")) : ""
+  const loading = library.isPending
   const [search, setSearch] = useState("")
-  const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("categories")
 
-  useEffect(() => {
-    if (!SERVER_URL) return
-    const load = async () => {
-      try {
-        const res = await fetch(`${SERVER_URL}/library/books`)
-        if (res.ok) {
-          const data = await res.json()
-          setBooks(Array.isArray(data) ? data : data?.books || [])
-        } else {
-          let message = ""
-          try { message = (await res.json())?.message || "" } catch { /* not JSON */ }
-          setBooksError(message || t("explore.teacher.booksFailed"))
-        }
-      } catch (err) {
-        console.error(err)
-        setBooksError(t("explore.teacher.booksFailed"))
-      } finally {
-        setLoading(false)
-      }
-    }
-    load()
-  }, [SERVER_URL, t])
 
   const query = search.trim().toLowerCase()
   const filteredBooks = books.filter((b) => !query || String(b.name || "").toLowerCase().includes(query))
@@ -122,19 +106,19 @@ export default function TeacherExplorePage() {
 
   return (
     <div>
-      <h1 className="text-xl font-semibold text-slate-800 dark:text-white mb-2">{t("explore.teacher.title")}</h1>
-      <p className="text-sm text-slate-600 dark:text-slate-400 mb-5">{t("explore.teacher.subtitle")}</p>
+      <h1 className="text-section font-semibold text-fg mb-2">{t("explore.teacher.title")}</h1>
+      <p className="text-ui text-fg-muted mb-5">{t("explore.teacher.subtitle")}</p>
 
-      <input
-        type="text"
+      <TextInput
+        type="search"
         placeholder={activeTab === "categories" ? t("explore.teacher.searchExplore") : t("explore.teacher.searchBooks")}
         aria-label={activeTab === "categories" ? t("explore.teacher.searchExplore") : t("explore.teacher.searchBooks")}
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        className="w-full max-w-sm text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 outline-none focus:border-[var(--brand-secondary)] bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 mb-5"
+        className="max-w-sm mb-5"
       />
 
-      <div className="flex gap-1 mb-6 bg-slate-100 dark:bg-slate-800 rounded-lg p-1 w-fit" role="tablist">
+      <div className="flex gap-1 mb-6 bg-surface-sunken rounded-lg p-1 w-fit" role="tablist">
         {tabs.map((tab) => (
           <button
             key={tab.key}
@@ -142,10 +126,10 @@ export default function TeacherExplorePage() {
             role="tab"
             aria-selected={activeTab === tab.key}
             onClick={() => { setActiveTab(tab.key); setSearch("") }}
-            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+            className={`px-4 py-1.5 rounded-md text-ui font-medium transition-all ${
               activeTab === tab.key
-                ? "bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-sm"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                ? "bg-surface text-fg shadow-sm"
+                : "text-fg-muted hover:text-fg-muted"
             }`}
           >
             {tab.label}
@@ -157,7 +141,7 @@ export default function TeacherExplorePage() {
         mainCategories == null ? (
           <Loader variant="page" label={t("explore.teacher.loading")} />
         ) : filteredEntries.length === 0 ? (
-          <p className="text-sm text-slate-600">{query ? t("explore.teacher.noMatches") : t("explore.emptyRoot")}</p>
+          <p className="text-ui text-fg-muted">{query ? t("explore.teacher.noMatches") : t("explore.emptyRoot")}</p>
         ) : (
           <div className="flex flex-wrap gap-4">
             {filteredEntries.map((entry) => (
@@ -166,9 +150,9 @@ export default function TeacherExplorePage() {
                 href={entry.href}
                 target={entry.external ? "_blank" : undefined}
                 rel={entry.external ? "noopener noreferrer" : undefined}
-                className="w-44 border border-slate-200 dark:border-slate-700/50 rounded-xl overflow-hidden bg-white dark:bg-[#0f1318] shadow-sm hover:shadow-md transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]"
+                className="w-44 border border-line rounded-xl overflow-hidden bg-surface shadow-sm hover:shadow-md transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
               >
-                <div className="w-full h-28 bg-slate-100 dark:bg-slate-800 relative flex items-center justify-center">
+                <div className="w-full h-28 bg-surface-sunken relative flex items-center justify-center">
                   {entry.external ? (
                     <img src={entry.image} alt="" className="w-12 h-12 object-contain" />
                   ) : (
@@ -176,8 +160,8 @@ export default function TeacherExplorePage() {
                   )}
                 </div>
                 <div className="p-3">
-                  <p className="text-xs font-semibold text-slate-700 dark:text-slate-200 line-clamp-2 mb-1">{entry.title}</p>
-                  <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-1">
+                  <p className="text-caption font-semibold text-fg-muted line-clamp-2 mb-1">{entry.title}</p>
+                  <p className="text-caption text-fg-muted line-clamp-1">
                     {entry.section}
                     {entry.count != null ? ` · ${entry.count === 1 ? t("explore.oneFile") : `${entry.count} ${t("explore.files")}`}` : ""}
                   </p>
@@ -192,22 +176,22 @@ export default function TeacherExplorePage() {
         loading ? (
           <Loader variant="page" label={t("explore.teacher.loading")} />
         ) : booksError ? (
-          <p className="text-sm text-red-700" role="alert">{booksError}</p>
+          <p className="text-ui text-danger-fg" role="alert">{booksError}</p>
         ) : filteredBooks.length === 0 ? (
-          <p className="text-sm text-slate-600">{t("explore.teacher.noBooks")}</p>
+          <p className="text-ui text-fg-muted">{t("explore.teacher.noBooks")}</p>
         ) : (
           <div className="flex flex-wrap gap-4">
             {filteredBooks.map((book) => (
-              <div key={book.id} className="w-36 border border-slate-200 dark:border-slate-700/50 rounded-xl overflow-hidden bg-white dark:bg-[#0f1318] shadow-sm">
-                <div className="w-full h-44 bg-slate-100 dark:bg-slate-800 relative">
+              <div key={book.id} className="w-36 border border-line rounded-xl overflow-hidden bg-surface shadow-sm">
+                <div className="w-full h-44 bg-surface-sunken relative">
                   <BookCover book={book} SERVER_URL={SERVER_URL} />
                 </div>
                 <div className="p-2.5">
-                  <p className="text-xs font-semibold text-slate-700 dark:text-slate-200 line-clamp-2 mb-2">{book.name}</p>
-                  {book.ext && <p className="text-[10px] font-bold uppercase text-slate-600 mb-2">{String(book.ext).replace(/^\./, "")}</p>}
+                  <p className="text-caption font-semibold text-fg-muted line-clamp-2 mb-2">{book.name}</p>
+                  {book.ext && <p className="text-caption font-bold text-fg-muted mb-2">{String(book.ext).replace(/^\./, "")}</p>}
                   <Link
                     href={`/library?book=${encodeURIComponent(book.id)}`}
-                    className="inline-flex items-center gap-1 text-xs text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600 rounded-full px-2 py-1 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                    className="inline-flex items-center gap-1 text-caption text-fg-muted border border-line-strong rounded-full px-2 py-1 hover:bg-surface-hover transition-colors"
                   >
                     {t("explore.teacher.openLibrary")}
                   </Link>

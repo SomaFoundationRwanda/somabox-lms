@@ -8,6 +8,7 @@ import { cloudFetch, cloudFiles, downloadTo, forgetCloudFiles, isCurrent, rememb
 
 import { config } from '../config/index.js';
 import { requireRole } from '../helpers/auth.js';
+import { publish } from "../helpers/live.js";
 
 const router = express.Router();
 // Content sync manages files on the box: admins only.
@@ -199,6 +200,7 @@ async function startDownload(files) {
         for (const err of failed) console.error('Download failed:', err.message);
         downloadSummary = { total: files.length, failed: failed.length };
         downloadStatus = failed.length ? "failed" : "finished";
+        publish({ kind: "catalogue" }, { everyone: true });
         return results;
     } catch (err) {
         console.error(err);

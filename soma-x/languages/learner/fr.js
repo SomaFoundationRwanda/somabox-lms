@@ -18,32 +18,32 @@ export default {
     },
     "tour": {
         "welcome": {
-            "tag": "BIENVENUE",
+            "tag": "Bienvenue",
             "title": "Bonjour !",
             "body": "Bienvenue sur SOMABOX, votre espace d'apprentissage ! Voici une visite rapide. Elle ne prend qu'environ 30 secondes."
         },
         "stats": {
-            "tag": "STATISTIQUES",
+            "tag": "Statistiques",
             "title": "Vos statistiques",
             "body": "Ces cartes montrent vos classes, les leçons en cours et ce que vous avez terminé. Plus vous apprenez, plus ces chiffres grandissent !"
         },
         "lessons": {
-            "tag": "LEÇONS",
+            "tag": "Leçons",
             "title": "Leçons récentes",
             "body": "Retrouvez ici vos dernières leçons et où vous en êtes. Cliquez sur une leçon pour reprendre là où vous vous étiez arrêté."
         },
         "quick-access": {
-            "tag": "ACCÈS RAPIDE",
+            "tag": "Accès rapide",
             "title": "Accès rapide",
             "body": "Allez directement à vos classes, leçons, à la bibliothèque ou à vos travaux terminés en un clic. C'est votre tableau de raccourcis."
         },
         "nav": {
-            "tag": "MENU",
+            "tag": "Menu",
             "title": "Votre menu",
-            "body": "Utilisez le menu à gauche pour passer à tout moment du Tableau de bord aux Cours, à la Bibliothèque et à votre Compte."
+            "body": "Utilisez le menu à gauche pour passer à tout moment du Tableau de bord aux Matières, à la Bibliothèque et à votre Compte."
         },
         "finish": {
-            "tag": "TERMINÉ",
+            "tag": "Terminé",
             "title": "Vous êtes prêt !",
             "body": "Bravo, vous connaissez les lieux ! Commencez à apprendre. Chaque leçon vous rapproche de vos objectifs."
         },
@@ -80,11 +80,6 @@ export default {
         "namePlaceholder": "ex. Mugisha Jean Claude",
         "phone": "Numéro de téléphone",
         "optional": "(facultatif)",
-        "gender": "Genre",
-        "genderHelp": "Utilisé uniquement pour les statistiques de l'école sur l'égalité d'accès à l'apprentissage.",
-        "male": "Masculin",
-        "female": "Féminin",
-        "otherGender": "Autre",
         "locationTitle": "Où vous êtes",
         "locationHelp": "Nous aide à proposer des leçons locales et un soutien à l'accessibilité.",
         "province": "Province / région",
@@ -97,14 +92,6 @@ export default {
         "whereLive": "Où habitez-vous ?",
         "rural": "Zone rurale / isolée",
         "urban": "Ville",
-        "accessibility": "Accessibilité et soutien",
-        "chooseOne": "Choisissez une option",
-        "disNone": "Aucun handicap ni besoin de soutien",
-        "disVisual": "Difficulté à voir (contraste élevé / lecteur d'écran)",
-        "disHearing": "Difficulté à entendre (sous-titres / repères visuels)",
-        "disMobility": "Difficulté à se déplacer (aide à la mobilité)",
-        "disCognitive": "Soutien à l'apprentissage ou à la réflexion",
-        "disOther": "Autre besoin de soutien",
         "academicTitle": "Vos études",
         "academicHelp": "Pour que les leçons et les suggestions correspondent à votre niveau.",
         "grade": "Classe / niveau d'études actuel",
@@ -131,7 +118,8 @@ export default {
         "mandatory": "Configuration obligatoire (étape 1 sur 3)",
         "continue": "Continuer",
         "saving": "Enregistrement du profil…",
-        "finish": "Terminer et commencer"
+        "finish": "Terminer et commencer",
+        "later": "Plus tard",
     },
     "practice": {
         "label": "Entraînement — ne compte pas dans la maîtrise des objectifs",
@@ -164,20 +152,31 @@ export default {
         "clearSearch": "Effacer la recherche"
     },
     "discover": {
-        "loadFailed": "Impossible de charger les cours",
-        "joinFailed": "Impossible de rejoindre le cours",
-        "subtitle": "Parcourez les cours publics et rejoignez-les tout de suite, sans invitation",
-        "empty": "Aucun cours public pour le moment. Revenez plus tard.",
+        "loadFailed": "Impossible de charger les matières",
+        "joinFailed": "Impossible de rejoindre la matière",
+        "code": {
+          "title": "Rejoindre avec un code",
+          "help": "Saisissez le code donné par votre enseignant.",
+          "placeholder": "ex. K7M4QX",
+          "button": "Rejoindre",
+          "errors": {
+            "INVALID_CODE": "Aucune matière n'a ce code. Vérifiez-le avec votre enseignant.",
+            "NOT_OPEN": "Cette matière n'est pas encore ouverte. Demandez à votre enseignant.",
+            "TOO_MANY": "Trop de codes erronés. Attendez quelques minutes et réessayez."
+          }
+        },
+        "subtitle": "Parcourez les matières publiques et rejoignez-les tout de suite, sans invitation",
+        "empty": "Aucune matière publique pour le moment. Revenez plus tard.",
         "oneEnrolled": "1 élève",
         "nEnrolled": "{n} élèves",
         "joining": "Inscription…",
-        "join": "Rejoindre le cours"
+        "join": "Rejoindre la matière"
     },
     "account": {
         "dataDownloaded": "Vos données ont été téléchargées",
         "downloadFailed": "Échec du téléchargement",
         "yourData": "Vos données",
-        "yourDataHelp": "Téléchargez un fichier avec tout ce que cette box conserve sur vous : profil, cours, travaux, résultats et historique d'utilisation.",
+        "yourDataHelp": "Téléchargez un fichier avec tout ce que cette box conserve sur vous : profil, matières, travaux, résultats et historique d'utilisation.",
         "preparing": "Préparation…",
         "downloadData": "Télécharger mes données",
         "hide": "Masquer",
@@ -192,26 +191,11 @@ export default {
         "pwFailed": "Impossible de changer le mot de passe",
         "pwUpdated": "Mot de passe modifié.",
         "notSpecified": "Non renseigné",
-        "genders": {
-            "male": "Masculin",
-            "female": "Féminin",
-            "other": "Autre",
-            "non_binary": "Non binaire",
-            "prefer_not_to_say": "Préfère ne pas répondre"
-        },
-        "access": {
-            "none": "Aucun",
-            "visual": "Difficulté à voir",
-            "hearing": "Difficulté à entendre",
-            "mobility": "Difficulté à se déplacer",
-            "cognitive": "Soutien à l'apprentissage",
-            "other": "Autre besoin"
-        },
         "active": "Actif",
         "ruralBadge": "Élève en zone rurale",
         "lessons": "Leçons",
         "classes": "Classes",
-        "defaultPassword": "Ce compte utilise encore un mot de passe par défaut. Choisissez un nouveau mot de passe pour continuer.",
+        "defaultPassword": "On vous a donné un mot de passe temporaire. Choisissez le vôtre pour continuer.",
         "tabProfile": "Profil",
         "tabSecurity": "Sécurité",
         "personalTitle": "Informations personnelles",
@@ -223,7 +207,6 @@ export default {
         "district": "District",
         "districtPlaceholder": "ex. Gasabo, Nyarugenge, Musanze, Huye",
         "ruralCheckbox": "J'habite en zone rurale / isolée",
-        "accessibility": "Accessibilité",
         "saving": "Enregistrement…",
         "save": "Enregistrer",
         "fullName": "Nom complet",
@@ -259,19 +242,30 @@ export default {
         "offlineBody": "Lisez les livres et supports de votre bibliothèque à tout moment, sans internet.",
         "browseLibrary": "Parcourir la bibliothèque",
         "settledTitle": "Tout est prêt pour vous !",
-        "settledBody": "Votre compte est prêt. Votre enseignant vous ajoutera bientôt à votre cours — vous n'avez rien à faire. En attendant, explorez les supports d'apprentissage de la bibliothèque.",
+        "settledBody": "Votre compte est prêt. Votre enseignant vous ajoutera bientôt à votre matière — vous n'avez rien à faire. En attendant, explorez les supports d'apprentissage de la bibliothèque.",
         "tryPractice": "Essayer des sujets d'entraînement",
-        "myCourses": "Mes cours",
+        "myCourses": "Mes matières",
+        "view": {
+          "label": "Afficher mes matières en",
+          "cards": "Cartes",
+          "byDate": "Par date"
+        },
+        "upcoming": {
+          "hint": "Ce qui est à rendre et ce qui s'ouvre dans vos matières ces 4 prochaines semaines.",
+          "empty": "Rien à rendre dans les 4 prochaines semaines.",
+          "loadFailed": "Impossible de charger ce qui arrive.",
+          "open": "Ouvrir"
+        },
         "viewAll": "Tout voir",
         "progress": "Progression",
         "noGradedWork": "Pas encore de travail noté",
         "continue": "Continuer",
-        "publicCourses": "Explorer les cours publics",
+        "publicCourses": "Explorer les matières publiques",
         "quickAccess": "Accès rapide",
         "nJoined": "{n} rejoint(s)",
         "notEnrolled": "Pas encore inscrit",
         "viewWork": "Voir vos travaux",
-        "discoverSub": "Parcourir et rejoindre des cours publics",
+        "discoverSub": "Parcourir et rejoindre des matières publiques",
         "interleaved": "Révision mélangée",
         "interleavedSub": "Entraînez-vous seul",
         "librarySub": "Livres et supports"
@@ -292,10 +286,25 @@ export default {
         "revisitedMany": "Vous avez revu {n} questions de vos leçons terminées."
     },
     "courses": {
-        "subtitle": "Les cours auxquels vous êtes inscrit.",
-        "joinCourse": "Rejoindre un cours",
-        "codeLabel": "Code du cours à 6 chiffres",
+        "subtitle": "Les matières auxquelles vous êtes inscrit.",
+        "joinCourse": "Rejoindre une matière",
         "join": "Rejoindre",
-        "empty": "Vous n'êtes inscrit à aucun cours pour le moment. Demandez un code de cours à votre enseignant."
-    }
+        "empty": "Vous n'êtes inscrit à aucune matière pour le moment. Demandez un code de matière à votre enseignant."
+    },
+    "celebrate": {
+        "submittedTitle": "Bravo ! C'est rendu.",
+        "submittedNext": "« {title} » est chez ton enseignant. Continue avec le suivant.",
+        "submittedDone": "« {title} » est chez ton enseignant. Tu es à jour !",
+        "firstTitle": "Ton premier travail !",
+        "firstMessage": "Tu as commencé : chaque travail rendu montre à ton enseignant comment tu progresses.",
+        "milestoneTitle": "{n} travaux rendus !",
+        "milestoneMessage": "Quelle étape ! Tes efforts s'additionnent : continue.",
+        "next": "Suivant : {title}",
+        "start": "Commencer",
+        "dashboard": "Mon tableau de bord",
+        "welcome": "Bon retour !",
+        "welcomeNamed": "Bon retour, {name} !",
+        "welcomeNext": "Merci d'être revenu. À faire ensuite : « {title} ».",
+        "welcomeDone": "Merci d'être revenu. Tu es à jour : bravo !",
+    },
 };

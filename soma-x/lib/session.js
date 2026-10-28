@@ -3,6 +3,8 @@
 // Client side of the server session: the bearer token issued by POST /auth/login or
 // /auth/register. Identity (email, role) is never stored in the browser; it comes
 // from GET /auth/me.
+import { apiFetch } from "@/lib/api";
+
 const TOKEN_KEY = "st";
 // Keys from the old client-side "session" (Caesar-shifted email/name/role) and the
 // Phase 0 password-change flag. Cleared on login/logout so stale data can't linger.
@@ -10,35 +12,67 @@ const LEGACY_KEYS = ["al", "un", "gh", "mcp"];
 
 export function getSessionToken() {
     try {
-        return localStorage.getItem(TOKEN_KEY);
+        return sessionStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_KEY);
     } catch {
         return null;
     }
 }
 
+/**
+ * Keeps the token only until the browser closes (sessionStorage: tabs opened from the app keep
+ * it, the next person to open the browser doesn't). Every device is treated as shared: a learner
+ * may forget to say it is.
+ */
 export function setSessionToken(token) {
     try {
         LEGACY_KEYS.forEach((key) => localStorage.removeItem(key));
-        localStorage.setItem(TOKEN_KEY, token);
+        localStorage.removeItem(TOKEN_KEY);
+        sessionStorage.removeItem(TOKEN_KEY);
+        sessionStorage.setItem(TOKEN_KEY, token);
     } catch {
         // storage unavailable (private mode); the user will need to log in again
     }
 }
 
-export function clearSession() {
+/**
+ * Ends the local session. dropDrafts: the person signed out themselves, so the unsent text kept
+ * on this device goes too (lib/drafts.js). A session that simply timed out keeps it, so the same
+ * person finds their writing when they sign back in (drafts are kept per person).
+ */
+export function clearSession({ dropDrafts = false } = {}) {
     try {
+        if (dropDrafts) {
+            for (const k of Object.keys(localStorage)) if (k.startsWith("somabox.draft.")) localStorage.removeItem(k);
+        }
         localStorage.removeItem(TOKEN_KEY);
+        sessionStorage.removeItem(TOKEN_KEY);
         LEGACY_KEYS.forEach((key) => localStorage.removeItem(key));
+        // The data kept for fast reloads (lib/persistCache.js) belongs to the session.
+        for (const k of Object.keys(localStorage)) if (k.startsWith("somabox.cache.")) localStorage.removeItem(k);
     } catch {
         // ignore
     }
 }
 
-let installed = false;
-// window.fetch before the wrapper, for requests that must not get the wrapper's bearer token or
-// its "401 ends the session" handling (media probes, media-session renewals).
-let rawFetch = null;
-let apiBase = "";
+/** Learners created without an email get an internal address (…@learner.invalid): never shown. */
+export function isInternalEmail(email) {
+    return String(email || "").toLowerCase().endsWith("@learner.invalid");
+}
+
+/** The email to show for an account: its learner code instead of an internal address. */
+export function shownEmail(user) {
+    return isInternalEmail(user?.email) ? (user?.learner_code || user?.learnerCode || "") : (user?.email || "");
+}
+
+// Where each person manages their own account (and changes a temporary password): teachers in
+// Teacher Settings, everyone else on the Account page.
+export function accountPage(role) {
+    return role === "teacher" ? "/teacher/settings" : "/account";
+}
+const ACCOUNT_PAGES = ["/account", "/teacher/settings"];
+
+// The backend's address, to tell its files (which need the media cookie) from others.
+const apiBase = String(process.env.NEXT_PUBLIC_SERVER_URL || "").replace(/\/+$/, "");
 
 const isApiUrl = (url) => !!apiBase && url.startsWith(apiBase);
 
@@ -49,50 +83,24 @@ export function loginUrlWithNext(next) {
 }
 
 /**
- * Wraps window.fetch once so every request to the backend carries the session token,
- * without touching each of the app's fetch calls. Also reacts to session problems:
- * a 401 ends the local session and returns to the login page; a pending password
- * change sends the user to their account page.
- *
- * Requests to the backend are also sent with credentials: "include", so the browser
- * stores and sends the HttpOnly media cookie (somabox_media) that <video>, <img>,
- * <iframe> and the book readers need. The backend reflects the origin and allows
- * credentials, so this works from the app on another port of the same host.
+ * What a backend answer means for the session: a 401 ends the local session and returns to the
+ * login page; a pending password change (403 PASSWORD_CHANGE_REQUIRED) sends the user to their
+ * account page. Used by apiFetch and apiUpload (lib/api.js).
  */
-export function installAuthFetch(serverUrl) {
-    if (installed || typeof window === "undefined" || !serverUrl) return;
-    installed = true;
-
-    apiBase = serverUrl.replace(/\/+$/, "");
-    const base = apiBase;
-    const originalFetch = window.fetch.bind(window);
-    rawFetch = originalFetch;
-
-    window.fetch = async (input, init = {}) => {
-        const url = typeof input === "string" ? input : input instanceof URL ? input.href : input?.url || "";
-        if (!url.startsWith(base)) return originalFetch(input, init);
-
-        const withCookies = { credentials: "include", ...init };
-        const token = getSessionToken();
-        if (!token) return originalFetch(input, withCookies);
-
-        const headers = new Headers(init.headers || (input instanceof Request ? input.headers : undefined));
-        if (!headers.has("Authorization")) headers.set("Authorization", `Bearer ${token}`);
-        const response = await originalFetch(input, { ...withCookies, headers });
-
-        if (response.status === 401 && !url.startsWith(`${base}/auth/login`)) {
-            clearSession();
-            if (window.location.pathname !== "/") window.location.href = loginUrlWithNext();
-        } else if (response.status === 403) {
-            response.clone().json().then((body) => {
-                if (body?.code === "PASSWORD_CHANGE_REQUIRED" && window.location.pathname !== "/account") {
-                    window.location.href = "/account";
-                }
-            }).catch(() => {});
-        }
-        return response;
-    };
+export function handleSessionProblem(response) {
+    if (typeof window === "undefined") return;
+    if (response.status === 401) {
+        clearSession();
+        if (window.location.pathname !== "/") window.location.href = loginUrlWithNext();
+    } else if (response.status === 403) {
+        response.clone().json().then((body) => {
+            if (body?.code === "PASSWORD_CHANGE_REQUIRED" && !ACCOUNT_PAGES.includes(window.location.pathname)) {
+                window.location.href = window.location.pathname.startsWith("/teacher") ? "/teacher/settings" : "/account";
+            }
+        }).catch(() => {});
+    }
 }
+
 
 // ── Media cookie ───────────────────────────────────────────────────
 // Login and signup set the media cookie; POST /auth/media-session renews it (12 h) for
@@ -105,39 +113,29 @@ let renewing = null;
  * Renews the media cookie. Resolves to "ok", "expired" (the sign-in itself ran out), or
  * "offline" (the box couldn't be reached; existing cookies may still work).
  */
-export function renewMediaSession(serverUrl = apiBase) {
-    const token = getSessionToken();
-    const base = String(serverUrl || "").replace(/\/+$/, "");
-    if (!token) return Promise.resolve("expired");
+export function renewMediaSession() {
+    if (!getSessionToken()) return Promise.resolve("expired");
     if (renewing) return renewing;
-    const doFetch = rawFetch || (typeof window !== "undefined" ? window.fetch.bind(window) : null);
-    if (!doFetch || !base) return Promise.resolve("offline");
-    renewing = doFetch(`${base}/auth/media-session`, {
-        method: "POST",
-        credentials: "include",
-        headers: { Authorization: `Bearer ${token}` },
-    })
-        .then((res) => {
-            if (res.ok) {
-                lastMediaRenewal = Date.now();
-                return "ok";
-            }
-            return res.status === 401 ? "expired" : "offline";
+    // A 401 here means the sign-in itself ran out: reported, not handled as a sign-out.
+    renewing = apiFetch("/auth/media-session", { method: "POST", allowUnauthenticated: true })
+        .then(() => {
+            lastMediaRenewal = Date.now();
+            return "ok";
         })
-        .catch(() => "offline")
+        .catch((error) => (error?.status === 401 ? "expired" : "offline"))
         .finally(() => { renewing = null; });
     return renewing;
 }
 
 /** Renews the media cookie now and every 6 hours. Returns a function that stops it. */
-export function startMediaSessionKeepAlive(serverUrl) {
+export function startMediaSessionKeepAlive() {
     if (typeof window === "undefined") return () => {};
-    renewMediaSession(serverUrl);
-    const timer = window.setInterval(() => renewMediaSession(serverUrl), MEDIA_RENEW_MS);
+    renewMediaSession();
+    const timer = window.setInterval(() => renewMediaSession(), MEDIA_RENEW_MS);
     // A laptop that slept past the renewal time renews when it wakes up.
     const onVisible = () => {
         if (document.visibilityState === "visible" && Date.now() - lastMediaRenewal > MEDIA_RENEW_MS) {
-            renewMediaSession(serverUrl);
+            renewMediaSession();
         }
     };
     document.addEventListener("visibilitychange", onVisible);
@@ -153,14 +151,14 @@ export function startMediaSessionKeepAlive(serverUrl) {
  * "forbidden" (403), or "unknown" (anything else, including offline: let the viewer try).
  */
 export async function probeMediaUrl(url) {
-    const doFetch = rawFetch || (typeof window !== "undefined" ? window.fetch.bind(window) : null);
-    if (!doFetch || !url || !isApiUrl(url)) return "ok";
+    if (!url || !isApiUrl(url)) return "ok";
     try {
-        const res = await doFetch(url, { method: "HEAD", credentials: "include", cache: "no-store" });
-        if (res.status === 401) return "login";
-        if (res.status === 403) return "forbidden";
-        return res.ok ? "ok" : "unknown";
-    } catch {
+        // The cookie alone, like <video> and <iframe>: no session token on this request.
+        await apiFetch(url, { method: "HEAD", cache: "no-store", withSession: false, allowUnauthenticated: true, responseType: "response" });
+        return "ok";
+    } catch (error) {
+        if (error?.status === 401) return "login";
+        if (error?.status === 403) return "forbidden";
         return "unknown";
     }
 }

@@ -175,27 +175,32 @@ test("open-course requires the teacher role", async () => {
 
 // (P0-5 AI stubs were replaced by real AI jobs and drafts in Phase 8: see test/ai.test.js.)
 
-// ---------- P0-4: default admin must change password ----------
+// ---------- P0-4: a pending password change blocks everything else ----------
+// (The built-in admin@mail.com / admin is gone: a new box is set up with a code, test/box-setup.test.js.)
 
-test("default admin must change password before using anything else", async () => {
-  const login = await anon("POST", "/auth/login", { email: "admin@mail.com", password: "admin" });
+test("a user who must change their password can't use anything else first", async () => {
+  const email = "must.change@test.local";
+  await ctx.api("POST", "/users", { token: ctx.tokens.admin, body: { email, password: "first-pass", role: "teacher" } });
+  const user = await ctx.db.prepare("SELECT id FROM users WHERE email = ?").get(email);
+  await ctx.api("PATCH", `/users/${user.id}/reset-password`, { token: ctx.tokens.admin, body: { newPassword: "temporary1" } });
+  const login = await anon("POST", "/auth/login", { email, password: "temporary1" });
   assert.equal(login.status, 200);
   assert.equal(login.body.user.must_change_password, true);
   const token = login.body.token;
   const call = (method, path, body) => ctx.api(method, path, { token, body });
 
-  const blocked = await call("GET", "/users");
+  const blocked = await call("GET", "/courses/mine");
   assert.equal(blocked.status, 403);
   assert.equal(blocked.body.code, "PASSWORD_CHANGE_REQUIRED");
   assert.equal((await call("GET", "/auth/me")).status, 200);
 
-  const same = await call("PATCH", "/users/profile/password", { currentPassword: "admin", newPassword: "admin" });
+  const same = await call("PATCH", "/users/profile/password", { currentPassword: "temporary1", newPassword: "temporary1" });
   assert.equal(same.status, 400);
-  const change = await call("PATCH", "/users/profile/password", { currentPassword: "admin", newPassword: "a-new-password" });
+  const change = await call("PATCH", "/users/profile/password", { currentPassword: "temporary1", newPassword: "a-new-password" });
   assert.equal(change.status, 200);
 
-  assert.equal((await call("GET", "/users")).status, 200);
-  const relogin = await anon("POST", "/auth/login", { email: "admin@mail.com", password: "a-new-password" });
+  assert.equal((await call("GET", "/courses/mine")).status, 200);
+  const relogin = await anon("POST", "/auth/login", { email, password: "a-new-password" });
   assert.equal(relogin.status, 200);
   assert.equal(relogin.body.user.must_change_password, false);
 });

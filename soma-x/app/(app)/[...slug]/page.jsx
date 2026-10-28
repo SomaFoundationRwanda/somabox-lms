@@ -10,7 +10,7 @@ import DataContext from '@/context/DataContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { Button } from '@/components/ui/button';
 import UniversalPlayerModal from '@/components/ui/UniversalPlayerModal';
-import Typography from '@/components/ui/Typography';
+import { Heading, Text } from '@/components/typography';
 import { useGuestGate } from '@/components/guest/GuestGate';
 import { useGuestPreview } from '@/components/guest/Preview';
 import { startRouteLoading } from "@/components/global/RouteLoader";
@@ -29,10 +29,10 @@ const getTypeIcon = (type) => {
 
 const getTypeBadgeColor = (type) => {
   switch (type) {
-    case 'video': return 'bg-red-100 text-red-800';
-    case 'book': return 'bg-blue-100 text-blue-800';
-    case 'audio': return 'bg-green-100 text-green-800';
-    default: return 'bg-gray-100 text-gray-800';
+    case 'video': return 'bg-danger-soft text-danger-fg';
+    case 'book': return 'bg-info-soft text-info-fg';
+    case 'audio': return 'bg-success-soft text-success-fg';
+    default: return 'bg-surface-sunken text-fg';
   }
 };
 
@@ -107,7 +107,7 @@ function FolderPage({ levelInfo, breadcrumbs, onBreadcrumbClick }) {
   };
 
   return (
-    <div className="min-h-screen flex-1 bg-slate-200">
+    <div className="min-h-screen flex-1 bg-surface-sunken">
       <HeaderSection
         title={folderTitle(levelInfo.slug, levelInfo.title, t)}
         subtitle={levelInfo.subtitle || (hasContent ? t("learningResources") : t("exploreTopics"))}
@@ -132,7 +132,7 @@ function FolderPage({ levelInfo, breadcrumbs, onBreadcrumbClick }) {
           {hasFolders && (
             <section aria-labelledby="explore-folders-heading" className="space-y-4">
               {hasContent && (
-                <h2 id="explore-folders-heading" className="text-lg font-bold text-slate-900 xl:px-10 2xl:px-20">
+                <h2 id="explore-folders-heading" className="text-section font-bold text-fg xl:px-10 2xl:px-20">
                   {t("explore.foldersHeading")}
                 </h2>
               )}
@@ -147,12 +147,12 @@ function FolderPage({ levelInfo, breadcrumbs, onBreadcrumbClick }) {
           {hasContent && (
             <section className="space-y-6" aria-labelledby={hasFolders ? "explore-files-heading" : undefined}>
               {hasFolders && (
-                <h2 id="explore-files-heading" className="text-lg font-bold text-slate-900 xl:px-10 2xl:px-20">
+                <h2 id="explore-files-heading" className="text-section font-bold text-fg xl:px-10 2xl:px-20">
                   {t("explore.filesHeading")}
                 </h2>
               )}
-              <div className="sticky top-0 z-30 -mx-3 px-3 bg-slate-200/80 backdrop-blur-md py-4 border-b border-black/5 md:border-none md:bg-transparent md:static md:p-0">
-                <div className="flex overflow-x-auto scrollbar-hide gap-2 bg-accent-light p-2 md:p-3 rounded-2xl md:rounded-full">
+              <div className="sticky top-0 z-30 -mx-3 px-3 bg-surface-sunken/80 backdrop-blur-md py-4 border-b border-line md:border-none md:bg-transparent md:static md:p-0">
+                <div className="flex overflow-x-auto scrollbar-hide gap-2 bg-brand p-2 md:p-3 rounded-2xl md:rounded-full">
                   {filterOptions.map((option) => (
                     <Button
                       key={option.key}
@@ -160,16 +160,14 @@ function FolderPage({ levelInfo, breadcrumbs, onBreadcrumbClick }) {
                       aria-pressed={activeFilter === option.key}
                       onClick={() => setActiveFilter(option.key)}
                       className={`px-5 py-2 rounded-full cursor-pointer font-bold transition-all duration-300 flex items-center gap-2 whitespace-nowrap shrink-0 border-none ring-0 hover:ring-0 h-10 md:h-12 ${activeFilter === option.key
-                        ? 'bg-white text-accent-dark shadow-lg scale-105'
-                        : 'text-white hover:bg-white/10'
+                        ? 'bg-surface text-brand-fg shadow-lg scale-105'
+                        : 'text-on-brand hover:bg-on-brand/10'
                         }`}
                     >
                       <span className="opacity-80" aria-hidden="true">{option.icon}</span>
-                      <Typography as="span" weight="bold" color={activeFilter === option.key ? "accent" : "white"} className="text-sm md:text-base">
-                        {option.label}
-                      </Typography>
+                      <span className="text-ui md:text-body font-bold">{option.label}</span>
                       {option.key !== 'all' && (
-                        <span className={`text-[10px] md:text-xs px-2 py-0.5 rounded-full font-black ${activeFilter === option.key ? 'bg-accent-light text-white' : 'bg-white/20 text-white'}`}>
+                        <span className={`text-caption md:text-caption px-2 py-0.5 rounded-full font-extrabold ${activeFilter === option.key ? 'bg-brand text-on-brand' : 'bg-on-brand/20 text-on-brand'}`}>
                           {content.filter(item => item.type === option.key).length}
                         </span>
                       )}
@@ -180,7 +178,7 @@ function FolderPage({ levelInfo, breadcrumbs, onBreadcrumbClick }) {
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:px-10 2xl:px-20 gap-6">
                 {filteredContent.map((item) => (
-                  <div key={item.id} className="relative bg-white rounded-lg shadow-md flex flex-col justify-between overflow-hidden hover:shadow-lg focus-within:ring-2 focus-within:ring-accent-dark transition-all duration-200 cursor-pointer">
+                  <div key={item.id} className="relative bg-surface rounded-lg shadow-md flex flex-col justify-between overflow-hidden hover:shadow-lg focus-within:ring-2 focus-within:ring-brand-strong transition-all duration-200 cursor-pointer">
                     <div className="relative">
                       {item.type === 'video' && (
                         <div className="w-full h-48 bg-black flex items-center justify-center">
@@ -189,27 +187,27 @@ function FolderPage({ levelInfo, breadcrumbs, onBreadcrumbClick }) {
                       )}
                       {item.type === 'book' && <BookCover item={item} />}
                       {item.type === 'audio' && (
-                        <div className="w-full h-48 bg-slate-100 flex items-center justify-center">
-                          <FileAudio className="text-slate-600" size={48} aria-hidden="true" />
+                        <div className="w-full h-48 bg-surface-sunken flex items-center justify-center">
+                          <FileAudio className="text-fg-muted" size={48} aria-hidden="true" />
                         </div>
                       )}
 
                       <div className="absolute top-2 left-2">
-                        <span className={`px-2 py-1 flex items-center gap-1 rounded-full text-xs font-medium ${getTypeBadgeColor(item.type)}`}>
+                        <span className={`px-2 py-1 flex items-center gap-1 rounded-full text-caption font-medium ${getTypeBadgeColor(item.type)}`}>
                           {getTypeIcon(item.type)} {t(`explore.types.${item.type}`) || item.type}
                         </span>
                       </div>
 
                       {(item.duration || item.pages) && (
-                        <div className="absolute bottom-2 right-2 bg-black/75 text-white px-2 py-1 rounded text-xs">
+                        <div className="absolute bottom-2 right-2 bg-black/75 text-white px-2 py-1 rounded text-caption">
                           {item.duration || `${item.pages} ${t("explore.pages")}`}
                         </div>
                       )}
                     </div>
 
                     <div className="p-4 flex flex-col gap-2">
-                      <Typography variant="h6" className="line-clamp-1">{item.title}</Typography>
-                      <Typography variant="body" color="muted" className="line-clamp-2">{item.description}</Typography>
+                      <Heading level={3} variant="item" className="line-clamp-1">{item.title}</Heading>
+                      <Text variant="body" tone="muted" className="line-clamp-2">{item.description}</Text>
 
                       {/* The whole card is clickable through this button (its ::after covers the card). */}
                       <Button
@@ -218,7 +216,7 @@ function FolderPage({ levelInfo, breadcrumbs, onBreadcrumbClick }) {
                         width="full"
                         onClick={() => handleItemClick(item)}
                         aria-label={`${actionLabel(item.type)}: ${item.title}`}
-                        className="bg-primary-500/10 text-primary-700 border-none hover:bg-primary-500/20 mt-2 after:absolute after:inset-0 after:content-[''] focus-visible:outline-none"
+                        className="bg-brand/10 text-brand-fg border-none hover:bg-brand/20 mt-2 after:absolute after:inset-0 after:content-[''] focus-visible:outline-none"
                       >
                         {actionLabel(item.type)}
                       </Button>
@@ -228,17 +226,17 @@ function FolderPage({ levelInfo, breadcrumbs, onBreadcrumbClick }) {
               </div>
 
               {filteredContent.length === 0 && (
-                <div className="bg-white rounded-lg p-12 text-center">
-                  <Frown className="text-gray-500 w-14 h-14 mb-4 mx-auto" aria-hidden="true" />
-                  <Typography variant="h3" color="muted" className="mb-2">{t("explore.noFilesOfType")}</Typography>
+                <div className="bg-surface rounded-lg p-12 text-center">
+                  <Frown className="text-fg-subtle w-14 h-14 mb-4 mx-auto" aria-hidden="true" />
+                  <Heading level={3} tone="muted" className="mb-2">{t("explore.noFilesOfType")}</Heading>
                 </div>
               )}
             </section>
           )}
 
           {!hasContent && !hasFolders && (
-            <div className="bg-white rounded-lg p-8 shadow-md">
-              <Typography variant="body" color="muted">{t("explore.emptyFolder")}</Typography>
+            <div className="bg-surface rounded-lg p-8 shadow-md">
+              <Text variant="body" tone="muted">{t("explore.emptyFolder")}</Text>
             </div>
           )}
         </div>
@@ -250,18 +248,18 @@ function FolderPage({ levelInfo, breadcrumbs, onBreadcrumbClick }) {
 function FolderGone() {
   const { t } = useLanguage();
   return (
-    <div className="min-h-screen flex-1 bg-slate-200 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-8 text-center space-y-6">
-        <div className="w-20 h-20 bg-accent-light/10 text-accent-dark rounded-full flex items-center justify-center mx-auto mb-2">
+    <div className="min-h-screen flex-1 bg-surface-sunken flex items-center justify-center p-4">
+      <div className="bg-surface rounded-2xl shadow-xl max-w-md w-full p-8 text-center space-y-6">
+        <div className="w-20 h-20 bg-brand/10 text-brand-fg rounded-full flex items-center justify-center mx-auto mb-2">
           <FolderX className="w-9 h-9" aria-hidden="true" />
         </div>
         <div className="space-y-2">
-          <h2 className="text-2xl font-bold text-slate-800">{t("explore.goneTitle")}</h2>
-          <p className="text-slate-500 leading-relaxed text-sm">{t("explore.goneText")}</p>
+          <h2 className="text-title font-bold text-fg">{t("explore.goneTitle")}</h2>
+          <p className="text-fg-subtle leading-relaxed text-ui">{t("explore.goneText")}</p>
         </div>
         <Link
           href="/home"
-          className="flex items-center justify-center w-full h-12 text-base font-bold bg-accent-dark hover:bg-black text-white transition-colors rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-dark focus-visible:ring-offset-2"
+          className="flex items-center justify-center w-full h-12 text-item font-bold bg-brand-strong hover:bg-brand-strong/90 text-on-brand-strong transition-colors rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-strong focus-visible:ring-offset-2"
         >
           {t("explore.backToExplore")}
         </Link>

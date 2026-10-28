@@ -1,6 +1,7 @@
 // shell screen text (sw): app shell (navigation, header, notifications, login, sign-up, shared UI). Keys must match en.js; checked by scripts/check-ui-translations.mjs.
 export default {
     "common": {
+        "cantReachBox": "Haiwezekani kufikia SOMABOX. Angalia Wi-Fi na ujaribu tena.",
         "somethingWrong": "Hitilafu imetokea. Tafadhali jaribu tena.",
         "loading": "Inapakia…",
         "close": "Funga",
@@ -13,6 +14,8 @@ export default {
     },
     "login": {
         "invalidCredentials": "Taarifa za kuingia si sahihi. Tafadhali jaribu tena.",
+        "tooManyAttempts": "Majaribio mengi mno. Subiri dakika moja kisha ujaribu tena.",
+        "autoSignOut": "Kwa usalama wako, unatolewa kivinjari kinapofungwa, au baada ya dakika 30 bila kutumia.",
         "mustChangePassword": "Tafadhali weka nenosiri jipya kabla ya kuendelea.",
         "welcomeToast": "Karibu tena, {name}! Umeingia.",
         "userFallback": "Mtumiaji",
@@ -25,6 +28,28 @@ export default {
         "or": "au",
         "noAccount": "Huna akaunti?",
         "signUp": "Jisajili"
+    },
+    "setup": {
+        "title": "Sanidi SOMABOX",
+        "subtitle": "Usanidi wa mara moja wa kisanduku hiki",
+        "formTitle": "Sanidi kisanduku hiki",
+        "formSubtitle": "Andika jina la shule na uunde akaunti ya kwanza ya msimamizi.",
+        "recoverTitle": "Rejesha ufikiaji wa msimamizi",
+        "recoverSubtitle": "Weka nenosiri jipya kwa msimamizi, au ongeza msimamizi mwingine.",
+        "code": "Msimbo wa usanidi",
+        "codeHint": "Huonyeshwa kwenye skrini ya kisanduku au kwenye kumbukumbu zake kinapowashwa. Kwenye kisanduku, endesha pnpm setup:code kupata mpya.",
+        "schoolName": "Jina la shule",
+        "schoolNameHint": "Unaweza kuongeza mahali, nembo na rangi baadaye kwenye ukurasa wa Shule.",
+        "adminName": "Jina kamili la msimamizi",
+        "adminEmail": "Barua pepe ya msimamizi",
+        "recoverEmailHint": "Barua pepe ya msimamizi aliyepo humpa nenosiri jipya; barua pepe mpya huongeza msimamizi.",
+        "password": "Nenosiri (herufi 8 au zaidi)",
+        "passwordTooShort": "Nenosiri lazima liwe na angalau herufi 8",
+        "badCode": "Msimbo huo si sahihi au umeisha muda. Endesha pnpm setup:code kwenye kisanduku kupata mpya.",
+        "submit": "Sanidi kisanduku",
+        "recoverSubmit": "Rejesha ufikiaji",
+        "doneTitle": "Kisanduku hiki tayari kimesanidiwa",
+        "doneText": "Ingia kwa akaunti yako. Msimamizi asiyeweza kuingia anaweza kupata msimbo wa kurejesha kwa kuendesha pnpm setup:code kwenye kisanduku."
     },
     "signup": {
         "strengthShort": "Fupi mno (angalau herufi 6)",
@@ -51,7 +76,11 @@ export default {
         "creating": "Inafungua akaunti…",
         "create": "Fungua akaunti",
         "haveAccount": "Tayari una akaunti?",
-        "signIn": "Ingia"
+        "signIn": "Ingia",
+        "className": "Darasa lako",
+        "classHint": "Darasa ulilopo shuleni, mf. S1B au P4. Walimu wako wanakupata kwa hilo.",
+        "classPlaceholder": "mf. S1B",
+        "classRequired": "Andika darasa lako kwanza (mf. S1B).",
     },
     "header": {
         "adminTitle": "Lango la Msimamizi",
@@ -69,9 +98,9 @@ export default {
         "calendar": "Kalenda",
         "content": "Maudhui",
         "sync": "Usawazishaji",
-        "courseLibrary": "Maktaba ya kozi",
-        "discoverCourses": "Gundua kozi",
-        "courses": "Kozi",
+        "courseLibrary": "Maktaba ya masomo",
+        "discoverCourses": "Gundua masomo",
+        "courses": "Masomo",
         "expandSidebar": "Panua menyu",
         "collapseSidebar": "Kunja menyu",
         "brightness": "Mwangaza",
@@ -80,7 +109,32 @@ export default {
         "openMenu": "Fungua menyu",
         "closeMenu": "Funga menyu"
     },
+    "people": {
+        "gender": "Jinsia",
+        "genderHelp": "Inatumika tu kwa takwimu za shule kuhusu usawa katika kujifunza.",
+        "accessibility": "Ufikivu na msaada",
+        "chooseOne": "Chagua moja",
+        "genders": {
+            "male": "Mwanaume",
+            "female": "Mwanamke",
+            "other": "Nyingine"
+        },
+        "access": {
+            "none": "Sina ulemavu wala hitaji la msaada",
+            "visual": "Shida ya kuona (rangi zenye utofauti / kisoma skrini)",
+            "hearing": "Shida ya kusikia (manukuu / ishara za kuona)",
+            "mobility": "Shida ya kutembea (msaada wa kutembea)",
+            "cognitive": "Msaada wa kujifunza au kufikiri",
+            "other": "Hitaji lingine la msaada"
+        },
+        "notAnswered": "Haijabainishwa"
+    },
     "toasts": {
+        "success": "Imekamilika",
+        "failed": "Kuna tatizo",
+        "warning": "Tafadhali zingatia",
+        "notice": "Kwa taarifa yako",
+        "dismiss": "Funga arifa",
         "workSent": "Kazi yako imetumwa"
     },
     "profile": {
@@ -105,7 +159,45 @@ export default {
         "completeProfile": "Kamilisha wasifu",
         "viewDetails": "Angalia maelezo",
         "dismiss": "Ondoa",
-        "dismissNamed": "Ondoa arifa: {title}"
+        "dismissNamed": "Ondoa arifa: {title}",
+        "kinds": {
+            "addedToCourse": {
+                "title": "Umeongezwa kwenye {course}",
+                "message": "Lifungue kutoka Masomo yangu.",
+            },
+            "teachingCourse": {
+                "title": "Sasa unafundisha {course}",
+                "message": "Lifungue kutoka Masomo yangu.",
+            },
+            "workPublished": {
+                "title": "Kazi mpya: {item}",
+                "message": "Katika {course}.",
+            },
+            "workMarked": {
+                "title": "{item} imesahihishwa",
+                "message": "Ona alama yako katika {course}, kwenye Alama.",
+            },
+            "scoresPublished": {
+                "title": "Alama zimechapishwa: {item}",
+                "message": "Ona alama yako katika {course}, kwenye Alama.",
+            },
+            "announcement": {
+                "title": "{title}",
+                "message": "Tangazo jipya katika {course}.",
+            },
+            "urgentAnnouncement": {
+                "title": "Haraka: {title}",
+                "message": "Tangazo la haraka katika {course}.",
+            },
+            "discussionStarted": {
+                "title": "Majadiliano mapya: {title}",
+                "message": "Katika {course}. Ongeza jibu lako.",
+            },
+            "courseOpened": {
+                "title": "{course} imefunguliwa",
+                "message": "Mwalimu wako amefungua somo hili. Anza na wiki hii.",
+            },
+        },
     },
     "assignments": {
         "noDueDate": "Hakuna tarehe ya mwisho",
@@ -118,8 +210,8 @@ export default {
         "viewAll": "Angalia kazi zote"
     },
     "profileBanner": {
-        "title": "Kamilisha taarifa za wasifu wako",
-        "body": "Tafadhali weka jinsia, mkoa na wilaya yako ili SomaBox iendane na masomo yako.",
+        "title": "Kamilisha wasifu wako",
+        "body": "Jibu maswali machache kukuhusu (jinsia na mahitaji ya ufikiaji) ili SOMABOX ifae masomo yako.",
         "dismiss": "Ondoa tangazo"
     },
     "broadcast": {
@@ -177,7 +269,7 @@ export default {
     "courseLibrary": {
         "sources": {
             "upload": "Imepakiwa",
-            "export": "Imehamishwa kutoka kozi kwenye kifaa hiki",
+            "export": "Imehamishwa kutoka somo kwenye kifaa hiki",
             "cloud": "Kutoka kwenye wingu"
         },
         "itemTypes": {
@@ -192,15 +284,15 @@ export default {
         "unreachable": "Imeshindikana kufikia kifaa. Angalia muunganisho na ujaribu tena.",
         "bundleLoadFailed": "Imeshindikana kupakia kifurushi hiki.",
         "loadingPreview": "Inapakia onyesho…",
-        "weekBaseline": "Wiki 0 (tathmini ya awali)",
-        "weekN": "Wiki {n}",
-        "weeks": "Wiki",
-        "noWeeks": "Hakuna wiki.",
+        "weekBaseline": "Funzo 0 (tathmini ya awali)",
+        "weekN": "Funzo {n}",
+        "weeks": "Mafunzo",
+        "noWeeks": "Hakuna mafunzo.",
         "emptyWeek": "Hakuna kitu wiki hii.",
         "outcomes": "Malengo",
         "noOutcomes": "Hakuna malengo.",
         "grade": "Darasa {grade}",
-        "oneWeek": "Wiki 1",
+        "oneWeek": "Funzo 1",
         "nWeeks": "Wiki {n}",
         "oneOutcome": "Lengo 1",
         "nOutcomes": "Malengo {n}",
@@ -210,7 +302,7 @@ export default {
         "hidePreview": "Ficha onyesho",
         "preview": "Onyesho",
         "creating": "Inaunda…",
-        "createFrom": "Unda kozi kutoka hiki",
+        "createFrom": "Unda somo kutoka hiki",
         "yourCopies": "Nakala zako:",
         "olderVersions": "Matoleo ya zamani ({n})",
         "notBundle": "Hii si faili ya kifurushi. Faili za vifurushi huishia na .somabox.json.",
@@ -220,28 +312,42 @@ export default {
         "orDrop": "au iweke hapa (.somabox.json)",
         "uploading": "Inapakia…",
         "addToLibrary": "Ongeza kwenye maktaba",
-        "addAndCreate": "Ongeza na uunde kozi",
+        "addAndCreate": "Ongeza na uunde somo",
         "addedResult": "Imeongezwa: {title} (toleo {n}).",
         "alreadyResult": "Tayari iko kwenye maktaba yako: {title} (toleo {n}).",
-        "loadFailed": "Imeshindikana kupakia maktaba ya kozi.",
-        "createdToast": "Kozi mpya ya rasimu imeundwa",
-        "createFailed": "Imeshindikana kuunda kozi kutoka kifurushi hiki.",
+        "loadFailed": "Imeshindikana kupakia maktaba ya masomo.",
+        "createdToast": "Somo jipya la rasimu limeundwa",
+        "createFailed": "Imeshindikana kuunda somo kutoka kifurushi hiki.",
         "backAdmin": "Usimamizi",
-        "backCourses": "Kozi zangu",
-        "title": "Maktaba ya kozi",
-        "description": "Kozi zilizoshirikiwa unazoweza kuanzia. Kifurushi kina malengo, wiki, kurasa, majaribio, kazi na majadiliano ya kozi, lakini hakina wanafunzi, kazi zao wala tarehe.",
-        "noteStrong": "Kuunda kozi kutoka kifurushi daima huunda kozi mpya ya rasimu.",
-        "noteRest": "Wewe unakuwa mwalimu wake. Bado haina wanafunzi wala tarehe ya kuanza, na orodha ya maandalizi itakuongoza. Haibadilishi kamwe kozi iliyopo, hata iliyoundwa kutoka kifurushi hicho hicho.",
-        "createdNamed": "Kozi mpya ya rasimu imeundwa: {title}",
-        "alreadyOneCopy": "Tayari una nakala 1 ya kozi hii — mpya imeundwa.",
-        "alreadyNCopies": "Tayari una nakala {n} za kozi hii — mpya imeundwa.",
-        "openNew": "Fungua kozi mpya",
+        "backCourses": "Masomo yangu",
+        "title": "Maktaba ya masomo",
+        "description": "Masomo yaliyoshirikiwa unayoweza kuanzia. Kifurushi kina malengo, mafunzo, kurasa, majaribio, kazi na majadiliano ya somo, lakini hakina wanafunzi, kazi zao wala tarehe.",
+        "noteStrong": "Kuunda somo kutoka kifurushi daima huunda somo jipya la rasimu.",
+        "noteRest": "Wewe unakuwa mwalimu wake. Bado halina wanafunzi wala tarehe ya kuanza, na orodha ya maandalizi itakuongoza. Halibadilishi kamwe somo lililopo, hata lililoundwa kutoka kifurushi hicho hicho.",
+        "createdNamed": "Somo jipya la rasimu limeundwa: {title}",
+        "alreadyOneCopy": "Tayari una nakala 1 ya somo hili — jipya limeundwa.",
+        "alreadyNCopies": "Tayari una nakala {n} za somo hili — jipya limeundwa.",
+        "openNew": "Fungua somo jipya",
         "addTitle": "Ongeza kifurushi",
-        "addDescription": "Pakia faili ya kifurushi uliyoshirikiwa. Ili kushiriki kozi yako, ifungue kisha nenda Mipangilio, kisha Shiriki.",
+        "addDescription": "Pakia faili ya kifurushi uliyoshirikiwa. Ili kushiriki somo lako, lifungue kisha nenda Mipangilio, kisha Shiriki.",
         "bundlesTitle": "Vifurushi kwenye kifaa hiki",
-        "loading": "Inapakia maktaba ya kozi",
-        "emptyTitle": "Maktaba ya kozi haina kitu",
-        "emptyDescription": "Vifurushi hufika hapa mwalimu anapohamisha kozi kwenye kifaa hiki (Mipangilio, kisha Shiriki), au mtu anapopakia faili ya kifurushi hapo juu.",
-        "listLabel": "Vifurushi vya kozi"
-    }
+        "loading": "Inapakia maktaba ya masomo",
+        "emptyTitle": "Maktaba ya masomo haina kitu",
+        "emptyDescription": "Vifurushi hufika hapa mwalimu anapohamisha somo kwenye kifaa hiki (Mipangilio, kisha Shiriki), au mtu anapopakia faili ya kifurushi hapo juu.",
+        "listLabel": "Vifurushi vya masomo"
+    },
+    "unsaved": {
+        "title": "Hifadhi mabadiliko yako?",
+        "body": "Umebadilisha vitu hapa ambavyo bado havijahifadhiwa.",
+        "keepEditing": "Endelea kuhariri",
+        "discard": "Acha mabadiliko",
+        "save": "Hifadhi",
+        "saving": "Inahifadhi…",
+    },
+    "draft": {
+        "found": "Una mabadiliko ambayo hayajahifadhiwa ya {time}.",
+        "restore": "Yarudishe",
+        "discard": "Acha",
+        "restored": "Maandishi yako ambayo hayajatumwa yamerudishwa.",
+    },
 };

@@ -6,13 +6,13 @@ import Loader from "@/components/ui/Loader";
 const FileTable = ({ files, loading, emptyText, canDelete, onOpenFolder, onToggleVisibility, onView, onRename, onDelete, onSummary }) => {
     const { t } = useLanguage();
     return (
-        <div className="bg-white dark:bg-transparent rounded-xl border border-slate-200 dark:border-slate-800 overflow-x-auto">
+        <div className="bg-surface rounded-xl border border-line overflow-x-auto">
             <table className="w-full min-w-[560px]">
-                <thead className="bg-slate-50">
+                <thead className="bg-surface-sunken">
                     <tr>
-                        <th className="px-5 py-3 text-left text-[10px] font-bold text-slate-600 uppercase tracking-widest">{t("explore.manager.colName")}</th>
-                        <th className="px-5 py-3 text-left text-[10px] font-bold text-slate-600 uppercase tracking-widest">{t("explore.manager.colSize")}</th>
-                        <th className="px-5 py-3 text-right text-[10px] font-bold text-slate-600 uppercase tracking-widest">{t("explore.manager.colActions")}</th>
+                        <th className="px-5 py-3 text-left text-caption font-bold text-fg-muted">{t("explore.manager.colName")}</th>
+                        <th className="px-5 py-3 text-left text-caption font-bold text-fg-muted">{t("explore.manager.colSize")}</th>
+                        <th className="px-5 py-3 text-right text-caption font-bold text-fg-muted">{t("explore.manager.colActions")}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -26,8 +26,8 @@ const FileTable = ({ files, loading, emptyText, canDelete, onOpenFolder, onToggl
                         <tr>
                             <td className="px-5 py-12 text-center" colSpan={3}>
                                 <div className="flex flex-col items-center gap-2">
-                                    <Folder className="w-8 h-8 text-slate-300" aria-hidden="true" />
-                                    <p className="text-[12px] font-semibold text-slate-600">{emptyText || t("explore.manager.emptyFolder")}</p>
+                                    <Folder className="w-8 h-8 text-fg-subtle" aria-hidden="true" />
+                                    <p className="text-caption font-semibold text-fg-muted">{emptyText || t("explore.manager.emptyFolder")}</p>
                                 </div>
                             </td>
                         </tr>

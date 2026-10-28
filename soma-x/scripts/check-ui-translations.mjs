@@ -4,7 +4,7 @@
 // extra key is usually a typo. Values that are identical to English are counted as a warning
 // only (some are legitimately the same, e.g. names, or Kinyarwanda still pending).
 // The `explainers` subtree is checked separately by check-explainers.mjs.
-// Run with `npm test` in soma-x.
+// Run with `pnpm test` in soma-x.
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";

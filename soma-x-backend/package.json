@@ -10,18 +10,18 @@
     "backup": "node src/scripts/backup.js backup",
     "restore": "node src/scripts/backup.js restore",
     "backup:verify": "node src/scripts/backup.js verify",
-    "start": "pm2 start index.js --name soma-x-backend"
+    "start": "pm2 start index.js --name soma-x-backend",
+    "setup:code": "node src/scripts/setup-code.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@somabox/timeline": "*",
+    "@somabox/config": "workspace:*",
+    "@somabox/timeline": "workspace:*",
     "bcrypt": "^6.0.0",
-    "better-sqlite3": "^12.2.0",
     "cors": "^2.8.5",
-    "dotenv": "^17.2.1",
     "epub": "^2.1.1",
     "express": "^5.1.0",
     "firebase-admin": "^13.10.0",
@@ -31,5 +31,8 @@
     "pg": "^8.23.0",
     "sharp": "^0.34.5",
     "typescript": "^6.0.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
   }
 }

@@ -2,7 +2,6 @@ import pg from 'pg';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { runMigrations } from '../db/migrate.js';
 import { config } from '../config/index.js';
-import bcrypt from 'bcrypt';
 
 const { Pool } = pg;
 
@@ -40,59 +39,13 @@ pool.on('error', (err) => {
 console.log(`Connected to PostgreSQL Database: ${config.db.database} at ${config.db.host}:${config.db.port}`);
 
 /**
- * Helper to transform SQLite SQL dialect to PostgreSQL SQL dialect:
- * 1. Replaces positional ? parameters with $1, $2, $3, ...
- * 2. Replaces INSERT OR IGNORE INTO with INSERT INTO ... ON CONFLICT DO NOTHING
- * 3. Replaces datetime('now', '-X days') with NOW() - INTERVAL 'X days'
- * 4. Replaces sqlite_master / PRAGMA table_info with PostgreSQL equivalents
+ * Queries are written with positional ? parameters (the better-sqlite3 style this prepare()
+ * interface copies); PostgreSQL wants $1, $2, ... All SQL is otherwise plain PostgreSQL.
  */
-export function transformSql(sqliteSql) {
-    if (!sqliteSql || typeof sqliteSql !== 'string') return sqliteSql;
-
-    let sql = sqliteSql;
-
-    // 1. Convert positional ? to $1, $2, ...
+export function transformSql(sql) {
+    if (!sql || typeof sql !== 'string') return sql;
     let paramIndex = 1;
-    sql = sql.replace(/\?/g, () => `$${paramIndex++}`);
-
-    // 2. Convert INSERT OR IGNORE INTO -> INSERT INTO ... ON CONFLICT DO NOTHING
-    if (/INSERT\s+OR\s+IGNORE\s+INTO/i.test(sql)) {
-        sql = sql.replace(/INSERT\s+OR\s+IGNORE\s+INTO/i, "INSERT INTO");
-        if (!/ON\s+CONFLICT/i.test(sql)) {
-            sql += " ON CONFLICT DO NOTHING";
-        }
-    }
-
-    // 3. Convert datetime('now', '-7 days') -> NOW() - INTERVAL '7 days'
-    sql = sql.replace(/datetime\('now',\s*'-(\d+)\s*days'\)/gi, "NOW() - INTERVAL '$1 days'");
-    sql = sql.replace(/datetime\('now'\)/gi, "NOW()");
-
-    // 4. Convert PRAGMA table_info(tableName)
-    const pragmaMatch = sql.match(/PRAGMA\s+table_info\((\w+)\)/i);
-    if (pragmaMatch) {
-        const tableName = pragmaMatch[1];
-        return `SELECT column_name AS name, data_type AS type FROM information_schema.columns WHERE table_name='${tableName}'`;
-    }
-
-    // 5. Convert sqlite_master queries
-    if (sql.includes('sqlite_master')) {
-        sql = sql.replace(
-            /SELECT\s+name\s+FROM\s+sqlite_master\s+WHERE\s+type='table'\s+AND\s+name=\$1/gi,
-            "SELECT table_name AS name FROM information_schema.tables WHERE table_schema='public' AND table_name=$1"
-        );
-        sql = sql.replace(
-            /SELECT\s+sql\s+FROM\s+sqlite_master\s+WHERE\s+name=\$1/gi,
-            "SELECT table_name AS sql FROM information_schema.tables WHERE table_schema='public' AND table_name=$1"
-        );
-    }
-
-    // 6. Convert GLOB '[0-9]...' -> ~ '^[0-9]...'
-    sql = sql.replace(/GLOB\s+'(.*?)'/gi, (match, pattern) => {
-        const regexStr = pattern.replace(/\[0-9\]/g, '\\d');
-        return `~ '^${regexStr}$'`;
-    });
-
-    return sql;
+    return sql.replace(/\?/g, () => `$${paramIndex++}`);
 }
 
 // Holds the client of the transaction the current async call chain is running in, so
@@ -210,7 +163,7 @@ export const DEFAULT_NAV_ITEMS = [
     { nav_key: 'discussions', label: 'Discussions', visible_to_students: 1 },
     { nav_key: 'pages', label: 'Pages', visible_to_students: 1 },
     { nav_key: 'grades', label: 'Grades', visible_to_students: 1 },
-    { nav_key: 'rubrics', label: 'Rubrics', visible_to_students: 1 },
+    { nav_key: 'rubrics', label: 'Rubrics', visible_to_students: 0 },
     { nav_key: 'announcements', label: 'Announcements', visible_to_students: 1 },
     { nav_key: 'people', label: 'People', visible_to_students: 1 },
     { nav_key: 'files', label: 'Files', visible_to_students: 0 },
@@ -219,6 +172,7 @@ export const DEFAULT_NAV_ITEMS = [
     { nav_key: 'calendar', label: 'Calendar', visible_to_students: 1 },
     { nav_key: 'insights', label: 'Insights', visible_to_students: 0 },
     { nav_key: 'attendance', label: 'Attendance', visible_to_students: 1 },
+    { nav_key: 'groups', label: 'Groups', visible_to_students: 1 },
 ];
 
 export async function seedDefaultNavItems(courseId) {
@@ -240,20 +194,6 @@ export async function initSchemas() {
 
     // Every schema change, including the original baseline, is a versioned migration.
     await runMigrations(pool);
-
-    // Ensure default admin user exists; it must change the default password on first login
-    const adminCheck = await pool.query("SELECT id, password_hash FROM users WHERE LOWER(email) = 'admin@mail.com'");
-    if (adminCheck.rows.length === 0) {
-        const hashedPassword = await bcrypt.hash('admin', 12);
-        await pool.query(
-            "INSERT INTO users (email, full_name, password_hash, role, must_change_password) VALUES ($1, $2, $3, $4, 1)",
-            ['admin@mail.com', 'Administrator', hashedPassword, 'admin']
-        );
-        console.log("Created default admin user: admin@mail.com (password change required on first login)");
-    } else if (await bcrypt.compare('admin', adminCheck.rows[0].password_hash)) {
-        await pool.query("UPDATE users SET must_change_password = 1 WHERE id = $1", [adminCheck.rows[0].id]);
-        console.warn("Default admin still uses the default password; a password change will be required at login.");
-    }
 
     // Ensure unit_branding row exists
     await pool.query(`

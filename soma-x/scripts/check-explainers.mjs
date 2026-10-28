@@ -1,6 +1,6 @@
 // Checks the explainer translations against English: every language must have every key
 // with a non-empty string, except languages listed as pending (they fall back to English,
-// visibly, until translated). Run with `npm test` in soma-x.
+// visibly, until translated). Run with `pnpm test` in soma-x.
 import en from "../languages/explainers/en.js";
 import fr from "../languages/explainers/fr.js";
 import es from "../languages/explainers/es.js";

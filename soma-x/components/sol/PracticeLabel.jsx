@@ -8,7 +8,7 @@ import { useLanguage } from "@/context/LanguageContext";
 export default function PracticeLabel({ className = "" }) {
   const t = useLanguage()?.t;
   return (
-    <span className={`inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 ${className}`}>
+    <span className={`inline-flex items-center rounded-full border border-line bg-surface-sunken px-2 py-0.5 text-caption font-semibold text-fg-muted ${className}`}>
       {t?.("learner.practice.label") ?? "Practice — doesn't count toward outcome mastery"}
     </span>
   );

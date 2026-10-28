@@ -1,4 +1,4 @@
-// Activity feed, announcements, syllabus, files, collaborations, pages, discussions.
+// Announcements, syllabus, files, collaborations, pages, discussions.
 import express from "express";
 import { recordEditAfterPublish } from "../insights/events.js";
 import fs from "fs";
@@ -10,8 +10,12 @@ import {
   isTeacherRole,
   requireTeacher,
   requireEnrolled,
+  requireParticipant,
   requireNavVisible,
   courseExists,
+  hiddenFromReader,
+  visibleToReader,
+  isReadOnly,
   linkDiscussionAssignment,
   calculateEstimatedReadMinutes,
   syncPageFileReferences,
@@ -28,72 +32,138 @@ import {
   updateItemDays,
 } from "./items.js";
 import { refreshDueDates } from "./schedule.js";
+import { discussionGroupId } from "./groups.js";
+import { activeLearners, notify } from "./notify.js";
 
 const router = express.Router();
 
-// ===== Activity feed (backs the "activity" Home page type) =====
-
-router.get("/:id/activity", async (req, res) => {
-  try {
-    const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
-    const auth = await requireEnrolled(req, res, courseId);
-    if (!auth) return;
-    const isTeacher = isTeacherRole(auth.enrollment.role);
-
-    const items = [];
-
-    const announcements = await localDb.prepare("SELECT * FROM announcements WHERE course_id = ? AND published = 1 ORDER BY created_at DESC LIMIT 10").all(courseId);
-    for (const a of announcements) {
-      items.push({ type: "announcement", id: a.id, summary: `New announcement: "${a.title}"`, createdAt: a.created_at });
-    }
-
-    const discussions = await localDb.prepare("SELECT * FROM discussions WHERE course_id = ? AND published = 1 ORDER BY created_at DESC LIMIT 10").all(courseId);
-    for (const d of discussions) {
-      items.push({ type: "discussion", id: d.id, summary: `New discussion: "${d.title}"`, createdAt: d.created_at });
-    }
-
-    if (isTeacher) {
-      const recentSubmissions = await localDb.prepare(`
-        SELECT s.*, a.title AS assignment_title FROM assignment_submissions s
-        JOIN assignments a ON a.id = s.assignment_id
-        WHERE a.course_id = ? ORDER BY s.submitted_at DESC LIMIT 10
-      `).all(courseId);
-      for (const s of recentSubmissions) {
-        items.push({ type: "grade", id: s.id, summary: `${await userFullName(s.scholar_email)} submitted "${s.assignment_title}"`, createdAt: s.submitted_at });
-      }
-    } else {
-      const myGraded = await localDb.prepare(`
-        SELECT s.*, a.title AS assignment_title FROM assignment_submissions s
-        JOIN assignments a ON a.id = s.assignment_id
-        WHERE a.course_id = ? AND LOWER(s.scholar_email) = LOWER(?) AND s.graded_at IS NOT NULL
-        ORDER BY s.graded_at DESC LIMIT 10
-      `).all(courseId, auth.email);
-      for (const s of myGraded) {
-        items.push({ type: "grade", id: s.id, summary: `"${s.assignment_title}" was graded: ${s.grade}`, createdAt: s.graded_at });
-      }
-    }
-
-    items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    return res.json(items.slice(0, 20));
-  } catch (error) {
-    console.error("Error fetching activity:", error);
-    return res.status(500).json({ message: error.message });
-  }
-});
+/** The course's files folder, plus an optional sub-folder that can't lead outside it. */
+function courseFilesDir(courseId, rawFolder) {
+  const folder = String(rawFolder || "")
+    .split(/[\\/]+/)
+    .map((part) => part.trim().replace(/[^a-zA-Z0-9 ._-]/g, "_"))
+    .filter((part) => part && part !== "." && part !== "..")
+    .join("/");
+  const base = path.resolve(config.paths.root, "local-content/course-files", String(courseId));
+  const dir = path.resolve(base, folder);
+  if (dir !== base && !dir.startsWith(base + path.sep)) throw Object.assign(new Error("Invalid folder"), { status: 400 });
+  return { folder, dir };
+}
 
 // ===== Announcements =====
+
+const ANNOUNCEMENT_CATEGORIES = ["general", "assignment", "custom"];
+const URGENCIES = ["normal", "important", "urgent"];
+
+/**
+ * An announcement's fields from a request body (only those given), checked. Returns
+ * { fields, people, groupIds } or { error }. people / groupIds: the tagged audience when given.
+ */
+async function announcementInput(courseId, body, { creating }) {
+  const fields = {};
+  if (body.title !== undefined || creating) {
+    const title = String(body.title || "").trim();
+    if (!title) return { error: "title is required" };
+    fields.title = title;
+  }
+  if (body.body !== undefined) fields.body = String(body.body || "");
+  if (body.published !== undefined) fields.published = body.published ? 1 : 0;
+  if (body.pinned !== undefined) fields.pinned = body.pinned ? 1 : 0;
+  if (body.category !== undefined) {
+    if (!ANNOUNCEMENT_CATEGORIES.includes(body.category)) return { error: `category must be one of: ${ANNOUNCEMENT_CATEGORIES.join(", ")}` };
+    fields.category = body.category;
+  }
+  if (body.customCategory !== undefined) fields.custom_category = String(body.customCategory || "").trim().slice(0, 60) || null;
+  if (fields.category === "custom" && !fields.custom_category) return { error: "Give your custom category a name" };
+  if (body.assignmentId !== undefined) {
+    const id = body.assignmentId === null || body.assignmentId === "" ? null : Number(body.assignmentId);
+    if (id !== null && !await localDb.prepare("SELECT 1 FROM assignments WHERE id = ? AND course_id = ?").get(id, courseId)) {
+      return { error: "That assignment isn't in this course" };
+    }
+    fields.assignment_id = id;
+  }
+  if (body.urgency !== undefined) {
+    if (!URGENCIES.includes(body.urgency)) return { error: `urgency must be one of: ${URGENCIES.join(", ")}` };
+    fields.urgency = body.urgency;
+  }
+  if (body.isPublic !== undefined) fields.is_public = Boolean(body.isPublic);
+
+  let people;
+  if (body.peopleEmails !== undefined) {
+    if (!Array.isArray(body.peopleEmails)) return { error: "peopleEmails must be a list" };
+    people = [...new Set(body.peopleEmails.map((e) => normalizeEmail(e)).filter(Boolean))];
+    for (const email of people) {
+      const e = await localDb.prepare("SELECT 1 FROM enrollments WHERE course_id = ? AND LOWER(user_email) = ? AND status = 'active'").get(courseId, email);
+      if (!e) return { error: "You can only tag people in this course" };
+    }
+  }
+  let groupIds;
+  if (body.groupIds !== undefined) {
+    if (!Array.isArray(body.groupIds)) return { error: "groupIds must be a list" };
+    groupIds = [...new Set(body.groupIds.map(Number))];
+    for (const id of groupIds) {
+      if (!await localDb.prepare("SELECT 1 FROM course_groups WHERE id = ? AND course_id = ?").get(id, courseId)) return { error: "A group isn't in this course" };
+    }
+  }
+  return { fields, people, groupIds };
+}
+
+async function saveAudience(announcementId, people, groupIds) {
+  if (people) {
+    await localDb.prepare("DELETE FROM announcement_people WHERE announcement_id = ?").run(announcementId);
+    for (const email of people) await localDb.prepare("INSERT INTO announcement_people (announcement_id, user_email) VALUES (?, ?)").run(announcementId, email);
+  }
+  if (groupIds) {
+    await localDb.prepare("DELETE FROM announcement_groups WHERE announcement_id = ?").run(announcementId);
+    for (const id of groupIds) await localDb.prepare("INSERT INTO announcement_groups (announcement_id, group_id) VALUES (?, ?)").run(announcementId, id);
+  }
+}
+
+// An announcement with who it's for: tagged people (staff only see their emails) and groups.
+async function announcementPayload(row, { staff }) {
+  const people = await localDb.prepare("SELECT user_email FROM announcement_people WHERE announcement_id = ? ORDER BY user_email").all(row.id);
+  const groups = await localDb.prepare(`
+    SELECT g.id, g.name FROM announcement_groups ag JOIN course_groups g ON g.id = ag.group_id WHERE ag.announcement_id = ? ORDER BY LOWER(g.name)
+  `).all(row.id);
+  const assignment = row.assignment_id ? await localDb.prepare("SELECT id, title FROM assignments WHERE id = ?").get(row.assignment_id) : null;
+  return {
+    ...row,
+    pinned: Number(row.pinned) === 1,
+    isPublic: !!row.is_public,
+    assignment,
+    groups,
+    people: staff ? await Promise.all(people.map(async (p) => ({ email: p.user_email, fullName: await userFullName(p.user_email) }))) : [],
+    peopleCount: people.length,
+  };
+}
+
+/** Lower-cased emails an announcement is for: the course's learners when public, else the tagged people and groups. */
+async function announcementAudience(courseId, announcementId, isPublic) {
+  if (isPublic) return activeLearners(courseId);
+  const rows = await localDb.prepare(`
+    SELECT LOWER(user_email) AS email FROM announcement_people WHERE announcement_id = ?
+    UNION
+    SELECT LOWER(m.user_email) FROM announcement_groups ag JOIN course_group_members m ON m.group_id = ag.group_id WHERE ag.announcement_id = ?
+  `).all(announcementId, announcementId);
+  return rows.map((r) => r.email);
+}
 
 router.get("/:id/announcements", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     const auth = await requireNavVisible(req, res, courseId, "announcements");
     if (!auth) return;
-    const isTeacher = isTeacherRole(auth.enrollment.role);
+    const staff = isTeacherRole(auth.enrollment.role) || !!auth.enrollment.adminView;
 
-    const rawAnnouncements = await localDb.prepare("SELECT * FROM announcements WHERE course_id = ? ORDER BY created_at DESC").all(courseId);
-    const rows = rawAnnouncements.filter((a) => isTeacher || Number(a.published) === 1);
+    const raw = await localDb.prepare("SELECT * FROM announcements WHERE course_id = ? ORDER BY created_at DESC").all(courseId);
+    const rows = [];
+    for (const a of raw) {
+      if (!staff && Number(a.published) !== 1) continue;
+      // Not public: only the people and group members it was tagged for (and staff).
+      if (!staff && !a.is_public && !(await announcementAudience(courseId, a.id, false)).includes(auth.email.toLowerCase())) continue;
+      rows.push(await announcementPayload(a, { staff }));
+    }
     return res.json(rows);
   } catch (error) {
     console.error("Error fetching announcements:", error);
@@ -101,19 +171,37 @@ router.get("/:id/announcements", async (req, res) => {
   }
 });
 
+// { title, body?, category?, customCategory?, assignmentId?, urgency?, isPublic?, peopleEmails?, groupIds?, notify? }
+// Urgent announcements always notify their audience.
 router.post("/:id/announcements", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     const auth = await requireTeacher(req, res, courseId);
     if (!auth) return;
 
-    const title = String(req.body.title || "").trim();
-    if (!title) return res.status(400).json({ message: "title is required" });
+    const input = await announcementInput(courseId, req.body, { creating: true });
+    if (input.error) return res.status(400).json({ message: input.error });
+    const f = { category: "general", urgency: "normal", is_public: true, published: 1, ...input.fields };
+    if (!f.is_public && !input.people?.length && !input.groupIds?.length) {
+      return res.status(400).json({ message: "Tag at least one person or group, or make it public" });
+    }
 
-    const info = await localDb.prepare(`INSERT INTO announcements (course_id, title, body, published, created_by_teacher_email) VALUES (?, ?, ?, 1, ?)`)
-      .run(courseId, title, req.body.body || "", auth.email);
-    return res.status(201).json(await localDb.prepare("SELECT * FROM announcements WHERE id = ?").get(info.lastInsertRowid));
+    const row = await localDb.transaction(async () => {
+      const created = await localDb.prepare(`
+        INSERT INTO announcements (course_id, title, body, published, created_by_teacher_email, category, custom_category, assignment_id, urgency, is_public, pinned)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *
+      `).get(courseId, f.title, f.body || "", f.published, auth.email, f.category, f.custom_category ?? null, f.assignment_id ?? null, f.urgency, f.is_public, f.pinned ?? 0);
+      await saveAudience(created.id, input.people || [], input.groupIds || []);
+      return created;
+    })();
+
+    const course = await courseExists(courseId);
+    if (row.published && course.lifecycle === "open" && (req.body.notify === true || row.urgency === "urgent")) {
+      const kind = row.urgency === "urgent" ? "urgentAnnouncement" : "announcement";
+      await notify(await announcementAudience(courseId, row.id, row.is_public), kind, { title: row.title, course: course.title }, `/course/${courseId}/announcements`);
+    }
+    return res.status(201).json(await announcementPayload(row, { staff: true }));
   } catch (error) {
     console.error("Error creating announcement:", error);
     return res.status(500).json({ message: error.message });
@@ -123,21 +211,25 @@ router.post("/:id/announcements", async (req, res) => {
 router.patch("/:id/announcements/:announcementId", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     if (!await requireTeacher(req, res, courseId)) return;
+    const existing = await localDb.prepare("SELECT * FROM announcements WHERE id = ? AND course_id = ?").get(req.params.announcementId, courseId);
+    if (!existing) return res.status(404).json({ message: "Announcement not found" });
 
-    const { title, body, published, pinned } = req.body;
-    const updates = [];
-    const params = [];
-    if (title !== undefined) { updates.push("title = ?"); params.push(title); }
-    if (body !== undefined) { updates.push("body = ?"); params.push(body); }
-    if (published !== undefined) { updates.push("published = ?"); params.push(published ? 1 : 0); }
-    if (pinned !== undefined) { updates.push("pinned = ?"); params.push(pinned ? 1 : 0); }
-    if (!updates.length) return res.status(400).json({ message: "No fields to update" });
+    const input = await announcementInput(courseId, req.body, { creating: false });
+    if (input.error) return res.status(400).json({ message: input.error });
+    const entries = Object.entries(input.fields);
+    if (!entries.length && !input.people && !input.groupIds) return res.status(400).json({ message: "No fields to update" });
 
-    params.push(req.params.announcementId, courseId);
-    await localDb.prepare(`UPDATE announcements SET ${updates.join(", ")} WHERE id = ? AND course_id = ?`).run(...params);
-    return res.json(await localDb.prepare("SELECT * FROM announcements WHERE id = ?").get(req.params.announcementId));
+    await localDb.transaction(async () => {
+      if (entries.length) {
+        await localDb.prepare(`UPDATE announcements SET ${entries.map(([k]) => `${k} = ?`).join(", ")} WHERE id = ? AND course_id = ?`)
+          .run(...entries.map(([, v]) => v), existing.id, courseId);
+      }
+      await saveAudience(existing.id, input.people, input.groupIds);
+    })();
+    const row = await localDb.prepare("SELECT * FROM announcements WHERE id = ?").get(existing.id);
+    return res.json(await announcementPayload(row, { staff: true }));
   } catch (error) {
     console.error("Error updating announcement:", error);
     return res.status(500).json({ message: error.message });
@@ -147,7 +239,7 @@ router.patch("/:id/announcements/:announcementId", async (req, res) => {
 router.delete("/:id/announcements/:announcementId", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     if (!await requireTeacher(req, res, courseId)) return;
     await localDb.prepare("DELETE FROM announcements WHERE id = ? AND course_id = ?").run(req.params.announcementId, courseId);
     return res.status(204).end();
@@ -163,7 +255,7 @@ router.get("/:id/syllabus", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
     const course = await courseExists(courseId);
-    if (!course) return res.status(404).json({ message: "Course not found" });
+    if (!course) return res.status(404).json({ message: "Subject not found" });
     const auth = await requireNavVisible(req, res, courseId, "syllabus");
     if (!auth) return;
 
@@ -186,7 +278,7 @@ router.get("/:id/syllabus", async (req, res) => {
 router.patch("/:id/syllabus", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     if (!await requireTeacher(req, res, courseId)) return;
 
     await localDb.prepare("UPDATE courses SET syllabus_body = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(req.body.body || "", courseId);
@@ -203,7 +295,7 @@ router.patch("/:id/syllabus", async (req, res) => {
 router.get("/:id/files", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     if (!await requireNavVisible(req, res, courseId, "files")) return;
 
     const rawFiles = await localDb.prepare("SELECT * FROM course_files WHERE course_id = ? ORDER BY uploaded_at DESC").all(courseId);
@@ -221,13 +313,12 @@ router.get("/:id/files", async (req, res) => {
 router.post("/:id/files/upload", upload.single("file"), async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     const auth = await requireTeacher(req, res, courseId);
     if (!auth) return;
     if (!req.file) return res.status(400).json({ message: "No file provided" });
 
-    const folder = String(req.body.folder || "").trim();
-    const dir = path.join(config.paths.root, "local-content/course-files", courseId, folder);
+    const { folder, dir } = courseFilesDir(courseId, req.body.folder);
     fs.mkdirSync(dir, { recursive: true });
 
     const safeName = req.file.originalname.replace(/[^a-zA-Z0-9._-]/g, "_");
@@ -252,6 +343,7 @@ router.post("/:id/files/upload", upload.single("file"), async (req, res) => {
       size: req.file.size || 0,
     });
   } catch (error) {
+    if (error.status === 400) return res.status(400).json({ message: error.message });
     console.error("Error uploading file to editor:", error);
     return res.status(500).json({ message: error.message });
   }
@@ -260,13 +352,12 @@ router.post("/:id/files/upload", upload.single("file"), async (req, res) => {
 router.post("/:id/files", upload.single("file"), async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     const auth = await requireTeacher(req, res, courseId);
     if (!auth) return;
     if (!req.file) return res.status(400).json({ message: "No file provided" });
 
-    const folder = String(req.body.folder || "").trim();
-    const dir = path.join(config.paths.root, "local-content/course-files", courseId, folder);
+    const { folder, dir } = courseFilesDir(courseId, req.body.folder);
     fs.mkdirSync(dir, { recursive: true });
 
     const safeName = req.file.originalname.replace(/[^a-zA-Z0-9._-]/g, "_");
@@ -284,6 +375,7 @@ router.post("/:id/files", upload.single("file"), async (req, res) => {
       downloadUrl: `/course-files/${courseId}/${fileRecord.filename}`,
     });
   } catch (error) {
+    if (error.status === 400) return res.status(400).json({ message: error.message });
     console.error("Error uploading file:", error);
     return res.status(500).json({ message: error.message });
   }
@@ -292,7 +384,7 @@ router.post("/:id/files", upload.single("file"), async (req, res) => {
 router.get("/:id/files/:fileId/usage", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     if (!await requireTeacher(req, res, courseId)) return;
 
     const usedInPages = await localDb.prepare(`
@@ -312,7 +404,7 @@ router.get("/:id/files/:fileId/usage", async (req, res) => {
 router.delete("/:id/files/:fileId", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     if (!await requireTeacher(req, res, courseId)) return;
 
     const force = String(req.query.force || "").toLowerCase() === "true";
@@ -354,7 +446,7 @@ router.delete("/:id/files/:fileId", async (req, res) => {
 router.get("/:id/collaborations", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     const auth = await requireNavVisible(req, res, courseId, "collaborations");
     if (!auth) return;
 
@@ -376,8 +468,9 @@ router.get("/:id/collaborations", async (req, res) => {
 router.post("/:id/collaborations", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
-    const auth = await requireEnrolled(req, res, courseId);
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
+    if (!await requireNavVisible(req, res, courseId, "collaborations")) return;
+    const auth = await requireParticipant(req, res, courseId);
     if (!auth) return;
     const title = String(req.body.title || "").trim();
     if (!title) return res.status(400).json({ message: "title is required" });
@@ -386,12 +479,14 @@ router.post("/:id/collaborations", async (req, res) => {
       .run(courseId, title, req.body.url || "", auth.email);
     const collaborationId = Number(info.lastInsertRowid);
 
-    const memberEmails = Array.isArray(req.body.memberEmails) ? req.body.memberEmails : [];
-    const insertMember = await localDb.prepare("INSERT OR IGNORE INTO collaboration_members (collaboration_id, user_email) VALUES (?, ?)");
-    memberEmails.forEach((email) => {
-      const normalized = normalizeEmail(email);
-      if (normalized) insertMember.run(collaborationId, normalized);
-    });
+    // Members are chosen from the course's people, by enrollment id (learners don't see each
+    // other's email addresses) or, for staff, by email. Only people in the course are added.
+    const memberIds = (Array.isArray(req.body.memberIds) ? req.body.memberIds : []).map(Number).filter(Boolean);
+    const memberEmails = (Array.isArray(req.body.memberEmails) ? req.body.memberEmails : []).map(normalizeEmail).filter(Boolean);
+    const members = await localDb.prepare("SELECT id, user_email FROM enrollments WHERE course_id = ? AND status = 'active'").all(courseId);
+    const chosen = members.filter((m) => memberIds.includes(Number(m.id)) || memberEmails.includes(normalizeEmail(m.user_email)));
+    const insertMember = await localDb.prepare("INSERT INTO collaboration_members (collaboration_id, user_email) VALUES (?, ?) ON CONFLICT DO NOTHING");
+    for (const m of chosen) await insertMember.run(collaborationId, normalizeEmail(m.user_email));
 
     return res.status(201).json(await localDb.prepare("SELECT * FROM collaborations WHERE id = ?").get(collaborationId));
   } catch (error) {
@@ -403,8 +498,8 @@ router.post("/:id/collaborations", async (req, res) => {
 router.delete("/:id/collaborations/:collaborationId", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
-    const auth = await requireEnrolled(req, res, courseId);
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
+    const auth = await requireParticipant(req, res, courseId);
     if (!auth) return;
 
     const collaboration = await localDb.prepare("SELECT * FROM collaborations WHERE id = ? AND course_id = ?").get(req.params.collaborationId, courseId);
@@ -429,13 +524,11 @@ router.delete("/:id/collaborations/:collaborationId", async (req, res) => {
 router.get("/:id/pages", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     const auth = await requireNavVisible(req, res, courseId, "pages");
     if (!auth) return;
-    const isTeacher = isTeacherRole(auth.enrollment.role);
-
     const rawPages = await localDb.prepare("SELECT * FROM course_pages WHERE course_id = ? ORDER BY updated_at DESC").all(courseId);
-    const rows = rawPages.filter((p) => isTeacher || Number(p.published) === 1);
+    const rows = await visibleToReader(auth.enrollment, courseId, "page", rawPages);
     return res.json(rows);
   } catch (error) {
     console.error("Error fetching pages:", error);
@@ -446,12 +539,12 @@ router.get("/:id/pages", async (req, res) => {
 router.get("/:id/pages/:pageId", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     const auth = await requireEnrolled(req, res, courseId);
     if (!auth) return;
 
     const page = await localDb.prepare("SELECT * FROM course_pages WHERE id = ? AND course_id = ?").get(req.params.pageId, courseId);
-    if (!page) return res.status(404).json({ message: "Page not found" });
+    if (!page || await hiddenFromReader(auth.enrollment, courseId, "page", page)) return res.status(404).json({ message: "Page not found" });
 
     const userView = await localDb.prepare("SELECT * FROM page_views WHERE page_id = ? AND LOWER(user_email) = LOWER(?)")
       .get(page.id, auth.email);
@@ -484,7 +577,7 @@ router.get("/:id/pages/:pageId", async (req, res) => {
 router.patch("/:id/pages/:pageId", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     if (!await requireTeacher(req, res, courseId)) return;
 
     const { title, body, bodyJson, bodyHtml, published } = req.body;
@@ -530,12 +623,14 @@ router.patch("/:id/pages/:pageId", async (req, res) => {
 router.post("/:id/pages/:pageId/view", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     const auth = await requireEnrolled(req, res, courseId);
     if (!auth) return;
 
     const page = await localDb.prepare("SELECT * FROM course_pages WHERE id = ? AND course_id = ?").get(req.params.pageId, courseId);
-    if (!page) return res.status(404).json({ message: "Page not found" });
+    if (!page || await hiddenFromReader(auth.enrollment, courseId, "page", page)) return res.status(404).json({ message: "Page not found" });
+    // Observers and admins only look: their visits aren't anyone's reading progress.
+    if (isReadOnly(auth.enrollment)) return res.status(204).end();
 
     const scrollPct = Math.min(100, Math.max(0, Number(req.body.scrollPct || req.body.scroll_pct) || 0));
 
@@ -577,7 +672,7 @@ router.post("/:id/pages/:pageId/view", async (req, res) => {
 router.delete("/:id/pages/:pageId", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     if (!await requireTeacher(req, res, courseId)) return;
     const page = await localDb.prepare("SELECT id FROM course_pages WHERE id = ? AND course_id = ?").get(req.params.pageId, courseId);
     if (!page) return res.status(404).json({ message: "Page not found" });
@@ -594,18 +689,16 @@ router.delete("/:id/pages/:pageId", async (req, res) => {
 router.get("/:id/discussions", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     const auth = await requireNavVisible(req, res, courseId, "discussions");
     if (!auth) return;
-    const isTeacher = isTeacherRole(auth.enrollment.role);
-
     const rawDiscussions = await localDb.prepare("SELECT * FROM discussions WHERE course_id = ? ORDER BY created_at DESC").all(courseId);
-    const rows = await Promise.all(rawDiscussions
-      .filter((d) => isTeacher || Number(d.published) === 1)
+    const rows = await Promise.all((await visibleToReader(auth.enrollment, courseId, "discussion", rawDiscussions))
       .map(async (d) => {
         const replyCountRow = await localDb.prepare("SELECT COUNT(*) AS c FROM discussion_replies WHERE discussion_id = ?").get(d.id);
         const replyCount = Number(replyCountRow?.c || 0);
-        return { ...d, replyCount };
+        const group = d.group_id != null ? await localDb.prepare("SELECT name FROM course_groups WHERE id = ?").get(d.group_id) : null;
+        return { ...d, replyCount, groupName: group?.name ?? null };
       }));
     return res.json(rows);
   } catch (error) {
@@ -617,30 +710,33 @@ router.get("/:id/discussions", async (req, res) => {
 router.post("/:id/discussions", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
-    const auth = await requireEnrolled(req, res, courseId);
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
+    // Teachers start discussions (for the whole course or one group); learners reply.
+    const auth = await requireTeacher(req, res, courseId);
     if (!auth) return;
 
     const title = String(req.body.title || "").trim();
     if (!title) return res.status(400).json({ message: "title is required" });
     const isTeacher = isTeacherRole(auth.enrollment.role);
 
-    // Every discussion lives in a module. Learners can start one in any module they can see.
-    if (!req.body.moduleId) return res.status(400).json({ message: "Choose the module this discussion belongs to (moduleId)" });
+    // Every discussion lives in a module.
+    if (!req.body.moduleId) return res.status(400).json({ message: "Choose the lesson this discussion belongs to" });
     const moduleRow = await localDb.prepare("SELECT * FROM modules WHERE id = ? AND course_id = ?").get(req.body.moduleId, courseId);
-    if (!moduleRow || (!isTeacher && (Number(moduleRow.published) !== 1 || moduleRow.kind === "unassigned"))) {
+    if (!moduleRow) {
       return res.status(404).json({ message: "Module not found" });
     }
 
     const isGraded = !!(req.body.graded && isTeacher);
     const pointsPossible = Number(req.body.pointsPossible) || 0;
+    // A group discussion: only that group's members (and staff) see it.
+    const groupId = await discussionGroupId(courseId, req.body.groupId, { email: auth.email, isStaff: isTeacher });
 
     const created = await localDb.transaction(async () => {
       const result = await createModuleContent({
         courseId,
         moduleId: moduleRow.id,
         itemType: "discussion",
-        data: { title, body: req.body.body || "" },
+        data: { title, body: req.body.body || "", groupId },
         actorEmail: auth.email,
         publish: isTeacher ? !!req.body.published && !isGraded : true,
       });
@@ -663,7 +759,7 @@ router.post("/:id/discussions", async (req, res) => {
 router.patch("/:id/discussions/:discussionId", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     const auth = await requireTeacher(req, res, courseId);
     if (!auth) return;
 
@@ -725,11 +821,12 @@ router.patch("/:id/discussions/:discussionId", async (req, res) => {
 router.get("/:id/discussions/:discussionId", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
-    if (!await requireEnrolled(req, res, courseId)) return;
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
+    const auth = await requireEnrolled(req, res, courseId);
+    if (!auth) return;
 
     const discussion = await localDb.prepare("SELECT * FROM discussions WHERE id = ? AND course_id = ?").get(req.params.discussionId, courseId);
-    if (!discussion) return res.status(404).json({ message: "Discussion not found" });
+    if (!discussion || await hiddenFromReader(auth.enrollment, courseId, "discussion", discussion)) return res.status(404).json({ message: "Discussion not found" });
 
     const rawReplies = await localDb.prepare("SELECT * FROM discussion_replies WHERE discussion_id = ? ORDER BY created_at ASC").all(discussion.id);
     const replies = await Promise.all(rawReplies.map(async (r) => ({ ...r, authorName: await userFullName(r.author_email) })));
@@ -744,17 +841,24 @@ router.get("/:id/discussions/:discussionId", async (req, res) => {
 router.post("/:id/discussions/:discussionId/replies", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
-    const auth = await requireEnrolled(req, res, courseId);
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
+    const auth = await requireParticipant(req, res, courseId);
     if (!auth) return;
 
     const body = String(req.body.body || "").trim();
     if (!body) return res.status(400).json({ message: "body is required" });
+    // Only into a discussion of this course that the person can see, and only under its own replies.
+    const discussion = await localDb.prepare("SELECT * FROM discussions WHERE id = ? AND course_id = ?").get(req.params.discussionId, courseId);
+    if (!discussion || await hiddenFromReader(auth.enrollment, courseId, "discussion", discussion)) return res.status(404).json({ message: "Discussion not found" });
+    const parentId = req.body.parentReplyId ? Number(req.body.parentReplyId) : null;
+    if (parentId && !await localDb.prepare("SELECT 1 FROM discussion_replies WHERE id = ? AND discussion_id = ?").get(parentId, discussion.id)) {
+      return res.status(404).json({ message: "Reply not found" });
+    }
 
     const info = await localDb.prepare(`
       INSERT INTO discussion_replies (discussion_id, parent_reply_id, body, author_email)
       VALUES (?, ?, ?, ?)
-    `).run(req.params.discussionId, req.body.parentReplyId || null, body, auth.email);
+    `).run(discussion.id, parentId, body, auth.email);
 
     return res.status(201).json(await localDb.prepare("SELECT * FROM discussion_replies WHERE id = ?").get(info.lastInsertRowid));
   } catch (error) {

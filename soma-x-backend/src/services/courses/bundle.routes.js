@@ -9,7 +9,7 @@ const router = express.Router();
 router.get("/:id/bundle", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
-    if (!await courseExists(courseId)) return res.status(404).json({ message: "Course not found" });
+    if (!await courseExists(courseId)) return res.status(404).json({ message: "Subject not found" });
     if (!await requireTeacher(req, res, courseId)) return;
     const { bundle } = await exportBundle(courseId, req.user.email);
     const name = `${bundle.course.title.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "").toLowerCase() || "course"}-v${bundle.version}.somabox.json`;

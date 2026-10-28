@@ -2,7 +2,7 @@
 export default {
   title: "Mahudhurio",
   description: "Chukua mahudhurio darasani, kisha uone nani amekuwa akija.",
-  descriptionAdmin: "Orodha za mahudhurio za kozi hii. Walimu wa kozi pekee ndio wanaoweza kuchukua mahudhurio.",
+  descriptionAdmin: "Orodha za mahudhurio za somo hili. Walimu wa somo pekee ndio wanaoweza kuchukua mahudhurio.",
   loadFailed: "Imeshindwa kupakia mahudhurio.",
 
   // Statuses
@@ -34,7 +34,7 @@ export default {
   // The register
   registerRegion: "Orodha ya mahudhurio",
   registerHint: "Gusa herufi kwa kila mwanafunzi. Igusa tena kuifuta.",
-  readOnlyHint: "Unaweza kuiona orodha hii, lakini walimu wa kozi pekee ndio wanaoweza kuweka alama.",
+  readOnlyHint: "Unaweza kuiona orodha hii, lakini walimu wa somo pekee ndio wanaoweza kuweka alama.",
   registerListLabel: "Wanafunzi wa {title}",
   statusFor: "Mahudhurio ya {name}",
   markAllPresent: "Weka wote kuwa wapo",

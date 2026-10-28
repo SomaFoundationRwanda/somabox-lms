@@ -6,6 +6,7 @@ import {
   List, ListOrdered, Link as LinkIcon, Unlink, Quote, Minus, Code,
 } from "lucide-react";
 import { useCourseText } from "@/components/course/useCourseText";
+import { FileButton, TextInput } from "@/components/form";
 
 function ToolbarButton({ onClick, isActive, children, title }) {
   return (
@@ -15,8 +16,8 @@ function ToolbarButton({ onClick, isActive, children, title }) {
       title={title}
       className={`p-1.5 rounded-md transition-colors ${
         isActive
-          ? "bg-[var(--brand-primary)] text-white"
-          : "text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+          ? "bg-brand-strong text-on-brand-strong"
+          : "text-fg-subtle hover:bg-surface-hover hover:text-fg-muted"
       }`}
     >
       {children}
@@ -25,8 +26,11 @@ function ToolbarButton({ onClick, isActive, children, title }) {
 }
 
 function ToolbarDivider() {
-  return <div className="w-px h-5 bg-slate-200 mx-0.5" />;
+  return <div className="w-px h-5 bg-line mx-0.5" />;
 }
+
+// A chosen file goes to the editor, which uploads and places it (RichTextEditor listens).
+const uploadToEditor = ([file]) => window.dispatchEvent(new CustomEvent("editor-upload-file", { detail: file }));
 
 export default function EditorToolbar({ editor }) {
   const { t } = useCourseText();
@@ -48,7 +52,7 @@ export default function EditorToolbar({ editor }) {
   if (!editor) return null;
 
   return (
-    <div className="flex items-center flex-wrap gap-0.5 px-2 py-1.5 bg-slate-50">
+    <div className="flex items-center flex-wrap gap-0.5 px-2 py-1.5 bg-surface-sunken">
       {/* Headings */}
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
@@ -160,27 +164,19 @@ export default function EditorToolbar({ editor }) {
 
       {/* Link input popover */}
       {showLinkInput && (
-        <div className="flex items-center gap-1.5 ml-1 bg-white border border-slate-200 rounded-lg px-2 py-1 shadow-sm">
-          <input aria-label={t("editor.linkUrl")}
-            type="url"
-            value={linkUrl}
-            onChange={(e) => setLinkUrl(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); setLink(); } if (e.key === "Escape") setShowLinkInput(false); }}
-            placeholder="https://..."
-            className="text-xs border-none outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)] w-48 bg-transparent"
-            autoFocus
-          />
+        <div className="flex items-center gap-1.5 ml-1 bg-surface border border-line rounded-lg px-2 py-1 shadow-sm">
+          <TextInput size="sm" aria-label={t("editor.linkUrl")} type="url" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); setLink(); } if (e.key === "Escape") setShowLinkInput(false); }} placeholder="https://..." className="w-48" autoFocus />
           <button
             type="button"
             onClick={setLink}
-            className="text-[10px] font-semibold text-white bg-[var(--brand-primary)] rounded px-2 py-0.5"
+            className="text-caption font-semibold text-on-brand-strong bg-brand-strong rounded px-2 py-0.5"
           >
             {t("editor.setLink")}
           </button>
           <button aria-label={t("editor.cancelLink")}
             type="button"
             onClick={() => setShowLinkInput(false)}
-            className="text-[10px] text-slate-400 hover:text-slate-600"
+            className="text-caption text-fg-subtle hover:text-fg-muted"
           >
             ✕
           </button>
@@ -190,46 +186,22 @@ export default function EditorToolbar({ editor }) {
       <ToolbarDivider />
 
       {/* Insert Image */}
-      <label className="p-1.5 rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-700 cursor-pointer transition-colors" title={t("editor.insertImage")}>
+      <FileButton variant="bare" accept="image/*" title={t("editor.insertImage")} aria-label={t("editor.insertImage")} onFiles={uploadToEditor}
+        className="p-1.5 rounded-md text-fg-subtle hover:bg-surface-hover hover:text-fg-muted transition-colors">
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <rect x="3" y="3" width="18" height="18" rx="2" ry="2" strokeWidth="2" />
           <circle cx="8.5" cy="8.5" r="1.5" strokeWidth="2" />
           <path d="M21 15l-5-5L5 21" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
-        <input
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) {
-              const domEvent = new CustomEvent("editor-upload-file", { detail: file });
-              window.dispatchEvent(domEvent);
-              e.target.value = "";
-            }
-          }}
-        />
-      </label>
+      </FileButton>
 
       {/* Attach File */}
-      <label className="p-1.5 rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-700 cursor-pointer transition-colors" title={t("editor.attachFile")}>
+      <FileButton variant="bare" accept="*/*" title={t("editor.attachFile")} aria-label={t("editor.attachFile")} onFiles={uploadToEditor}
+        className="p-1.5 rounded-md text-fg-subtle hover:bg-surface-hover hover:text-fg-muted transition-colors">
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
-        <input
-          type="file"
-          accept="*/*"
-          className="hidden"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) {
-              const domEvent = new CustomEvent("editor-upload-file", { detail: file });
-              window.dispatchEvent(domEvent);
-              e.target.value = "";
-            }
-          }}
-        />
-      </label>
+      </FileButton>
     </div>
   );
 }

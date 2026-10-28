@@ -5,13 +5,12 @@
 //   only be renamed and hidden.
 // Every change refreshes the Explore catalogue (DataContext.refreshExplore).
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { apiFetch, apiUpload, getErrorMessage } from "@/lib/api";
 import FileTable from './fileTable';
 import { getFileMediaType } from './fileRow';
 import UniversalPlayerModal from '@/components/ui/UniversalPlayerModal';
 import dynamic from "next/dynamic";
 import { Button } from '@/components/ui/button';
-import { clickableProps } from "@/lib/a11y";
-import { getSessionToken } from "@/lib/session";
 import DataContext from "@/context/DataContext";
 import { useLanguage } from "@/context/LanguageContext";
 import {
@@ -19,6 +18,7 @@ import {
     Upload, X, CheckCircle2, AlertCircle, Music, Video, BookOpen, FolderOpen, RefreshCw, Pencil, Trash2, Sparkles,
 } from 'lucide-react';
 import SummaryPanel from '@/components/explore/SummaryPanel';
+import { Field, FileDrop, Label, TextInput, Textarea } from "@/components/form";
 
 // react-reader (epub.js) loads only when a book is opened.
 const EpubReader = dynamic(() => import("@/components/ui/library/EpubReader"), { ssr: false });
@@ -32,12 +32,21 @@ const ACCEPT = ".mp4,.webm,.mkv,.m4v,.mov,.mp3,.wav,.ogg,.m4a,.pdf,.epub";
 const fill = (text, vars) => String(text || '').replace(/\{(\w+)\}/g, (_, k) => (vars[k] ?? ''));
 
 /** The error text a manager endpoint sent ({ error }), or another endpoint ({ message }). */
-async function serverMessage(res, fallback) {
+// The server's own words for a failed request (these routes answer { error } or { message }).
+function serverMessage(error, fallback) {
+    if (error?.status === 0) return getErrorMessage(error);
+    return error?.body?.error || error?.body?.message || fallback;
+}
+
+// A request that throws an Error with the server's message (or `fallback`).
+async function call(path, options, fallback) {
     try {
-        const body = await res.json();
-        return body?.error || body?.message || fallback;
-    } catch {
-        return fallback;
+        return await apiFetch(path, options);
+    } catch (error) {
+        const failure = new Error(serverMessage(error, fallback));
+        failure.status = error?.status;
+        failure.body = error?.body;
+        throw failure;
     }
 }
 
@@ -75,7 +84,7 @@ function Modal({ onClose, labelledBy, children, wide }) {
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby={labelledBy}
-                className={`relative z-10 bg-white rounded-[8px] border border-slate-100 shadow-2xl w-full ${wide ? 'max-w-lg' : 'max-w-md'} max-h-[90vh] overflow-y-auto`}
+                className={`relative z-10 bg-surface rounded-[8px] border border-line shadow-2xl w-full ${wide ? 'max-w-lg' : 'max-w-md'} max-h-[90vh] overflow-y-auto`}
             >
                 {children}
             </div>
@@ -86,17 +95,17 @@ function Modal({ onClose, labelledBy, children, wide }) {
 function ModalHeader({ id, icon, title, onClose }) {
     const { t } = useLanguage();
     return (
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-line">
             <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-[5px] bg-slate-100 flex items-center justify-center shrink-0">{icon}</div>
-                <h2 id={id} className="text-[14px] font-black text-slate-900">{title}</h2>
+                <div className="w-7 h-7 rounded-[5px] bg-surface-sunken flex items-center justify-center shrink-0">{icon}</div>
+                <h2 id={id} className="text-ui font-extrabold text-fg">{title}</h2>
             </div>
             {onClose && (
                 <button
                     type="button"
                     aria-label={t("explore.manager.close")}
                     onClick={onClose}
-                    className="w-7 h-7 flex items-center justify-center rounded-[5px] text-slate-600 hover:bg-slate-100 transition-colors"
+                    className="w-7 h-7 flex items-center justify-center rounded-[5px] text-fg-muted hover:bg-surface-hover transition-colors"
                 >
                     <X className="w-3.5 h-3.5" aria-hidden="true" />
                 </button>
@@ -107,15 +116,15 @@ function ModalHeader({ id, icon, title, onClose }) {
 
 function Notice({ tone, children }) {
     const styles = tone === 'error'
-        ? 'bg-red-50 border-red-100 text-red-700'
+        ? 'bg-danger-soft border-danger/30 text-danger-fg'
         : tone === 'success'
-            ? 'bg-green-50 border-green-100 text-green-700'
-            : 'bg-slate-50 border-slate-200 text-slate-700';
+            ? 'bg-success-soft border-success/30 text-success-fg'
+            : 'bg-surface-sunken border-line text-fg-muted';
     const Icon = tone === 'error' ? AlertCircle : tone === 'success' ? CheckCircle2 : Info;
     return (
         <div role={tone === 'error' ? 'alert' : 'status'} className={`flex items-start gap-2.5 px-3 py-2.5 rounded-[5px] border ${styles}`}>
             <Icon className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
-            <p className="text-[12px] font-semibold">{children}</p>
+            <p className="text-caption font-semibold">{children}</p>
         </div>
     );
 }
@@ -128,11 +137,11 @@ function FooterButtons({ onCancel, busy, disabled, children }) {
                 type="button"
                 onClick={onCancel}
                 disabled={busy}
-                className="flex-1 h-9 rounded-[5px] border border-slate-200 text-[12px] font-semibold text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-40"
+                className="flex-1 h-9 rounded-[5px] border border-line text-caption font-semibold text-fg-muted hover:bg-surface-hover transition-colors disabled:opacity-40"
             >
                 {t("explore.manager.cancel")}
             </button>
-            <Button type="submit" disabled={disabled || busy} className="flex-1 h-9 rounded-[5px] text-[12px] font-semibold gap-1.5">
+            <Button type="submit" disabled={disabled || busy} className="flex-1 h-9 rounded-[5px] text-caption font-semibold gap-1.5">
                 {children}
             </Button>
         </div>
@@ -162,33 +171,33 @@ function FilterDropdown({ label, options, value, onChange }) {
                 type="button"
                 aria-expanded={open}
                 onClick={() => setOpen(o => !o)}
-                className={`flex items-center gap-1.5 h-8 px-3 rounded-[5px] border text-[11px] font-semibold transition-all ${
+                className={`flex items-center gap-1.5 h-8 px-3 rounded-[5px] border text-caption font-semibold transition-all ${
                     isFiltered
-                        ? 'border-accent-dark bg-accent-dark text-white'
-                        : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:text-slate-700 bg-white'
+                        ? 'border-brand-strong bg-brand-strong text-on-brand-strong'
+                        : 'border-line text-fg-muted hover:border-line-strong hover:text-fg-muted bg-surface'
                 }`}
             >
                 {label}
-                {isFiltered && <span className="text-[10px] font-bold opacity-80">· {selected?.label}</span>}
+                {isFiltered && <span className="text-caption font-bold opacity-80">· {selected?.label}</span>}
                 <ChevronDown className={`w-3 h-3 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden="true" />
             </button>
 
             {open && (
-                <div className="absolute top-full left-0 mt-1.5 bg-white rounded-[5px] border border-slate-200 shadow-xl z-30 min-w-[160px] py-1 overflow-hidden">
+                <div className="absolute top-full left-0 mt-1.5 bg-surface rounded-[5px] border border-line shadow-xl z-30 min-w-[160px] py-1 overflow-hidden">
                     {options.map(opt => (
                         <button
                             type="button"
                             key={opt.value}
                             onClick={() => { onChange(opt.value); setOpen(false); }}
-                            className={`w-full flex items-center justify-between px-3 py-2 text-[12px] font-medium transition-colors text-left gap-6 ${
-                                opt.value === value ? 'text-accent-dark bg-slate-50' : 'text-slate-600 hover:bg-slate-50'
+                            className={`w-full flex items-center justify-between px-3 py-2 text-caption font-medium transition-colors text-left gap-6 ${
+                                opt.value === value ? 'text-brand-fg bg-surface-sunken' : 'text-fg-muted hover:bg-surface-hover'
                             }`}
                         >
                             <span className="flex items-center gap-2">
                                 {opt.icon && <opt.icon className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />}
                                 {opt.label}
                             </span>
-                            {opt.value === value && <Check className="w-3 h-3 text-accent-dark shrink-0" aria-hidden="true" />}
+                            {opt.value === value && <Check className="w-3 h-3 text-brand-fg shrink-0" aria-hidden="true" />}
                         </button>
                     ))}
                 </div>
@@ -232,7 +241,7 @@ function NewFolderModal({ onClose, onSubmit }) {
         <Modal onClose={status === 'loading' ? undefined : onClose} labelledBy="new-folder-title">
             <ModalHeader
                 id="new-folder-title"
-                icon={<FolderPlus className="w-3.5 h-3.5 text-amber-500" aria-hidden="true" />}
+                icon={<FolderPlus className="w-3.5 h-3.5 text-warning-fg" aria-hidden="true" />}
                 title={t("explore.manager.newFolder")}
                 onClose={status === 'loading' ? undefined : onClose}
             />
@@ -240,21 +249,19 @@ function NewFolderModal({ onClose, onSubmit }) {
                 <div className="px-5 py-5 space-y-4">
                     <div>
                         <div className="flex items-center justify-between mb-2">
-                            <label htmlFor="new-folder-name" className="text-[11px] font-bold text-slate-600 uppercase tracking-widest">
+                            <Label htmlFor="new-folder-name">
                                 {t("explore.manager.folderName")}
-                            </label>
-                            <span className={`text-[10px] font-medium tabular-nums ${remaining <= 10 ? 'text-amber-600' : 'text-slate-600'}`}>
+                            </Label>
+                            <span className={`text-caption font-medium tabular-nums ${remaining <= 10 ? 'text-warning-fg' : 'text-fg-muted'}`}>
                                 {remaining}
                             </span>
                         </div>
-                        <input
+                        <TextInput
                             id="new-folder-name"
                             ref={inputRef}
-                            type="text"
                             value={name}
                             onChange={(e) => setName(e.target.value.slice(0, MAX_FOLDER_NAME))}
                             placeholder={t("explore.manager.folderNamePlaceholder")}
-                            className="w-full h-10 px-3 rounded-[5px] border border-slate-200 bg-slate-50 text-[13px] text-slate-800 placeholder:text-slate-400 outline-none focus:border-slate-400 focus:bg-white focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]"
                         />
                     </div>
                     {status === 'error' && <Notice tone="error">{errorMsg}</Notice>}
@@ -282,26 +289,12 @@ function formatBytes(bytes) {
 
 /** POSTs one file with progress. Resolves to { status, message }. */
 function uploadOne(file, folderPath, onProgress) {
-    return new Promise((resolve) => {
-        const form = new FormData();
-        form.append('path', folderPath);
-        form.append('file', file);
-        const xhr = new XMLHttpRequest();
-        xhr.open('POST', `${SERVER_URL}/content/manager/upload`);
-        xhr.withCredentials = true;
-        const token = getSessionToken();
-        if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-        xhr.upload.onprogress = (e) => {
-            if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
-        };
-        xhr.onload = () => {
-            let body = null;
-            try { body = JSON.parse(xhr.responseText); } catch { /* not JSON */ }
-            resolve({ status: xhr.status, message: body?.error || body?.message || '' });
-        };
-        xhr.onerror = () => resolve({ status: 0, message: '' });
-        xhr.send(form);
-    });
+    const form = new FormData();
+    form.append('path', folderPath);
+    form.append('file', file);
+    return apiUpload('/content/manager/upload', form, { onProgress }).promise
+        .then(() => ({ status: 200, message: '' }))
+        .catch((error) => ({ status: error?.status ?? 0, message: error?.body?.error || error?.body?.message || '' }));
 }
 
 const FILE_ICON = { video: Video, audio: Music, pdf: BookOpen, epub: BookOpen };
@@ -309,9 +302,7 @@ const FILE_ICON = { video: Video, audio: Music, pdf: BookOpen, epub: BookOpen };
 function UploadModal({ folderPath, folderTitle, onClose, onUploaded }) {
     const { t } = useLanguage();
     const [entries, setEntries]   = useState([]); // { key, file, state: waiting|uploading|added|exists|unsupported|failed, progress, message }
-    const [dragging, setDragging] = useState(false);
     const [running, setRunning]   = useState(false);
-    const fileInputRef = useRef(null);
 
     const addFiles = (list) => {
         const files = Array.from(list || []);
@@ -324,11 +315,6 @@ function UploadModal({ folderPath, folderTitle, onClose, onUploaded }) {
 
     const update = (key, patch) => setEntries((prev) => prev.map((e) => (e.key === key ? { ...e, ...patch } : e)));
 
-    const handleDrop = (e) => {
-        e.preventDefault();
-        setDragging(false);
-        if (!running) addFiles(e.dataTransfer.files);
-    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -368,57 +354,44 @@ function UploadModal({ folderPath, folderTitle, onClose, onUploaded }) {
         }
     };
     const stateColor = {
-        waiting: 'text-slate-600', uploading: 'text-blue-700', added: 'text-green-700',
-        exists: 'text-amber-700', unsupported: 'text-red-700', failed: 'text-red-700',
+        waiting: 'text-fg-muted', uploading: 'text-info-fg', added: 'text-success-fg',
+        exists: 'text-warning-fg', unsupported: 'text-danger-fg', failed: 'text-danger-fg',
     };
 
     return (
         <Modal onClose={running ? undefined : onClose} labelledBy="upload-title" wide>
             <ModalHeader
                 id="upload-title"
-                icon={<Upload className="w-3.5 h-3.5 text-slate-600" aria-hidden="true" />}
+                icon={<Upload className="w-3.5 h-3.5 text-fg-muted" aria-hidden="true" />}
                 title={fill(t("explore.manager.uploadTo"), { folder: folderTitle })}
                 onClose={running ? undefined : onClose}
             />
             <form onSubmit={handleSubmit}>
                 <div className="px-5 py-5 space-y-4">
-                    <div
-                        {...clickableProps(() => { if (!running) fileInputRef.current?.click(); }, t("explore.manager.chooseFiles"))}
-                        onDrop={handleDrop}
-                        onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-                        onDragLeave={() => setDragging(false)}
-                        className={`flex flex-col items-center justify-center gap-2 h-[110px] rounded-[5px] border-2 border-dashed cursor-pointer transition-all ${
-                            dragging ? 'border-accent-dark bg-accent-dark/5' : 'border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-white'
-                        }`}
-                    >
-                        <input
-                            ref={fileInputRef}
-                            type="file"
-                            multiple
-                            accept={ACCEPT}
-                            className="hidden"
-                            onChange={(e) => { addFiles(e.target.files); e.target.value = ''; }}
-                        />
-                        <File className="w-5 h-5 text-slate-600" aria-hidden="true" />
-                        <p className="text-[12px] font-semibold text-slate-600 text-center">
-                            {t("explore.manager.dropFiles")}
-                        </p>
-                        <p className="text-[11px] text-slate-600 text-center px-4">{t("explore.manager.allowedTypes")}</p>
-                    </div>
+                    <FileDrop
+                        multiple
+                        accept={ACCEPT}
+                        disabled={running}
+                        onFiles={addFiles}
+                        label={t("explore.manager.chooseFiles")}
+                        icon={File}
+                        title={t("explore.manager.dropFiles")}
+                        hint={t("explore.manager.allowedTypes")}
+                    />
 
                     {entries.length > 0 && (
-                        <ul className="divide-y divide-slate-100 border border-slate-100 rounded-[5px]" aria-live="polite">
+                        <ul className="divide-y divide-line border border-line rounded-[5px]" aria-live="polite">
                             {entries.map((entry) => {
                                 const Icon = FILE_ICON[getFileMediaType(entry.file.name)] || File;
                                 return (
                                     <li key={entry.key} className="px-3 py-2 flex items-start gap-2.5">
-                                        <Icon className="w-4 h-4 text-slate-600 shrink-0 mt-0.5" aria-hidden="true" />
+                                        <Icon className="w-4 h-4 text-fg-muted shrink-0 mt-0.5" aria-hidden="true" />
                                         <div className="flex-1 min-w-0">
-                                            <p className="text-[12px] font-semibold text-slate-800 truncate">{entry.file.name}</p>
-                                            <p className={`text-[11px] font-medium ${stateColor[entry.state]}`}>{stateText(entry)}</p>
+                                            <p className="text-caption font-semibold text-fg truncate">{entry.file.name}</p>
+                                            <p className={`text-caption font-medium ${stateColor[entry.state]}`}>{stateText(entry)}</p>
                                             {entry.state === 'uploading' && (
-                                                <div className="h-1 w-full bg-blue-100 rounded-full mt-1 overflow-hidden">
-                                                    <div className="h-full bg-blue-500 rounded-full transition-all" style={{ width: `${entry.progress}%` }} />
+                                                <div className="h-1 w-full bg-info-soft rounded-full mt-1 overflow-hidden">
+                                                    <div className="h-full bg-info rounded-full transition-all" style={{ width: `${entry.progress}%` }} />
                                                 </div>
                                             )}
                                         </div>
@@ -427,13 +400,13 @@ function UploadModal({ folderPath, folderTitle, onClose, onUploaded }) {
                                                 type="button"
                                                 aria-label={`${t("explore.manager.remove")}: ${entry.file.name}`}
                                                 onClick={() => setEntries((prev) => prev.filter((e) => e.key !== entry.key))}
-                                                className="w-6 h-6 flex items-center justify-center rounded text-slate-600 hover:bg-slate-100"
+                                                className="w-6 h-6 flex items-center justify-center rounded text-fg-muted hover:bg-surface-hover"
                                             >
                                                 <X className="w-3 h-3" aria-hidden="true" />
                                             </button>
                                         )}
-                                        {entry.state === 'added' && <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" aria-hidden="true" />}
-                                        {['exists', 'unsupported', 'failed'].includes(entry.state) && <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" aria-hidden="true" />}
+                                        {entry.state === 'added' && <CheckCircle2 className="w-4 h-4 text-success-fg shrink-0" aria-hidden="true" />}
+                                        {['exists', 'unsupported', 'failed'].includes(entry.state) && <AlertCircle className="w-4 h-4 text-warning-fg shrink-0" aria-hidden="true" />}
                                     </li>
                                 );
                             })}
@@ -445,7 +418,7 @@ function UploadModal({ folderPath, folderTitle, onClose, onUploaded }) {
                 </div>
                 {done ? (
                     <div className="px-5 pb-5">
-                        <Button type="button" onClick={onClose} className="w-full h-9 rounded-[5px] text-[12px] font-semibold">
+                        <Button type="button" onClick={onClose} className="w-full h-9 rounded-[5px] text-caption font-semibold">
                             {t("explore.manager.done")}
                         </Button>
                     </div>
@@ -489,40 +462,19 @@ function RenameModal({ row, onClose, onSubmit }) {
         <Modal onClose={busy ? undefined : onClose} labelledBy="rename-title">
             <ModalHeader
                 id="rename-title"
-                icon={<Pencil className="w-3.5 h-3.5 text-slate-600" aria-hidden="true" />}
+                icon={<Pencil className="w-3.5 h-3.5 text-fg-muted" aria-hidden="true" />}
                 title={t("explore.manager.renameTitle")}
                 onClose={busy ? undefined : onClose}
             />
             <form onSubmit={handleSubmit}>
                 <div className="px-5 py-5 space-y-4">
-                    <div>
-                        <label htmlFor="rename-name" className="text-[11px] font-bold text-slate-600 uppercase tracking-widest block mb-2">
-                            {t("explore.manager.shownTitle")}
-                        </label>
-                        <input
-                            id="rename-name"
-                            type="text"
-                            value={title}
-                            maxLength={200}
-                            autoFocus
-                            onChange={(e) => setTitle(e.target.value)}
-                            className="w-full h-10 px-3 rounded-[5px] border border-slate-200 bg-slate-50 text-[13px] text-slate-800 outline-none focus:border-slate-400 focus:bg-white focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]"
-                        />
-                    </div>
-                    <div>
-                        <label htmlFor="rename-description" className="text-[11px] font-bold text-slate-600 uppercase tracking-widest block mb-2">
-                            {t("explore.manager.description")}
-                        </label>
-                        <textarea
-                            id="rename-description"
-                            value={subtitle}
-                            maxLength={1000}
-                            rows={3}
-                            onChange={(e) => setSubtitle(e.target.value)}
-                            className="w-full px-3 py-2 rounded-[5px] border border-slate-200 bg-slate-50 text-[13px] text-slate-800 outline-none focus:border-slate-400 focus:bg-white focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]"
-                        />
-                    </div>
-                    <p className="text-[11px] text-slate-600">{t("explore.manager.renameHelp")}</p>
+                    <Field id="rename-name" label={t("explore.manager.shownTitle")}>
+                        <TextInput value={title} maxLength={200} autoFocus onChange={(e) => setTitle(e.target.value)} />
+                    </Field>
+                    <Field id="rename-description" label={t("explore.manager.description")}>
+                        <Textarea value={subtitle} maxLength={1000} rows={3} onChange={(e) => setSubtitle(e.target.value)} />
+                    </Field>
+                    <p className="text-caption text-fg-muted">{t("explore.manager.renameHelp")}</p>
                     {error && <Notice tone="error">{error}</Notice>}
                 </div>
                 <FooterButtons onCancel={onClose} busy={busy} disabled={!title.trim()}>
@@ -565,18 +517,18 @@ function DeleteModal({ row, onClose, onSubmit }) {
         <Modal onClose={busy ? undefined : onClose} labelledBy="delete-title">
             <ModalHeader
                 id="delete-title"
-                icon={<Trash2 className="w-3.5 h-3.5 text-red-600" aria-hidden="true" />}
+                icon={<Trash2 className="w-3.5 h-3.5 text-danger-fg" aria-hidden="true" />}
                 title={row.type === 'folder' ? t("explore.manager.deleteFolderTitle") : t("explore.manager.deleteFileTitle")}
                 onClose={busy ? undefined : onClose}
             />
             <form onSubmit={handleSubmit}>
                 <div className="px-5 py-5 space-y-4">
-                    <p className="text-[13px] text-slate-800">
+                    <p className="text-small text-fg">
                         {needsRecursive
                             ? fill(t("explore.manager.deleteNotEmpty"), { name: row.name })
                             : fill(t("explore.manager.deleteConfirm"), { name: row.name })}
                     </p>
-                    <p className="text-[12px] text-slate-600">{t("explore.manager.deleteWarning")}</p>
+                    <p className="text-caption text-fg-muted">{t("explore.manager.deleteWarning")}</p>
                     {error && <Notice tone="error">{error}</Notice>}
                 </div>
                 <FooterButtons onCancel={onClose} busy={busy}>
@@ -620,9 +572,7 @@ const FileManager = () => {
 
     const loadRoots = useCallback(async () => {
         try {
-            const res = await fetch(`${SERVER_URL}/content/manager/roots`);
-            if (!res.ok) throw new Error(await serverMessage(res, t("explore.manager.loadFailed")));
-            const data = await res.json();
+            const data = await call("/content/manager/roots", {}, t("explore.manager.loadFailed"));
             setRoots(data.roots || []);
             setIndexInfo({ lastIndexRun: data.lastIndexRun || null, coversWaiting: Number(data.coversWaiting) || 0 });
             setRootsError('');
@@ -638,9 +588,7 @@ const FileManager = () => {
         setLoading(true);
         setListError('');
         try {
-            const res = await fetch(`${SERVER_URL}/content/manager/list?path=${encodeURIComponent(pathKey)}`);
-            if (!res.ok) throw new Error(await serverMessage(res, t("explore.manager.loadFailed")));
-            const data = await res.json();
+            const data = await call(`/content/manager/list?path=${encodeURIComponent(pathKey)}`, {}, t("explore.manager.loadFailed"));
             setFolder(data);
             const folders = (data.categories || []).map(cat => ({
                 id: `cat-${cat.id}`,
@@ -732,12 +680,10 @@ const FileManager = () => {
     const handleToggleVisibility = async (row, nextDisabled) => {
         setActionError('');
         try {
-            const res = await fetch(`${SERVER_URL}/content/manager/toggle`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ target: row.type === 'folder' ? 'category' : 'content', is_disabled: nextDisabled, path_key: row.path_key }),
-            });
-            if (!res.ok) throw new Error(await serverMessage(res, t("explore.manager.actionFailed")));
+            await call("/content/manager/toggle", {
+                method: "PATCH",
+                json: { target: row.type === 'folder' ? 'category' : 'content', is_disabled: nextDisabled, path_key: row.path_key },
+            }, t("explore.manager.actionFailed"));
             afterChange();
         } catch (e) {
             setActionError(e.message);
@@ -745,39 +691,32 @@ const FileManager = () => {
     };
 
     const handleNewFolder = async (name) => {
-        const res = await fetch(`${SERVER_URL}/content/manager/create-folder`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, path: currentPath }),
-        });
-        if (res.status === 409) throw new Error(t("explore.manager.folderExists"));
-        if (!res.ok) throw new Error(await serverMessage(res, t("explore.manager.actionFailed")));
+        try {
+            await call("/content/manager/create-folder", { method: "POST", json: { name, path: currentPath } }, t("explore.manager.actionFailed"));
+        } catch (e) {
+            throw e.status === 409 ? new Error(t("explore.manager.folderExists")) : e;
+        }
         afterChange();
     };
 
     const handleRename = async (row, { title, subtitle }) => {
-        const res = await fetch(`${SERVER_URL}/content/manager/details`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ target: row.type === 'folder' ? 'category' : 'content', path_key: row.path_key, title, subtitle }),
-        });
-        if (!res.ok) throw new Error(await serverMessage(res, t("explore.manager.actionFailed")));
+        await call("/content/manager/details", {
+            method: "PATCH",
+            json: { target: row.type === 'folder' ? 'category' : 'content', path_key: row.path_key, title, subtitle },
+        }, t("explore.manager.actionFailed"));
         afterChange();
     };
 
     const handleDelete = async (row, recursive) => {
-        const res = await fetch(`${SERVER_URL}/content/manager/item`, {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ path_key: row.path_key, ...(recursive ? { recursive: true } : {}) }),
-        });
-        if (res.status === 409) {
-            let body = null;
-            try { body = await res.json(); } catch { /* ignore */ }
-            if (body?.code === 'FOLDER_NOT_EMPTY') return 'not-empty';
-            throw new Error(body?.error || body?.message || t("explore.manager.actionFailed"));
+        try {
+            await call("/content/manager/item", {
+                method: "DELETE",
+                json: { path_key: row.path_key, ...(recursive ? { recursive: true } : {}) },
+            }, t("explore.manager.actionFailed"));
+        } catch (e) {
+            if (e.status === 409 && e.body?.code === 'FOLDER_NOT_EMPTY') return 'not-empty';
+            throw e;
         }
-        if (!res.ok) throw new Error(await serverMessage(res, t("explore.manager.actionFailed")));
         afterChange();
         return 'deleted';
     };
@@ -787,8 +726,7 @@ const FileManager = () => {
         setRescanResult('');
         setActionError('');
         try {
-            const res = await fetch(`${SERVER_URL}/content/manager/rescan`, { method: 'POST' });
-            if (!res.ok) throw new Error(await serverMessage(res, t("explore.manager.actionFailed")));
+            await call("/content/manager/rescan", { method: "POST" }, t("explore.manager.actionFailed"));
             setRescanResult(t("explore.manager.rescanDone"));
             afterChange();
         } catch (e) {
@@ -833,8 +771,8 @@ const FileManager = () => {
                             role="tab"
                             aria-selected={activeRoot === root.path}
                             onClick={() => switchRoot(root.path)}
-                            className={`h-9 px-4 rounded-full text-[12px] font-bold transition-colors shrink-0 ${
-                                activeRoot === root.path ? 'bg-accent-dark text-white' : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+                            className={`h-9 px-4 rounded-full text-caption font-bold transition-colors shrink-0 ${
+                                activeRoot === root.path ? 'bg-brand-strong text-on-brand-strong' : 'bg-surface border border-line text-fg-muted hover:bg-surface-hover'
                             }`}
                         >
                             {rootTitle(root)}
@@ -844,7 +782,7 @@ const FileManager = () => {
             )}
 
             {/* ── Index status ── */}
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-3 text-[11px] text-slate-600 font-medium">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-3 text-caption text-fg-muted font-medium">
                 <span>{statusLine}</span>
                 {indexInfo.coversWaiting > 0 && (
                     <span className="flex items-center gap-1">
@@ -858,13 +796,13 @@ const FileManager = () => {
                         onClick={handleRescan}
                         disabled={rescanning}
                         title={t("explore.manager.rescanHelp")}
-                        className="flex items-center gap-1 h-7 px-2.5 rounded-[5px] border border-slate-200 bg-white text-[11px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                        className="flex items-center gap-1 h-7 px-2.5 rounded-[5px] border border-line bg-surface text-caption font-semibold text-fg-muted hover:bg-surface-hover disabled:opacity-50"
                     >
                         <RefreshCw className={`w-3 h-3 ${rescanning ? 'animate-spin' : ''}`} aria-hidden="true" />
                         {rescanning ? t("explore.manager.rescanning") : t("explore.manager.rescan")}
                     </button>
                 )}
-                {rescanResult && <span role="status" className="text-green-700">{rescanResult}</span>}
+                {rescanResult && <span role="status" className="text-success-fg">{rescanResult}</span>}
             </div>
 
             {folder && !canChangeFiles && (
@@ -881,17 +819,15 @@ const FileManager = () => {
             {/* ── Toolbar ── */}
             <div className="mb-3">
                 <div className="flex items-center gap-2 py-2 flex-wrap">
-                    <div className="flex items-center gap-2 px-3 h-8 rounded-[5px] border border-slate-200 bg-slate-50 focus-within:bg-white focus-within:border-slate-400 transition-all flex-1 min-w-[180px] max-w-[280px]">
-                        <Search className="w-3.5 h-3.5 text-slate-600 shrink-0" aria-hidden="true" />
-                        <input
-                            aria-label={t("explore.manager.search")}
-                            type="text"
-                            placeholder={t("explore.manager.search")}
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="flex-1 text-[12px] text-slate-700 placeholder:text-slate-400 bg-transparent outline-none border-none min-w-0"
-                        />
-                    </div>
+                    <TextInput
+                        aria-label={t("explore.manager.search")}
+                        placeholder={t("explore.manager.search")}
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        size="sm"
+                        icon={Search}
+                        className="flex-1 min-w-[180px] max-w-[280px]"
+                    />
 
                     <FilterDropdown label={t("explore.manager.type")} options={TYPE_OPTIONS} value={typeFilter} onChange={setTypeFilter} />
 
@@ -899,7 +835,7 @@ const FileManager = () => {
                         <button
                             type="button"
                             onClick={() => setTypeFilter('all')}
-                            className="flex items-center gap-1 h-8 px-2.5 rounded-[5px] text-[11px] font-semibold text-slate-600 hover:bg-slate-100 transition-colors shrink-0"
+                            className="flex items-center gap-1 h-8 px-2.5 rounded-[5px] text-caption font-semibold text-fg-muted hover:bg-surface-hover transition-colors shrink-0"
                         >
                             <X className="w-3 h-3" aria-hidden="true" /> {t("explore.manager.clear")}
                         </button>
@@ -911,7 +847,7 @@ const FileManager = () => {
                             onClick={() => setModal({ kind: 'folder' })}
                             disabled={!canChangeFiles || !folder}
                             title={!canChangeFiles ? t("explore.manager.cloudNotice") : undefined}
-                            className="flex items-center gap-1.5 h-8 px-3 rounded-[5px] border border-slate-200 text-[12px] font-semibold text-slate-600 hover:bg-slate-50 transition-colors bg-white disabled:opacity-40 disabled:cursor-not-allowed"
+                            className="flex items-center gap-1.5 h-8 px-3 rounded-[5px] border border-line text-caption font-semibold text-fg-muted hover:bg-surface-hover transition-colors bg-surface disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                             <FolderPlus className="w-3.5 h-3.5" aria-hidden="true" />
                             <span className="hidden sm:inline">{t("explore.manager.newFolder")}</span>
@@ -921,7 +857,7 @@ const FileManager = () => {
                             onClick={() => setModal({ kind: 'upload' })}
                             disabled={!canChangeFiles || !folder}
                             title={!canChangeFiles ? t("explore.manager.cloudNotice") : undefined}
-                            className="flex items-center gap-1.5 h-8 px-3 rounded-[5px] text-[12px] font-semibold text-white transition-colors bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] disabled:opacity-40 disabled:cursor-not-allowed"
+                            className="flex items-center gap-1.5 h-8 px-3 rounded-[5px] text-caption font-semibold text-on-brand-strong transition-colors bg-brand-strong hover:bg-brand-strong/90 disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                             <Upload className="w-3.5 h-3.5" aria-hidden="true" />
                             <span className="hidden sm:inline">{t("explore.manager.upload")}</span>
@@ -931,7 +867,7 @@ const FileManager = () => {
 
                 {/* Breadcrumbs + counts */}
                 <div className="flex items-center justify-between gap-2 py-2">
-                    <nav aria-label={t("explore.manager.breadcrumbs")} className="flex items-center gap-1 text-[11px] flex-wrap min-w-0">
+                    <nav aria-label={t("explore.manager.breadcrumbs")} className="flex items-center gap-1 text-caption flex-wrap min-w-0">
                         {breadcrumbs.map((b, idx) => {
                             const isLast = idx === breadcrumbs.length - 1;
                             const name = idx === 0 ? (t(`explore.categories.${b.path}`) || b.name) : b.name;
@@ -941,17 +877,17 @@ const FileManager = () => {
                                         type="button"
                                         onClick={() => fetchList(b.path)}
                                         aria-current={isLast ? 'page' : undefined}
-                                        className={`font-semibold transition-colors hover:text-slate-900 ${isLast ? 'text-slate-800' : 'text-slate-600'}`}
+                                        className={`font-semibold transition-colors hover:text-fg ${isLast ? 'text-fg' : 'text-fg-muted'}`}
                                     >
                                         {name}
                                     </button>
-                                    {!isLast && <ChevronRight className="w-3 h-3 text-slate-500" aria-hidden="true" />}
+                                    {!isLast && <ChevronRight className="w-3 h-3 text-fg-subtle" aria-hidden="true" />}
                                 </React.Fragment>
                             );
                         })}
                     </nav>
                     {!loading && (
-                        <div className="flex items-center gap-2 text-[10px] text-slate-600 font-medium shrink-0">
+                        <div className="flex items-center gap-2 text-caption text-fg-muted font-medium shrink-0">
                             {folderCount > 0 && <span>{fill(t(folderCount === 1 ? "explore.manager.oneFolder" : "explore.manager.nFolders"), { n: folderCount })}</span>}
                             {fileCount > 0 && <span>{fill(t(fileCount === 1 ? "explore.manager.oneFileCount" : "explore.manager.nFiles"), { n: fileCount })}</span>}
                         </div>
@@ -992,7 +928,7 @@ const FileManager = () => {
                 <Modal onClose={() => setModal(null)} labelledBy="summary-dialog-title" wide>
                     <ModalHeader
                         id="summary-dialog-title"
-                        icon={<Sparkles className="w-3.5 h-3.5 text-teal-700" aria-hidden="true" />}
+                        icon={<Sparkles className="w-3.5 h-3.5 text-brand-fg" aria-hidden="true" />}
                         title={`${t("explore.summary.title")}: ${modal.row.name}`}
                         onClose={() => setModal(null)}
                     />

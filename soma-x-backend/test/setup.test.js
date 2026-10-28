@@ -36,24 +36,33 @@ test("a new course lists every blocking step and can't open", async () => {
   const res = await status(courseId);
   assert.equal(res.status, 200);
   assert.equal(res.body.canOpen, false);
-  assert.deepEqual(ids(res.body.blocking), ["baseline", "content", "outcomes", "start_date"]);
+  assert.deepEqual(ids(res.body.blocking), ["content", "outcomes", "start_date"]);
+  // The baseline is recommended, not required.
+  assert.ok(res.body.warnings.some((w) => w.id === "baseline_pending"));
+  assert.equal(res.body.checklist.find((c) => c.id === "baseline").blocking, false);
   assert.ok(res.body.checklist.every((c) => typeof c.done === "boolean" && c.href));
 
   const open = await asTeacher("POST", `/courses/${courseId}/open-course`, {});
   assert.equal(open.status, 400);
-  assert.deepEqual(ids(open.body.blocking), ["baseline", "content", "outcomes", "start_date"]);
+  assert.deepEqual(ids(open.body.blocking), ["content", "outcomes", "start_date"]);
   const row = await db.prepare("SELECT lifecycle FROM courses WHERE id = ?").get(courseId);
   assert.equal(row.lifecycle, "draft");
 });
 
 test("each blocker clears as it's fixed, then the course opens", async () => {
   const { courseId, outcome, week } = await readyCourse();
-  assert.deepEqual(ids((await status(courseId)).body.blocking), ["baseline"]);
+  const start = (await status(courseId)).body;
+  assert.deepEqual(ids(start.blocking), []);
+  assert.equal(start.canOpen, true, "a pending baseline doesn't stop the course opening");
 
   // An untagged graded assignment blocks; a practice quiz doesn't.
   const essay = await asTeacher("POST", `/courses/${courseId}/modules/${week.id}/items`, { itemType: "assignment", title: "Essay" });
   await asTeacher("POST", `/courses/${courseId}/modules/${week.id}/items`, { itemType: "quiz", title: "Warm-up", kind: "practice" });
-  assert.deepEqual(ids((await status(courseId)).body.blocking), ["baseline", "untagged"]);
+  const withUntagged = (await status(courseId)).body;
+  assert.deepEqual(ids(withUntagged.blocking), ["untagged"]);
+  // Params let the page translate the step: a count and the item names.
+  assert.deepEqual(withUntagged.blocking.find((b) => b.id === "untagged").params, { n: 1, titles: ["Essay"], more: 0 });
+  assert.ok(withUntagged.baseline.problemCodes.some((p) => p.id === "no_module"));
   await asTeacher("POST", `/courses/${courseId}/item-outcomes`, { itemType: "assignment", itemId: essay.body.content_id, outcomeIds: [outcome.id] });
 
   // A graded quiz is tagged by tagging its questions.
@@ -61,7 +70,7 @@ test("each blocker clears as it's fixed, then the course opens", async () => {
     itemType: "quiz", title: "Check",
     questions: [{ prompt: "1/2 + 1/2?", options: ["1", "2"], correctOption: "1", outcomeId: outcome.id }],
   });
-  assert.deepEqual(ids((await status(courseId)).body.blocking), ["baseline"]);
+  assert.deepEqual(ids((await status(courseId)).body.blocking), []);
 
   // Items parked in Unassigned block opening.
   await asTeacher("DELETE", `/courses/${courseId}/modules/${week.id}/items/${essay.body.id}`);
@@ -75,7 +84,13 @@ test("each blocker clears as it's fixed, then the course opens", async () => {
   assert.equal(ready.canOpen, true, JSON.stringify(ready.blocking));
   assert.ok(ready.warnings.some((w) => w.id === "unpublished_weeks"));
 
-  assert.equal((await asTeacher("POST", `/courses/${courseId}/open-course`, {})).status, 200);
+  assert.deepEqual(ready.hiddenWeekIds, [week.id]);
+
+  // Opening can publish the hidden weeks with content in the same step.
+  const opened = await asTeacher("POST", `/courses/${courseId}/open-course`, { publishWeeks: true });
+  assert.equal(opened.status, 200);
+  assert.equal(opened.body.publishedWeeks, 1);
+  assert.equal(Number((await db.prepare("SELECT published FROM modules WHERE id = ?").get(week.id)).published), 1);
   assert.equal((await asTeacher("POST", `/courses/${courseId}/baseline/reset`, {})).status, 400, "locked after opening");
   const skipped = await db.prepare("SELECT baseline_status, baseline_skip_reason, baseline_decided_by FROM courses WHERE id = ?").get(courseId);
   assert.deepEqual([skipped.baseline_status, skipped.baseline_skip_reason, skipped.baseline_decided_by], ["skipped", "Mid-term transfer cohort", USERS.teacher.email]);
@@ -93,7 +108,7 @@ test("warnings don't block but are reported", async () => {
 
   const res = (await status(courseId)).body;
   assert.equal(res.canOpen, true, JSON.stringify(res.blocking));
-  assert.deepEqual(ids(res.warnings), ["empty_weeks", "no_due_date", "no_end_date", "unassessed_outcomes", "unpublished_weeks"]);
+  assert.deepEqual(ids(res.warnings), ["empty_weeks", "no_due_date", "unassessed_outcomes", "unpublished_weeks"]);
 });
 
 test("learners only see whether the course is open", async () => {
@@ -115,7 +130,7 @@ test("a baseline can only be approved when every question is scorable and tagged
   const { courseId, o1 } = await baselineCourse();
   const notReady = await asTeacher("POST", `/courses/${courseId}/baseline/approve`, {});
   assert.equal(notReady.status, 422);
-  assert.ok(notReady.body.problems.some((p) => p.includes("baseline (Week 0) module")));
+  assert.ok(notReady.body.problemCodes.some((p) => p.id === "no_module"));
 
   const zero = (await asTeacher("POST", `/courses/${courseId}/modules`, { title: "Week 0", kind: "baseline" })).body;
   await asTeacher("POST", `/courses/${courseId}/modules/${zero.id}/items`, {

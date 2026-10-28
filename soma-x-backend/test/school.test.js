@@ -12,7 +12,7 @@ import { startTestServer, PASSWORD } from "./helpers.js";
 let ctx;
 let db;
 const asAdmin = (method, url, body) => ctx.api(method, url, { token: ctx.tokens.admin, body });
-const register = (email) => ctx.api("POST", "/auth/register", { body: { email, password: PASSWORD, fullName: email.split("@")[0] } });
+const register = (email) => ctx.api("POST", "/auth/register", { body: { email, password: PASSWORD, fullName: email.split("@")[0], className: "S1B" } });
 
 before(async () => {
   ctx = await startTestServer();

@@ -18,13 +18,13 @@ export default function AsyncListState({ loading, error, data, onRetry, emptyMes
 
   if (error) {
     return (
-      <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 flex items-center justify-between gap-3">
-        <p className="text-sm text-rose-700">{error}</p>
+      <div className="rounded-xl border border-danger/30 bg-danger-soft p-4 flex items-center justify-between gap-3">
+        <p className="text-ui text-danger-fg">{error}</p>
         {onRetry ? (
           <button
             type="button"
             onClick={onRetry}
-            className="flex items-center gap-1.5 text-xs font-semibold text-rose-700 hover:text-rose-900 shrink-0"
+            className="flex items-center gap-1.5 text-caption font-semibold text-danger-fg hover:text-danger-fg shrink-0"
           >
             <RefreshCcw className="w-3.5 h-3.5" /> {t("common.retry")}
           </button>

@@ -18,32 +18,32 @@ export default {
     },
     "tour": {
         "welcome": {
-            "tag": "KARIBU",
+            "tag": "Karibu",
             "title": "Habari, mwanafunzi!",
             "body": "Karibu SOMABOX, mahali pako pa kujifunzia! Hii ni ziara fupi ya kilichopo hapa. Inachukua sekunde 30 tu."
         },
         "stats": {
-            "tag": "TAKWIMU",
+            "tag": "Takwimu",
             "title": "Takwimu zako za kujifunza",
             "body": "Kadi hizi zinaonyesha madarasa yako, masomo unayoendelea nayo na kiasi ulichomaliza. Kadiri unavyojifunza, ndivyo namba hizi zinavyokua!"
         },
         "lessons": {
-            "tag": "MASOMO",
+            "tag": "Masomo",
             "title": "Masomo ya hivi karibuni",
             "body": "Hapa unaona masomo yako ya mwisho na ulipofikia katika kila moja. Bofya somo ili kuendelea ulipoishia."
         },
         "quick-access": {
-            "tag": "UFIKIAJI WA HARAKA",
+            "tag": "Ufikiaji wa haraka",
             "title": "Ufikiaji wa haraka",
             "body": "Nenda moja kwa moja kwenye madarasa, masomo, maktaba au kazi ulizomaliza kwa mguso mmoja."
         },
         "nav": {
-            "tag": "MENYU",
+            "tag": "Menyu",
             "title": "Menyu yako",
-            "body": "Tumia menyu iliyo kushoto kuhamia Dashibodi, Kozi, Maktaba na Akaunti yako wakati wowote."
+            "body": "Tumia menyu iliyo kushoto kuhamia Dashibodi, Masomo, Maktaba na Akaunti yako wakati wowote."
         },
         "finish": {
-            "tag": "IMEKAMILIKA",
+            "tag": "Imekamilika",
             "title": "Uko tayari!",
             "body": "Vizuri, sasa unajua kila kitu kilipo! Anza kujifunza. Kila somo linakusogeza karibu na malengo yako."
         },
@@ -80,11 +80,6 @@ export default {
         "namePlaceholder": "mfano: Mugisha Jean Claude",
         "phone": "Namba ya simu",
         "optional": "(si lazima)",
-        "gender": "Jinsia",
-        "genderHelp": "Inatumika tu kwa takwimu za shule kuhusu usawa katika kujifunza.",
-        "male": "Mwanaume",
-        "female": "Mwanamke",
-        "otherGender": "Nyingine",
         "locationTitle": "Mahali ulipo",
         "locationHelp": "Inatusaidia kukupa masomo ya eneo lako na msaada wa ufikivu.",
         "province": "Mkoa",
@@ -97,14 +92,6 @@ export default {
         "whereLive": "Unaishi wapi?",
         "rural": "Kijijini / eneo la mbali",
         "urban": "Mjini",
-        "accessibility": "Ufikivu na msaada",
-        "chooseOne": "Chagua moja",
-        "disNone": "Sina ulemavu wala hitaji la msaada",
-        "disVisual": "Shida ya kuona (rangi zenye utofauti / kisoma skrini)",
-        "disHearing": "Shida ya kusikia (manukuu / ishara za kuona)",
-        "disMobility": "Shida ya kutembea (msaada wa kutembea)",
-        "disCognitive": "Msaada wa kujifunza au kufikiri",
-        "disOther": "Hitaji lingine la msaada",
         "academicTitle": "Masomo yako",
         "academicHelp": "Ili masomo na mapendekezo yaendane na kiwango chako.",
         "grade": "Darasa / kiwango cha sasa",
@@ -131,7 +118,8 @@ export default {
         "mandatory": "Mpangilio wa lazima (hatua 1 kati ya 3)",
         "continue": "Endelea",
         "saving": "Inahifadhi wasifu…",
-        "finish": "Maliza na uanze"
+        "finish": "Maliza na uanze",
+        "later": "Baadaye",
     },
     "practice": {
         "label": "Mazoezi — hayahesabiwi katika umahiri wa malengo",
@@ -164,20 +152,31 @@ export default {
         "clearSearch": "Futa utafutaji"
     },
     "discover": {
-        "loadFailed": "Imeshindikana kupakia kozi",
-        "joinFailed": "Imeshindikana kujiunga na kozi",
-        "subtitle": "Vinjari kozi za wazi na ujiunge mara moja — hakuna mwaliko unaohitajika",
-        "empty": "Hakuna kozi za wazi kwa sasa. Rudi baadaye.",
+        "loadFailed": "Imeshindikana kupakia masomo",
+        "joinFailed": "Imeshindikana kujiunga na somo",
+        "code": {
+          "title": "Jiunge kwa msimbo",
+          "help": "Andika msimbo uliopewa na mwalimu wako.",
+          "placeholder": "mf. K7M4QX",
+          "button": "Jiunge",
+          "errors": {
+            "INVALID_CODE": "Hakuna somo lenye msimbo huu. Uthibitishe na mwalimu wako.",
+            "NOT_OPEN": "Somo hili bado halijafunguliwa. Muulize mwalimu wako.",
+            "TOO_MANY": "Misimbo mingi isiyo sahihi. Subiri dakika chache kisha ujaribu tena."
+          }
+        },
+        "subtitle": "Vinjari masomo ya wazi na ujiunge mara moja — hakuna mwaliko unaohitajika",
+        "empty": "Hakuna masomo ya wazi kwa sasa. Rudi baadaye.",
         "oneEnrolled": "Mwanafunzi 1",
         "nEnrolled": "Wanafunzi {n}",
         "joining": "Inajiunga…",
-        "join": "Jiunge na kozi"
+        "join": "Jiunge na somo"
     },
     "account": {
         "dataDownloaded": "Data yako imepakuliwa",
         "downloadFailed": "Upakuaji umeshindikana",
         "yourData": "Data yako",
-        "yourDataHelp": "Pakua faili yenye kila kitu kifaa hiki kinachohifadhi kukuhusu: wasifu, kozi, kazi, matokeo na kumbukumbu za matumizi.",
+        "yourDataHelp": "Pakua faili yenye kila kitu kifaa hiki kinachohifadhi kukuhusu: wasifu, masomo, kazi, matokeo na kumbukumbu za matumizi.",
         "preparing": "Inaandaa…",
         "downloadData": "Pakua data yangu",
         "hide": "Ficha",
@@ -192,26 +191,11 @@ export default {
         "pwFailed": "Imeshindikana kubadilisha nenosiri",
         "pwUpdated": "Nenosiri limebadilishwa.",
         "notSpecified": "Haijabainishwa",
-        "genders": {
-            "male": "Mwanaume",
-            "female": "Mwanamke",
-            "other": "Nyingine",
-            "non_binary": "Si mwanaume wala mwanamke",
-            "prefer_not_to_say": "Sipendi kusema"
-        },
-        "access": {
-            "none": "Hakuna",
-            "visual": "Shida ya kuona",
-            "hearing": "Shida ya kusikia",
-            "mobility": "Shida ya kutembea",
-            "cognitive": "Msaada wa kujifunza",
-            "other": "Hitaji lingine"
-        },
         "active": "Hai",
         "ruralBadge": "Mwanafunzi wa kijijini",
         "lessons": "Masomo",
         "classes": "Madarasa",
-        "defaultPassword": "Akaunti hii bado inatumia nenosiri la awali. Weka nenosiri jipya ili kuendelea.",
+        "defaultPassword": "Ulipewa nenosiri la muda. Chagua lako mwenyewe ili kuendelea.",
         "tabProfile": "Wasifu",
         "tabSecurity": "Usalama",
         "personalTitle": "Taarifa binafsi",
@@ -223,7 +207,6 @@ export default {
         "district": "Wilaya",
         "districtPlaceholder": "mfano: Gasabo, Nyarugenge, Musanze, Huye",
         "ruralCheckbox": "Ninaishi kijijini / eneo la mbali",
-        "accessibility": "Ufikivu",
         "saving": "Inahifadhi…",
         "save": "Hifadhi",
         "fullName": "Jina kamili",
@@ -259,19 +242,30 @@ export default {
         "offlineBody": "Soma vitabu na vifaa kwenye Maktaba yako wakati wowote — hakuna intaneti inayohitajika.",
         "browseLibrary": "Vinjari Maktaba",
         "settledTitle": "Kila kitu kiko tayari!",
-        "settledBody": "Akaunti yako iko tayari. Mwalimu wako atakuongeza kwenye kozi yako hivi karibuni — huhitaji kufanya chochote. Wakati huo, gundua vifaa vya kujifunzia kwenye Maktaba.",
+        "settledBody": "Akaunti yako iko tayari. Mwalimu wako atakuongeza kwenye somo lako hivi karibuni — huhitaji kufanya chochote. Wakati huo, gundua vifaa vya kujifunzia kwenye Maktaba.",
         "tryPractice": "Jaribu mada za mazoezi",
-        "myCourses": "Kozi zangu",
+        "myCourses": "Masomo yangu",
+        "view": {
+          "label": "Onyesha masomo yangu kama",
+          "cards": "Kadi",
+          "byDate": "Kwa tarehe"
+        },
+        "upcoming": {
+          "hint": "Kinachotakiwa kuwasilishwa na kinachofunguliwa katika masomo yako kwa wiki 4 zijazo.",
+          "empty": "Hakuna cha kuwasilisha katika wiki 4 zijazo.",
+          "loadFailed": "Imeshindwa kupakia yanayokuja.",
+          "open": "Fungua"
+        },
         "viewAll": "Tazama zote",
         "progress": "Maendeleo",
         "noGradedWork": "Bado hakuna kazi iliyopewa alama",
         "continue": "Endelea",
-        "publicCourses": "Gundua kozi za wazi",
+        "publicCourses": "Gundua masomo ya wazi",
         "quickAccess": "Ufikiaji wa haraka",
         "nJoined": "{n} umejiunga",
         "notEnrolled": "Bado hujajiandikisha",
         "viewWork": "Angalia kazi zako",
-        "discoverSub": "Vinjari na ujiunge na kozi za wazi",
+        "discoverSub": "Vinjari na ujiunge na masomo ya wazi",
         "interleaved": "Marudio mchanganyiko",
         "interleavedSub": "Mazoezi binafsi",
         "librarySub": "Vitabu na vifaa"
@@ -292,10 +286,25 @@ export default {
         "revisitedMany": "Umerudia maswali {n} kutoka masomo uliyomaliza."
     },
     "courses": {
-        "subtitle": "Kozi ulizojiandikisha.",
-        "joinCourse": "Jiunge na kozi",
-        "codeLabel": "Msimbo wa kozi wa tarakimu 6",
+        "subtitle": "Masomo uliyojiandikisha.",
+        "joinCourse": "Jiunge na somo",
         "join": "Jiunge",
-        "empty": "Bado hujajiandikisha kwenye kozi yoyote. Muulize mwalimu wako msimbo wa kozi."
-    }
+        "empty": "Bado hujajiandikisha kwenye somo lolote. Muulize mwalimu wako msimbo wa somo."
+    },
+    "celebrate": {
+        "submittedTitle": "Hongera! Imewasilishwa.",
+        "submittedNext": "\"{title}\" iko kwa mwalimu wako. Endelea na inayofuata.",
+        "submittedDone": "\"{title}\" iko kwa mwalimu wako. Umemaliza yote!",
+        "firstTitle": "Kazi yako ya kwanza!",
+        "firstMessage": "Umeanza: kila kazi unayowasilisha inamwonyesha mwalimu wako jinsi unavyokua.",
+        "milestoneTitle": "Kazi {n} zimewasilishwa!",
+        "milestoneMessage": "Hatua kubwa! Juhudi zako zinaongezeka: endelea.",
+        "next": "Inayofuata: {title}",
+        "start": "Anza sasa",
+        "dashboard": "Dashibodi yangu",
+        "welcome": "Karibu tena!",
+        "welcomeNamed": "Karibu tena, {name}!",
+        "welcomeNext": "Asante kwa kurudi. Inayofuata kwako: \"{title}\".",
+        "welcomeDone": "Asante kwa kurudi. Umemaliza yote: hongera!",
+    },
 };

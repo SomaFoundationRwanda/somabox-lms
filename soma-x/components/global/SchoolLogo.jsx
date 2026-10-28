@@ -36,9 +36,9 @@ export function PoweredBySomabox({ className = "", tone = "muted" }) {
     const { logoSrc } = useSchool();
     const { t } = useLanguage();
     if (!logoSrc) return null;
-    const colour = tone === "light" ? "text-white/70" : "text-slate-500 dark:text-slate-400";
+    const colour = tone === "light" ? "text-white/70" : "text-fg-subtle";
     return (
-        <p className={`text-[10px] font-semibold tracking-wide ${colour} ${className}`}>
+        <p className={`text-caption font-semibold ${colour} ${className}`}>
             {t("school.brand.poweredBy")}
         </p>
     );
@@ -56,7 +56,7 @@ export function AuthPanelLogo() {
     // The school's logo keeps its own colours on a white card.
     return (
         <div className="flex flex-col items-center gap-2">
-            <div className="rounded-2xl bg-white px-4 py-3 shadow-sm">
+            <div className="rounded-2xl bg-surface px-4 py-3 shadow-sm">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={logoSrc} alt={school.name || "SomaBox"} className="w-auto h-14 md:h-20 max-w-[220px] object-contain" />
             </div>

@@ -1,14 +1,21 @@
 // Cross-course calendars: "My calendar" for every user, and a school-wide calendar for admins.
 import express from "express";
-import { isDateString } from "@somabox/timeline";
+import { addDays, isDateString } from "@somabox/timeline";
 import { localDb } from "../helpers/db-manager.js";
 import { buildIcs } from "../helpers/ics.js";
 import { requireRole } from "../helpers/auth.js";
 import { courseEvents, icsEvents, loadCourseTimeline, schoolToday } from "./courses/schedule.js";
+import { groupHiddenItems } from "./courses/groups.js";
 
 const router = express.Router();
 
+// ?from=&to= (YYYY-MM-DD), or ?days=N for the next N days from the school's today.
 function range(query) {
+  const days = Number(query.days);
+  if (Number.isInteger(days) && days >= 0 && days <= 366 && !query.from && !query.to) {
+    const today = schoolToday();
+    return { from: today, to: addDays(today, days) };
+  }
   const from = query.from && isDateString(String(query.from)) ? String(query.from) : null;
   const to = query.to && isDateString(String(query.to)) ? String(query.to) : null;
   return { from, to };
@@ -27,7 +34,8 @@ async function myEvents(user, { from, to }) {
     const visible = await localDb.prepare("SELECT visible_to_students FROM course_nav_items WHERE course_id = ? AND nav_key = 'calendar'").get(e.course_id);
     if (!isTeacher && visible && Number(visible.visible_to_students) !== 1) continue;
     const tl = await loadCourseTimeline(e.course_id);
-    events.push(...courseEvents(tl, { isTeacher, from, to, types: ["due", "close", "release"] }));
+    const hidden = isTeacher ? null : await groupHiddenItems(e.course_id, user.email);
+    events.push(...courseEvents(tl, { isTeacher, from, to, types: ["due", "close", "release"], hidden }));
   }
   return events.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
 }

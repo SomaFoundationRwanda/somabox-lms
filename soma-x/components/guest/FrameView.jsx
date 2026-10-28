@@ -21,8 +21,8 @@ const GIVE_UP_AFTER_MS = 15000;
 function FrameTopBar() {
     const { t } = useLanguage();
     return (
-        <div className="h-11 shrink-0 flex items-center justify-between gap-2 px-3 bg-white border-b border-slate-200">
-            <Link href="/home" className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-slate-700 hover:text-slate-950 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500">
+        <div className="h-11 shrink-0 flex items-center justify-between gap-2 px-3 bg-surface border-b border-line">
+            <Link href="/home" className="inline-flex items-center gap-1.5 text-small font-semibold text-fg-muted hover:text-fg rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">
                 <ArrowLeft className="w-4 h-4" aria-hidden="true" />
                 {t("shell.frame.back")}
             </Link>
@@ -47,7 +47,7 @@ export default function FrameView({ src, title, next }) {
 
     if (shown === "checking") {
         return (
-            <div className="w-full min-h-screen flex flex-col bg-slate-100">
+            <div className="w-full min-h-screen flex flex-col bg-surface-sunken">
                 <FrameTopBar />
                 <Loader variant="overlay" />
             </div>
@@ -56,7 +56,7 @@ export default function FrameView({ src, title, next }) {
 
     if (shown !== "ok") {
         return (
-            <div className="w-full min-h-screen flex flex-col bg-slate-100">
+            <div className="w-full min-h-screen flex flex-col bg-surface-sunken">
                 <FrameTopBar />
                 <div className="flex-1 flex items-center justify-center">
                     <MediaAccessNotice state={shown} next={next} />

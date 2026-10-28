@@ -21,27 +21,27 @@ export const STATUSES = ["present", "late", "absent", "excused"];
 // Colour plus letter, never colour alone. `on` when chosen, `off` otherwise.
 export const STATUS_STYLE = {
   present: {
-    on: "bg-emerald-600 border-emerald-600 text-white",
-    off: "border-emerald-300 text-emerald-800 dark:text-emerald-300 dark:border-emerald-800",
-    chip: "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-900",
+    on: "bg-success border-success text-on-success",
+    off: "border-success/30 text-success-fg",
+    chip: "bg-success-soft text-success-fg border-success/30",
   },
   late: {
-    on: "bg-amber-500 border-amber-500 text-slate-950",
-    off: "border-amber-300 text-amber-800 dark:text-amber-300 dark:border-amber-800",
-    chip: "bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-900",
+    on: "bg-warning border-warning text-on-warning",
+    off: "border-warning/30 text-warning-fg",
+    chip: "bg-warning-soft text-warning-fg border-warning/30",
   },
   absent: {
-    on: "bg-rose-600 border-rose-600 text-white",
-    off: "border-rose-300 text-rose-800 dark:text-rose-300 dark:border-rose-800",
-    chip: "bg-rose-50 text-rose-800 border-rose-200 dark:bg-rose-950/30 dark:text-rose-300 dark:border-rose-900",
+    on: "bg-danger border-danger text-on-danger",
+    off: "border-danger/30 text-danger-fg",
+    chip: "bg-danger-soft text-danger-fg border-danger/30",
   },
   excused: {
-    on: "bg-sky-600 border-sky-600 text-white",
-    off: "border-sky-300 text-sky-800 dark:text-sky-300 dark:border-sky-800",
-    chip: "bg-sky-50 text-sky-800 border-sky-200 dark:bg-sky-950/30 dark:text-sky-300 dark:border-sky-900",
+    on: "bg-info border-info text-on-info",
+    off: "border-info/30 text-info-fg",
+    chip: "bg-info-soft text-info-fg border-info/30",
   },
   none: {
-    chip: "bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-700",
+    chip: "bg-surface-sunken text-fg-muted border-line",
   },
 };
 
@@ -53,7 +53,7 @@ export function StatusChip({ status }) {
   const { tx } = useAttendanceText();
   const style = STATUS_STYLE[status] || STATUS_STYLE.none;
   return (
-    <span className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-0.5 text-xs font-semibold ${style.chip}`}>
+    <span className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-0.5 text-caption font-semibold ${style.chip}`}>
       {status ? <span aria-hidden="true" className="font-bold">{tx(letterKey(status))}</span> : null}
       {tx(statusKey(status))}
     </span>

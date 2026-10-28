@@ -1,6 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ApiError, apiFetch, getErrorMessage } from "@/lib/api";
+
+const SYNC_STATUS = ["sync", "status"];
 import { AlertTriangle, CheckCircle2, CloudOff, Loader2, RefreshCw, Clock } from "lucide-react";
 import { useToast } from "@/context/ToastContext";
 import { Section, List, ListRow } from "@/components/layout";
@@ -8,6 +12,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { fill } from "@/lib/fill";
 import DeviceCard from "@/components/sync/DeviceCard";
 import Loader from "@/components/ui/Loader";
+import { CheckboxField, ChoiceGroup, Field, Fieldset } from "@/components/form";
 
 // Cloud sync (admins): changes made on this box wait in a queue and are sent to the cloud on a
 // schedule. This shows where the queue stands, lets an admin send now, and sets what may leave
@@ -15,8 +20,10 @@ import Loader from "@/components/ui/Loader";
 
 // Run statuses, scope toggles and people options are translated under admin.cloud.
 const RUN_STATUSES = ["ok", "failed", "not_configured", "nothing_to_send"];
-const SCOPE_TOGGLES = ["courses", "enrollments", "grades", "outcomeResults", "events"];
-const PEOPLE_OPTIONS = ["none", "pseudonymous", "full"];
+// The learning record is always sent (the box refuses to switch it off); the admin chooses the rest.
+const ALWAYS_SENT = ["courses", "enrollments", "grades", "outcomeResults", "events"];
+const SCOPE_TOGGLES = ["attendance"];
+const PEOPLE_OPTIONS = ["pseudonymous", "full"];
 
 // Intl locales for the UI language ("rw" falls back to English where Intl lacks Kinyarwanda).
 const intlLocales = (lang) => (lang === "rw" ? ["rw", "en-RW", "en"] : [lang || "en"]);
@@ -58,40 +65,40 @@ function StatusLine({ status }) {
 
   let icon, title, detail, tone;
   if (!status.configured) {
-    icon = <CloudOff className="w-5 h-5 text-slate-400" aria-hidden="true" />;
+    icon = <CloudOff className="w-5 h-5 text-fg-subtle" aria-hidden="true" />;
     title = t("admin.cloud.notSetUpTitle");
     detail = t("admin.cloud.notSetUpDetail");
-    tone = "text-slate-800 dark:text-slate-100";
+    tone = "text-fg";
   } else if (failing) {
-    icon = <AlertTriangle className="w-5 h-5 text-amber-600" aria-hidden="true" />;
+    icon = <AlertTriangle className="w-5 h-5 text-warning-fg" aria-hidden="true" />;
     title = t("admin.cloud.failingTitle");
     const tries = status.failedAttempts > 0 ? countText(t, status.failedAttempts, "admin.cloud.triedOne", "admin.cloud.triedMany") : t("admin.cloud.lastTryFailed");
     const when = lastRun?.startedAt ? fill(t("admin.cloud.mostRecently"), { when: formatRelative(lastRun.startedAt) }) : "";
     detail = `${tries}${when}. ${countText(t, status.pending, "admin.cloud.safeOne", "admin.cloud.safeMany")}`;
-    tone = "text-amber-800 dark:text-amber-300";
+    tone = "text-warning-fg";
   } else if (!status.pending) {
-    icon = <CheckCircle2 className="w-5 h-5 text-emerald-600" aria-hidden="true" />;
+    icon = <CheckCircle2 className="w-5 h-5 text-success-fg" aria-hidden="true" />;
     title = t("admin.cloud.upToDate");
     detail = t("admin.cloud.nothingWaiting");
-    tone = "text-emerald-800 dark:text-emerald-300";
+    tone = "text-success-fg";
   } else {
-    icon = <Clock className="w-5 h-5 text-[var(--brand-secondary)]" aria-hidden="true" />;
+    icon = <Clock className="w-5 h-5 text-brand-fg" aria-hidden="true" />;
     title = countText(t, status.pending, "admin.cloud.waitingOne", "admin.cloud.waitingMany");
     if (status.oldestPendingAt) title += ` ${fill(t("admin.cloud.since"), { when: formatRelative(status.oldestPendingAt) })}`;
     detail = status.intervalMinutes
       ? countText(t, status.intervalMinutes, "admin.cloud.everyMinute", "admin.cloud.everyMinutes")
       : t("admin.cloud.onSchedule");
-    tone = "text-slate-800 dark:text-slate-100";
+    tone = "text-fg";
   }
 
   return (
     <div className="flex items-start gap-3" role="status" aria-live="polite">
       <span className="mt-0.5 shrink-0">{icon}</span>
       <div className="min-w-0">
-        <p className={`text-sm font-bold ${tone}`}>{title}</p>
-        <p className="text-xs text-slate-500 dark:text-slate-400">{detail}</p>
+        <p className={`text-ui font-bold ${tone}`}>{title}</p>
+        <p className="text-caption text-fg-subtle">{detail}</p>
         {failing && lastRun?.details?.error ? (
-          <p className="mt-1 text-[11px] text-slate-500 break-words">{t("admin.cloud.supportDetails")} {lastRun.details.error}</p>
+          <p className="mt-1 text-caption text-fg-subtle break-words">{t("admin.cloud.supportDetails")} {lastRun.details.error}</p>
         ) : null}
       </div>
     </div>
@@ -107,7 +114,7 @@ function runSummary(run, t) {
   return parts.join(" · ");
 }
 
-function ScopeForm({ SERVER_URL, scope, onSaved }) {
+function ScopeForm({ scope, onSaved }) {
   const { showToast } = useToast();
   const { t } = useLanguage();
   const [form, setForm] = useState(scope);
@@ -124,17 +131,11 @@ function ScopeForm({ SERVER_URL, scope, onSaved }) {
     setSaving(true);
     setError("");
     try {
-      const res = await fetch(`${SERVER_URL}/sync/settings`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scope: form }),
-      });
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(payload.message || t("admin.cloud.scopeSaveFailed"));
+      const payload = await apiFetch("/sync/settings", { method: "PUT", json: { scope: form } });
       onSaved(payload.scope || form);
       showToast(t("admin.cloud.scopeSaved"), "success");
     } catch (err) {
-      setError(err.message || t("admin.cloud.scopeSaveFailed"));
+      setError(getErrorMessage(err, t));
     } finally {
       setSaving(false);
     }
@@ -144,59 +145,55 @@ function ScopeForm({ SERVER_URL, scope, onSaved }) {
 
   return (
     <form onSubmit={save} className="space-y-4">
-      <fieldset className="space-y-2">
-        <legend className="sr-only">{t("admin.cloud.kinds")}</legend>
+      <Fieldset legend={t("admin.cloud.alwaysSent")} hint={t("admin.cloud.alwaysSentHelp")}>
+        {ALWAYS_SENT.map((key) => (
+          <CheckboxField
+            key={key}
+            label={t(`admin.cloud.scope.${key}.label`)}
+            hint={t(`admin.cloud.scope.${key}.help`)}
+            checked
+            disabled
+            onCheckedChange={() => {}}
+          />
+        ))}
+      </Fieldset>
+
+      <Fieldset legend={t("admin.cloud.yourChoice")}>
         {SCOPE_TOGGLES.map((key) => (
-          <label key={key} className="flex items-start gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={!!form[key]}
-              onChange={() => toggle(key)}
-              className="mt-1 h-4 w-4 shrink-0 accent-[var(--brand-secondary)]"
-            />
-            <span className="min-w-0">
-              <span className="block text-sm font-semibold text-slate-800 dark:text-slate-100">{t(`admin.cloud.scope.${key}.label`)}</span>
-              <span className="block text-xs text-slate-500 dark:text-slate-400">{t(`admin.cloud.scope.${key}.help`)}</span>
-            </span>
-          </label>
+          <CheckboxField
+            key={key}
+            label={t(`admin.cloud.scope.${key}.label`)}
+            hint={t(`admin.cloud.scope.${key}.help`)}
+            checked={!!form[key]}
+            onCheckedChange={() => toggle(key)}
+          />
         ))}
-      </fieldset>
+      </Fieldset>
 
-      <fieldset className="space-y-2">
-        <legend className="text-sm font-semibold text-slate-800 dark:text-slate-100 mb-1">{t("admin.cloud.people")}</legend>
-        {PEOPLE_OPTIONS.map((value) => (
-          <label key={value} className="flex items-start gap-3 cursor-pointer">
-            <input
-              type="radio"
-              name="sync-people"
-              value={value}
-              checked={form.people === value}
-              onChange={() => setForm((f) => ({ ...f, people: value }))}
-              className="mt-1 h-4 w-4 shrink-0 accent-[var(--brand-secondary)]"
-            />
-            <span className="min-w-0">
-              <span className="block text-sm text-slate-800 dark:text-slate-100">{t(`admin.cloud.peopleOptions.${value}.label`)}</span>
-              <span className="block text-xs text-slate-500 dark:text-slate-400">{t(`admin.cloud.peopleOptions.${value}.help`)}</span>
-            </span>
-          </label>
-        ))}
-      </fieldset>
-
-      <label className="flex items-start gap-3 cursor-pointer">
-        <input
-          type="checkbox"
-          checked={!!form.submissionText}
-          onChange={() => toggle("submissionText")}
-          className="mt-1 h-4 w-4 shrink-0 accent-[var(--brand-secondary)]"
+      <Field label={t("admin.cloud.people")}>
+        <ChoiceGroup
+          layout="list"
+          value={form.people}
+          onChange={(people) => setForm((f) => ({ ...f, people }))}
+          options={PEOPLE_OPTIONS.map((value) => ({
+            value,
+            label: t(`admin.cloud.peopleOptions.${value}.label`),
+            description: t(`admin.cloud.peopleOptions.${value}.help`),
+          }))}
         />
-        <span className="min-w-0">
-          <span className="block text-sm font-semibold text-slate-800 dark:text-slate-100">{t("admin.cloud.writtenLabel")}</span>
-          <span className="block text-xs text-slate-500 dark:text-slate-400">{t("admin.cloud.writtenHelp")}</span>
-        </span>
-      </label>
+      </Field>
+
+      <p className="text-caption font-semibold text-fg-muted">{t("admin.cloud.filesStay")}</p>
+
+      <CheckboxField
+        label={t("admin.cloud.writtenLabel")}
+        hint={t("admin.cloud.writtenHelp")}
+        checked={!!form.submissionText}
+        onCheckedChange={() => toggle("submissionText")}
+      />
 
       {risky ? (
-        <p role="alert" className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300">
+        <p role="alert" className="flex items-start gap-2 rounded-lg border border-warning/30 bg-warning-soft px-3 py-2 text-caption font-medium text-warning-fg">
           <AlertTriangle className="w-4 h-4 shrink-0 mt-px" aria-hidden="true" />
           <span>
             {form.people === "full" && form.submissionText
@@ -209,18 +206,18 @@ function ScopeForm({ SERVER_URL, scope, onSaved }) {
         </p>
       ) : null}
 
-      {error ? <p role="alert" className="text-xs font-semibold text-rose-600">{error}</p> : null}
+      {error ? <p role="alert" className="text-caption font-semibold text-danger-fg">{error}</p> : null}
 
       <div className="flex flex-wrap items-center gap-2">
         <button
           type="submit"
           disabled={!dirty || saving}
-          className="text-xs font-semibold text-white bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] disabled:opacity-50 rounded-lg px-4 py-2"
+          className="text-caption font-semibold text-on-brand-strong bg-brand-strong hover:bg-brand-strong/90 disabled:opacity-50 rounded-lg px-4 py-2"
         >
           {saving ? t("admin.analytics.saving") : t("admin.analytics.save")}
         </button>
         {dirty ? (
-          <button type="button" onClick={() => setForm(scope)} className="text-xs font-semibold text-slate-600 hover:text-slate-900 px-2 py-2">
+          <button type="button" onClick={() => setForm(scope)} className="text-caption font-semibold text-fg-muted hover:text-fg px-2 py-2">
             {t("admin.cloud.undoChanges")}
           </button>
         ) : null}
@@ -229,39 +226,32 @@ function ScopeForm({ SERVER_URL, scope, onSaved }) {
   );
 }
 
-export default function CloudSyncSection({ SERVER_URL }) {
+export default function CloudSyncSection() {
   const { showToast } = useToast();
   const { t, lang } = useLanguage();
   const formatRelative = (v) => formatRelativeIn(v, lang);
   const formatDateTime = (v) => formatDateTimeIn(v, lang);
-  const [status, setStatus] = useState(null);
-  const [error, setError] = useState("");
+  const queryClient = useQueryClient();
+  // Loaded once; asked again after "Sync now" (the sync itself is scheduled on the box).
+  const query = useQuery({ queryKey: SYNC_STATUS, queryFn: () => apiFetch("/sync/status") });
+  const status = query.data || null;
+  const error = query.isError ? getErrorMessage(query.error, t) : "";
+  const load = () => queryClient.invalidateQueries({ queryKey: SYNC_STATUS });
   const [running, setRunning] = useState(false);
   const [runMessage, setRunMessage] = useState(null); // { ok, text }
-
-  const load = useCallback(async () => {
-    if (!SERVER_URL) return;
-    try {
-      const res = await fetch(`${SERVER_URL}/sync/status`);
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(payload.message || t("admin.cloud.statusFailed"));
-      setStatus(payload);
-      setError("");
-    } catch (err) {
-      setError(err.message || t("admin.cloud.statusFailed"));
-    }
-  }, [SERVER_URL]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => { load(); }, [load]);
 
   const syncNow = async () => {
     setRunning(true);
     setRunMessage(null);
     try {
-      const res = await fetch(`${SERVER_URL}/sync/run`, { method: "POST" });
-      const payload = await res.json().catch(() => ({}));
-      const ok = res.ok && (payload.status === "ok" || payload.status === "nothing_to_send");
-      const text = payload.message || (res.ok ? t("admin.cloud.syncFinished") : t("admin.cloud.syncFailed"));
+      // 503 (the cloud couldn't be reached) still carries the run's message.
+      const response = await apiFetch("/sync/run", { method: "POST", responseType: "response" }).catch((err) => {
+        if (err instanceof ApiError && err.status !== 0) return { ok: false, payload: err.body || {} };
+        throw err;
+      });
+      const payload = response.payload ?? await response.json().catch(() => ({}));
+      const ok = response.ok && (payload.status === "ok" || payload.status === "nothing_to_send");
+      const text = payload.message || (response.ok ? t("admin.cloud.syncFinished") : t("admin.cloud.syncFailed"));
       setRunMessage({ ok, text });
       showToast(text, ok ? "success" : "error");
     } catch {
@@ -284,19 +274,19 @@ export default function CloudSyncSection({ SERVER_URL }) {
             type="button"
             onClick={syncNow}
             disabled={running || !status}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] disabled:opacity-50 rounded-lg px-3 py-2"
+            className="inline-flex items-center gap-1.5 text-caption font-semibold text-on-brand-strong bg-brand-strong hover:bg-brand-strong/90 disabled:opacity-50 rounded-lg px-3 py-2"
           >
             {running ? <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" /> : <RefreshCw className="w-3.5 h-3.5" aria-hidden="true" />}
             {running ? t("admin.cloud.syncing") : t("admin.cloud.syncNow")}
           </button>
         }
       >
-        {error ? <p role="alert" className="text-sm text-rose-600">{error}</p> : null}
+        {error ? <p role="alert" className="text-ui text-danger-fg">{error}</p> : null}
         {!status && !error ? <Loader variant="page" size={40} className="min-h-[6rem]" label={t("admin.cloud.loadingStatus")} /> : null}
         {status ? (
           <div className="space-y-3">
             <StatusLine status={status} />
-            <p className="text-xs text-slate-600 dark:text-slate-300">
+            <p className="text-caption text-fg-muted">
               {t("admin.cloud.lastSuccess")}{" "}
               {status.lastSuccessAt ? (
                 <time dateTime={status.lastSuccessAt} title={formatDateTime(status.lastSuccessAt)} className="font-semibold">
@@ -307,7 +297,7 @@ export default function CloudSyncSection({ SERVER_URL }) {
               )}
             </p>
             {runMessage ? (
-              <p role="status" className={`text-xs font-semibold ${runMessage.ok ? "text-emerald-700 dark:text-emerald-300" : "text-rose-600"}`}>{runMessage.text}</p>
+              <p role="status" className={`text-caption font-semibold ${runMessage.ok ? "text-success-fg" : "text-danger-fg"}`}>{runMessage.text}</p>
             ) : null}
           </div>
         ) : null}
@@ -329,7 +319,7 @@ export default function CloudSyncSection({ SERVER_URL }) {
               ))}
             </List>
           ) : (
-            <p className="text-xs text-slate-500">{t("admin.cloud.noSyncs")}</p>
+            <p className="text-caption text-fg-subtle">{t("admin.cloud.noSyncs")}</p>
           )}
         </Section>
       ) : null}
@@ -340,12 +330,12 @@ export default function CloudSyncSection({ SERVER_URL }) {
           title={t("admin.cloud.scopeTitle")}
           description={t("admin.cloud.scopeHelp")}
         >
-          <ScopeForm SERVER_URL={SERVER_URL} scope={status.scope} onSaved={(scope) => setStatus((s) => ({ ...s, scope }))} />
+          <ScopeForm scope={status.scope} onSaved={(scope) => queryClient.setQueryData(SYNC_STATUS, (s) => ({ ...s, scope }))} />
         </Section>
       ) : null}
 
       {status?.boxId ? (
-        <p className="text-[11px] text-slate-400">
+        <p className="text-caption text-fg-subtle">
           {t("admin.cloud.boxId")} <span className="font-mono select-all">{status.boxId}</span>
           {status.transport ? ` · ${status.transport === "firestore" ? fill(t("admin.cloud.sendsBy"), { via: "Firebase" }) : fill(t("admin.cloud.sendsBy"), { via: t("admin.cloud.webAddress") })}` : ""}
         </p>

@@ -11,13 +11,13 @@ import DraftPreview from "./DraftPreview";
 import DraftEditor from "./DraftEditor";
 
 const TYPE_TONES = {
-  page: "text-sky-800 bg-sky-50 border-sky-200",
-  quiz: "text-indigo-800 bg-indigo-50 border-indigo-200",
-  assignment: "text-amber-800 bg-amber-50 border-amber-200",
-  story: "text-rose-800 bg-rose-50 border-rose-200",
-  outline: "text-teal-800 bg-teal-50 border-teal-200",
-  outcome: "text-teal-800 bg-teal-50 border-teal-200",
-  rubric: "text-slate-800 bg-slate-50 border-slate-200",
+  page: "text-info-fg bg-info-soft border-info/30",
+  quiz: "text-info-fg bg-info-soft border-info/30",
+  assignment: "text-warning-fg bg-warning-soft border-warning/30",
+  story: "text-danger-fg bg-danger-soft border-danger/30",
+  outline: "text-brand-fg bg-brand-soft border-brand/40",
+  outcome: "text-brand-fg bg-brand-soft border-brand/40",
+  rubric: "text-fg bg-surface-sunken border-line",
 };
 
 // What approving does, per draft type: ai.approveNote.<type> in languages/progress.
@@ -77,17 +77,17 @@ export default function DraftCard({ draft, SERVER_URL, courseId, modules, outcom
   };
 
   return (
-    <article aria-label={tp("ai.card.draftAria", { type: draftTypeLabel(tp, draft.type) })} className="rounded-xl border border-violet-200 dark:border-violet-900 bg-white dark:bg-slate-900/40 p-3 sm:p-4 space-y-3">
+    <article aria-label={tp("ai.card.draftAria", { type: draftTypeLabel(tp, draft.type) })} className="rounded-xl border border-info/30 bg-surface p-3 sm:p-4 space-y-3">
       <header className="flex flex-wrap items-center gap-2">
-        <Heading className={`text-[11px] font-bold uppercase tracking-wide border rounded-md px-2 py-0.5 ${TYPE_TONES[draft.type] || TYPE_TONES.rubric}`}>
+        <Heading className={`text-caption font-bold border rounded-md px-2 py-0.5 ${TYPE_TONES[draft.type] || TYPE_TONES.rubric}`}>
           {draftTypeLabel(tp, draft.type)}
         </Heading>
         <AiDraftLabel />
-        {module ? <span className="text-xs font-semibold text-[var(--brand-secondary)]">{weekLabel(tp, module)}{module.title ? ` · ${module.title}` : ""}</span> : null}
+        {module ? <span className="text-caption font-semibold text-brand-fg">{weekLabel(tp, module)}{module.title ? ` · ${module.title}` : ""}</span> : null}
         {draft.type === "rubric" && draft.assignmentId ? (
-          <Link href={`/course/${courseId}/assignments/${draft.assignmentId}`} className="text-xs font-semibold text-[var(--brand-secondary)] hover:underline">{tp("ai.card.forAssignment")}</Link>
+          <Link href={`/course/${courseId}/assignments/${draft.assignmentId}`} className="text-caption font-semibold text-brand-fg hover:underline">{tp("ai.card.forAssignment")}</Link>
         ) : null}
-        {draft.edited ? <span className="text-[11px] text-slate-500">{tp("ai.card.edited")}</span> : null}
+        {draft.edited ? <span className="text-caption text-fg-subtle">{tp("ai.card.edited")}</span> : null}
       </header>
 
       {editing ? (
@@ -103,18 +103,18 @@ export default function DraftCard({ draft, SERVER_URL, courseId, modules, outcom
       ) : (
         <>
           <DraftPreview type={draft.type} payload={draft.payload} outcomes={outcomes} />
-          {error ? <p role="alert" className="text-xs font-semibold text-rose-600">{error}</p> : null}
+          {error ? <p role="alert" className="text-caption font-semibold text-danger-fg">{error}</p> : null}
           {pending ? (
-            <footer className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-              <p className="text-[11px] text-slate-500 max-w-sm">{tpOr(`ai.approveNote.${draft.type}`, "")} {tp("ai.card.nothingReaches")}</p>
+            <footer className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-line">
+              <p className="text-caption text-fg-subtle max-w-sm">{tpOr(`ai.approveNote.${draft.type}`, "")} {tp("ai.card.nothingReaches")}</p>
               <div className="flex flex-wrap items-center gap-1.5">
-                <button type="button" onClick={() => setEditing(true)} disabled={!!busy} className="inline-flex items-center gap-1 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 disabled:opacity-50 px-3 py-2 rounded-lg">
+                <button type="button" onClick={() => setEditing(true)} disabled={!!busy} className="inline-flex items-center gap-1 text-caption font-semibold text-fg-muted bg-surface-sunken hover:bg-surface-hover disabled:opacity-50 px-3 py-2 rounded-lg">
                   <Pencil className="w-3.5 h-3.5" /> {tp("common.edit")}
                 </button>
-                <button type="button" onClick={reject} disabled={!!busy} className="inline-flex items-center gap-1 text-xs font-semibold text-rose-700 border border-rose-200 hover:bg-rose-50 dark:hover:bg-rose-950/30 disabled:opacity-50 px-3 py-2 rounded-lg">
+                <button type="button" onClick={reject} disabled={!!busy} className="inline-flex items-center gap-1 text-caption font-semibold text-danger-fg border border-danger/30 hover:bg-danger-soft disabled:opacity-50 px-3 py-2 rounded-lg">
                   <X className="w-3.5 h-3.5" /> {busy === "reject" ? tp("ai.card.rejecting") : tp("ai.card.reject")}
                 </button>
-                <button type="button" onClick={approve} disabled={!!busy} className="inline-flex items-center gap-1 text-xs font-bold text-white bg-[var(--brand-secondary)] hover:bg-[var(--brand-secondary-dark)] disabled:opacity-50 px-3.5 py-2 rounded-lg">
+                <button type="button" onClick={approve} disabled={!!busy} className="inline-flex items-center gap-1 text-caption font-bold text-on-brand bg-brand hover:bg-brand/90 disabled:opacity-50 px-3.5 py-2 rounded-lg">
                   <Check className="w-3.5 h-3.5" /> {busy === "approve" ? tp("ai.card.adding") : tp("ai.card.addToCourse")}
                 </button>
               </div>
@@ -131,12 +131,12 @@ export function ApprovedNote({ draft, courseId, message, onDismiss }) {
   const { tp } = useProgressText();
   const link = draftResultLink(draft, courseId);
   return (
-    <div role="status" className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-emerald-200 bg-emerald-50 dark:bg-emerald-950/30 dark:border-emerald-900 px-3 py-2 text-xs text-emerald-900 dark:text-emerald-200">
+    <div role="status" className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-success/30 bg-success-soft px-3 py-2 text-caption text-success-fg">
       <span>{message || tp("ai.card.approvedDefault")}</span>
       <span className="flex items-center gap-2">
         <Link href={link.href} className="font-bold underline">{resultLinkLabel(tp, link.label)}</Link>
         {onDismiss ? (
-          <button type="button" onClick={onDismiss} aria-label={tp("common.hide")} className="p-1 rounded hover:bg-emerald-100 dark:hover:bg-emerald-900/40"><X className="w-3.5 h-3.5" /></button>
+          <button type="button" onClick={onDismiss} aria-label={tp("common.hide")} className="p-1 rounded hover:bg-success-soft"><X className="w-3.5 h-3.5" /></button>
         ) : null}
       </span>
     </div>
@@ -151,25 +151,25 @@ export function DecidedDraftRow({ draft, modules, outcomes, courseId }) {
   const title = draft.payload?.title || (draft.type === "outline" ? tp("ai.card.outlineSummary", { weeks: (draft.payload?.modules || []).length, outcomes: (draft.payload?.outcomes || []).length }) : draftTypeLabel(tp, draft.type));
   const link = draft.status === "approved" ? draftResultLink(draft, courseId) : null;
   return (
-    <li className="text-sm">
+    <li className="text-ui">
       <div className="flex items-center gap-2 px-3 py-2.5">
         <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} className="flex min-w-0 flex-1 items-center gap-2 text-left">
-          {open ? <ChevronDown className="w-4 h-4 shrink-0 text-slate-400" /> : <ChevronRight className="w-4 h-4 shrink-0 text-slate-400" />}
-          <span className="text-[10px] font-bold uppercase text-slate-500 shrink-0">{draftTypeLabel(tp, draft.type)}</span>
-          <span className="font-semibold text-slate-800 dark:text-slate-100 truncate">{title}</span>
+          {open ? <ChevronDown className="w-4 h-4 shrink-0 text-fg-subtle" /> : <ChevronRight className="w-4 h-4 shrink-0 text-fg-subtle" />}
+          <span className="text-caption font-bold text-fg-subtle shrink-0">{draftTypeLabel(tp, draft.type)}</span>
+          <span className="font-semibold text-fg truncate">{title}</span>
         </button>
-        {module ? <span className="hidden sm:inline text-xs text-slate-500 shrink-0">{weekLabel(tp, module)}</span> : null}
-        <span className={`text-[10px] font-bold uppercase rounded-full px-2 py-0.5 shrink-0 ${draft.status === "approved" ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-slate-100 text-slate-600 border border-slate-200"}`}>
+        {module ? <span className="hidden sm:inline text-caption text-fg-subtle shrink-0">{weekLabel(tp, module)}</span> : null}
+        <span className={`text-caption font-bold rounded-full px-2 py-0.5 shrink-0 ${draft.status === "approved" ? "bg-success-soft text-success-fg border border-success/30" : "bg-surface-sunken text-fg-muted border border-line"}`}>
           {draft.status === "approved" ? (draft.edited ? tp("ai.card.statusAddedEdited") : tp("ai.card.statusAdded")) : tp("ai.card.statusRejected")}
         </span>
       </div>
       {open ? (
         <div className="px-3 pb-3 sm:pl-9 space-y-2">
-          <p className="text-[11px] text-slate-500">
+          <p className="text-caption text-fg-subtle">
             {draft.decidedBy ? tp(draft.status === "approved" ? "ai.card.addedBy" : "ai.card.rejectedBy", { name: draft.decidedBy }) : ""}
             {draft.decidedAt ? ` · ${fmtDateTime(draft.decidedAt, locale)}` : ""}
           </p>
-          {link ? <Link href={link.href} className="text-xs font-semibold text-[var(--brand-secondary)] hover:underline">{resultLinkLabel(tp, link.label)}</Link> : null}
+          {link ? <Link href={link.href} className="text-caption font-semibold text-brand-fg hover:underline">{resultLinkLabel(tp, link.label)}</Link> : null}
           <DraftPreview type={draft.type} payload={draft.payload} outcomes={outcomes} />
         </div>
       ) : null}

@@ -8,6 +8,7 @@ import { getSessionToken } from '@/lib/session';
 import { useLanguage } from '@/context/LanguageContext';
 import SummaryPanel, { SummaryToggleButton, useContentSummary } from '@/components/explore/SummaryPanel';
 import Loader from "@/components/ui/Loader";
+import { apiFetch, getErrorMessage } from '@/lib/api'
 
 // `summaryPath`: the book's path_key, to offer its AI summary beside the reader.
 // `preview`: a visitor's preview (see components/guest/Preview.jsx): the time the book is open
@@ -35,19 +36,23 @@ const EpubReader = ({ url, title, onClose, summaryPath = null, preview = null })
                 // credentials: "include" via the fetch wrapper) and handed to epub.js as a Blob,
                 // so epub.js itself makes no credentialed requests.
                 const signedIn = Boolean(getSessionToken())
-                const response = await fetch(url, { credentials: 'include' })
-                if (response.status === 401) {
-                    // A visitor whose preview window has closed: the sign-up panel.
-                    if (!signedIn && preview) { endPreview(); return }
-                    setAccess(signedIn ? 'expired' : 'guest')
-                    return
+                let buffer
+                try {
+                    // A visitor's 401 is the end of their preview, not a session to end.
+                    buffer = await (await apiFetch(url, { responseType: 'response', allowUnauthenticated: !signedIn })).arrayBuffer()
+                } catch (err) {
+                    if (err?.status === 401) {
+                        // A visitor whose preview window has closed: the sign-up panel.
+                        if (!signedIn && preview) { endPreview(); return }
+                        setAccess(signedIn ? 'expired' : 'guest')
+                        return
+                    }
+                    if (err?.status === 403) {
+                        setAccess('forbidden')
+                        return
+                    }
+                    throw new Error(err?.status === 0 ? getErrorMessage(err) : `Failed to fetch book (${err?.status})`)
                 }
-                if (response.status === 403) {
-                    setAccess('forbidden')
-                    return
-                }
-                if (!response.ok) throw new Error(`Failed to fetch book: ${response.statusText}`)
-                const buffer = await response.arrayBuffer()
                 // Convert to Blob for better compatibility with epub.js
                 const blob = new Blob([buffer], { type: 'application/epub+zip' })
                 setData(blob)
@@ -85,16 +90,16 @@ const EpubReader = ({ url, title, onClose, summaryPath = null, preview = null })
 
     return (
         <div className="fixed inset-0 right-[5%] z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-0 md:p-4">
-            <div className="bg-white w-full h-full max-w-7xl rounded-md overflow-hidden flex flex-col shadow-2xl relative">
+            <div className="bg-surface w-full h-full max-w-7xl rounded-md overflow-hidden flex flex-col shadow-2xl relative">
                 {/* Header */}
-                <div className="flex items-center justify-between gap-2 p-4 border-b border-gray-100 bg-white z-10">
+                <div className="flex items-center justify-between gap-2 p-4 border-b border-line bg-surface z-10">
                     <div className="flex items-center gap-3 min-w-0">
-                        <div className="p-2 bg-blue-50 rounded-lg">
-                            <span className="text-xl"></span>
+                        <div className="p-2 bg-info-soft rounded-lg">
+                            <span className="text-section"></span>
                         </div>
                         <div>
-                            <h2 className="font-bold text-gray-800 line-clamp-1">{title}</h2>
-                            {/* <p className="text-xs text-gray-500">Reading Mode</p> */}
+                            <h2 className="font-bold text-fg line-clamp-1">{title}</h2>
+                            {/* <p className="text-caption text-fg-subtle">Reading Mode</p> */}
                         </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
@@ -103,15 +108,15 @@ const EpubReader = ({ url, title, onClose, summaryPath = null, preview = null })
                         open={summaryOpen}
                         onToggle={() => setSummaryOpen((v) => !v)}
                         controls="reader-summary"
-                        className="bg-teal-50 text-teal-900 hover:bg-teal-100"
+                        className="bg-brand-soft text-brand-fg hover:bg-brand-soft"
                     />
                     <button
                         onClick={onClose}
-                        className="p-2 hover:bg-gray-100 rounded-full transition-colors group"
+                        className="p-2 hover:bg-surface-hover rounded-full transition-colors group"
                         title={t("learner.reader.close")}
                         aria-label={t("learner.reader.close")}
                     >
-                        <X className="w-6 h-6 text-gray-600 group-hover:text-gray-600" />
+                        <X className="w-6 h-6 text-fg-muted group-hover:text-fg-muted" />
                     </button>
                     </div>
                 </div>
@@ -122,23 +127,23 @@ const EpubReader = ({ url, title, onClose, summaryPath = null, preview = null })
                 {preview && previewEnded ? <PreviewEndedPanel next={preview.next} reading /> : null}
 
                 {/* Reader Container */}
-                <div className="flex-1 min-h-0 min-w-0 relative bg-white flex items-center justify-center overflow-hidden">
+                <div className="flex-1 min-h-0 min-w-0 relative bg-surface flex items-center justify-center overflow-hidden">
                     {preview && previewEnded ? null : access ? (
                         <MediaAccessNotice state={access} />
                     ) : loading ? (
                         // The SOMABOX loader while the book opens (brand green; light teal in dark mode).
                         <div className="flex flex-col items-center gap-4">
                             <Loader size={64} label={t("learner.reader.opening")} />
-                            <p className="text-gray-500 font-medium" aria-hidden="true">{t("learner.reader.opening")}</p>
+                            <p className="text-fg-subtle font-medium" aria-hidden="true">{t("learner.reader.opening")}</p>
                         </div>
                     ) : error ? (
                         <div className="text-center p-8">
-                            <AlertTriangle className="w-10 h-10 text-amber-500 mx-auto mb-4" />
-                            <h3 className="text-lg font-bold text-gray-800 mb-2">{t("learner.reader.failed")}</h3>
-                            <p className="text-gray-500 max-w-md mx-auto">{error}</p>
+                            <AlertTriangle className="w-10 h-10 text-warning-fg mx-auto mb-4" />
+                            <h3 className="text-section font-bold text-fg mb-2">{t("learner.reader.failed")}</h3>
+                            <p className="text-fg-subtle max-w-md mx-auto">{error}</p>
                             <button
                                 onClick={onClose}
-                                className="mt-6 px-6 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
+                                className="mt-6 px-6 py-2 bg-surface-sunken hover:bg-surface-hover text-fg-muted rounded-lg transition-colors"
                             >
                                 {t("learner.reader.goBack")}
                             </button>
@@ -164,7 +169,7 @@ const EpubReader = ({ url, title, onClose, summaryPath = null, preview = null })
                     )}
                 </div>
                 {summaryOpen && summaryPath ? (
-                    <aside id="reader-summary" className="bg-white w-full md:w-[380px] max-h-[50%] md:max-h-none shrink-0 overflow-y-auto p-4 border-t md:border-t-0 md:border-l border-slate-200">
+                    <aside id="reader-summary" className="bg-surface w-full md:w-[380px] max-h-[50%] md:max-h-none shrink-0 overflow-y-auto p-4 border-t md:border-t-0 md:border-l border-line">
                         <SummaryPanel
                             pathKey={summaryPath}
                             state={summary}
@@ -176,8 +181,8 @@ const EpubReader = ({ url, title, onClose, summaryPath = null, preview = null })
                 </div>
 
                 {/* Footer/Progress (Optional) */}
-                {/* <div className="p-2 bg-gray-50 border-t border-gray-100 flex justify-center items-center">
-                    <p className="text-[10px] text-gray-600 uppercase tracking-widest font-medium">Soma-X Library Reader</p>
+                {/* <div className="p-2 bg-surface-sunken border-t border-line flex justify-center items-center">
+                    <p className="text-caption text-fg-muted font-medium">Soma-X Library Reader</p>
                 </div> */}
             </div>
         </div>

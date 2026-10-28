@@ -2,44 +2,39 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { MessageSquare, Plus } from "lucide-react";
+import { MessageSquare, Plus, UsersRound } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
 import { useCourseSection } from "@/lib/useCourseSection";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
 import AsyncListState from "@/components/course/AsyncListState";
 import { Button } from "@/components/ui/button";
-import { PageHeader, List, ListRow } from "@/components/layout";
+import { PageHeader, List, ListRow, Section } from "@/components/layout";
 import { useCourseText } from "@/components/course/useCourseText";
+import { apiFetch } from "@/lib/api";
+import { Select, TextInput, Textarea } from "@/components/form";
 
 export default function DiscussionsListPage() {
-  const { SERVER_URL, courseId } = useCourse();
+  const { courseId, canTakePart, isTeacher } = useCourse();
+  // Teachers start discussions; learners reply to them.
+  const canStart = canTakePart && isTeacher;
   const { t, tf, weekLabel } = useCourseText();
   const { data: discussions, loading, error, refetch } = useCourseSection("discussions");
   const [creating, setCreating] = useState(false);
-  const [form, setForm] = useState({ title: "", body: "", moduleId: "" });
-  const [modules, setModules] = useState([]);
+  const [form, setForm] = useState({ title: "", body: "", moduleId: "", groupId: "" });
   const [createError, setCreateError] = useState("");
 
   // Discussions must live in a module. Learners only receive published modules
-  // from the API; the "unassigned" bucket is never a valid target.
+  // from the API; the "unassigned" bucket is never a valid target. The kept weeks list is shared
+  // with the Modules page.
+  const { data: mods } = useCourseSection(creating ? "modules" : null);
+  const modules = (Array.isArray(mods) ? mods : []).filter((m) => m.kind !== "unassigned");
+  // Groups a discussion can be for: all of them for teachers, a learner's own for learners.
+  const { data: groupData } = useCourseSection(canStart ? "groups" : null);
+  const groups = Array.isArray(groupData?.groups) ? groupData.groups : [];
   useEffect(() => {
-    if (!creating || !SERVER_URL || !courseId) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch(`${SERVER_URL}/courses/${courseId}/modules`);
-        if (!res.ok) return;
-        const mods = await res.json();
-        if (cancelled) return;
-        const choices = (Array.isArray(mods) ? mods : []).filter((m) => m.kind !== "unassigned");
-        setModules(choices);
-        setForm((p) => (p.moduleId || choices.length === 0 ? p : { ...p, moduleId: choices[0].id }));
-      } catch (err) {
-        console.error(err);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [creating, SERVER_URL, courseId]);
+    if (!creating || modules.length === 0) return;
+    setForm((p) => (p.moduleId ? p : { ...p, moduleId: modules[0].id }));
+  }, [creating, modules.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const create = async () => {
     if (!form.title.trim()) return;
@@ -48,17 +43,13 @@ export default function DiscussionsListPage() {
       return;
     }
     setCreateError("");
-    const res = await fetch(`${SERVER_URL}/courses/${courseId}/discussions`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: form.title.trim(), body: form.body, moduleId: Number(form.moduleId) }),
-    });
-    if (!res.ok) {
-      const payload = await res.json().catch(() => ({}));
-      setCreateError(payload.message || t("discussions.createFailed"));
+    try {
+      await apiFetch(`/courses/${courseId}/discussions`, { method: "POST", json: { title: form.title.trim(), body: form.body, moduleId: Number(form.moduleId), groupId: form.groupId ? Number(form.groupId) : null, published: true } });
+    } catch (err) {
+      setCreateError(err?.body?.message || t("discussions.createFailed"));
       return;
     }
-    setForm({ title: "", body: "", moduleId: "" });
+    setForm({ title: "", body: "", moduleId: "", groupId: "" });
     setCreating(false);
     refetch();
   };
@@ -69,42 +60,47 @@ export default function DiscussionsListPage() {
       <div className="p-4 md:p-6 space-y-6 max-w-2xl">
         <PageHeader help="pages.discussions"
           title={t("nav.discussions")}
-          actions={
+          actions={canStart ? (
             <Button onClick={() => setCreating((v) => !v)} className="h-9 gap-1.5">
               <Plus className="w-3.5 h-3.5" /> {t("modules.newDiscussion")}
             </Button>
-          }
+          ) : null}
         />
 
-        {creating ? (
+        {creating && canStart ? (
           <div className="space-y-2">
-            <select
-              value={form.moduleId}
-              onChange={(e) => setForm((p) => ({ ...p, moduleId: e.target.value }))}
-              aria-label={t("discussions.module")}
-              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)] bg-white"
-            >
+            <Select value={form.moduleId} onChange={(e) => setForm((p) => ({ ...p, moduleId: e.target.value }))} aria-label={t("discussions.module")} className="w-full" >
               <option value="" disabled>{modules.length === 0 ? t("discussions.noModules") : `${t("discussions.chooseModule")} *`}</option>
               {modules.map((m) => (
                 <option key={m.id} value={m.id}>
                   {weekLabel(m)}: {m.title}
                 </option>
               ))}
-            </select>
-            <input value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} placeholder={t("common.title")} aria-label={t("discussions.titleLabel")} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]" />
-            <textarea value={form.body} onChange={(e) => setForm((p) => ({ ...p, body: e.target.value }))} rows={3} placeholder={t("discussions.promptPlaceholder")} aria-label={t("discussions.promptLabel")} className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-secondary)]" />
-            {createError ? <p className="text-xs font-semibold text-rose-600">{createError}</p> : null}
+            </Select>
+            {groups.length ? (
+              <Select value={form.groupId} onChange={(e) => setForm((p) => ({ ...p, groupId: e.target.value }))} aria-label={t("groups.discussionGroup")} className="w-full" >
+                <option value="">{t("groups.everyone")}</option>
+                {groups.map((g) => <option key={g.id} value={g.id}>{tf("groups.groupBadge", { name: g.name })}</option>)}
+              </Select>
+            ) : null}
+            <TextInput value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} placeholder={t("common.title")} aria-label={t("discussions.titleLabel")} className="w-full" />
+            <Textarea value={form.body} onChange={(e) => setForm((p) => ({ ...p, body: e.target.value }))} rows={3} placeholder={t("discussions.promptPlaceholder")} aria-label={t("discussions.promptLabel")} className="w-full" />
+            {createError ? <p className="text-caption font-semibold text-danger-fg">{createError}</p> : null}
             <div className="flex justify-end gap-2">
-              <button onClick={() => setCreating(false)} className="text-xs font-medium text-slate-500 px-3 py-2">{t("common.cancel")}</button>
-              <button onClick={create} disabled={!form.title.trim() || !form.moduleId} className="text-xs font-semibold text-white bg-[var(--brand-primary)] rounded-lg px-3 py-2 disabled:opacity-50">{t("discussions.post")}</button>
+              <button onClick={() => setCreating(false)} className="text-caption font-medium text-fg-subtle px-3 py-2">{t("common.cancel")}</button>
+              <button onClick={create} disabled={!form.title.trim() || !form.moduleId} className="text-caption font-semibold text-on-brand-strong bg-brand-strong rounded-lg px-3 py-2 disabled:opacity-50">{t("discussions.post")}</button>
             </div>
           </div>
         ) : null}
 
         <AsyncListState loading={loading} error={error} data={discussions} onRetry={refetch} emptyMessage={t("discussions.empty")}>
-          {(list) => (
-            <List label={t("nav.discussions")}>
-              {list.map((d) => (
+          {(list) => {
+            // Group discussions are kept apart from the course's general ones.
+            const general = list.filter((d) => d.group_id == null);
+            const grouped = list.filter((d) => d.group_id != null);
+            const rows = (items, label) => (
+            <List label={label}>
+              {items.map((d) => (
                 <ListRow
                   key={d.id}
                   icon={<MessageSquare className="w-4 h-4" />}
@@ -112,14 +108,27 @@ export default function DiscussionsListPage() {
                   title={
                     <span className="inline-flex items-center gap-2 min-w-0">
                       <span className="truncate">{d.title}</span>
-                      {d.graded ? <span className="text-[10px] font-bold uppercase text-teal-600 bg-teal-50 rounded-full px-1.5 py-0.5 shrink-0">{t("quizKinds.graded")}</span> : null}
+                      {d.graded ? <span className="text-caption font-bold text-brand-fg bg-brand-soft rounded-full px-1.5 py-0.5 shrink-0">{t("quizKinds.graded")}</span> : null}
+                      {d.groupName ? (
+                        <span className="inline-flex items-center gap-1 text-caption font-bold text-info-fg bg-info-soft rounded-full px-1.5 py-0.5 shrink-0">
+                          <UsersRound className="w-3 h-3" aria-hidden="true" /> {d.groupName}
+                        </span>
+                      ) : null}
                     </span>
                   }
-                  actions={<span className="text-xs text-slate-400">{tf(d.replyCount === 1 ? "discussions.oneReply" : "discussions.manyReplies", { n: d.replyCount })}</span>}
+                  actions={<span className="text-caption text-fg-subtle">{tf(d.replyCount === 1 ? "discussions.oneReply" : "discussions.manyReplies", { n: d.replyCount })}</span>}
                 />
               ))}
             </List>
-          )}
+            );
+            if (!grouped.length) return rows(general, t("nav.discussions"));
+            return (
+              <div className="space-y-6">
+                <Section title={t("groups.groupDiscussions")}>{rows(grouped, t("groups.groupDiscussions"))}</Section>
+                {general.length ? <Section title={t("groups.courseDiscussions")}>{rows(general, t("groups.courseDiscussions"))}</Section> : null}
+              </div>
+            );
+          }}
         </AsyncListState>
       </div>
     </div>

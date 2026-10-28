@@ -18,32 +18,32 @@ export default {
     },
     "tour": {
         "welcome": {
-            "tag": "WELCOME",
+            "tag": "Welcome",
             "title": "Hey there, learner!",
             "body": "Welcome to SOMABOX, your own learning space! Here is a quick tour of what's here. It only takes about 30 seconds."
         },
         "stats": {
-            "tag": "STATS",
+            "tag": "Stats",
             "title": "Your learning stats",
             "body": "These cards show your classes, the lessons you're working on and how much you've finished. The more you learn, the bigger these numbers grow!"
         },
         "lessons": {
-            "tag": "LESSONS",
+            "tag": "Lessons",
             "title": "Recent lessons",
             "body": "Here you can see your latest lessons and where you are in each one. Click a lesson to carry on where you left off."
         },
         "quick-access": {
-            "tag": "QUICK ACCESS",
+            "tag": "Quick access",
             "title": "Quick access",
             "body": "Go straight to your classes, lessons, library or finished work in one tap. It's your shortcut board."
         },
         "nav": {
-            "tag": "MENU",
+            "tag": "Menu",
             "title": "Your menu",
-            "body": "Use the menu on the left to move between Dashboard, Courses, Library and your Account at any time."
+            "body": "Use the menu on the left to move between Dashboard, Subjects, Library and your Account at any time."
         },
         "finish": {
-            "tag": "ALL DONE",
+            "tag": "All done",
             "title": "You're all set!",
             "body": "Great, you know your way around! Now start learning. Every lesson brings you closer to your goals."
         },
@@ -80,11 +80,6 @@ export default {
         "namePlaceholder": "e.g. Mugisha Jean Claude",
         "phone": "Phone number",
         "optional": "(optional)",
-        "gender": "Gender",
-        "genderHelp": "Used only for school statistics on equal access to learning.",
-        "male": "Male",
-        "female": "Female",
-        "otherGender": "Other",
         "locationTitle": "Where you are",
         "locationHelp": "Helps us offer local lessons and accessibility support.",
         "province": "Province / region",
@@ -97,14 +92,6 @@ export default {
         "whereLive": "Where do you live?",
         "rural": "Rural / remote area",
         "urban": "Town / city",
-        "accessibility": "Accessibility and support",
-        "chooseOne": "Choose one",
-        "disNone": "No disability or support need",
-        "disVisual": "Difficulty seeing (high contrast / screen reader)",
-        "disHearing": "Difficulty hearing (captions / visual cues)",
-        "disMobility": "Difficulty moving (mobility support)",
-        "disCognitive": "Learning or thinking support",
-        "disOther": "Other support need",
         "academicTitle": "Your studies",
         "academicHelp": "So lessons and suggestions fit your level.",
         "grade": "Current class / study level",
@@ -131,7 +118,8 @@ export default {
         "mandatory": "Required setup (step 1 of 3)",
         "continue": "Continue",
         "saving": "Saving profile…",
-        "finish": "Finish and start"
+        "finish": "Finish and start",
+        "later": "Later",
     },
     "practice": {
         "label": "Practice — doesn't count toward outcome mastery",
@@ -164,20 +152,31 @@ export default {
         "clearSearch": "Clear search"
     },
     "discover": {
-        "loadFailed": "Couldn't load the courses",
-        "joinFailed": "Couldn't join the course",
-        "subtitle": "Browse public courses and join straight away — no invitation needed",
-        "empty": "No public courses are available right now. Check back later.",
+        "loadFailed": "Couldn't load the subjects",
+        "joinFailed": "Couldn't join the subject",
+        "code": {
+          "title": "Join with a code",
+          "help": "Type the code your teacher gave you.",
+          "placeholder": "e.g. K7M4QX",
+          "button": "Join",
+          "errors": {
+            "INVALID_CODE": "No subject has this code. Check it with your teacher.",
+            "NOT_OPEN": "This subject isn't open yet. Ask your teacher.",
+            "TOO_MANY": "Too many wrong codes. Wait a few minutes and try again."
+          }
+        },
+        "subtitle": "Browse public subjects and join straight away — no invitation needed",
+        "empty": "No public subjects are available right now. Check back later.",
         "oneEnrolled": "1 learner",
         "nEnrolled": "{n} learners",
         "joining": "Joining…",
-        "join": "Join course"
+        "join": "Join subject"
     },
     "account": {
         "dataDownloaded": "Your data was downloaded",
         "downloadFailed": "Download failed",
         "yourData": "Your data",
-        "yourDataHelp": "Download a file with everything this box holds about you: your profile, courses, work, results and usage logs.",
+        "yourDataHelp": "Download a file with everything this box holds about you: your profile, subjects, work, results and usage logs.",
         "preparing": "Preparing…",
         "downloadData": "Download my data",
         "hide": "Hide",
@@ -192,26 +191,11 @@ export default {
         "pwFailed": "Couldn't change the password",
         "pwUpdated": "Password changed.",
         "notSpecified": "Not specified",
-        "genders": {
-            "male": "Male",
-            "female": "Female",
-            "other": "Other",
-            "non_binary": "Non-binary",
-            "prefer_not_to_say": "Prefer not to say"
-        },
-        "access": {
-            "none": "None",
-            "visual": "Difficulty seeing",
-            "hearing": "Difficulty hearing",
-            "mobility": "Difficulty moving",
-            "cognitive": "Learning support",
-            "other": "Other need"
-        },
         "active": "Active",
         "ruralBadge": "Rural learner",
         "lessons": "Lessons",
         "classes": "Classes",
-        "defaultPassword": "This account is still using a default password. Set a new password to continue.",
+        "defaultPassword": "You were given a temporary password. Choose your own to continue.",
         "tabProfile": "Profile",
         "tabSecurity": "Security",
         "personalTitle": "Personal information",
@@ -223,7 +207,6 @@ export default {
         "district": "District",
         "districtPlaceholder": "e.g. Gasabo, Nyarugenge, Musanze, Huye",
         "ruralCheckbox": "I live in a rural / remote area",
-        "accessibility": "Accessibility",
         "saving": "Saving…",
         "save": "Save",
         "fullName": "Full name",
@@ -259,19 +242,30 @@ export default {
         "offlineBody": "Read books and materials in your Library at any time — no internet needed.",
         "browseLibrary": "Browse the Library",
         "settledTitle": "You're all set up!",
-        "settledBody": "Your account is ready. Your teacher will add you to your course soon — you don't need to do anything. Meanwhile, explore the learning materials in the Library.",
+        "settledBody": "Your account is ready. Your teacher will add you to your subject soon — you don't need to do anything. Meanwhile, explore the learning materials in the Library.",
         "tryPractice": "Try practice topics",
-        "myCourses": "My courses",
+        "myCourses": "My subjects",
+        "view": {
+          "label": "Show my subjects as",
+          "cards": "Cards",
+          "byDate": "By date"
+        },
+        "upcoming": {
+          "hint": "What's due and what opens in your subjects over the next 4 weeks.",
+          "empty": "Nothing due in the next 4 weeks.",
+          "loadFailed": "Couldn't load what's coming up.",
+          "open": "Open"
+        },
         "viewAll": "View all",
         "progress": "Progress",
         "noGradedWork": "No graded work yet",
         "continue": "Continue",
-        "publicCourses": "Explore public courses",
+        "publicCourses": "Explore public subjects",
         "quickAccess": "Quick access",
         "nJoined": "{n} joined",
         "notEnrolled": "Not enrolled yet",
         "viewWork": "See your work",
-        "discoverSub": "Browse and join public courses",
+        "discoverSub": "Browse and join public subjects",
         "interleaved": "Mixed review",
         "interleavedSub": "Practise on your own",
         "librarySub": "Books and materials"
@@ -292,10 +286,25 @@ export default {
         "revisitedMany": "You went over {n} questions from your finished lessons."
     },
     "courses": {
-        "subtitle": "The courses you're enrolled in.",
-        "joinCourse": "Join a course",
-        "codeLabel": "6-digit course code",
+        "subtitle": "The subjects you're enrolled in.",
+        "joinCourse": "Join a subject",
         "join": "Join",
-        "empty": "You're not enrolled in any courses yet. Ask your teacher for a course code."
-    }
+        "empty": "You're not enrolled in any subjects yet. Ask your teacher for a subject code."
+    },
+    "celebrate": {
+        "submittedTitle": "Well done! It's handed in.",
+        "submittedNext": "\"{title}\" is with your teacher. Keep going with the next one.",
+        "submittedDone": "\"{title}\" is with your teacher. You're all caught up!",
+        "firstTitle": "Your first piece of work!",
+        "firstMessage": "You've started: every piece of work you hand in shows your teacher how you're growing.",
+        "milestoneTitle": "{n} pieces of work handed in!",
+        "milestoneMessage": "What a milestone. Your effort adds up: keep it going.",
+        "next": "Next: {title}",
+        "start": "Start now",
+        "dashboard": "My dashboard",
+        "welcome": "Welcome back!",
+        "welcomeNamed": "Welcome back, {name}!",
+        "welcomeNext": "Thank you for coming back. Next for you: \"{title}\".",
+        "welcomeDone": "Thank you for coming back. You're all caught up: well done!",
+    },
 };

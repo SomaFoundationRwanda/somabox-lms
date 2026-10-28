@@ -1,50 +1,53 @@
 "use client"
 import { useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { X } from "lucide-react"
 import { useLanguage } from "@/context/LanguageContext"
-
-const GRADE_OPTIONS = [
-  { value: "P1", labelKey: "teacher.grades.P1" },
-  { value: "P2", labelKey: "teacher.grades.P2" },
-  { value: "P3", labelKey: "teacher.grades.P3" },
-  { value: "P4", labelKey: "teacher.grades.P4" },
-  { value: "P5", labelKey: "teacher.grades.P5" },
-  { value: "P6", labelKey: "teacher.grades.P6" },
-  { value: "S1", labelKey: "teacher.grades.S1" },
-  { value: "S2", labelKey: "teacher.grades.S2" },
-  { value: "S3", labelKey: "teacher.grades.S3" },
-  { value: "S4", labelKey: "teacher.grades.S4" },
-  { value: "S5", labelKey: "teacher.grades.S5" },
-  { value: "S6", labelKey: "teacher.grades.S6" },
-  { value: "other", labelKey: "teacher.grades.other" },
-]
+import GradeSelect from "@/components/teacher/GradeSelect"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { apiFetch } from "@/lib/api"
+import { queryKeys } from "@/lib/queryKeys"
+import { Field, Select, TextInput, Textarea } from "@/components/form";
 
 // Shared by every entry point that creates a course, so there's exactly one create-course UX.
-export default function CreateCourseModal({ SERVER_URL, onClose, onCreated }) {
+export default function CreateCourseModal({ onClose, onCreated }) {
+  const queryClient = useQueryClient()
   const { t } = useLanguage()
-  const [form, setForm] = useState({ title: "", grade: "", gradeOther: "", description: "" })
+  const router = useRouter()
+  const [form, setForm] = useState({ title: "", grade: "", subject: "", description: "" })
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+  // The classes and subjects the admin gave this teacher (the same kept profile as elsewhere).
+  const { data: profile } = useQuery({ queryKey: queryKeys.profile, queryFn: () => apiFetch("/users/profile/view") })
+  const classes = Array.isArray(profile?.teacher_classes) ? profile.teacher_classes : []
+  const subjects = Array.isArray(profile?.teacher_subjects) ? profile.teacher_subjects : []
+
+  const dirty = Boolean(form.title.trim() || form.grade.trim() || form.subject.trim() || form.description.trim())
+  // Left empty, the title is the subject and class ("English · S1B").
+  const suggestedTitle = [form.subject.trim(), form.grade.trim()].filter(Boolean).join(" · ")
 
   const handleSubmit = async () => {
-    const resolvedGrade = form.grade === "other" ? form.gradeOther.trim() : form.grade
-    if (!form.title.trim()) { setError(t("teacher.createCourse.titleRequired")); return }
+    const resolvedGrade = form.grade.trim()
+    const title = form.title.trim() || suggestedTitle
+    if (!title) { setError(t("teacher.createCourse.titleRequired")); return }
+    if (!resolvedGrade) { setError(t("teacher.createCourse.gradeRequired")); return }
     setError("")
     setLoading(true)
     try {
-      const res = await fetch(`${SERVER_URL}/courses`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: form.title.trim(),
-          grade: resolvedGrade,
-          description: form.description,
-        }),
-      })
-      const data = await res.json()
-      if (!res.ok) { setError(data.message || t("teacher.createCourse.failed")); return }
+      let data
+      try {
+        data = await apiFetch("/courses", { method: "POST", json: { title, grade: resolvedGrade, subject: form.subject.trim() || null, description: form.description } })
+      } catch (err) {
+        if (err?.status === 0) throw err
+        setError(err?.body?.message || t("teacher.createCourse.failed"))
+        return
+      }
+      queryClient.invalidateQueries({ queryKey: queryKeys.courses })
       onCreated?.(data)
+      // Straight into the guided setup: a new course is a draft that needs outcomes, dates and weeks.
+      // A new course starts on its setup steps.
+      if (data?.id) router.push(`/course/${data.id}/setup`)
     } catch {
       setError(t("teacher.common.somethingWrong"))
     } finally {
@@ -53,69 +56,55 @@ export default function CreateCourseModal({ SERVER_URL, onClose, onCreated }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 p-6" onClick={(e) => e.stopPropagation()}>
+    // Clicking outside closes only an untouched form, so a stray click doesn't lose the teacher's typing.
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => { if (!dirty) onClose() }}>
+      <div className="bg-surface rounded-2xl shadow-xl w-full max-w-sm mx-4 p-6" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-semibold text-slate-800">{t("teacher.createCourse.title")}</h3>
-          <button aria-label={t("teacher.common.close")} onClick={onClose} className="text-slate-500 hover:text-slate-700 transition-colors">
+          <h3 className="text-item font-semibold text-fg">{t("teacher.createCourse.title")}</h3>
+          <button aria-label={t("teacher.common.close")} onClick={onClose} className="text-fg-subtle hover:text-fg-muted transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
 
         <div className="flex flex-col gap-3">
-          <div>
-            <label className="text-xs text-slate-600 mb-1 block">{t("teacher.createCourse.courseTitle")} *</label>
-            <input aria-label={t("teacher.createCourse.courseTitle")}
-              type="text"
-              placeholder={t("teacher.createCourse.titlePlaceholder")}
+          <Field label={t("teacher.createCourse.grade")} required>
+            <GradeSelect inField classes={classes} value={form.grade} onChange={(grade) => setForm((p) => ({ ...p, grade }))} />
+          </Field>
+          <Field label={t("teacher.createCourse.subject")}>
+            {subjects.length ? (
+              <Select value={form.subject} onChange={(e) => setForm((p) => ({ ...p, subject: e.target.value }))} placeholder={t("teacher.createCourse.chooseSubject")}>
+                {subjects.map((s) => <option key={s} value={s}>{s}</option>)}
+              </Select>
+            ) : (
+              <TextInput value={form.subject} onChange={(e) => setForm((p) => ({ ...p, subject: e.target.value }))} placeholder={t("teacher.createCourse.subjectPlaceholder")} />
+            )}
+          </Field>
+          <Field label={t("teacher.createCourse.courseTitle")} required={!suggestedTitle}>
+            <TextInput aria-label={t("teacher.createCourse.courseTitle")}
+              placeholder={suggestedTitle || t("teacher.createCourse.titlePlaceholder")}
               value={form.title}
               onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
-              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2.5 outline-none focus:border-[var(--brand-secondary)]"
             />
-          </div>
-          <div>
-            <label className="text-xs text-slate-600 mb-1 block">{t("teacher.createCourse.grade")} *</label>
-            <select aria-label={t("teacher.createCourse.grade")}
-              value={form.grade}
-              onChange={(e) => setForm((p) => ({ ...p, grade: e.target.value }))}
-              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2.5 outline-none focus:border-[var(--brand-secondary)] bg-white"
-            >
-              <option value="">{t("teacher.createCourse.selectGrade")}</option>
-              {GRADE_OPTIONS.map((g) => (
-                <option key={g.value} value={g.value}>{t(g.labelKey)}</option>
-              ))}
-            </select>
-            {form.grade === "other" && (
-              <input aria-label={t("teacher.createCourse.describeGrade")}
-                type="text"
-                placeholder={t("teacher.createCourse.describeGrade")}
-                value={form.gradeOther}
-                onChange={(e) => setForm((p) => ({ ...p, gradeOther: e.target.value }))}
-                className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2.5 outline-none focus:border-[var(--brand-secondary)] mt-2"
-              />
-            )}
-          </div>
-          <div>
-            <label className="text-xs text-slate-600 mb-1 block">{t("teacher.createCourse.description")}</label>
-            <textarea aria-label={t("teacher.createCourse.description")}
+          </Field>
+          <Field label={t("teacher.createCourse.description")}>
+            <Textarea aria-label={t("teacher.createCourse.description")}
               value={form.description}
               onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
               rows={3}
               placeholder={t("teacher.createCourse.descriptionPlaceholder")}
-              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2.5 outline-none focus:border-[var(--brand-secondary)] resize-none"
             />
-          </div>
-          {error && <p className="text-xs text-red-500">{error}</p>}
+          </Field>
+          {error && <p className="text-caption text-danger-fg">{error}</p>}
           <button
             onClick={handleSubmit}
-            disabled={loading || !form.title.trim() || (!form.grade || (form.grade === "other" && !form.gradeOther.trim()))}
-            className="w-full py-2.5 rounded-lg text-sm font-medium bg-[var(--brand-secondary)] text-white hover:bg-[var(--brand-secondary-dark)] transition-colors disabled:opacity-50"
+            disabled={loading}
+            className="w-full py-2.5 rounded-lg text-ui font-medium bg-brand text-on-brand hover:bg-brand/90 transition-colors disabled:opacity-50"
           >
             {loading ? t("teacher.createCourse.creating") : t("teacher.createCourse.create")}
           </button>
-          <p className="text-xs text-slate-500 text-center">
+          <p className="text-caption text-fg-subtle text-center">
             {t("teacher.createCourse.orBefore")}{" "}
-            <Link href="/library/courses" className="font-semibold text-[var(--brand-secondary)] hover:underline">{t("teacher.createCourse.orLink")}</Link>
+            <Link href="/library/courses" className="font-semibold text-brand-fg hover:underline">{t("teacher.createCourse.orLink")}</Link>
             {" "}{t("teacher.createCourse.orAfter")}
           </p>
         </div>

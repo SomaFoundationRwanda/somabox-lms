@@ -5,7 +5,7 @@ This directory contains the complete, isolated offline AI Assistant system for *
 ## Directory Structure
 ```
 ai/
-├── config.yaml          # Model file, ports, concurrency, max tokens configuration
+├── config.yaml          # Model file, concurrency, max tokens (ports: the repo's .env wins)
 ├── models/              # Local GGUF model files (.gitignore ignored)
 ├── data/                # SQLite feedback database (.gitignore ignored)
 ├── prompts/             # Chat mode templates (lesson_plan, quiz, explain, adapt, rubric)
@@ -31,7 +31,7 @@ Place the required GGUF model file in `ai/models/`.
 ### Step 2: Install Runtime & Gateway Dependencies
 ```bash
 ./ai/runtime/install_runtime.sh
-cd ai/gateway && npm install && cd ../..
+pnpm install        # at the repo root; the gateway is part of the pnpm workspace
 ```
 
 ### Step 3: Start Services
@@ -41,8 +41,15 @@ cd ai/gateway && npm install && cd ../..
    ```
 2. **Start Gateway Service** (HTTP Gateway on port 5000):
    ```bash
-   cd ai/gateway && npm start
+   pnpm ai:gateway
    ```
+
+---
+
+**Ports:** `AI_GATEWAY_PORT` (default 5000) and `AI_RUNTIME_PORT` (default 8080) in the repo's root
+`.env` win over the ports in `config.yaml`; the backend reaches the gateway on `AI_GATEWAY_PORT`.
+`pnpm dev:all` and pm2 pass them to both processes. On a Mac, port 5000 is taken by AirPlay, so
+set `AI_GATEWAY_PORT` to something else there.
 
 ---
 
@@ -77,7 +84,7 @@ To swap to a different GGUF model:
   ```
 * **Gateway Unit Tests** (no model needed; uses a fake llama runtime):
   ```bash
-  cd ai/gateway && npm test
+  pnpm --filter ai-gateway test
   ```
 * **Export Teacher Feedback**:
   ```bash

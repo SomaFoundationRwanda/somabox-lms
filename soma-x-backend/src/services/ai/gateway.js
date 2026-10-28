@@ -17,7 +17,7 @@ const MESSAGES = {
   unreachable: "The AI service can't be reached on this box.",
 };
 
-export const gatewayUrl = () => process.env.AI_GATEWAY_URL || "http://127.0.0.1:5000";
+export const gatewayUrl = () => process.env.AI_GATEWAY_URL || `http://127.0.0.1:${process.env.AI_GATEWAY_PORT || 5000}`;
 
 export async function logAiCall({ userId, courseId, feature, task, ok, errorCode, promptTokens, completionTokens, latencyMs }) {
   try {

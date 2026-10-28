@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { useCourse } from "@/context/CourseContext";
+import { useCourseSection } from "@/lib/useCourseSection";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
 import { PageHeader, Section, List, ListRow, EmptyState } from "@/components/layout";
 import { formatDate, formatInstantDate } from "@/lib/dates";
@@ -24,14 +25,14 @@ function outcomeSentence(o, tp) {
   return tp("myProgress.outcomeSame", { start: fmtPct(o.baseline), now: fmtPct(o.current) });
 }
 
-const byDueDate = (a, b) => {
+export const byDueDate = (a, b) => {
   if (!a.dueDate && !b.dueDate) return 0;
   if (!a.dueDate) return 1;
   if (!b.dueDate) return -1;
   return a.dueDate < b.dueDate ? -1 : a.dueDate > b.dueDate ? 1 : 0;
 };
 
-function WorkRow({ courseId, w, showPct }) {
+export function WorkRow({ courseId, w, showPct }) {
   const { tp } = useProgressText();
   const href = itemHref(courseId, w);
   const type = itemType(tp, w.type);
@@ -43,7 +44,7 @@ function WorkRow({ courseId, w, showPct }) {
       subtitle={[type, due].filter(Boolean).join(" · ")}
       actions={
         <span className="inline-flex items-center gap-2">
-          {showPct ? <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">{w.pct != null ? fmtPct(w.pct) : <span className="text-xs font-normal text-slate-500">{tp("myProgress.notMarkedYet")}</span>}</span> : null}
+          {showPct ? <span className="text-ui font-semibold text-fg">{w.pct != null ? fmtPct(w.pct) : <span className="text-caption font-normal text-fg-subtle">{tp("myProgress.notMarkedYet")}</span>}</span> : null}
           <WorkStateBadge state={w.state} label={w.state === "missing" ? tp("myProgress.toHandIn") : w.state === "done_late" ? tp("myProgress.handedInLate") : w.state === "done_on_time" ? tp("myProgress.handedIn") : undefined} />
         </span>
       }
@@ -52,32 +53,16 @@ function WorkRow({ courseId, w, showPct }) {
 }
 
 export default function MyProgress({ sectionKey = "progress" }) {
-  const { SERVER_URL, courseId, userEmail } = useCourse();
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const { courseId } = useCourse();
   const tracked = useRef(false);
   const { txn, tx } = useAttendanceText();
   const { tp, tpn } = useProgressText();
 
-  const load = useCallback(async () => {
-    if (!SERVER_URL || !courseId || !userEmail) return;
-    setLoading(true);
-    setError("");
-    try {
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/my-progress`);
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(payload.message || tp("myProgress.loadFailed"));
-      setData(payload);
-    } catch (err) {
-      setError(err.message || tp("myProgress.loadFailed"));
-    } finally {
-      setLoading(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [SERVER_URL, courseId, userEmail]);
-
-  useEffect(() => { load(); }, [load]);
+  const progress = useCourseSection("my-progress");
+  const data = progress.data;
+  const loading = progress.loading;
+  const error = progress.error ? progress.error || tp("myProgress.loadFailed") : "";
+  const load = progress.refetch;
 
   useEffect(() => {
     if (tracked.current || !courseId) return;
@@ -100,7 +85,6 @@ export default function MyProgress({ sectionKey = "progress" }) {
       <div className="p-4 md:p-6 space-y-8 max-w-4xl">
         <PageHeader
           title={tp("common.myProgress")}
-          description={tp("myProgress.description")}
         />
 
         {loading && !data ? (
@@ -113,10 +97,10 @@ export default function MyProgress({ sectionKey = "progress" }) {
           <>
             <Section>
               <div className="space-y-1">
-                <p className="text-lg font-bold text-slate-900 dark:text-white">
+                <p className="text-section font-bold text-fg">
                   {grew ? tp("myProgress.grew", { n: Math.round(delta) }) : tp("myProgress.keepGoing")}
                 </p>
-                <p className="text-sm text-slate-600 dark:text-slate-300">
+                <p className="text-ui text-fg-muted">
                   {data.overall == null
                     ? tp("myProgress.noneMarked")
                     : data.overallBaseline != null
@@ -127,13 +111,13 @@ export default function MyProgress({ sectionKey = "progress" }) {
             </Section>
 
             {data.attendance?.counted > 0 ? (
-              <p className="-mt-4 text-sm text-slate-600 dark:text-slate-300">
+              <p className="-mt-4 text-ui text-fg-muted">
                 {txn("youAttended", data.attendance.counted, { a: attended(data.attendance) })}.{" "}
-                <Link href={`/course/${courseId}/attendance`} className="font-semibold text-[var(--brand-secondary)] hover:underline">{tx("openMyAttendance")}</Link>
+                <Link href={`/course/${courseId}/grades#attendance`} className="font-semibold text-brand-fg hover:underline">{tx("openMyAttendance")}</Link>
               </p>
             ) : null}
 
-            <Section title={tp("myProgress.yourOutcomes")} description={tp("myProgress.yourOutcomesHint")}>
+            <Section title={tp("myProgress.yourOutcomes")}>
               {outcomes.length === 0 ? (
                 <EmptyState compact title={tp("common.noOutcomesYet")} />
               ) : (
@@ -141,15 +125,15 @@ export default function MyProgress({ sectionKey = "progress" }) {
                   {outcomes.map((o) => {
                     const band = bandFor(o.current, thresholds);
                     return (
-                      <li key={o.outcomeId ?? o.id} className="px-3 py-3 text-sm space-y-1">
+                      <li key={o.outcomeId ?? o.id} className="px-3 py-3 text-ui space-y-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          {o.code ? <span className="text-[11px] font-bold text-[var(--brand-secondary)]">{o.code}</span> : null}
-                          <span className="font-semibold text-slate-900 dark:text-white">{o.title || tp("common.outcome")}</span>
-                          <span className={`inline-flex items-center text-[10px] font-semibold rounded-full border px-1.5 py-0.5 ${band.chip}`}>{tp(`myProgress.status.${band.key}`)}</span>
+                          {o.code ? <span className="text-caption font-bold text-brand-fg">{o.code}</span> : null}
+                          <span className="font-semibold text-fg">{o.title || tp("common.outcome")}</span>
+                          <span className={`inline-flex items-center text-caption font-semibold rounded-full border px-1.5 py-0.5 ${band.chip}`}>{tp(`myProgress.status.${band.key}`)}</span>
                         </div>
-                        <p className="text-slate-600 dark:text-slate-300">{outcomeSentence(o, tp)}</p>
+                        <p className="text-fg-muted">{outcomeSentence(o, tp)}</p>
                         {o.resultsToMastery ? (
-                          <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                          <p className="text-caption font-semibold text-success-fg">
                             {tpn("myProgress.masteredAfter", o.resultsToMastery)}
                           </p>
                         ) : null}
@@ -169,16 +153,16 @@ export default function MyProgress({ sectionKey = "progress" }) {
                       key={`${t.sourceType}-${t.sourceId}-${i}`}
                       title={t.title || tp("common.result")}
                       subtitle={t.at ? formatInstantDate(t.at) : undefined}
-                      actions={<span className="text-sm font-semibold text-slate-800 dark:text-slate-100">{fmtPct(t.pct)}</span>}
+                      actions={<span className="text-ui font-semibold text-fg">{fmtPct(t.pct)}</span>}
                     />
                   ))}
                 </List>
               ) : null}
             </Section>
 
-            <Section title={tp("myProgress.toDo")} description={tp("myProgress.toDoHint")}>
+            <Section title={tp("myProgress.toDo")}>
               {toDo.length === 0 ? (
-                <p className="text-sm text-slate-500">{tp("myProgress.nothingToDo")}</p>
+                <p className="text-ui text-fg-subtle">{tp("myProgress.nothingToDo")}</p>
               ) : (
                 <List label={tp("myProgress.toDo")}>{toDo.map((w) => <WorkRow key={w.moduleItemId} courseId={courseId} w={w} />)}</List>
               )}
@@ -192,14 +176,14 @@ export default function MyProgress({ sectionKey = "progress" }) {
 
             <Section title={tp("myProgress.done")}>
               {done.length === 0 ? (
-                <p className="text-sm text-slate-500">{tp("myProgress.nothingHandedIn")}</p>
+                <p className="text-ui text-fg-subtle">{tp("myProgress.nothingHandedIn")}</p>
               ) : (
                 <List label={tp("myProgress.done")}>{done.map((w) => <WorkRow key={w.moduleItemId} courseId={courseId} w={w} showPct />)}</List>
               )}
             </Section>
 
-            <p className="text-xs text-slate-500">
-              {fillNode(tp("myProgress.everyMark", { link: "{link}" }), { link: <Link href={`/course/${courseId}/grades`} className="font-semibold text-[var(--brand-secondary)] hover:underline">{tp("myProgress.openGrades")}</Link> })}
+            <p className="text-caption text-fg-subtle">
+              {fillNode(tp("myProgress.everyMark", { link: "{link}" }), { link: <Link href={`/course/${courseId}/grades`} className="font-semibold text-brand-fg hover:underline">{tp("myProgress.openGrades")}</Link> })}
             </p>
           </>
         )}

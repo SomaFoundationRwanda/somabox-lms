@@ -9,7 +9,9 @@ import {
   requireTeacher,
   requireEnrolled,
   courseExists,
+  requireCourseTeacher,
 } from "./shared.js";
+import { activeLearners, announceVisible, notify } from "./notify.js";
 
 const router = express.Router();
 
@@ -22,8 +24,8 @@ router.patch("/:id/shift-timeline", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
     const course = await courseExists(courseId);
-    if (!course) return res.status(404).json({ message: "Course not found" });
-    if (!await requireTeacher(req, res, courseId)) return;
+    if (!course) return res.status(404).json({ message: "Subject not found" });
+    if (!await requireCourseTeacher(req, res, courseId)) return;
 
     const days = Number(req.body.days ?? req.body.shiftDays);
     if (!Number.isInteger(days) || days === 0) return res.status(400).json({ message: "days must be a whole number other than 0" });
@@ -31,7 +33,7 @@ router.patch("/:id/shift-timeline", async (req, res) => {
     const preview = !!req.body.preview;
 
     const before = await loadCourseTimeline(courseId);
-    if (!before.startDate) return res.status(400).json({ message: "Set the course start date first" });
+    if (!before.startDate) return res.status(400).json({ message: "Set the subject start date first" });
 
     let newStart = before.startDate;
     const moved = new Map();
@@ -95,7 +97,7 @@ router.get("/:id/setup-status", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
     const course = await courseExists(courseId);
-    if (!course) return res.status(404).json({ message: "Course not found" });
+    if (!course) return res.status(404).json({ message: "Subject not found" });
     const auth = await requireEnrolled(req, res, courseId);
     if (!auth) return;
     // Learners only need to know whether the course is open.
@@ -123,22 +125,33 @@ router.post("/:id/open-course", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
     const course = await courseExists(courseId);
-    if (!course) return res.status(404).json({ message: "Course not found" });
-    if (!await requireTeacher(req, res, courseId)) return;
+    if (!course) return res.status(404).json({ message: "Subject not found" });
+    if (!await requireCourseTeacher(req, res, courseId)) return;
 
     if (course.lifecycle !== "draft") {
-      return res.status(400).json({ message: `This course is already ${course.lifecycle}` });
+      return res.status(400).json({ message: `This subject is already ${course.lifecycle}` });
     }
     const report = await getSetupReport(courseId);
     if (!report.canOpen) {
       return res.status(400).json({
-        message: `This course can't open yet: ${report.blocking.map((b) => b.message).join("; ")}`,
+        message: `This subject can't open yet: ${report.blocking.map((b) => b.message).join("; ")}`,
         blocking: report.blocking,
         missingRequirements: report.blocking.map((b) => b.message),
       });
     }
     await localDb.prepare("UPDATE courses SET lifecycle = 'open', updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(courseId);
-    return res.json({ message: "Course successfully opened!", course: await courseExists(courseId) });
+    // Optional: publish the weeks that have content, so learners see something once it's open.
+    let publishedWeeks = 0;
+    if (req.body?.publishWeeks === true && report.hiddenWeekIds.length > 0) {
+      for (const id of report.hiddenWeekIds) {
+        await localDb.prepare("UPDATE modules SET published = 1 WHERE id = ? AND course_id = ?").run(id, courseId);
+      }
+      publishedWeeks = report.hiddenWeekIds.length;
+    }
+    // One "course is open" message, not one per item that's visible now.
+    await announceVisible(courseId, { silent: true });
+    await notify(await activeLearners(courseId), "courseOpened", { course: course.title }, `/course/${courseId}/home`);
+    return res.json({ message: "Course successfully opened!", publishedWeeks, course: await courseExists(courseId) });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
@@ -153,7 +166,7 @@ router.get("/:id/home-loop", async (req, res) => {
   try {
     const courseId = String(req.params.id || "").trim();
     const course = await courseExists(courseId);
-    if (!course) return res.status(404).json({ message: "Course not found" });
+    if (!course) return res.status(404).json({ message: "Subject not found" });
     const auth = await requireEnrolled(req, res, courseId);
     if (!auth) return;
     // Ungraded counts and setup warnings are class-wide teacher data.
@@ -187,41 +200,63 @@ router.get("/:id/home-loop", async (req, res) => {
     const openNow = inCurrent.filter((i) => i.status === "open" && i.dueDate);
     const nextDue = openNow.map((i) => i.dueDate).sort()[0];
 
+    // Each title and label also has a key (+ params) so the page can show it in the UI language;
+    // the English text stays for older screens. A "week" param is the current module's
+    // { kind, week_offset }, for the page's week label.
+    const week = current ? { kind: current.kind, week_offset: current.week_offset } : null;
     let beat = "prepare";
     let beatTitle;
-    let primaryAction = { label: "Open Modules", href: `/course/${courseId}/modules` };
+    let beatKey;
+    let beatParams = {};
+    const action = (key, label, path) => ({ key, label, href: `/course/${courseId}/${path}` });
+    let primaryAction = action("openModules", "Open Weeks", "modules");
+    // Setting dates and adding weeks are the teacher's jobs: learners are told what's coming.
     if (!tl.startDate) {
-      beatTitle = "Set the course start date to place each week on the calendar";
-      primaryAction = { label: "Open Settings", href: `/course/${courseId}/settings` };
+      beatKey = isTeacher ? "noStartDate" : "notScheduled";
+      beatTitle = isTeacher ? "Set the course start date to place each week on the calendar" : "Your teacher hasn't set the course dates yet";
+      primaryAction = isTeacher ? action("openSettings", "Open Settings", "settings") : action("openModules", "Open Weeks", "modules");
     } else if (!current) {
-      beatTitle = "Add a module to start planning the weeks";
+      beatKey = isTeacher ? "noWeek" : "nothingYet";
+      beatTitle = isTeacher ? "Add a week to start planning" : "Nothing has been added to this course yet";
     } else if (isTeacher && ungradedCount > 0) {
       beat = "grade";
+      beatKey = "toGrade";
+      beatParams = { n: ungradedCount };
       beatTitle = `${ungradedCount} submission${ungradedCount === 1 ? "" : "s"} waiting to be graded`;
-      primaryAction = { label: "Open Grades", href: `/course/${courseId}/grades` };
+      primaryAction = action("openGrades", "Open Grades", "grades");
     } else if (today < current.startDate) {
+      beatKey = "startsOn";
+      beatParams = { week, date: current.startDate };
       beatTitle = `${label(current)} starts on ${current.startDate}`;
     } else if (isTeacher && releasingUnpublished.length > 0) {
+      beatKey = "unpublishedSoon";
+      beatParams = { week, n: releasingUnpublished.length, date: soon };
       beatTitle = `${releasingUnpublished.length} item${releasingUnpublished.length === 1 ? "" : "s"} in ${label(current)} release by ${soon} but aren't published`;
     } else if (openNow.length > 0) {
       beat = "collect";
+      beatKey = "openNow";
+      beatParams = { week, n: openNow.length, date: nextDue };
       beatTitle = `${label(current)}: ${openNow.length} item${openNow.length === 1 ? "" : "s"} open, next due ${nextDue}`;
       primaryAction = isTeacher
-        ? { label: "Check Submissions", href: `/course/${courseId}/grades` }
-        : { label: "Open Calendar", href: `/course/${courseId}/calendar` };
+        ? action("checkSubmissions", "Check Submissions", "grades")
+        : action("openModules", "Open Weeks", "modules");
     } else if (today > current.endDate || (inCurrent.length > 0 && inCurrent.every((i) => !i.dueDate || i.dueDate < today))) {
       beat = "review";
-      beatTitle = `${label(current)} is finished: review progress before the next week`;
-      primaryAction = { label: "View Outcomes", href: `/course/${courseId}/outcomes` };
+      beatKey = isTeacher ? "finished" : "weekDone";
+      beatParams = { week };
+      beatTitle = isTeacher ? `${label(current)} is finished: review progress before the next week` : `${label(current)} is finished`;
+      primaryAction = isTeacher ? action("viewOutcomes", "View Outcomes", "outcomes") : action("openProgress", "My progress", "progress");
     } else {
       beat = "release";
+      beatKey = "live";
+      beatParams = { week };
       beatTitle = `${label(current)} is live`;
     }
 
     const needsAttention = [];
     if (isTeacher) {
       if (!tl.startDate) {
-        needsAttention.push({ id: "no-start-date", title: "The course has no start date, so nothing has a date yet", actionLabel: "Set Start Date", href: `/course/${courseId}/settings` });
+        needsAttention.push({ id: "no-start-date", key: "noStartDate", params: {}, actionKey: "setStartDate", title: "The course has no start date, so nothing has a date yet", actionLabel: "Set Start Date", href: `/course/${courseId}/settings` });
       }
       const untagged = await localDb.prepare(`
         SELECT COUNT(*) AS c FROM module_items mi
@@ -231,14 +266,14 @@ router.get("/:id/home-loop", async (req, res) => {
           AND NOT EXISTS (SELECT 1 FROM item_outcomes io WHERE io.item_type = mi.item_type AND io.item_id = mi.content_id)
       `).get(courseId);
       if (Number(untagged?.c) > 0) {
-        needsAttention.push({ id: "missing-outcomes", title: `${untagged.c} graded item(s) missing outcome tags`, actionLabel: "Tag Outcomes", href: `/course/${courseId}/modules` });
+        needsAttention.push({ id: "missing-outcomes", key: "missingOutcomes", params: { n: Number(untagged.c) }, actionKey: "tagOutcomes", title: `${untagged.c} graded item(s) missing outcome tags`, actionLabel: "Tag Outcomes", href: `/course/${courseId}/modules` });
       }
       if (releasingUnpublished.length > 0) {
-        needsAttention.push({ id: "release-soon", title: `${releasingUnpublished.length} item(s) release by ${soon} but aren't published`, actionLabel: "Review Items", href: `/course/${courseId}/modules` });
+        needsAttention.push({ id: "release-soon", key: "releaseSoon", params: { n: releasingUnpublished.length, date: soon }, actionKey: "reviewItems", title: `${releasingUnpublished.length} item(s) release by ${soon} but aren't published`, actionLabel: "Review Items", href: `/course/${courseId}/modules` });
       }
       const unassigned = tl.items.filter((i) => tl.modules.find((m) => Number(m.id) === Number(i.module_id))?.kind === "unassigned").length;
       if (unassigned > 0) {
-        needsAttention.push({ id: "unassigned", title: `${unassigned} item(s) are not in a week yet`, actionLabel: "Move Items", href: `/course/${courseId}/modules` });
+        needsAttention.push({ id: "unassigned", key: "unassigned", params: { n: unassigned }, actionKey: "moveItems", title: `${unassigned} item(s) are not in a week yet`, actionLabel: "Move Items", href: `/course/${courseId}/modules` });
       }
     }
 
@@ -258,6 +293,8 @@ router.get("/:id/home-loop", async (req, res) => {
       currentWeekNumber: current ? Number(current.week_offset) : null,
       currentModuleId: current?.id ?? null,
       beatTitle,
+      beatKey,
+      beatParams,
       primaryAction,
       needsAttention,
       timeline,

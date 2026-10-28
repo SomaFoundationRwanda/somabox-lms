@@ -19,32 +19,32 @@ export default {
     },
     "tour": {
         "welcome": {
-            "tag": "MURAKAZA NEZA",
+            "tag": "Murakaza neza",
             "title": "Muraho, munyeshuri!",
             "body": "Murakaza neza kuri SOMABOX, aho wigira! Reka tukwereke vuba ibiri hano. Bimara nk'amasegonda 30 gusa."
         },
         "stats": {
-            "tag": "IMIBARE",
+            "tag": "Imibare",
             "title": "Imibare y'ibyo wiga",
             "body": "Aya makarita yerekana amashuri yawe, amasomo urimo kwiga n'ayo wasoje. Uko wiga cyane, niko iyi mibare izamuka!"
         },
         "lessons": {
-            "tag": "AMASOMO",
+            "tag": "Amasomo",
             "title": "Amasomo uheruka",
             "body": "Hano ubona amasomo uheruka n'aho ugeze muri buri rimwe. Kanda ku isomo ukomereze aho wari ugeze."
         },
         "quick-access": {
-            "tag": "AHO UGERA VUBA",
+            "tag": "Aho ugera vuba",
             "title": "Aho ugera vuba",
             "body": "Jya mu mashuri yawe, amasomo, isomero cyangwa imikoro warangije ukanze rimwe gusa."
         },
         "nav": {
-            "tag": "MENYU",
+            "tag": "Menyu",
             "title": "Menyu yawe",
             "body": "Koresha menyu iri ibumoso kugira ngo ujye Ahabanza, mu Masomo, mu Isomero no kuri Konti yawe igihe cyose."
         },
         "finish": {
-            "tag": "BYARANGIYE",
+            "tag": "Byarangiye",
             "title": "Witeguye!",
             "body": "Ni byiza, uzi aho byose biri! Noneho tangira kwiga. Buri somo rikwegereza intego zawe."
         },
@@ -81,11 +81,6 @@ export default {
         "namePlaceholder": "urugero: Mugisha Jean Claude",
         "phone": "Nimero ya telefoni",
         "optional": "(si ngombwa)",
-        "gender": "Igitsina",
-        "genderHelp": "Bikoreshwa gusa mu mibare y'ishuri ku buringanire mu kwiga.",
-        "male": "Gabo",
-        "female": "Gore",
-        "otherGender": "Ikindi",
         "locationTitle": "Aho uherereye",
         "locationHelp": "Bidufasha kuguha amasomo y'aho uri n'ubufasha bukwiye.",
         "province": "Intara",
@@ -98,14 +93,6 @@ export default {
         "whereLive": "Utuye he?",
         "rural": "Mu cyaro / kure",
         "urban": "Mu mujyi",
-        "accessibility": "Ubufasha bwihariye",
-        "chooseOne": "Hitamo kimwe",
-        "disNone": "Nta bumuga cyangwa ubufasha nkeneye",
-        "disVisual": "Kutabona neza (amabara akomeye / gusomerwa)",
-        "disHearing": "Kutumva neza (inyandiko z'amajwi / ibimenyetso)",
-        "disMobility": "Kugenda bigoranye (ubufasha bwo kugenda)",
-        "disCognitive": "Ubufasha mu kwiga no gutekereza",
-        "disOther": "Ubundi bufasha nkeneye",
         "academicTitle": "Amashuri yawe",
         "academicHelp": "Kugira ngo amasomo n'inama bihuze n'urwego rwawe.",
         "grade": "Umwaka wigamo / urwego rw'amashuri",
@@ -132,7 +119,8 @@ export default {
         "mandatory": "Ibisabwa (intambwe ya 1 kuri 3)",
         "continue": "Komeza",
         "saving": "Umwirondoro urabikwa…",
-        "finish": "Soza utangire"
+        "finish": "Soza utangire",
+        "later": "Nyuma",
     },
     "practice": {
         "label": "Imyitozo — ntibibarwa mu manota y'intego",
@@ -167,6 +155,17 @@ export default {
     "discover": {
         "loadFailed": "Ntibyashobotse kuzana amasomo",
         "joinFailed": "Ntibyashobotse kwinjira mu isomo",
+        "code": {
+          "title": "Injira ukoresheje kode",
+          "help": "Andika kode umwarimu wawe yaguhaye.",
+          "placeholder": "urugero: K7M4QX",
+          "button": "Injira",
+          "errors": {
+            "INVALID_CODE": "Nta somo rifite iyi kode. Yibaze umwarimu wawe.",
+            "NOT_OPEN": "Iri somo ntirirafungurwa. Baza umwarimu wawe.",
+            "TOO_MANY": "Kode nyinshi zitari zo. Tegereza iminota mike wongere ugerageze."
+          }
+        },
         "subtitle": "Reba amasomo afunguye kuri bose kandi uyinjiremo ako kanya, nta butumire bukenewe",
         "empty": "Nta masomo afunguye kuri bose ahari ubu. Uzongere urebe nyuma.",
         "oneEnrolled": "Umunyeshuri 1",
@@ -193,26 +192,11 @@ export default {
         "pwFailed": "Ntibyashobotse guhindura ijambo ry'ibanga",
         "pwUpdated": "Ijambo ry'ibanga ryahinduwe.",
         "notSpecified": "Ntibyagaragajwe",
-        "genders": {
-            "male": "Gabo",
-            "female": "Gore",
-            "other": "Ikindi",
-            "non_binary": "Ntabwo ndi gabo cyangwa gore",
-            "prefer_not_to_say": "Sinifuza kubivuga"
-        },
-        "access": {
-            "none": "Nta na kimwe",
-            "visual": "Kutabona neza",
-            "hearing": "Kutumva neza",
-            "mobility": "Kugenda bigoranye",
-            "cognitive": "Ubufasha mu kwiga",
-            "other": "Ubundi bufasha"
-        },
         "active": "Irakora",
         "ruralBadge": "Umunyeshuri wo mu cyaro",
         "lessons": "Amasomo",
         "classes": "Amashuri",
-        "defaultPassword": "Iyi konti iracyakoresha ijambo ry'ibanga risanzwe. Shyiraho irishya kugira ngo ukomeze.",
+        "defaultPassword": "Wahawe ijambo ry'ibanga ry'agateganyo. Hitamo iryawe kugira ngo ukomeze.",
         "tabProfile": "Umwirondoro",
         "tabSecurity": "Umutekano",
         "personalTitle": "Amakuru yawe bwite",
@@ -224,7 +208,6 @@ export default {
         "district": "Akarere",
         "districtPlaceholder": "urugero: Gasabo, Nyarugenge, Musanze, Huye",
         "ruralCheckbox": "Ntuye mu cyaro / kure",
-        "accessibility": "Ubufasha bwihariye",
         "saving": "Birabikwa…",
         "save": "Bika",
         "fullName": "Amazina yombi",
@@ -263,6 +246,17 @@ export default {
         "settledBody": "Konti yawe iteguye. Umwarimu wawe azakongera mu isomo vuba — nta cyo usabwa gukora. Hagati aho, sura ibikoresho byo kwiga biri mu Isomero.",
         "tryPractice": "Gerageza imyitozo",
         "myCourses": "Amasomo yanjye",
+        "view": {
+          "label": "Erekana amasomo yanjye nka",
+          "cards": "Amakarita",
+          "byDate": "Ku matariki"
+        },
+        "upcoming": {
+          "hint": "Ibigomba gutangwa n'ibifungurwa mu masomo yawe mu byumweru 4 biri imbere.",
+          "empty": "Nta kigomba gutangwa mu byumweru 4 biri imbere.",
+          "loadFailed": "Ntibyakunze kwerekana ibiri imbere.",
+          "open": "Fungura"
+        },
         "viewAll": "Reba byose",
         "progress": "Aho ugeze",
         "noGradedWork": "Nta mukoro urahabwa amanota",
@@ -295,8 +289,23 @@ export default {
     "courses": {
         "subtitle": "Amasomo wiyandikishijemo.",
         "joinCourse": "Injira mu isomo",
-        "codeLabel": "Kode y'isomo y'imibare 6",
         "join": "Injira",
         "empty": "Ntabwo uriyandikisha mu isomo na rimwe. Saba umwarimu wawe kode y'isomo."
-    }
+    },
+    "celebrate": {
+        "submittedTitle": "Byiza cyane! Byatanzwe.",
+        "submittedNext": "\"{title}\" iri ku mwarimu wawe. Komeza ku ikurikira.",
+        "submittedDone": "\"{title}\" iri ku mwarimu wawe. Nta kindi gisigaye!",
+        "firstTitle": "Umurimo wawe wa mbere!",
+        "firstMessage": "Watangiye: buri murimo utanga werekana umwarimu wawe uko utera imbere.",
+        "milestoneTitle": "Imirimo {n} yatanzwe!",
+        "milestoneMessage": "Intambwe ikomeye! Imbaraga zawe ziriyongera: komereza aho.",
+        "next": "Ikurikira: {title}",
+        "start": "Tangira ubu",
+        "dashboard": "Urubuga rwanjye",
+        "welcome": "Murakaza neza nanone!",
+        "welcomeNamed": "Murakaza neza nanone, {name}!",
+        "welcomeNext": "Urakoze kugaruka. Igikurikira: \"{title}\".",
+        "welcomeDone": "Urakoze kugaruka. Nta kindi gisigaye: byiza cyane!",
+    },
 };

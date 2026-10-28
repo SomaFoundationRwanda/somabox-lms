@@ -1,6 +1,7 @@
 // shell screen text (en): app shell (navigation, header, notifications, login, sign-up, shared UI). Keys must match en.js; checked by scripts/check-ui-translations.mjs.
 export default {
     "common": {
+        "cantReachBox": "Can't reach SOMABOX. Check the Wi-Fi and try again.",
         "somethingWrong": "Something went wrong. Please try again.",
         "loading": "Loading…",
         "close": "Close",
@@ -13,6 +14,8 @@ export default {
     },
     "login": {
         "invalidCredentials": "Invalid credentials. Please try again.",
+        "tooManyAttempts": "Too many attempts. Wait a minute and try again.",
+        "autoSignOut": "For your safety, you're signed out when the browser closes, or after 30 minutes without use.",
         "mustChangePassword": "Please set a new password before continuing.",
         "welcomeToast": "Welcome back, {name}! Login successful.",
         "userFallback": "User",
@@ -25,6 +28,28 @@ export default {
         "or": "or",
         "noAccount": "Don't have an account?",
         "signUp": "Sign Up"
+    },
+    "setup": {
+        "title": "Set up SOMABOX",
+        "subtitle": "One-time setup for this box",
+        "formTitle": "Set up this box",
+        "formSubtitle": "Name the school and create its first admin account.",
+        "recoverTitle": "Recover admin access",
+        "recoverSubtitle": "Set a new password for an admin, or add another admin.",
+        "code": "Setup code",
+        "codeHint": "Shown on the box's screen or in its logs when it starts. On the box, run pnpm setup:code for a new one.",
+        "schoolName": "School name",
+        "schoolNameHint": "You can add the location, logo and colours later on the School page.",
+        "adminName": "Admin's full name",
+        "adminEmail": "Admin's email",
+        "recoverEmailHint": "An admin's email sets a new password for them; a new email adds an admin.",
+        "password": "Password (8+ characters)",
+        "passwordTooShort": "The password must be at least 8 characters",
+        "badCode": "That setup code is wrong or has expired. Run pnpm setup:code on the box for a new one.",
+        "submit": "Set up the box",
+        "recoverSubmit": "Recover access",
+        "doneTitle": "This box is already set up",
+        "doneText": "Sign in with your account. An admin who can't sign in can get a recovery code by running pnpm setup:code on the box."
     },
     "signup": {
         "strengthShort": "Too short (6+ characters needed)",
@@ -51,7 +76,11 @@ export default {
         "creating": "Creating account…",
         "create": "Create Account",
         "haveAccount": "Already have an account?",
-        "signIn": "Sign In"
+        "signIn": "Sign In",
+        "className": "Your class",
+        "classHint": "The class you're in at school, e.g. S1B or P4. Your teachers find you by it.",
+        "classPlaceholder": "e.g. S1B",
+        "classRequired": "Write your class first (e.g. S1B).",
     },
     "header": {
         "adminTitle": "Admin Portal",
@@ -69,9 +98,9 @@ export default {
         "calendar": "Calendar",
         "content": "Content",
         "sync": "Sync",
-        "courseLibrary": "Course library",
-        "discoverCourses": "Discover Courses",
-        "courses": "Courses",
+        "courseLibrary": "Subject library",
+        "discoverCourses": "Discover Subjects",
+        "courses": "Subjects",
         "expandSidebar": "Expand sidebar",
         "collapseSidebar": "Collapse sidebar",
         "brightness": "Brightness",
@@ -80,7 +109,32 @@ export default {
         "openMenu": "Open menu",
         "closeMenu": "Close menu"
     },
+    "people": {
+        "gender": "Gender",
+        "genderHelp": "Used only for school statistics on equal access to learning.",
+        "accessibility": "Accessibility and support",
+        "chooseOne": "Choose one",
+        "genders": {
+            "male": "Male",
+            "female": "Female",
+            "other": "Other"
+        },
+        "access": {
+            "none": "No disability or support need",
+            "visual": "Difficulty seeing (high contrast / screen reader)",
+            "hearing": "Difficulty hearing (captions / visual cues)",
+            "mobility": "Difficulty moving (mobility support)",
+            "cognitive": "Learning or thinking support",
+            "other": "Other support need"
+        },
+        "notAnswered": "Not specified"
+    },
     "toasts": {
+        "success": "Done",
+        "failed": "Something went wrong",
+        "warning": "Please note",
+        "notice": "For your information",
+        "dismiss": "Dismiss notification",
         "workSent": "Your work was sent"
     },
     "profile": {
@@ -105,7 +159,45 @@ export default {
         "completeProfile": "Complete profile",
         "viewDetails": "View details",
         "dismiss": "Dismiss",
-        "dismissNamed": "Dismiss notification: {title}"
+        "dismissNamed": "Dismiss notification: {title}",
+        "kinds": {
+            "addedToCourse": {
+                "title": "You were added to {course}",
+                "message": "Open it from My subjects.",
+            },
+            "teachingCourse": {
+                "title": "You now teach {course}",
+                "message": "Open it from My subjects.",
+            },
+            "workPublished": {
+                "title": "New work: {item}",
+                "message": "In {course}.",
+            },
+            "workMarked": {
+                "title": "{item} was marked",
+                "message": "See your score in {course}, on Grades.",
+            },
+            "scoresPublished": {
+                "title": "Scores published: {item}",
+                "message": "See your score in {course}, on Grades.",
+            },
+            "announcement": {
+                "title": "{title}",
+                "message": "New announcement in {course}.",
+            },
+            "urgentAnnouncement": {
+                "title": "Urgent: {title}",
+                "message": "Urgent announcement in {course}.",
+            },
+            "discussionStarted": {
+                "title": "New discussion: {title}",
+                "message": "In {course}. Add your reply.",
+            },
+            "courseOpened": {
+                "title": "{course} is open",
+                "message": "Your teacher opened this subject. Start with this week.",
+            },
+        },
     },
     "assignments": {
         "noDueDate": "No due date",
@@ -118,8 +210,8 @@ export default {
         "viewAll": "View all assignments"
     },
     "profileBanner": {
-        "title": "Complete your profile information",
-        "body": "Please update your gender, province and district so SomaBox can fit your learning.",
+        "title": "Finish your profile",
+        "body": "Answer the few questions about you (gender and accessibility needs) so SOMABOX can fit your learning.",
         "dismiss": "Dismiss banner"
     },
     "broadcast": {
@@ -177,7 +269,7 @@ export default {
     "courseLibrary": {
         "sources": {
             "upload": "Uploaded",
-            "export": "Exported from a course on this box",
+            "export": "Exported from a subject on this box",
             "cloud": "From the cloud"
         },
         "itemTypes": {
@@ -192,15 +284,15 @@ export default {
         "unreachable": "Couldn't reach the box. Check the connection and try again.",
         "bundleLoadFailed": "Couldn't load this bundle.",
         "loadingPreview": "Loading the preview…",
-        "weekBaseline": "Week 0 (baseline)",
-        "weekN": "Week {n}",
-        "weeks": "Weeks",
-        "noWeeks": "No weeks.",
+        "weekBaseline": "Lesson 0 (baseline)",
+        "weekN": "Lesson {n}",
+        "weeks": "Lessons",
+        "noWeeks": "No lessons.",
         "emptyWeek": "Nothing in this week.",
         "outcomes": "Outcomes",
         "noOutcomes": "No outcomes.",
         "grade": "Grade {grade}",
-        "oneWeek": "1 week",
+        "oneWeek": "1 lesson",
         "nWeeks": "{n} weeks",
         "oneOutcome": "1 outcome",
         "nOutcomes": "{n} outcomes",
@@ -210,7 +302,7 @@ export default {
         "hidePreview": "Hide preview",
         "preview": "Preview",
         "creating": "Creating…",
-        "createFrom": "Create a course from this",
+        "createFrom": "Create a subject from this",
         "yourCopies": "Your copies:",
         "olderVersions": "Older versions ({n})",
         "notBundle": "That isn't a bundle file. Bundle files end in .somabox.json.",
@@ -220,28 +312,42 @@ export default {
         "orDrop": "or drop it here (.somabox.json)",
         "uploading": "Uploading…",
         "addToLibrary": "Add to the library",
-        "addAndCreate": "Add and create a course",
+        "addAndCreate": "Add and create a subject",
         "addedResult": "Added: {title} (version {n}).",
         "alreadyResult": "Already in your library: {title} (version {n}).",
-        "loadFailed": "Couldn't load the course library.",
-        "createdToast": "New draft course created",
-        "createFailed": "Couldn't create a course from this bundle.",
+        "loadFailed": "Couldn't load the subject library.",
+        "createdToast": "New draft subject created",
+        "createFailed": "Couldn't create a subject from this bundle.",
         "backAdmin": "Administration",
-        "backCourses": "My courses",
-        "title": "Course library",
-        "description": "Shared courses you can start from. A bundle holds a course's outcomes, weeks, pages, quizzes, assignments and discussions, but no learners, no work and no dates.",
-        "noteStrong": "Creating a course from a bundle always makes a new draft course.",
-        "noteRest": "You become its teacher. It has no learners and no start date yet, and the setup checklist will guide you. It never changes an existing course, even one made from the same bundle.",
-        "createdNamed": "New draft course created: {title}",
-        "alreadyOneCopy": "You already have 1 copy of this course — this made a new one.",
-        "alreadyNCopies": "You already have {n} copies of this course — this made a new one.",
-        "openNew": "Open the new course",
+        "backCourses": "My subjects",
+        "title": "Subject library",
+        "description": "Shared subjects you can start from. A bundle holds a subject's outcomes, lessons, pages, quizzes, assignments and discussions, but no learners, no work and no dates.",
+        "noteStrong": "Creating a subject from a bundle always makes a new draft subject.",
+        "noteRest": "You become its teacher. It has no learners and no start date yet, and the setup checklist will guide you. It never changes an existing subject, even one made from the same bundle.",
+        "createdNamed": "New draft subject created: {title}",
+        "alreadyOneCopy": "You already have 1 copy of this subject — this made a new one.",
+        "alreadyNCopies": "You already have {n} copies of this subject — this made a new one.",
+        "openNew": "Open the new subject",
         "addTitle": "Add a bundle",
-        "addDescription": "Upload a bundle file someone shared with you. To share one of your own courses, open it and go to Settings, then Share.",
+        "addDescription": "Upload a bundle file someone shared with you. To share one of your own subjects, open it and go to Settings, then Share.",
         "bundlesTitle": "Bundles on this box",
-        "loading": "Loading the course library",
-        "emptyTitle": "The course library is empty",
-        "emptyDescription": "Bundles get here when a teacher exports a course on this box (Settings, then Share), or when someone uploads a bundle file above.",
-        "listLabel": "Course bundles"
-    }
+        "loading": "Loading the subject library",
+        "emptyTitle": "The subject library is empty",
+        "emptyDescription": "Bundles get here when a teacher exports a subject on this box (Settings, then Share), or when someone uploads a bundle file above.",
+        "listLabel": "Subject bundles"
+    },
+    "unsaved": {
+        "title": "Save your changes?",
+        "body": "You changed things here that aren't saved yet.",
+        "keepEditing": "Keep editing",
+        "discard": "Discard changes",
+        "save": "Save",
+        "saving": "Saving…",
+    },
+    "draft": {
+        "found": "You have unsaved changes from {time}.",
+        "restore": "Restore them",
+        "discard": "Discard",
+        "restored": "Your unsaved text was brought back.",
+    },
 };
