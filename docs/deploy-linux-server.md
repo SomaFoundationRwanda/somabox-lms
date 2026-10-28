@@ -78,7 +78,7 @@ sudo adduser --disabled-password --gecos "" somabox   # a user that owns and run
 sudo -iu somabox
 git clone https://github.com/SomaFoundationRwanda/somabox-lms.git
 cd somabox-lms
-git checkout fix/current-branch      # or main, once this branch is merged
+git checkout dev
 pnpm install --frozen-lockfile       # backend, frontend, AI gateway and pm2, exactly as locked
 ```
 
