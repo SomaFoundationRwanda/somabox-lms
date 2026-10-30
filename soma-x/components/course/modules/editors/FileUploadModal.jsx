@@ -4,15 +4,17 @@ import EditorFrame from "./EditorFrame";
 import { useState } from "react";
 import { Upload, FileIcon, CheckCircle } from "lucide-react";
 import { useCourseText } from "@/components/course/useCourseText";
-import { apiFetch } from "@/lib/api";
+import { apiUpload } from "@/lib/api";
 import { Label, TextInput } from "@/components/form";
 import { FileDrop } from "@/components/form";
+import TransferProgress from "@/components/ui/TransferProgress";
 
 export default function FileUploadModal({ asPage = false, open, onClose, onUpload, courseId, moduleId }) {
   const { t } = useCourseText();
   const [file, setFile] = useState(null);
   const [title, setTitle] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [percent, setPercent] = useState(0);
   const [done, setDone] = useState(false);
   const choose = ([selected]) => {
     setFile(selected);
@@ -22,13 +24,14 @@ export default function FileUploadModal({ asPage = false, open, onClose, onUploa
   const handleUpload = async () => {
     if (!file) return;
     setUploading(true);
+    setPercent(0);
     try {
       const formData = new FormData();
       formData.append("file", file);
       formData.append("title", title || file.name);
 
-      const data = await apiFetch(`/courses/${courseId}/modules/${moduleId}/items/file`, { method: "POST", body: formData })
-        .catch(() => null);
+      const data = await apiUpload(`/courses/${courseId}/modules/${moduleId}/items/file`, formData, { onProgress: setPercent })
+        .promise.catch(() => null);
       if (data) {
         setDone(true);
         setTimeout(() => {
@@ -77,6 +80,19 @@ export default function FileUploadModal({ asPage = false, open, onClose, onUploa
               </div>
             )}
           </FileDrop>
+
+          {uploading && (
+            <TransferProgress
+              kind="upload"
+              status="uploading"
+              total={1}
+              done={0}
+              percent={percent}
+              bytesDone={Math.round((file.size * percent) / 100)}
+              bytesTotal={file.size}
+              current={[file.name]}
+            />
+          )}
 
           {/* Title */}
           {file && (

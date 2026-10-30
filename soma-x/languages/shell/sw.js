@@ -1,5 +1,18 @@
 // shell screen text (sw): app shell (navigation, header, notifications, login, sign-up, shared UI). Keys must match en.js; checked by scripts/check-ui-translations.mjs.
 export default {
+    "transfer": {
+        "label": "Maendeleo ya uhamisho",
+        "downloading": "Inapakua: {done} kati ya {total} zimekamilika",
+        "uploading": "Inapakia: {done} kati ya {total} zimekamilika",
+        "downloaded": "Imepakuliwa {done} kati ya {total}",
+        "uploaded": "Imepakiwa {done} kati ya {total}",
+        "failed": "{count} zimeshindwa",
+        "skipped": "{count} tayari ziko kwenye SOMABOX hii",
+        "size": "{done} kati ya {total}",
+        "now": "Sasa: {names}",
+        "notDone": "Hazijakamilika: {names}",
+        "selected": "{count} kati ya {total} vimechaguliwa"
+    },
     "common": {
         "cantReachBox": "Haiwezekani kufikia SOMABOX. Angalia Wi-Fi na ujaribu tena.",
         "somethingWrong": "Hitilafu imetokea. Tafadhali jaribu tena.",

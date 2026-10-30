@@ -404,6 +404,7 @@ export default {
         "deleteError": "Une erreur s'est produite lors de la suppression.",
         "confirmDelete": "Supprimer « {name} » ? Action irréversible.",
         "uploaded": "Livre envoyé !",
+        "selectAll": "Sélectionner tous les livres",
         "colSelect": "Choisir",
         "colName": "Nom",
         "colAction": "Action",

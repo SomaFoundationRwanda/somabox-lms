@@ -404,6 +404,7 @@ export default {
         "deleteError": "An error occurred while deleting.",
         "confirmDelete": "Delete \"{name}\"? This cannot be undone.",
         "uploaded": "Book uploaded successfully!",
+        "selectAll": "Select all books",
         "colSelect": "Select",
         "colName": "Name",
         "colAction": "Action",

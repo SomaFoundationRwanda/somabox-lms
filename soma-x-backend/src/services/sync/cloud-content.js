@@ -64,9 +64,10 @@ async function sha256Of(file) {
  * Downloads a cloud file to `target`. The box may lose its connection any time (someone unplugs
  * the cable), so the bytes go to `target.part`, which is kept on failure and resumed with a Range
  * request next time. With `sha256` the finished file is checked, so a resumed file built from an
- * older version is thrown away and fetched again in full. Returns the number of bytes fetched.
+ * older version is thrown away and fetched again in full. `onBytes(n)` is told as bytes arrive
+ * (a resumed part file counts at the start). Returns the number of bytes fetched.
  */
-export async function downloadTo(contentPath, target, { sha256 = null } = {}, attempt = 0) {
+export async function downloadTo(contentPath, target, { sha256 = null, onBytes = null } = {}, attempt = 0) {
     const partial = `${target}.part`;
     const have = fs.existsSync(partial) ? fs.statSync(partial).size : 0;
     const res = await cloudFetch(contentPath, have ? { headers: { Range: `bytes=${have}-` } } : {});
@@ -75,15 +76,26 @@ export async function downloadTo(contentPath, target, { sha256 = null } = {}, at
         await res.body?.cancel();
         fs.rmSync(partial, { force: true });
         if (attempt > 0) throw new Error(`Cloud refused the download of ${contentPath}`);
-        return downloadTo(contentPath, target, { sha256 }, attempt + 1);
+        return downloadTo(contentPath, target, { sha256, onBytes }, attempt + 1);
     }
     if (!res.ok) throw new Error(`Failed to download ${contentPath}: ${res.status} ${res.statusText}`);
     const resumed = res.status === 206 && have > 0;
-    await pipeline(Readable.fromWeb(res.body), fs.createWriteStream(partial, { flags: resumed ? 'a' : 'w' }));
+    if (resumed) onBytes?.(have);
+    const count = async function* (source) {
+        for await (const chunk of source) {
+            onBytes(chunk.length);
+            yield chunk;
+        }
+    };
+    await pipeline(
+        Readable.fromWeb(res.body),
+        ...(onBytes ? [count] : []),
+        fs.createWriteStream(partial, { flags: resumed ? 'a' : 'w' }),
+    );
 
     if (sha256 && (await sha256Of(partial)) !== sha256) {
         fs.rmSync(partial, { force: true });
-        if (resumed && attempt === 0) return downloadTo(contentPath, target, { sha256 }, attempt + 1);
+        if (resumed && attempt === 0) return downloadTo(contentPath, target, { sha256, onBytes }, attempt + 1);
         throw new Error(`Downloaded ${contentPath} does not match the cloud's copy`);
     }
     fs.renameSync(partial, target);

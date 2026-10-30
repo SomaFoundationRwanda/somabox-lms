@@ -404,6 +404,7 @@ export default {
         "deleteError": "Habaye ikosa mu gusiba.",
         "confirmDelete": "Gusiba \"{name}\"? Ntibishobora gusubizwa inyuma.",
         "uploaded": "Igitabo cyoherejwe neza!",
+        "selectAll": "Hitamo ibitabo byose",
         "colSelect": "Hitamo",
         "colName": "Izina",
         "colAction": "Igikorwa",

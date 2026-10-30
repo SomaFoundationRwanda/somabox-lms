@@ -6,6 +6,7 @@
 // Every change refreshes the Explore catalogue (DataContext.refreshExplore).
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { apiFetch, apiUpload, getErrorMessage } from "@/lib/api";
+import TransferProgress from "@/components/ui/TransferProgress";
 import FileTable from './fileTable';
 import { getFileMediaType } from './fileRow';
 import UniversalPlayerModal from '@/components/ui/UniversalPlayerModal';
@@ -343,6 +344,24 @@ function UploadModal({ folderPath, folderTitle, onClose, onUploaded }) {
     const waitingCount = entries.filter((x) => x.state === 'waiting').length;
     const done = entries.length > 0 && !running && waitingCount === 0;
 
+    // The whole batch at once: "Uploading: 3 of 8 done · 40%", by bytes.
+    const batch = entries.filter((x) => running || x.state !== 'waiting');
+    const finished = batch.filter((x) => !['waiting', 'uploading'].includes(x.state));
+    const bytesTotal = batch.reduce((n, x) => n + x.file.size, 0);
+    const bytesDone = batch.reduce((n, x) => n + (x.state === 'uploading' ? (x.file.size * x.progress) / 100 : finished.includes(x) ? x.file.size : 0), 0);
+    const batchProgress = {
+        status: running ? 'uploading' : finished.some((x) => x.state !== 'added') ? 'failed' : 'finished',
+        total: batch.length,
+        done: finished.length,
+        downloaded: finished.filter((x) => x.state === 'added').length,
+        skipped: finished.filter((x) => x.state === 'exists').length,
+        failed: finished.filter((x) => x.state === 'unsupported' || x.state === 'failed').length,
+        percent: running ? Math.min(99, bytesTotal ? (bytesDone / bytesTotal) * 100 : 0) : 100,
+        bytesDone: Math.round(bytesDone),
+        bytesTotal,
+        current: batch.filter((x) => x.state === 'uploading').map((x) => x.file.name),
+    };
+
     const stateText = (entry) => {
         switch (entry.state) {
             case 'waiting': return formatBytes(entry.file.size);
@@ -378,6 +397,8 @@ function UploadModal({ folderPath, folderTitle, onClose, onUploaded }) {
                         title={t("explore.manager.dropFiles")}
                         hint={t("explore.manager.allowedTypes")}
                     />
+
+                    {(running || done) && batch.length > 1 && <TransferProgress kind="upload" {...batchProgress} />}
 
                     {entries.length > 0 && (
                         <ul className="divide-y divide-line border border-line rounded-[5px]" aria-live="polite">

@@ -404,6 +404,7 @@ export default {
         "deleteError": "Hitilafu imetokea wakati wa kufuta.",
         "confirmDelete": "Futa \"{name}\"? Haiwezi kutenguliwa.",
         "uploaded": "Kitabu kimepakiwa!",
+        "selectAll": "Chagua vitabu vyote",
         "colSelect": "Chagua",
         "colName": "Jina",
         "colAction": "Kitendo",
