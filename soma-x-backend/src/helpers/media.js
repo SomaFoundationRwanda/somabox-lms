@@ -1,0 +1,183 @@
+// Files (videos, PDFs, books, lessons, course uploads) are only for signed-in people. Browsers
+// load them through <video>, <img>, <iframe>, and PDF/EPUB viewers, which can't send the bearer
+// token, so signing in also sets a short-lived, signed, HttpOnly "media" cookie that those
+// requests carry automatically. Guests can still browse the catalogue (titles, covers), but
+// opening a file asks them to sign up.
+import crypto from 'crypto';
+import { localDb } from './db-manager.js';
+
+export const MEDIA_COOKIE = 'somabox_media';
+const MEDIA_TTL_MS = 12 * 60 * 60 * 1000;
+const CACHE_MS = 60 * 1000;
+
+let secretPromise = null;
+/** MEDIA_SECRET from the environment, or a random secret kept in system_settings. */
+function mediaSecret() {
+    if (process.env.MEDIA_SECRET) return Promise.resolve(process.env.MEDIA_SECRET);
+    if (!secretPromise) {
+        secretPromise = (async () => {
+            const fresh = crypto.randomBytes(32).toString('hex');
+            await localDb.prepare(`
+                INSERT INTO system_settings (key, value, updated_by) VALUES ('media_secret', to_jsonb(?::text), 'system')
+                ON CONFLICT (key) DO NOTHING
+            `).run(fresh);
+            const row = await localDb.prepare("SELECT value FROM system_settings WHERE key = 'media_secret'").get();
+            return String(row.value);
+        })().catch((error) => { secretPromise = null; throw error; });
+    }
+    return secretPromise;
+}
+
+const sign = (payload, secret) => crypto.createHmac('sha256', secret).update(payload).digest('base64url');
+
+export async function mediaToken(userId, now = Date.now()) {
+    const payload = `${userId}.${now + MEDIA_TTL_MS}`;
+    return `${payload}.${sign(payload, await mediaSecret())}`;
+}
+
+/** The user id in a valid, unexpired token, or null. */
+export async function verifyMediaToken(token, now = Date.now()) {
+    const parts = String(token || '').split('.');
+    if (parts.length !== 3) return null;
+    const [userId, expires, signature] = parts;
+    const expected = sign(`${userId}.${expires}`, await mediaSecret());
+    const a = Buffer.from(signature);
+    const b = Buffer.from(expected);
+    if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
+    if (!(Number(expires) > now)) return null;
+    return Number(userId);
+}
+
+/** A value signed with the box's secret ("value.signature"), e.g. a visitor's id. */
+export async function signValue(value) {
+    return `${value}.${sign(String(value), await mediaSecret())}`;
+}
+
+/** The value inside a signed token, or null if it was tampered with. */
+export async function verifyValue(token) {
+    const s = String(token || '');
+    const dot = s.lastIndexOf('.');
+    if (dot <= 0) return null;
+    const value = s.slice(0, dot);
+    const expected = sign(value, await mediaSecret());
+    const a = Buffer.from(s.slice(dot + 1));
+    const b = Buffer.from(expected);
+    return a.length === b.length && crypto.timingSafeEqual(a, b) ? value : null;
+}
+
+export function cookieValue(req, name) {
+    for (const part of String(req.headers.cookie || '').split(';')) {
+        const [k, ...v] = part.trim().split('=');
+        if (k === name) return decodeURIComponent(v.join('='));
+    }
+    return null;
+}
+
+// Same host on another port is the same site, so SameSite=Lax cookies reach the API from the app.
+// Every device may be shared: the cookie is dropped when the browser closes (the token inside
+// still expires).
+export async function setMediaCookie(res, userId) {
+    res.cookie(MEDIA_COOKIE, await mediaToken(userId), {
+        httpOnly: true, sameSite: 'lax', path: '/',
+        secure: process.env.MEDIA_COOKIE_SECURE === 'true',
+    });
+}
+
+export function clearMediaCookie(res) {
+    res.clearCookie(MEDIA_COOKIE, { path: '/' });
+}
+
+const userCache = new Map();
+async function activeUser(id) {
+    const hit = userCache.get(id);
+    if (hit && hit.at > Date.now() - CACHE_MS) return hit.user;
+    const user = await localDb.prepare('SELECT id, email, role, is_active FROM users WHERE id = ?').get(id);
+    const value = user && Number(user.is_active) !== 0 ? user : null;
+    userCache.set(id, { at: Date.now(), user: value });
+    return value;
+}
+
+const memberCache = new Map();
+/** Course files: members of the course (learners only once it has opened), and admins. */
+async function courseMembership(user, courseId) {
+    const key = `${user.id}:${courseId}`;
+    const hit = memberCache.get(key);
+    if (hit && hit.at > Date.now() - CACHE_MS) return hit.value;
+    const row = await localDb.prepare(`
+        SELECT e.role, c.lifecycle FROM enrollments e JOIN courses c ON c.id = e.course_id
+        WHERE e.course_id = ? AND LOWER(e.user_email) = LOWER(?) AND e.status = 'active'
+    `).get(courseId, user.email);
+    const value = !row ? null : { staff: ['teacher', 'ta'].includes(row.role), open: row.lifecycle !== 'draft' };
+    memberCache.set(key, { at: Date.now(), value });
+    return value;
+}
+
+/**
+ * Staff open every file of their course. Learners and observers open a file when the course
+ * shows them its Files section, or when the file is used in something they can see: a published
+ * page in a published week, or a published file item in a published week.
+ */
+async function canOpenCourseFiles(user, courseId, filename) {
+    if (user.role === 'admin') return true;
+    const member = await courseMembership(user, courseId);
+    if (!member) return false;
+    if (member.staff) return true;
+    if (!member.open) return false;
+    const filesShown = await localDb.prepare(
+        "SELECT 1 FROM course_nav_items WHERE course_id = ? AND nav_key = 'files' AND visible_to_students = 1",
+    ).get(courseId);
+    if (filesShown) return true;
+    const used = await localDb.prepare(`
+        SELECT 1 FROM course_files f
+        WHERE f.course_id = ? AND f.filename = ? AND (
+            EXISTS (SELECT 1 FROM page_file_references r JOIN course_pages p ON p.id = r.page_id
+                    JOIN modules pm ON pm.id = p.module_id
+                    WHERE r.file_id = f.id AND p.published = 1 AND pm.published = 1)
+            OR EXISTS (SELECT 1 FROM module_items mi JOIN modules m ON m.id = mi.module_id
+                       WHERE mi.item_type = 'file' AND mi.content_id = f.id AND mi.published = 1
+                         AND m.published = 1 AND m.course_id = f.course_id))
+    `).get(courseId, filename);
+    return !!used;
+}
+
+/**
+ * Middleware for file routes: a signed-in person (bearer token, or the media cookie set at
+ * sign-in). With courseFiles, the first path segment is the course id and the person must
+ * belong to that course.
+ */
+export function requireMediaAccess({ courseFiles = false, allowGuests = false } = {}) {
+    return async (req, res, next) => {
+        try {
+            let user = req.user ? { id: req.user.id, email: req.user.email, role: req.user.role } : null;
+            if (!user) {
+                const id = await verifyMediaToken(cookieValue(req, MEDIA_COOKIE));
+                if (id) user = await activeUser(id);
+            }
+            if (!user) {
+                // Visitor previews: the route itself decides whether this visitor may see a bit.
+                if (allowGuests) {
+                    req.mediaUser = null;
+                    return next();
+                }
+                return res.status(401).json({ message: 'Sign up or log in to open this', code: 'LOGIN_REQUIRED' });
+            }
+            if (courseFiles) {
+                const [first, ...rest] = String(req.path || '').split('/').filter(Boolean).map((part) => decodeURIComponent(part));
+                const courseId = first || '';
+                if (!courseId || !await canOpenCourseFiles(user, courseId, rest.join('/'))) {
+                    return res.status(403).json({ message: "This file belongs to a subject you're not in" });
+                }
+            }
+            req.mediaUser = user;
+            next();
+        } catch (error) {
+            next(error);
+        }
+    };
+}
+
+/** For tests: forget cached users and memberships. */
+export function clearMediaCaches() {
+    userCache.clear();
+    memberCache.clear();
+}

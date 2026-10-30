@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect } from "react";
+import { useLanguage } from "@/context/LanguageContext";
 
 const ModalOverlay = ({ children, onClose }) => {
+    const t = useLanguage()?.t;
     useEffect(() => {
         document.body.style.overflow = "hidden";
 
@@ -26,13 +28,13 @@ const ModalOverlay = ({ children, onClose }) => {
             onClick={onClose}
         >
             <div
-                className="bg-white w-full max-w-2xl mx-auto rounded-2xl shadow-2xl p-3 relative"
+                className="bg-surface w-full max-w-2xl mx-auto rounded-2xl shadow-2xl p-3 relative"
                 onClick={(e) => e.stopPropagation()}
             >
                 <button
                     onClick={onClose}
-                    className="absolute top-3 right-3 text-black text-xl"
-                    aria-label="Close modal"
+                    className="absolute top-3 right-3 text-fg text-section"
+                    aria-label={t?.("shell.common.close") ?? "Close"}
                 >
                     ×
                 </button>

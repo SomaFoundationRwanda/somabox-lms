@@ -1,4 +1,27 @@
+import swShell from "./shell/sw";
+import swLearner from "./learner/sw";
+import swCourse from "./course/sw";
+import swProgress from "./progress/sw";
+import swAdmin from "./admin/sw";
+import swTeacher from "./teacher/sw";
+import swSchool from "./school/sw";
+import swExplore from "./explore/sw";
+import swAttendance from "./attendance/sw";
+import swGuest from "./guest/sw";
+import swExplainers from "./explainers/sw";
+
 export default {
+    "attendance": swAttendance,
+    "guest": swGuest,
+    "explore": swExplore,
+    "school": swSchool,
+    "shell": swShell,
+    "learner": swLearner,
+    "course": swCourse,
+    "progress": swProgress,
+    "admin": swAdmin,
+    "teacher": swTeacher,
+    "explainers": swExplainers,
     "nav": {
         "dashboard": "Nyumbani",
         "lessons": "Masomo",
@@ -96,13 +119,11 @@ export default {
     "auth": {
         "authTitle": "Karibu Tena",
         "authSubtitle": "Ingia ili kudhibiti akaunti yako",
-        "authUsername": "Jina la mtumiaji",
         "authPassword": "Nenosiri",
         "authTeacher": "Mwalimu",
         "authAdmin": "Msimamizi",
         "authLogin": "Ingia"
     },
-    "authScholar": "Mwanafunzi",
     "AdminManageOptions": {
         "syncTitle": "Sawazisha maudhui",
         "contentTitle": "Dhibiti Maudhui",
@@ -127,6 +148,9 @@ export default {
         "scholar": "Mwanafunzi"
     },
     "notFound": "Maudhui hayajapatikana",
+    "loadingCategories": "Inapakia kategoria...",
+    "exploreTopics": "Chunguza mada zilizo hapa chini",
+    "notContent": "Bado hakuna maudhui hapa.",
     "noContent": "Maudhui uliyoomba hayakuweza kupakiwa",
     "thePath": "Njia",
     "doesNotExist": "Haipo",

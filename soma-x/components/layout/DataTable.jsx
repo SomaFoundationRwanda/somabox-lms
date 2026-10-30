@@ -1,0 +1,69 @@
+"use client";
+
+import { useLanguage } from "@/context/LanguageContext";
+
+// A real <table> for tabular data (admin lists, gradebooks). On narrow screens it scrolls
+// horizontally inside its own box instead of the page.
+//
+// rowClassName?(row) -> string adds classes to a row (e.g. muted inactive rows).
+// columns: [{ key, header, render?(row) -> node, className?, align?: 'left'|'right'|'center', hideOnMobile?, sortable? }]
+// Sorting is optional and controlled: pass sort = { key, dir: 'asc'|'desc' } and onSort(key);
+// sortable columns get a header button and aria-sort. The caller sorts the rows.
+export default function DataTable({ columns, rows, rowKey = (r) => r.id, caption, empty, onRowClick, rowClassName, className = "", sort, onSort }) {
+  const { t } = useLanguage();
+  const emptyText = empty ?? t("course.common.nothingToShow") ?? "Nothing to show.";
+  const alignClass = { right: "text-right", center: "text-center", left: "text-left" };
+  return (
+    <div className={`overflow-x-auto rounded-xl border border-line ${className}`}>
+      <table className="min-w-full text-ui">
+        {caption ? <caption className="sr-only">{caption}</caption> : null}
+        <thead className="bg-surface-sunken text-caption text-fg-subtle">
+          <tr>
+            {columns.map((c) => {
+              const sortable = !!(c.sortable && onSort);
+              const active = sortable && sort?.key === c.key;
+              return (
+                <th
+                  key={c.key}
+                  scope="col"
+                  aria-sort={sortable ? (active ? (sort.dir === "asc" ? "ascending" : "descending") : "none") : undefined}
+                  className={`px-3 py-2 font-semibold ${alignClass[c.align || "left"]} ${c.hideOnMobile ? "hidden md:table-cell" : ""} ${c.className || ""}`}
+                >
+                  {sortable ? (
+                    <button
+                      type="button"
+                      onClick={() => onSort(c.key)}
+                      className={`inline-flex items-center gap-1 hover:text-fg ${active ? "text-fg" : ""}`}
+                    >
+                      {c.header}
+                      <span aria-hidden="true" className="text-caption">{active ? (sort.dir === "asc" ? "▲" : "▼") : "↕"}</span>
+                    </button>
+                  ) : c.header}
+                </th>
+              );
+            })}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-line">
+          {rows.length === 0 ? (
+            <tr><td colSpan={columns.length} className="px-3 py-6 text-center text-fg-subtle">{emptyText}</td></tr>
+          ) : rows.map((row) => (
+            <tr
+              key={rowKey(row)}
+              onClick={onRowClick ? () => onRowClick(row) : undefined}
+              tabIndex={onRowClick ? 0 : undefined}
+              onKeyDown={onRowClick ? (e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onRowClick(row); } } : undefined}
+              className={`${onRowClick ? "cursor-pointer hover:bg-surface-hover focus-visible:outline-none focus-visible:bg-surface-hover focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand" : ""} ${rowClassName ? rowClassName(row) || "" : ""}`}
+            >
+              {columns.map((c) => (
+                <td key={c.key} className={`px-3 py-2 align-middle ${alignClass[c.align || "left"]} ${c.hideOnMobile ? "hidden md:table-cell" : ""} ${c.className || ""}`}>
+                  {c.render ? c.render(row) : row[c.key]}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}

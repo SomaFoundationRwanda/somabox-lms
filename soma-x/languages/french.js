@@ -1,4 +1,27 @@
+import frShell from "./shell/fr";
+import frLearner from "./learner/fr";
+import frCourse from "./course/fr";
+import frProgress from "./progress/fr";
+import frAdmin from "./admin/fr";
+import frTeacher from "./teacher/fr";
+import frSchool from "./school/fr";
+import frExplore from "./explore/fr";
+import frAttendance from "./attendance/fr";
+import frGuest from "./guest/fr";
+import frExplainers from "./explainers/fr";
+
 export default {
+    "attendance": frAttendance,
+    "guest": frGuest,
+    "explore": frExplore,
+    "school": frSchool,
+    "shell": frShell,
+    "learner": frLearner,
+    "course": frCourse,
+    "progress": frProgress,
+    "admin": frAdmin,
+    "teacher": frTeacher,
+    "explainers": frExplainers,
     "nav": {
         "dashboard": "Tableau de bord",
         "lessons": "Leçons",
@@ -12,7 +35,7 @@ export default {
     "teacherSubtitle": "Gérez vos classes et contenus",
     "adminTitle": "Portail Administrateur",
     "adminSubtitle": "Gérez tout dans votre SomaBox",
-    "logout": "DÉCONNEXION",
+    "logout": "Déconnexion",
     "librarySubtitle": "Accédez à des centaines de livres éducatifs",
     "languageName": "FRANÇAIS",
     "loading": "Chargement...",
@@ -95,13 +118,11 @@ export default {
     "auth": {
         "authTitle": "Bon retour",
         "authSubtitle": "Connectez-vous pour gérer votre compte",
-        "authUsername": "Nom d'utilisateur",
         "authPassword": "Mot de passe",
         "authTeacher": "Enseignant",
         "authAdmin": "Administrateur",
         "authLogin": "Connexion"
     },
-    "authScholar": "Élève",
     "AdminManageOptions": {
         "syncTitle": "Synchroniser le contenu",
         "contentTitle": "Gérer le contenu",
@@ -126,6 +147,9 @@ export default {
         "scholar": "Apprenant"
     },
     "notFound": "Contenu introuvable",
+    "loadingCategories": "Chargement des catégories...",
+    "exploreTopics": "Explorez les sujets ci-dessous",
+    "notContent": "Il n'y a pas encore de contenu ici.",
     "noContent": "Le contenu demandé n’a pas pu être chargé",
     "thePath": "Le chemin",
     "doesNotExist": "N’existe pas",

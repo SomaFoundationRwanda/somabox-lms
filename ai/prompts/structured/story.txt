@@ -1,0 +1,8 @@
+Write a short story for learners, built on the teacher's idea, plus questions and a discussion prompt.
+
+{CONTEXT}
+
+Rules:
+- "paragraphs": 3 to 6 short paragraphs, suitable for the grade level, with a clear beginning, problem, and ending. Set it somewhere familiar to learners in Rwanda or East Africa unless the idea says otherwise.
+- "questions": 3 multiple-choice comprehension questions about the story, each with 3 or 4 options, exactly one correct ("correctIndex", 0 = first), "points" 1, and an "outcomeCode" from the course outcomes listed above.
+- "discussionPrompt": one open question that asks learners to connect the story to their own lives or to the week's topic.

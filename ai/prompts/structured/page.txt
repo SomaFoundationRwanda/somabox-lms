@@ -1,0 +1,8 @@
+Write a short reading page for learners for the week below.
+
+{CONTEXT}
+
+Rules:
+- 2 to 4 "sections", each with a short "heading" and a "body" of a few short paragraphs (plain text, no markdown).
+- Explain the week's ideas simply, with one everyday example from learners' lives.
+- If source text is given, base the page on it and add nothing that contradicts it.

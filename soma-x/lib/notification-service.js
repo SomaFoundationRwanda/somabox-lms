@@ -1,51 +1,64 @@
-const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3002';
+"use client";
 
-export async function fetchNotifications(userEmail) {
-    if (!userEmail) return { notifications: [], unreadCount: 0, isProfileIncomplete: false };
-    try {
-        const response = await fetch(`${SERVER_URL}/notifications?userEmail=${encodeURIComponent(userEmail)}`);
-        if (!response.ok) throw new Error('Failed to fetch notifications');
-        return await response.json();
-    } catch (error) {
-        console.error('Error fetching notifications:', error);
-        return { notifications: [], unreadCount: 0, isProfileIncomplete: false };
-    }
+// Notifications: one kept copy for the whole app (the bell and the profile banner share it). It
+// isn't polled: the box says when there's a new one (live updates), and reading, marking and
+// deleting update the kept copy straight away.
+import { useContext } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import DataContext from "@/context/DataContext";
+import { apiFetch } from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
+
+const EMPTY = { notifications: [], unreadCount: 0, isProfileIncomplete: false };
+
+/** { notifications, unreadCount, isProfileIncomplete } for the signed-in person. */
+export function useNotifications() {
+    const { authenticated } = useContext(DataContext);
+    const query = useQuery({
+        queryKey: queryKeys.notifications,
+        queryFn: () => apiFetch("/notifications"),
+        enabled: authenticated,
+    });
+    return { ...(query.data || EMPTY), loading: query.isPending && authenticated };
 }
 
-export async function markNotificationAsRead(id) {
-    try {
-        const response = await fetch(`${SERVER_URL}/notifications/${id}/read`, {
-            method: 'PATCH',
-        });
-        if (!response.ok) throw new Error('Failed to mark notification as read');
-        return await response.json();
-    } catch (error) {
-        console.error('Error marking notification as read:', error);
-    }
+// Changes the kept copy: `change(data)` returns the new { notifications, unreadCount, ... }.
+function useNotificationChange(request, change) {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: request,
+        onSuccess: (_result, variables) => {
+            queryClient.setQueryData(queryKeys.notifications, (data) => (data ? change(data, variables) : data));
+        },
+    });
 }
 
-export async function markAllNotificationsAsRead(userEmail) {
-    try {
-        const response = await fetch(`${SERVER_URL}/notifications/read-all`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userEmail }),
-        });
-        if (!response.ok) throw new Error('Failed to mark all notifications as read');
-        return await response.json();
-    } catch (error) {
-        console.error('Error marking all notifications as read:', error);
-    }
+// The server's count covers every unread notification, not only the ones loaded: adjust it.
+const wasUnread = (data, id) => (data.notifications.find((n) => n.id === id)?.is_read === 0 ? 1 : 0);
+
+export function useMarkNotificationRead() {
+    return useNotificationChange(
+        (id) => apiFetch(`/notifications/${id}/read`, { method: "PATCH" }),
+        (data, id) => {
+            const notifications = data.notifications.map((n) => (n.id === id ? { ...n, is_read: 1 } : n));
+            return { ...data, notifications, unreadCount: Math.max(0, data.unreadCount - wasUnread(data, id)) };
+        },
+    );
 }
 
-export async function deleteNotification(id) {
-    try {
-        const response = await fetch(`${SERVER_URL}/notifications/${id}`, {
-            method: 'DELETE',
-        });
-        if (!response.ok) throw new Error('Failed to delete notification');
-        return await response.json();
-    } catch (error) {
-        console.error('Error deleting notification:', error);
-    }
+export function useMarkAllNotificationsRead() {
+    return useNotificationChange(
+        () => apiFetch("/notifications/read-all", { method: "POST", json: {} }),
+        (data) => ({ ...data, notifications: data.notifications.map((n) => ({ ...n, is_read: 1 })), unreadCount: 0 }),
+    );
+}
+
+export function useDeleteNotification() {
+    return useNotificationChange(
+        (id) => apiFetch(`/notifications/${id}`, { method: "DELETE" }),
+        (data, id) => {
+            const notifications = data.notifications.filter((n) => n.id !== id);
+            return { ...data, notifications, unreadCount: Math.max(0, data.unreadCount - wasUnread(data, id)) };
+        },
+    );
 }

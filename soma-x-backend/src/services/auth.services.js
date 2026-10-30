@@ -1,50 +1,58 @@
 import express from 'express';
-import Database from 'better-sqlite3';
-
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { hashPassword } from "./users.service.js"
 import bcrypt from "bcrypt";
-import { runFirebaseSync } from './firebase-sync.service.js';
-
 import { serverDb } from '../helpers/db-manager.js';
+import { createSession, revokeSession, revokeUserSessions } from '../helpers/auth.js';
+import { setMediaCookie, clearMediaCookie } from '../helpers/media.js';
+import { recordEvent } from './insights/events.js';
+import { assignLearnerCode, applySchoolToLearner } from './school.js';
+import { loginRetryAfter, recordLoginFailure, clearLoginFailures } from '../helpers/login-throttle.js';
 
 const router = express.Router();
 
+const NO_ACCOUNT_HASH = bcrypt.hashSync('no account has this password', 12);
+
 router.post('/login', async (req, res) => {
     try {
-        const username = String(req.body.username || '').trim().toLowerCase();
+        // Learners can sign in with their email or their learner code (e.g. "GSK-0001").
+        const email = String(req.body.email || req.body.username || req.body.learnerCode || '').trim().toLowerCase();
         const password = req.body.password;
-        const role = String(req.body.role || '').trim().toLowerCase();
 
-        if (!username || !password) {
-            return res.status(400).json({ message: 'Username and password required' });
+        if (!email || !password) {
+            return res.status(400).json({ message: 'Email (or learner code) and password required' });
         }
         
-        const row = serverDb.prepare('SELECT * FROM users WHERE LOWER(email) = LOWER(?)').get(username);
-        
-        if (!row) {
-            return res.status(401).json({ message: 'Invalid email or password' });
+        const retryAfter = loginRetryAfter(email, req.ip);
+        if (retryAfter) {
+            res.set('Retry-After', String(retryAfter));
+            return res.status(429).json({ message: 'Too many attempts. Wait a minute and try again.', code: 'TOO_MANY_ATTEMPTS', retryAfter });
         }
 
-        if (row.is_active === 0) {
+        const row = email.includes('@')
+            ? await serverDb.prepare('SELECT * FROM users WHERE LOWER(email) = LOWER(?)').get(email)
+            : await serverDb.prepare('SELECT * FROM users WHERE UPPER(learner_code) = UPPER(?) OR UPPER(staff_code) = UPPER(?)').get(email, email);
+
+        // Compare against a stand-in hash when there's no such account, so the answer takes
+        // as long either way and doesn't tell whether the account exists.
+        const match = await bcrypt.compare(String(password), row?.password_hash || NO_ACCOUNT_HASH);
+        if (!row || !match) {
+            recordLoginFailure(email, req.ip);
+            return res.status(401).json({ message: 'Invalid email, learner code, or password' });
+        }
+        clearLoginFailures(email);
+
+        // Only someone who knows the password learns that the account is deactivated.
+        if (Number(row.is_active) === 0) {
             return res.status(403).json({ message: 'Your account has been deactivated. Please contact an administrator.' });
         }
-        
-        const match = await bcrypt.compare(password, row.password_hash);
-        if (!match) {
-            return res.status(401).json({ message: 'Invalid email or password' });
-        }
 
-        if (String(row.role || '').trim().toLowerCase() !== role) {
-            return res.status(401).json({ message: 'Invalid role' });
-        }
-
-        // Trigger sync-manager in the background asynchronously
-        runFirebaseSync().catch(console.error);
+        // Every session is treated as on a shared device (helpers/auth.js): nobody has to remember to say so.
+        const token = await createSession(row.id, req.headers['user-agent']);
+        await setMediaCookie(res, row.id);
+        await recordEvent({ id: row.id, role: row.role }, null, 'signed_in');
 
         return res.json({
             message: 'Login successful',
+            token,
             user: {
                 id: row.id,
                 email: row.email,
@@ -54,7 +62,9 @@ router.post('/login', async (req, res) => {
                 grade_level: row.grade_level,
                 preferred_language: row.preferred_language,
                 role: row.role,
-                created_at: row.created_at
+                learner_code: row.learner_code,
+                created_at: row.created_at,
+                must_change_password: Number(row.must_change_password) === 1
             }
         });
     } catch (error) {
@@ -63,15 +73,136 @@ router.post('/login', async (req, res) => {
     }
 });
 
-router.get('/verify-auth', (req, res) => {
+// The school's classes, for a new learner to pick theirs: those its teachers teach and its
+// courses are for (e.g. "S1B"). Public: sign-up comes before an account.
+router.get('/classes', async (req, res) => {
     try {
-        // This route was referencing `row` which doesn't exist here.
-        // Keeping the route but returning a fixed structure.
-        return res.status(400).json({ message: 'No session mechanism implemented yet' });
+        const rows = await serverDb.prepare(`
+            SELECT DISTINCT name FROM (
+                SELECT jsonb_array_elements_text(teacher_classes) AS name FROM users WHERE role = 'teacher' AND COALESCE(is_active, 1) = 1
+                UNION SELECT grade FROM courses WHERE COALESCE(grade, '') <> '' AND lifecycle <> 'archived'
+            ) c WHERE COALESCE(TRIM(name), '') <> '' ORDER BY name
+        `).all();
+        return res.json(rows.map((r) => r.name));
     } catch (error) {
-        console.error('Authentication error:', error);
+        console.error('Classes error:', error);
         return res.status(500).json({ message: 'Internal server error' });
     }
+});
+
+// Public self-registration. Always creates a scholar; staff accounts are created by admins.
+// The learner says their class first (e.g. "S1B"), so their teachers can find them.
+router.post('/register', async (req, res) => {
+    try {
+        const email = String(req.body.email || '').trim().toLowerCase();
+        const password = String(req.body.password || '');
+        const fullName = String(req.body.fullName || '').trim();
+        const className = String(req.body.className || '').replace(/\s+/g, ' ').trim().slice(0, 40);
+
+        if (!className) {
+            return res.status(400).json({ message: 'Choose your class first', code: 'CLASS_REQUIRED' });
+        }
+        if (!email || !password) {
+            return res.status(400).json({ message: 'Email and password are required' });
+        }
+        if (!/^[^\s@]+@[^\s@]+$/.test(email)) {
+            return res.status(400).json({ message: 'Enter a valid email address' });
+        }
+        if (password.length < 6) {
+            return res.status(400).json({ message: 'Password must be at least 6 characters' });
+        }
+
+        const existing = await serverDb.prepare('SELECT id FROM users WHERE LOWER(email) = LOWER(?)').get(email);
+        if (existing) {
+            return res.status(409).json({ message: 'An account with this email already exists' });
+        }
+
+        const passwordHash = await bcrypt.hash(password, 12);
+        const row = await serverDb.prepare(`
+            INSERT INTO users (email, full_name, password_hash, role, grade_level)
+            VALUES (?, ?, ?, 'scholar', ?)
+            RETURNING id, email, full_name, role, created_at, grade_level
+        `).get(email, fullName, passwordHash, className);
+
+        // A new learner belongs to this box's school and gets a learner code straight away.
+        await applySchoolToLearner(row.id);
+        const learnerCode = await assignLearnerCode(row.id);
+        const token = await createSession(row.id, req.headers['user-agent']);
+        await setMediaCookie(res, row.id);
+        return res.status(201).json({
+            message: 'Account created',
+            token,
+            user: { ...row, learner_code: learnerCode, must_change_password: false }
+        });
+    } catch (error) {
+        console.error('Registration error:', error);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
+async function sendCurrentUser(req, res) {
+    try {
+        const row = await serverDb.prepare(`
+            SELECT id, email, full_name, phone, school_name, grade_level, preferred_language, role, created_at, must_change_password, learner_code
+            FROM users WHERE id = ?
+        `).get(req.user.id);
+        if (!row) return res.status(401).json({ message: 'Please log in to continue' });
+        return res.json({
+            user: {
+                id: row.id,
+                email: row.email,
+                full_name: row.full_name,
+                phone: row.phone,
+                school_name: row.school_name,
+                grade_level: row.grade_level,
+                preferred_language: row.preferred_language,
+                role: row.role,
+                learner_code: row.learner_code,
+                created_at: row.created_at,
+                must_change_password: Number(row.must_change_password) === 1
+            }
+        });
+    } catch (error) {
+        console.error('Error loading current user:', error);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+}
+
+// The global auth gate guarantees req.user here.
+router.get('/me', sendCurrentUser);
+router.get('/verify-auth', sendCurrentUser);
+
+router.post('/logout', async (req, res) => {
+    try {
+        await revokeSession(req.sessionToken);
+        clearMediaCookie(res);
+        return res.json({ message: 'Logged out' });
+    } catch (error) {
+        console.error('Logout error:', error);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
+// Signs this person out everywhere else (a phone left signed in at school, a shared tablet).
+router.post('/logout-others', async (req, res) => {
+    try {
+        await revokeUserSessions(req.user.id, req.sessionToken);
+        return res.json({ message: 'Signed out on all other devices' });
+    } catch (error) {
+        console.error('Logout-others error:', error);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
+// Renews the media cookie for a signed-in session (the app calls this on load and every few
+// hours), so files keep opening for people who signed in before the cookie existed or long ago.
+router.post('/media-session', async (req, res) => {
+    if (!req.user) {
+        clearMediaCookie(res);
+        return res.status(401).json({ message: 'Please log in to continue' });
+    }
+    await setMediaCookie(res, req.user.id);
+    return res.json({ ok: true });
 });
 
 export default router;

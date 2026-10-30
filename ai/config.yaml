@@ -1,0 +1,25 @@
+runtime:
+  host: "127.0.0.1"
+  port: 8080
+  threads: 6
+  context_size: 4096
+
+gateway:
+  host: "127.0.0.1"
+  port: 5000
+  max_concurrency: 2
+  max_queue_length: 10
+  timeout_ms: 120000
+  max_pasted_text_length: 4000
+
+model:
+  name: "Qwen2.5-7B-Instruct-Q4_K_M"
+  file: "Qwen2.5-7B-Instruct-Q4_K_M.gguf"
+  repo: "bartowski/Qwen2.5-7B-Instruct-GGUF"
+
+max_tokens:
+  lesson_plan: 1024
+  quiz: 1024
+  explain: 768
+  adapt: 1024
+  rubric: 768

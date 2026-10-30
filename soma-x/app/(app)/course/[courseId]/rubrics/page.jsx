@@ -1,98 +1,127 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { ListChecks, Target, Lock } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
 import { useCourseSection } from "@/lib/useCourseSection";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
-import AsyncListState from "@/components/course/AsyncListState";
-import { Button } from "@/components/ui/button";
+import { PageHeader, Section, DataTable, EmptyState } from "@/components/layout";
+import { useCourseText } from "@/components/course/useCourseText";
+import Loader from "@/components/ui/Loader";
 
 export default function RubricsPage() {
-  const { SERVER_URL, courseId, userEmail, isTeacher } = useCourse();
-  const { data: rubrics, loading, error, refetch } = useCourseSection("rubrics");
-  const [creating, setCreating] = useState(false);
-  const [title, setTitle] = useState("");
-  const [criteria, setCriteria] = useState([{ description: "", points: 10 }]);
-
-  const addCriterion = () => setCriteria((p) => [...p, { description: "", points: 10 }]);
-  const updateCriterion = (idx, patch) => setCriteria((p) => p.map((c, i) => (i === idx ? { ...c, ...patch } : c)));
-  const removeCriterion = (idx) => setCriteria((p) => p.filter((_, i) => i !== idx));
-
-  const create = async () => {
-    if (!title.trim()) return;
-    await fetch(`${SERVER_URL}/courses/${courseId}/rubrics`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ teacherEmail: userEmail, title: title.trim(), criteria }),
-    });
-    setTitle("");
-    setCriteria([{ description: "", points: 10 }]);
-    setCreating(false);
-    refetch();
-  };
-
-  const remove = async (id) => {
-    await fetch(`${SERVER_URL}/courses/${courseId}/rubrics/${id}`, {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ teacherEmail: userEmail }),
-    });
-    refetch();
-  };
+  const { t, tf, tpts } = useCourseText();
+  const { courseId } = useCourse();
+  const rubricsQuery = useCourseSection("rubrics");
+  const outcomesQuery = useCourseSection("outcomes");
+  const rubrics = Array.isArray(rubricsQuery.data) ? rubricsQuery.data : [];
+  const outcomes = Array.isArray(outcomesQuery.data) ? outcomesQuery.data : [];
+  const loading = rubricsQuery.loading || outcomesQuery.loading;
 
   return (
     <div>
       <Breadcrumbs sectionKey="rubrics" />
-      <div className="p-4 md:p-6 space-y-4 max-w-2xl">
-        <div className="flex items-center justify-between">
-          <h1 className="text-lg font-bold text-slate-900">Rubrics</h1>
-          {isTeacher ? (
-            <Button onClick={() => setCreating((v) => !v)} className="h-9 gap-1.5">
-              <Plus className="w-3.5 h-3.5" /> New Rubric
-            </Button>
-          ) : null}
-        </div>
+      <div className="p-4 md:p-6 space-y-8 max-w-4xl">
+        <PageHeader help="pages.rubrics"
+          eyebrow={t("rubrics.eyebrow")}
+          title={t("rubrics.title")}
+          description={t("rubrics.description")}
+          meta={
+            <span className="text-caption font-bold text-fg-subtle bg-surface-sunken px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+              <Lock className="w-3 h-3" /> {t("rubrics.readOnly")}
+            </span>
+          }
+        />
 
-        {creating ? (
-          <div className="space-y-2 rounded-xl border border-slate-200 p-3">
-            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Rubric title" className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none" />
-            {criteria.map((c, idx) => (
-              <div key={idx} className="flex items-center gap-2">
-                <input value={c.description} onChange={(e) => updateCriterion(idx, { description: e.target.value })} placeholder="Criterion description" className="flex-1 text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none" />
-                <input type="number" value={c.points} onChange={(e) => updateCriterion(idx, { points: Number(e.target.value) })} className="w-20 text-sm border border-slate-200 rounded-lg px-2 py-2" />
-                <button onClick={() => removeCriterion(idx)} className="text-rose-500"><Trash2 className="w-4 h-4" /></button>
-              </div>
-            ))}
-            <div className="flex items-center gap-2">
-              <button onClick={addCriterion} className="text-xs font-semibold text-[#203A3A] hover:underline">+ Add criterion</button>
-              <button onClick={create} className="ml-auto text-xs font-semibold text-white bg-[#203A3A] rounded-lg px-3 py-2">Create</button>
-            </div>
-          </div>
-        ) : null}
-
-        <AsyncListState loading={loading} error={error} data={rubrics} onRetry={refetch} emptyMessage="No rubrics yet.">
-          {(list) => (
-            <div className="space-y-3">
-              {list.map((r) => (
-                <div key={r.id} className="rounded-xl border border-slate-200 p-3">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-bold text-slate-800">{r.title}</p>
-                    {isTeacher ? <button onClick={() => remove(r.id)} className="text-rose-500"><Trash2 className="w-3.5 h-3.5" /></button> : null}
-                  </div>
-                  <div className="mt-1.5 space-y-1">
-                    {(r.criteria || []).map((c, idx) => (
-                      <div key={idx} className="flex items-center justify-between text-xs text-slate-600">
-                        <span>{c.description}</span>
-                        <span className="font-semibold">{c.points} pts</span>
+        {/* One Section per instantiated rubric; criteria as a table */}
+        {rubrics.length === 0 ? (
+          <Section title={<span className="flex items-center gap-2"><ListChecks className="w-4 h-4 text-brand-fg" /> {t("rubrics.inAssignments")}</span>}>
+            {loading ? (
+              <Loader variant="page" size={48} className="min-h-[25vh]" label={t("rubrics.loading")} />
+            ) : (
+              <EmptyState compact title={t("rubrics.empty")} description={t("rubrics.emptyHelp")} />
+            )}
+          </Section>
+        ) : (
+          rubrics.map((r, i) => (
+            <Section
+              key={r.id}
+              divided={i > 0}
+              title={<span className="flex items-center gap-2"><ListChecks className="w-4 h-4 text-brand-fg" /> {r.title}</span>}
+              description={r.assignment_id ? (
+                <Link
+                  href={`/course/${courseId}/assignments/${r.assignment_id}`}
+                  className="font-semibold text-brand-fg hover:underline"
+                >
+                  {tf("rubrics.assignment", { title: r.assignment_title || `#${r.assignment_id}` })}
+                </Link>
+              ) : null}
+            >
+              <DataTable
+                caption={tf("rubrics.criteriaFor", { title: r.title })}
+                rows={(r.criteria || []).map((c, idx) => ({ ...c, _key: c.id ?? idx }))}
+                rowKey={(c) => c._key}
+                empty={t("rubrics.noCriteria")}
+                columns={[
+                  {
+                    key: "title",
+                    header: t("rubrics.criterion"),
+                    render: (c) => (
+                      <div className="min-w-0 space-y-0.5">
+                        <span className="font-semibold text-fg">{c.title}</span>
+                        {c.description ? <p className="text-caption text-fg-subtle">{c.description}</p> : null}
                       </div>
-                    ))}
+                    ),
+                  },
+                  {
+                    key: "outcome",
+                    header: t("rubrics.outcome"),
+                    render: (c) => c.outcome_code ? (
+                      <span
+                        className="text-caption font-bold text-brand-fg bg-brand-soft border border-brand/40 px-2 py-0.5 rounded-full"
+                        title={c.outcome_title || undefined}
+                      >
+                        {c.outcome_code}
+                      </span>
+                    ) : <span className="text-fg-subtle">—</span>,
+                  },
+                  { key: "points", header: t("rubrics.points"), align: "right", render: (c) => <span className="font-bold text-brand-fg whitespace-nowrap">{tpts(c.points)}</span> },
+                ]}
+              />
+            </Section>
+          ))
+        )}
+
+        {/* Mastery skeleton reference */}
+        <Section
+          divided
+          title={<span className="flex items-center gap-2"><Target className="w-4 h-4 text-brand-fg" /> {t("rubrics.skeletons")}</span>}
+          description={t("rubrics.skeletonsHelp")}
+        >
+          <DataTable
+            caption={t("rubrics.skeletons")}
+            rows={outcomes}
+            empty={t("syllabus.noOutcomes")}
+            columns={[
+              {
+                key: "outcome",
+                header: t("rubrics.outcome"),
+                render: (o) => (
+                  <div className="flex items-start gap-2 min-w-0">
+                    <span className="text-caption font-bold text-brand-fg bg-brand-soft px-2 py-0.5 rounded border border-brand/40 shrink-0">
+                      {o.code || `OUT-${o.id}`}
+                    </span>
+                    <span className="text-caption font-semibold text-fg">{o.title}</span>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </AsyncListState>
+                ),
+              },
+              { key: "exceeds", header: t("rubrics.exceeds"), align: "center", render: () => tpts(4) },
+              { key: "meets", header: t("rubrics.meets"), align: "center", render: () => tpts(3) },
+              { key: "approaching", header: t("rubrics.approaching"), align: "center", render: () => tpts(2) },
+              { key: "below", header: t("rubrics.below"), align: "center", render: () => t("rubrics.onePoint") },
+            ]}
+          />
+        </Section>
       </div>
     </div>
   );

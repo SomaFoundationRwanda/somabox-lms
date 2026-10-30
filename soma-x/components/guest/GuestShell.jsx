@@ -1,0 +1,144 @@
+"use client";
+
+// The light app shell for guests on the explore pages: brand, Explore links and Sign up /
+// Log in. Nothing here calls a signed-in API (no notifications, profile, AI or assignments).
+import { useEffect } from "react";
+import Link from "next/link";
+import SchoolLogo, { PoweredBySomabox } from "@/components/global/SchoolLogo";
+import { useSchool } from "@/context/SchoolContext";
+import { fill } from "@/lib/fill";
+import { usePathname } from "next/navigation";
+import { BookMarked, Compass, Globe, Info, LogIn, UserPlus } from "lucide-react";
+import { useLanguage } from "@/context/LanguageContext";
+import { authLinks } from "@/components/guest/GuestGate";
+import LanguageSwitcher from "@/components/global/LanguageSwitcher";
+import { rememberNext } from "@/lib/session";
+
+const EXPLORE_LINKS = [
+    { to: "/home", key: "guest.navExplore", Icon: Compass },
+    { to: "/library", key: "guest.navLibrary", Icon: BookMarked },
+    { to: "/discover-courses", key: "guest.navCourses", Icon: Globe },
+];
+
+function useAuthLinks() {
+    const pathname = usePathname();
+    // Back to the page they're on after signing in (the browse page itself is fine).
+    return authLinks(pathname);
+}
+
+const isActive = (pathname, to) =>
+    to === "/home"
+        ? pathname === "/home" || !["/library", "/discover-courses"].some((p) => pathname.startsWith(p))
+        : pathname === to || pathname.startsWith(`${to}/`);
+
+export function GuestNav() {
+    const { t } = useLanguage();
+    const pathname = usePathname();
+    const links = useAuthLinks();
+
+    // The content column's left margin follows the sidebar width (see (app)/layout.jsx).
+    useEffect(() => {
+        document.documentElement.style.setProperty("--sidebar-width", "180px");
+    }, []);
+
+    return (
+        <>
+            <nav aria-label={t("guest.navLabel")} className="fixed hidden md:flex flex-col h-screen w-[180px] z-50 bg-surface">
+                <div className="flex justify-center px-4 py-5">
+                    <Link href="/home" className="flex flex-col items-center gap-1 min-w-0">
+                        <SchoolLogo priority className="w-auto h-12 max-w-[140px]" />
+                        <PoweredBySomabox className="text-center" />
+                    </Link>
+                </div>
+                <div className="flex-1 px-3 py-5 space-y-1">
+                    {EXPLORE_LINKS.map(({ to, key, Icon }) => {
+                        const on = isActive(pathname, to);
+                        return (
+                            <Link
+                                key={to}
+                                href={to}
+                                aria-current={on ? "page" : undefined}
+                                className={`flex items-center gap-3 px-3 py-2.5 rounded-full text-small font-semibold transition-colors ${on ? "bg-brand-strong text-on-brand-strong" : "text-fg-muted hover:bg-surface-hover"}`}
+                            >
+                                <Icon size={16} strokeWidth={1.75} className="shrink-0" aria-hidden="true" />
+                                <span className="truncate">{t(key)}</span>
+                            </Link>
+                        );
+                    })}
+                </div>
+                <div className="px-4 pt-5 pb-6 space-y-2 border-t border-line">
+                    <a href={links.signup} onClick={() => rememberNext(pathname)} className="flex items-center justify-center gap-2 h-10 rounded-full bg-brand-strong hover:bg-brand-strong/90 text-on-brand-strong text-small font-bold transition-colors">
+                        <UserPlus size={15} aria-hidden="true" /> {t("guest.signUp")}
+                    </a>
+                    <a href={links.login} onClick={() => rememberNext(pathname)} className="flex items-center justify-center gap-2 h-10 rounded-full border border-line-strong text-fg hover:bg-surface-hover text-small font-bold transition-colors">
+                        <LogIn size={15} aria-hidden="true" /> {t("guest.logIn")}
+                    </a>
+                </div>
+            </nav>
+
+            {/* Mobile bottom bar */}
+            <nav aria-label={t("guest.navLabel")} className="fixed md:hidden z-[998] bottom-0 w-full rounded-t-[8px] bg-surface border-t border-line">
+                <div className="flex items-center justify-around px-2 h-[4.2rem] pb-[env(safe-area-inset-bottom)]">
+                    {EXPLORE_LINKS.map(({ to, key, Icon }) => {
+                        const on = isActive(pathname, to);
+                        return (
+                            <Link key={to} href={to} aria-current={on ? "page" : undefined} className={`flex flex-col items-center gap-1 px-2 ${on ? "text-brand-fg" : "text-fg-muted"}`}>
+                                <Icon size={19} strokeWidth={1.75} aria-hidden="true" />
+                                <span className="text-caption font-semibold truncate max-w-[72px] text-center leading-tight">{t(key)}</span>
+                            </Link>
+                        );
+                    })}
+                    <a href={links.signup} onClick={() => rememberNext(pathname)} className="flex flex-col items-center gap-1 px-2 text-brand-fg">
+                        <UserPlus size={19} strokeWidth={1.75} aria-hidden="true" />
+                        <span className="text-caption font-bold leading-tight">{t("guest.signUp")}</span>
+                    </a>
+                </div>
+            </nav>
+        </>
+    );
+}
+
+export function GuestHeader() {
+    const { t } = useLanguage();
+    const { school } = useSchool();
+    const pathname = usePathname();
+    const links = useAuthLinks();
+
+    return (
+        <header className="sticky top-0 z-30 flex items-center justify-between gap-3 px-4 py-3 bg-surface">
+            <div className="min-w-0 flex items-center gap-3">
+                <span className="md:hidden shrink-0"><SchoolLogo variant="mark" decorative /></span>
+                <div className="min-w-0">
+                    <h1 className="text-item sm:text-section md:text-section font-extrabold leading-tight tracking-tight truncate text-fg">
+                        {school.configured && school.name ? fill(t("school.brand.welcomeTo"), { name: school.name }) : t("guest.headerTitle")}
+                    </h1>
+                    <p className="text-caption mt-0.5 hidden sm:block text-fg-subtle">{t("guest.headerSubtitle")}</p>
+                </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+                <LanguageSwitcher compact />
+                <a href={links.login} onClick={() => rememberNext(pathname)} className="hidden sm:flex items-center h-9 px-4 rounded-full border border-line-strong text-small font-bold text-fg hover:bg-surface-hover transition-colors">
+                    {t("guest.logIn")}
+                </a>
+                <a href={links.signup} onClick={() => rememberNext(pathname)} className="flex items-center h-9 px-4 rounded-full bg-brand-strong hover:bg-brand-strong/90 text-on-brand-strong text-small font-bold transition-colors">
+                    {t("guest.signUp")}
+                </a>
+            </div>
+        </header>
+    );
+}
+
+export function GuestBanner() {
+    const { t } = useLanguage();
+    const pathname = usePathname();
+    const links = useAuthLinks();
+    return (
+        <div role="note" className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2 bg-warning-soft border-y border-warning/30 text-small text-warning-fg">
+            <Info className="w-4 h-4 shrink-0" aria-hidden="true" />
+            <span className="flex-1 min-w-0">{t("guest.banner")}</span>
+            <a href={links.signup} onClick={() => rememberNext(pathname)} className="font-bold underline underline-offset-2 hover:no-underline">
+                {t("guest.signUp")}
+            </a>
+        </div>
+    );
+}

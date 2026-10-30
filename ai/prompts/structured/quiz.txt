@@ -1,0 +1,10 @@
+Write a multiple-choice quiz for the week below.
+
+{CONTEXT}
+
+Rules:
+- Write the number of questions asked for (5 if none given).
+- Each question has 3 or 4 short "options" and exactly one correct answer; "correctIndex" is its position (0 = first option). Vary the position of the correct answer.
+- Wrong options must be plausible mistakes, not jokes.
+- "outcomeCode" must be one of the course outcome codes listed above: the outcome the question checks.
+- "points" is 1 unless a question is clearly harder (2).

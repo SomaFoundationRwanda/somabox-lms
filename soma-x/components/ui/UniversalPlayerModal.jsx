@@ -1,12 +1,26 @@
 import React, { useState, useRef, useEffect, useContext } from 'react';
-import { X, Play, Pause, Volume2, VolumeX, Maximize, Minimize, SkipBack, SkipForward, RotateCcw, RotateCw, ZoomIn, ZoomOut, FileText, ExternalLink } from 'lucide-react';
+import { X, Play, Pause, Volume2, VolumeX, Maximize, Minimize, SkipBack, SkipForward, FileText, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { MediaAccessNotice, useMediaAccess } from '@/components/guest/MediaAccess';
+import { PreviewChip, PreviewEndedPanel, usePreview } from '@/components/guest/Preview';
+import SummaryPanel, { SummaryToggleButton, useContentSummary } from '@/components/explore/SummaryPanel';
+import { useLanguage } from '@/context/LanguageContext';
+import { fill } from '@/lib/fill';
+import { Slider } from "@/components/form";
 
 const UniversalPlayerModal = ({
     isOpen,
     onClose,
-    mediaItem = null
+    mediaItem = null,
+    // The file's path_key (Explore item `slug`, Library `path_key`): enables the AI summary panel.
+    summaryPath = null,
+    // A visitor's preview ({ seconds, secondsLeft, next } from useGuestPreview), or null. Videos
+    // and audio count playback time, PDFs the time they're open; then the sign-up panel shows.
+    preview = null
 }) => {
+    const { t } = useLanguage();
+    const [summaryOpen, setSummaryOpen] = useState(false);
+    const summary = useContentSummary(summaryPath, { active: Boolean(isOpen && summaryPath) });
     const [isPlaying, setIsPlaying] = useState(false);
     const [volume, setVolume] = useState(1);
     const [isMuted, setIsMuted] = useState(false);
@@ -34,6 +48,32 @@ const UniversalPlayerModal = ({
         return `${SERVER_URL}/content/files${encodeURI(cleanUrl)}`;
     };
 
+    // Files load with the media cookie (no crossOrigin attribute, so the browser sends it).
+    // Check it first: an expired cookie is renewed, or the person is asked to sign in again,
+    // instead of showing a broken player or a PDF frame full of JSON.
+    const mediaUrl = mediaItem?.url ? getMediaUrl(mediaItem.url) : '';
+    const { state: accessState, onMediaError, reloadKey } = useMediaAccess(mediaUrl, { active: Boolean(isOpen && mediaItem), preview: Boolean(preview) });
+
+    // Visitor preview: playing (not paused or buffering) counts for video and audio.
+    const [playingNow, setPlayingNow] = useState(false);
+    const isTimedMedia = mediaItem?.type === 'video' || mediaItem?.type === 'audio';
+    const isReading = ['book', 'pdf', 'document'].includes(mediaItem?.type);
+    const previewRunning = Boolean(preview && isOpen && mediaItem) && (isTimedMedia ? playingNow : accessState === 'ok');
+    const { left: previewLeft, ended: previewEnded, end: endPreview } = usePreview(isOpen ? preview : null, previewRunning);
+    // The box stops sending the file once the preview is over (401): end it here too.
+    const handleMediaError = preview ? endPreview : onMediaError;
+
+    // When the preview ends: stop playing and leave full screen; the sign-up panel covers the player.
+    useEffect(() => {
+        if (!previewEnded) return;
+        videoRef.current?.pause();
+        audioRef.current?.pause();
+        setIsPlaying(false);
+        setPlayingNow(false);
+        setIsFullscreen(false);
+        if (typeof document !== 'undefined' && document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+    }, [previewEnded]);
+
     // Reset state when modal opens with new media
     useEffect(() => {
         if (isOpen && mediaItem) {
@@ -42,8 +82,12 @@ const UniversalPlayerModal = ({
             setPdfPage(1);
             setPdfZoom(1);
             setIsFullscreen(false);
+            setPlayingNow(false);
         }
     }, [isOpen, mediaItem]);
+
+    // A different file (or closing) closes the summary panel.
+    useEffect(() => { setSummaryOpen(false); }, [isOpen, summaryPath]);
 
     const handleClose = () => {
         setIsPlaying(false);
@@ -60,6 +104,7 @@ const UniversalPlayerModal = ({
 
     const togglePlay = () => {
         const mediaElement = mediaItem?.type === 'video' ? videoRef.current : audioRef.current;
+        if (previewEnded) return;
         if (mediaElement) {
             if (isPlaying) {
                 mediaElement.pause();
@@ -78,8 +123,7 @@ const UniversalPlayerModal = ({
         }
     };
 
-    const handleVolumeChange = (e) => {
-        const newVolume = parseFloat(e.target.value);
+    const handleVolumeChange = (newVolume) => {
         setVolume(newVolume);
         const mediaElement = mediaItem?.type === 'video' ? videoRef.current : audioRef.current;
         if (mediaElement) {
@@ -95,12 +139,22 @@ const UniversalPlayerModal = ({
         }
     };
 
-    const handleSeek = (e) => {
+    const handleSeek = (percent) => {
         const mediaElement = mediaItem?.type === 'video' ? videoRef.current : audioRef.current;
         if (mediaElement) {
-            const seekTime = (e.target.value / 100) * duration;
+            const seekTime = (percent / 100) * duration;
             mediaElement.currentTime = seekTime;
             setCurrentTime(seekTime);
+        }
+    };
+
+    // Skip back/forward 10 seconds in the audio player.
+    const skipBy = (seconds) => {
+        const mediaElement = mediaItem?.type === 'video' ? videoRef.current : audioRef.current;
+        if (mediaElement) {
+            const max = Number.isFinite(mediaElement.duration) ? mediaElement.duration : Infinity;
+            mediaElement.currentTime = Math.min(max, Math.max(0, mediaElement.currentTime + seconds));
+            setCurrentTime(mediaElement.currentTime);
         }
     };
 
@@ -128,56 +182,55 @@ const UniversalPlayerModal = ({
 
     const renderMediaPlayer = () => {
         if (!mediaItem) return null;
+        // A visitor's preview of a document has ended: nothing to read behind the sign-up panel.
+        if (previewEnded && isReading) return <div className="w-full h-full bg-black" />;
+        if (mediaUrl && accessState !== 'ok') {
+            return (
+                <div className="w-full h-full flex items-center justify-center bg-black">
+                    <MediaAccessNotice state={accessState} tone="dark" />
+                </div>
+            );
+        }
 
         switch (mediaItem.type) {
             case 'video':
                 return (
                     <div className="relative w-full h-full bg-black overflow-hidden">
                         <video
+                            key={reloadKey}
                             ref={videoRef}
+                            onError={handleMediaError}
                             onClick={togglePlay}
-                            src={getMediaUrl(mediaItem.url)}
+                            src={mediaUrl}
                             poster={mediaItem.thumbnail}
                             className="w-full h-full object-contain"
                             onTimeUpdate={handleTimeUpdate}
                             onLoadedMetadata={handleTimeUpdate}
                             onPlay={() => setIsPlaying(true)}
-                            onPause={() => setIsPlaying(false)}
+                            onPause={() => { setIsPlaying(false); setPlayingNow(false); }}
+                            onPlaying={() => setPlayingNow(true)}
+                            onWaiting={() => setPlayingNow(false)}
+                            onEnded={() => setPlayingNow(false)}
                         />
                         {/* Video Controls Overlay */}
-                        <div className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity duration-300">
-                            <Button variant="ghost" onClick={togglePlay} className="p-3 absolute left-1/2 -translate-x-1/2 -translate-y-1/2 top-1/2 bg-accent-light text-white border border-white/20 rounded-full transition-colors hover:bg-accent-light/80 ring-0 h-16 w-16">
+                        <div className="absolute inset-0 opacity-0 hover:opacity-100 focus-within:opacity-100 transition-opacity duration-300">
+                            <Button variant="ghost" onClick={togglePlay} aria-label={isPlaying ? t("shell.player.pause") : t("shell.player.play")} className="p-3 absolute left-1/2 -translate-x-1/2 -translate-y-1/2 top-1/2 bg-brand text-on-brand border border-white/20 rounded-full transition-colors hover:bg-brand/80 ring-0 h-16 w-16">
                                 {isPlaying ? <Pause size={30} /> : <Play size={30} />}
                             </Button>
                             <div className="absolute bottom-0 left-0 right-0 p-6">
                                 <div className="flex items-center space-x-4 text-white">
-                                    <Button variant="ghost" onClick={togglePlay} className="p-2 hover:bg-white/20 rounded-full transition-colors ring-0 h-10 w-10">
+                                    <Button variant="ghost" onClick={togglePlay} aria-label={isPlaying ? t("shell.player.pause") : t("shell.player.play")} className="p-2 hover:bg-white/20 rounded-full transition-colors ring-0 h-10 w-10">
                                         {isPlaying ? <Pause size={24} /> : <Play size={24} />}
                                     </Button>
                                     <div className="flex-1">
-                                        <input
-                                            type="range"
-                                            min="0"
-                                            max="100"
-                                            value={(currentTime / duration) * 100 || 0}
-                                            onChange={handleSeek}
-                                            className="w-full h-2 bg-white/30 rounded-lg appearance-none cursor-pointer slider"
-                                        />
+                                        <Slider tone="onDark" min={0} max={100} value={(currentTime / duration) * 100 || 0} onChange={handleSeek} aria-label={t("shell.player.seek")} className="w-full" />
                                     </div>
-                                    <span className="text-sm">{formatTime(currentTime)} / {formatTime(duration)}</span>
-                                    <Button variant="ghost" onClick={toggleMute} className="p-2 hover:bg-white/20 rounded-full transition-colors ring-0 h-10 w-10">
+                                    <span className="text-ui">{formatTime(currentTime)} / {formatTime(duration)}</span>
+                                    <Button variant="ghost" onClick={toggleMute} aria-label={isMuted ? t("shell.player.unmute") : t("shell.player.mute")} aria-pressed={isMuted} className="p-2 hover:bg-white/20 rounded-full transition-colors ring-0 h-10 w-10">
                                         {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
                                     </Button>
-                                    <input
-                                        type="range"
-                                        min="0"
-                                        max="1"
-                                        step="0.1"
-                                        value={volume}
-                                        onChange={handleVolumeChange}
-                                        className="w-20 h-2 bg-white/30 rounded-lg appearance-none cursor-pointer"
-                                    />
-                                    <Button variant="ghost" onClick={toggleFullscreen} className="p-2 hover:bg-white/20 rounded-full transition-colors ring-0 h-10 w-10">
+                                    <Slider tone="onDark" min={0} max={1} step={0.1} value={volume} onChange={handleVolumeChange} aria-label={t("shell.player.volume")} className="w-20" />
+                                    <Button variant="ghost" onClick={toggleFullscreen} aria-label={isFullscreen ? t("shell.player.exitFullScreen") : t("shell.player.fullScreen")} className="p-2 hover:bg-white/20 rounded-full transition-colors ring-0 h-10 w-10">
                                         {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
                                     </Button>
                                 </div>
@@ -188,14 +241,19 @@ const UniversalPlayerModal = ({
 
             case 'audio':
                 return (
-                    <div className="flex flex-col items-center justify-center h-full bg-accent-light text-white">
+                    <div className="flex flex-col items-center justify-center h-full bg-brand text-on-brand">
                         <audio
+                            key={reloadKey}
                             ref={audioRef}
-                            src={getMediaUrl(mediaItem.url)}
+                            onError={handleMediaError}
+                            src={mediaUrl}
                             onTimeUpdate={handleTimeUpdate}
                             onLoadedMetadata={handleTimeUpdate}
                             onPlay={() => setIsPlaying(true)}
-                            onPause={() => setIsPlaying(false)}
+                            onPause={() => { setIsPlaying(false); setPlayingNow(false); }}
+                            onPlaying={() => setPlayingNow(true)}
+                            onWaiting={() => setPlayingNow(false)}
+                            onEnded={() => setPlayingNow(false)}
                         />
                         <div className="text-center mb-8">
                             <div className="w-32 h-32 bg-white/10 rounded-full flex items-center justify-center mb-6 mx-auto backdrop-blur-sm">
@@ -204,50 +262,35 @@ const UniversalPlayerModal = ({
 
                             </div>
                             <h3 className="font-bold mb-2">{mediaItem.title}</h3>
-                            <p className="text-white/70">{mediaItem.artist || 'Audio Player'}</p>
+                            <p className="text-white/70">{mediaItem.artist || t('shell.player.audioPlayer')}</p>
                         </div>
 
                         <div className="w-full max-w-md space-y-6">
                             <div className="flex justify-center space-x-4">
-                                <Button variant="ghost" className="p-3 hover:bg-white/20 rounded-full transition-colors ring-0 h-12 w-12">
+                                <Button variant="ghost" onClick={() => skipBy(-10)} aria-label={t("shell.player.back10")} title={t("shell.player.back10")} className="p-3 hover:bg-white/20 rounded-full transition-colors ring-0 h-12 w-12">
                                     <SkipBack size={24} />
                                 </Button>
-                                <Button variant="ghost" onClick={togglePlay} className="p-4 bg-white/20 hover:bg-white/30 rounded-full transition-colors ring-0 h-16 w-16">
+                                <Button variant="ghost" onClick={togglePlay} aria-label={isPlaying ? t("shell.player.pause") : t("shell.player.play")} className="p-4 bg-white/20 hover:bg-white/30 rounded-full transition-colors ring-0 h-16 w-16">
                                     {isPlaying ? <Pause size={28} /> : <Play size={28} />}
                                 </Button>
-                                <Button variant="ghost" className="p-3 hover:bg-white/20 rounded-full transition-colors ring-0 h-12 w-12">
+                                <Button variant="ghost" onClick={() => skipBy(10)} aria-label={t("shell.player.forward10")} title={t("shell.player.forward10")} className="p-3 hover:bg-white/20 rounded-full transition-colors ring-0 h-12 w-12">
                                     <SkipForward size={24} />
                                 </Button>
                             </div>
 
                             <div className="space-y-2">
-                                <input
-                                    type="range"
-                                    min="0"
-                                    max="100"
-                                    value={(currentTime / duration) * 100 || 0}
-                                    onChange={handleSeek}
-                                    className="w-full h-2 bg-white/30 rounded-lg appearance-none cursor-pointer"
-                                />
-                                <div className="flex justify-between text-sm text-white/70">
+                                <Slider tone="onDark" min={0} max={100} value={(currentTime / duration) * 100 || 0} onChange={handleSeek} aria-label={t("shell.player.seek")} className="w-full" />
+                                <div className="flex justify-between text-ui text-white/70">
                                     <span>{formatTime(currentTime)}</span>
                                     <span>{formatTime(duration)}</span>
                                 </div>
                             </div>
 
                             <div className="flex items-center justify-center space-x-3">
-                                <Button variant="ghost" onClick={toggleMute} className="p-2 hover:bg-white/20 rounded-full transition-colors ring-0 h-10 w-10">
+                                <Button variant="ghost" onClick={toggleMute} aria-label={isMuted ? t("shell.player.unmute") : t("shell.player.mute")} aria-pressed={isMuted} className="p-2 hover:bg-white/20 rounded-full transition-colors ring-0 h-10 w-10">
                                     {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
                                 </Button>
-                                <input
-                                    type="range"
-                                    min="0"
-                                    max="1"
-                                    step="0.1"
-                                    value={volume}
-                                    onChange={handleVolumeChange}
-                                    className="w-32 h-2 bg-white/30 rounded-lg appearance-none cursor-pointer"
-                                />
+                                <Slider tone="onDark" min={0} max={1} step={0.1} value={volume} onChange={handleVolumeChange} aria-label={t("shell.player.volume")} className="w-32" />
                             </div>
                         </div>
                     </div>
@@ -259,58 +302,35 @@ const UniversalPlayerModal = ({
                 return (
                     <div className="h-full bg-black overflow-hidden">
                         <div className="h-full flex flex-col">
-                            {/* <div className="bg-white border-b border-gray-200 p-2 flex items-center justify-between">
-                                <h3 className="text-lg font-semibold text-gray-800">{mediaItem.title}</h3>
-                                <div className="flex items-center space-x-2">
-                                    <button
-                                        onClick={() => setPdfZoom(Math.max(0.5, pdfZoom - 0.25))}
-                                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                                    >
-                                        <ZoomOut size={20} />
-                                    </button>
-                                    <span className="text-sm text-gray-600">{Math.round(pdfZoom * 100)}%</span>
-                                    <button
-                                        onClick={() => setPdfZoom(Math.min(2, pdfZoom + 0.25))}
-                                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                                    >
-                                        <ZoomIn size={20} />
-                                    </button>
-                                    <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                                        <RotateCcw size={20} />
-                                    </button>
-                                    <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                                        <RotateCw size={20} />
-                                    </button>
-                                </div>
-                            </div> */}
-                            <div className="flex-1 bg-gray-50 flex items-center justify-center">
+                            <div className="flex-1 bg-surface-sunken flex items-center justify-center">
                                 {mediaItem.url ? (
                                     <iframe
-                                        src={getMediaUrl(mediaItem.url)}
+                                        key={reloadKey}
+                                        src={mediaUrl}
                                         className="w-full h-full border-none"
                                         style={{ transform: `scale(${pdfZoom})` }}
                                         title={mediaItem.title}
                                     />
                                 ) : (
-                                    <div className="text-center text-gray-500">
-                                        <div className="w-24 h-32 bg-white border-2 border-gray-300 rounded-lg flex items-center justify-center mx-auto mb-4 text-slate-600">
+                                    <div className="text-center text-fg-subtle">
+                                        <div className="w-24 h-32 bg-surface border-2 border-line-strong rounded-lg flex items-center justify-center mx-auto mb-4 text-fg-muted">
                                             <FileText size={40} />
                                         </div>
-                                        <p className="text-lg font-medium">{mediaItem.title}</p>
-                                        <p className="text-sm">PDF Viewer</p>
+                                        <p className="text-section font-medium">{mediaItem.title}</p>
+                                        <p className="text-ui">{t("shell.player.pdfViewer")}</p>
                                         <div className="flex justify-center space-x-2 mt-4">
                                             <button
                                                 onClick={() => setPdfPage(Math.max(1, pdfPage - 1))}
-                                                className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                                                className="px-3 py-1 bg-brand text-on-brand rounded hover:bg-brand/90 transition-colors"
                                             >
-                                                Previous
+                                                {t("shell.player.previous")}
                                             </button>
-                                            <span className="px-3 py-1 bg-gray-200 rounded">Page {pdfPage}</span>
+                                            <span className="px-3 py-1 bg-line rounded">{fill(t("shell.player.page"), { n: pdfPage })}</span>
                                             <button
                                                 onClick={() => setPdfPage(pdfPage + 1)}
-                                                className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                                                className="px-3 py-1 bg-brand text-on-brand rounded hover:bg-brand/90 transition-colors"
                                             >
-                                                Next
+                                                {t("shell.player.next")}
                                             </button>
                                         </div>
                                     </div>
@@ -324,20 +344,20 @@ const UniversalPlayerModal = ({
             case 'link':
             case 'url':
                 return (
-                    <div className="flex items-center justify-center h-full bg-accent-dark text-white">
+                    <div className="flex items-center justify-center h-full bg-brand-strong text-on-brand-strong">
                         <div className="text-center">
                             <div className="w-32 h-32 bg-white/10 rounded-full flex items-center justify-center mb-6 mx-auto backdrop-blur-sm text-white">
                                 <ExternalLink size={48} />
                             </div>
-                            <h3 className="text-2xl font-bold mb-4">{mediaItem.title}</h3>
-                            <p className="text-white/70 mb-6">External Link</p>
+                            <h3 className="text-title font-bold mb-4">{mediaItem.title}</h3>
+                            <p className="text-white/70 mb-6">{t("shell.player.externalLink")}</p>
                             <a
-                                href={getMediaUrl(mediaItem.url)}
+                                href={mediaUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="inline-flex items-center px-6 py-3 bg-white/20 hover:bg-white/30 rounded-full transition-colors"
                             >
-                                Open Link
+                                {t("shell.player.openLink")}
                             </a>
                         </div>
                     </div>
@@ -345,10 +365,10 @@ const UniversalPlayerModal = ({
 
             default:
                 return (
-                    <div className="flex items-center justify-center h-full text-gray-500">
+                    <div className="flex items-center justify-center h-full text-fg-subtle">
                         <div className="text-center">
-                            <p className="text-xl mb-2">Unsupported media type</p>
-                            <p className="text-sm">Type: {mediaItem.type}</p>
+                            <p className="text-section mb-2">{t("shell.player.unsupported")}</p>
+                            <p className="text-ui">{fill(t("shell.player.typeLabel"), { type: mediaItem.type })}</p>
                         </div>
                     </div>
                 );
@@ -362,21 +382,32 @@ const UniversalPlayerModal = ({
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-2 border">
             <div
                 ref={modalRef}
-                className={`bg-black border border-primary-400/50 rounded-sm shadow-2xl transition-all duration-300 ${isFullscreen ? 'w-full h-full' : 'w-[85vw] h-[85vh]'
-                    } max-w-8xl max-h-full overflow-hidden`}
+                role="dialog"
+                aria-modal="true"
+                aria-label={mediaItem?.title || t('shell.player.mediaPlayer')}
+                className={`bg-black border border-brand/50 rounded-sm shadow-2xl transition-all duration-300 ${isFullscreen ? 'w-full h-full' : 'w-full h-full sm:w-[85vw] sm:h-[85vh]'
+                    } max-w-8xl max-h-full overflow-hidden flex flex-col`}
                 style={{
                     animation: 'modalSlideIn 0.3s ease-out'
                 }}
             >
                 {/* Modal Header */}
-                <div className="bg-accent-dark text-white p-2 flex items-center justify-between rounded-t-sm">
-                    <h2 className="font-semibold truncate mr-4">{mediaItem?.title || 'Media Player'}</h2>
+                <div className="bg-brand-strong text-on-brand-strong p-2 flex items-center justify-between rounded-t-sm shrink-0">
+                    <h2 className="font-semibold truncate mr-4">{mediaItem?.title || t('shell.player.mediaPlayer')}</h2>
                     <div className="flex items-center space-x-2 flex-shrink-0">
+                        <SummaryToggleButton
+                            state={summary}
+                            open={summaryOpen}
+                            onToggle={() => setSummaryOpen((v) => !v)}
+                            controls="player-summary"
+                            className="bg-white/10 hover:bg-white/20 text-white"
+                        />
                         <Button
                             variant="ghost"
                             onClick={toggleFullscreen}
                             className="p-2 hover:bg-white/20 rounded-lg transition-colors ring-0 h-10 w-10"
-                            title="Toggle Fullscreen"
+                            title={isFullscreen ? t("shell.player.exitFullScreen") : t("shell.player.fullScreen")}
+                            aria-label={isFullscreen ? t("shell.player.exitFullScreen") : t("shell.player.fullScreen")}
                         >
                             {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
                         </Button>
@@ -384,16 +415,35 @@ const UniversalPlayerModal = ({
                             variant="ghost"
                             onClick={handleClose}
                             className="p-2 hover:bg-white/20 rounded-lg transition-colors ring-0 h-10 w-10"
-                            title="Close"
+                            title={t("shell.common.close")}
+                            aria-label={t("shell.common.close")}
                         >
                             <X size={24} />
                         </Button>
                     </div>
                 </div>
 
-                {/* Modal Content */}
-                <div className="h-full">
-                    {renderMediaPlayer()}
+                {preview && !previewEnded ? (
+                    <PreviewChip left={previewLeft} next={preview.next} reading={isReading} />
+                ) : null}
+
+                {/* Modal Content: the player, and the AI summary beside it (below it on phones).
+                    Playing or reading carries on while the summary is open or being made. */}
+                <div className="flex-1 min-h-0 flex flex-col md:flex-row">
+                    <div className="relative flex-1 min-h-0 min-w-0">
+                        {renderMediaPlayer()}
+                        {preview && previewEnded ? <PreviewEndedPanel next={preview.next} reading={isReading} /> : null}
+                    </div>
+                    {summaryOpen && summaryPath ? (
+                        <aside id="player-summary" className="bg-surface w-full md:w-[380px] max-h-[50%] md:max-h-none shrink-0 overflow-y-auto p-4 border-t md:border-t-0 md:border-l border-line">
+                            <SummaryPanel
+                                pathKey={summaryPath}
+                                state={summary}
+                                onClose={() => setSummaryOpen(false)}
+                                headingId="player-summary-title"
+                            />
+                        </aside>
+                    ) : null}
                 </div>
             </div>
 

@@ -1,65 +1,58 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { FileText, Plus } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
 import { useCourseSection } from "@/lib/useCourseSection";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
-import AsyncListState from "@/components/course/AsyncListState";
-import { Button } from "@/components/ui/button";
+import { PageHeader, List, ListRow, EmptyState } from "@/components/layout";
+import { ExplainerText } from "@/components/help/Explainer";
+import { useCourseText } from "@/components/course/useCourseText";
+import Loader from "@/components/ui/Loader";
 
 export default function PagesListPage() {
-  const { SERVER_URL, courseId, userEmail, isTeacher } = useCourse();
-  const { data: pages, loading, error, refetch } = useCourseSection("pages");
-  const [creating, setCreating] = useState(false);
-  const [title, setTitle] = useState("");
-
-  const create = async () => {
-    if (!title.trim()) return;
-    await fetch(`${SERVER_URL}/courses/${courseId}/pages`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ teacherEmail: userEmail, title: title.trim(), published: true }),
-    });
-    setTitle("");
-    setCreating(false);
-    refetch();
-  };
+  const { courseId, isTeacher } = useCourse();
+  const { t } = useCourseText();
+  const section = useCourseSection("pages");
+  const pages = Array.isArray(section.data) ? section.data : [];
+  const loading = section.loading;
 
   return (
     <div>
       <Breadcrumbs sectionKey="pages" />
-      <div className="p-4 md:p-6 space-y-4 max-w-2xl">
-        <div className="flex items-center justify-between">
-          <h1 className="text-lg font-bold text-slate-900">Pages</h1>
-          {isTeacher ? (
-            <Button onClick={() => setCreating((v) => !v)} className="h-9 gap-1.5">
-              <Plus className="w-3.5 h-3.5" /> New Page
-            </Button>
+      <div className="p-4 md:p-6 space-y-6 max-w-4xl">
+        <PageHeader help="pages.pages"
+          title={t("nav.pages")}
+          description={isTeacher ? t("lists.pagesDescription") : undefined}
+          actions={isTeacher ? (
+            <Link
+              href={`/course/${courseId}/modules`}
+              className="flex items-center gap-1.5 text-caption font-semibold text-on-brand bg-brand hover:bg-brand/90 rounded-lg px-3.5 py-2 transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" /> {t("lists.addFromModules")}
+            </Link>
           ) : null}
-        </div>
+        />
 
-        {creating ? (
-          <div className="flex items-center gap-2 rounded-xl border border-slate-200 p-3">
-            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Page title" className="flex-1 text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none" />
-            <button onClick={create} className="text-xs font-semibold text-white bg-[#203A3A] rounded-lg px-3 py-2">Create</button>
-          </div>
-        ) : null}
-
-        <AsyncListState loading={loading} error={error} data={pages} onRetry={refetch} emptyMessage="No pages yet.">
-          {(list) => (
-            <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl">
-              {list.map((p) => (
-                <Link key={p.id} href={`/course/${courseId}/pages/${p.id}`} className="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-700 hover:text-[#203A3A]">
-                  <FileText className="w-4 h-4 text-slate-400 shrink-0" />
-                  <span className="truncate">{p.title}</span>
-                  {!p.published && isTeacher ? <span className="text-[10px] font-bold uppercase text-amber-600 ml-auto">Unpublished</span> : null}
-                </Link>
-              ))}
-            </div>
-          )}
-        </AsyncListState>
+        {pages.length === 0 ? (
+          loading ? <Loader variant="page" size={48} className="min-h-[25vh]" label={t("lists.loadingPages")} /> : <EmptyState compact title={t("lists.noPages")} description={<ExplainerText k="pages.pages" />} />
+        ) : (
+          <List label={t("nav.pages")}>
+            {pages.map((p) => (
+              <ListRow
+                key={p.id}
+                icon={<FileText className="w-4 h-4 text-brand-fg" />}
+                title={p.title}
+                href={`/course/${courseId}/pages/${p.id}`}
+                actions={
+                  <Link href={`/course/${courseId}/pages/${p.id}`} className="text-caption font-semibold text-brand-fg hover:underline">
+                    {t("lists.read")} &rarr;
+                  </Link>
+                }
+              />
+            ))}
+          </List>
+        )}
       </div>
     </div>
   );

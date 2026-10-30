@@ -2,12 +2,21 @@
 import { useContext, useMemo, useState } from "react"
 import DataContext from "@/context/DataContext"
 import BrightnessSlider from "@/components/ui/BrightnessSlider"
+import { useLanguage } from "@/context/LanguageContext"
+import { LANGUAGE_NAMES } from "@/components/global/LanguageSwitcher"
+import ChangePasswordForm from "@/components/account/ChangePasswordForm"
+import { useToast } from "@/context/ToastContext"
+import { apiFetch } from "@/lib/api"
+import { ChoiceGroup, Select, TextInput } from "@/components/form"
+import { useQueryClient } from "@tanstack/react-query"
+import { MY_PROFILE_KEY, useMyProfile } from "@/components/teacher/GenderReminder"
+import { GENDERS } from "@/lib/profileOptions"
 
 function Section({ title, children }) {
   return (
     <div className="mb-8">
-      <h2 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">{title}</h2>
-      <div className="bg-white dark:bg-[#0f1318] border border-slate-200 dark:border-slate-700/50 rounded-xl divide-y divide-slate-100 dark:divide-slate-700/50">
+      <h2 className="text-ui font-semibold text-fg-subtle mb-3">{title}</h2>
+      <div className="bg-surface border border-line rounded-xl divide-y divide-line">
         {children}
       </div>
     </div>
@@ -18,98 +27,155 @@ function Row({ label, description, children }) {
   return (
     <div className="flex items-center justify-between px-5 py-4 gap-4">
       <div>
-        <p className="text-sm font-medium text-slate-700 dark:text-slate-200">{label}</p>
-        {description && <p className="text-xs text-slate-600 dark:text-slate-500 mt-0.5">{description}</p>}
+        <p className="text-ui font-medium text-fg-muted">{label}</p>
+        {description && <p className="text-caption text-fg-muted mt-0.5">{description}</p>}
       </div>
       <div className="flex-shrink-0">{children}</div>
     </div>
   )
 }
 
-function Toggle({ enabled, onChange }) {
+// Gender and phone: the teacher's own (the admin may have entered them already).
+function AboutMeRows() {
+  const { t } = useLanguage()
+  const { showToast } = useToast()
+  const queryClient = useQueryClient()
+  const profile = useMyProfile()
+  const [phone, setPhone] = useState(null)
+  const shownPhone = phone ?? profile.data?.phone ?? ""
+
+  const save = async (json) => {
+    try {
+      await apiFetch("/users/profile/update", { method: "PATCH", json })
+      await queryClient.invalidateQueries({ queryKey: MY_PROFILE_KEY })
+      showToast(t("teacher.settings.saved"), "success")
+      return true
+    } catch {
+      showToast(t("teacher.common.somethingWrong"), "error")
+      return false
+    }
+  }
+
   return (
-    <button
-      onClick={() => onChange(!enabled)}
-      className={`relative w-10 h-6 rounded-full transition-colors ${enabled ? "bg-[#2E8282]" : "bg-slate-200 dark:bg-slate-700"}`}
-    >
-      <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all ${enabled ? "left-5" : "left-1"}`} />
-    </button>
+    <>
+      <Row label={t("shell.people.gender")} description={t("shell.people.genderHelp")}>
+        <ChoiceGroup
+          value={profile.data?.gender || ""}
+          onChange={(gender) => save({ gender })}
+          options={GENDERS.map((g) => ({ value: g, label: t(`shell.people.genders.${g}`) }))}
+          columns={2}
+          size="sm"
+        />
+      </Row>
+      <Row label={t("teacher.settings.phone")} description={t("teacher.settings.phoneHelp")}>
+        <form className="flex gap-2" onSubmit={async (e) => { e.preventDefault(); if (await save({ phone: shownPhone.trim() })) setPhone(null) }}>
+          <TextInput type="tel" value={shownPhone} onChange={(e) => setPhone(e.target.value)} aria-label={t("teacher.settings.phone")} className="w-40" size="sm" />
+          <button type="submit" disabled={phone == null} className="text-caption font-semibold text-on-brand-strong bg-brand-strong rounded-lg px-3 py-1.5 disabled:opacity-50">
+            {t("teacher.settings.save")}
+          </button>
+        </form>
+      </Row>
+    </>
   )
 }
 
 export default function TeacherSettingsPage() {
-  const { unshiftString, logout } = useContext(DataContext)
+  const { logout, user } = useContext(DataContext)
+  const { t, lang, setLang } = useLanguage()
+  const { showToast } = useToast()
+  const [passwordStatus, setPasswordStatus] = useState({ type: "", message: "" })
+  const [signingOutOthers, setSigningOutOthers] = useState(false)
+  const mustChangePassword = !!user?.mustChangePassword
 
-  const teacherEmail = useMemo(() => {
-    if (typeof window === "undefined") return ""
-    const stored = localStorage.getItem("al")
-    return stored ? unshiftString(stored) : ""
-  }, [unshiftString])
+  const signOutOthers = async () => {
+    setSigningOutOthers(true)
+    try {
+      await apiFetch("/auth/logout-others", { method: "POST" })
+      showToast(t("teacher.settings.signedOutOthers"), "success")
+    } catch {
+      showToast(t("teacher.common.somethingWrong"), "error")
+    } finally {
+      setSigningOutOthers(false)
+    }
+  }
+
+  const teacherEmail = user?.email || "";
 
   const teacherName = useMemo(() => {
     if (typeof window === "undefined") return ""
-    const stored = localStorage.getItem("un")
-    return stored ? unshiftString(stored) : ""
-  }, [unshiftString])
-
-  const [emailNotifications, setEmailNotifications] = useState(true)
-  const [assignmentAlerts, setAssignmentAlerts] = useState(true)
-  const [studentJoinAlerts, setStudentJoinAlerts] = useState(false)
-  const [language, setLanguage] = useState("en")
+    return user?.fullName || ""
+  }, [user])
 
   return (
     <div className="max-w-2xl">
-      <h1 className="text-xl font-semibold text-slate-800 dark:text-white mb-6">Settings</h1>
+      <h1 className="text-section font-semibold text-fg mb-6">{t("teacher.settings.title")}</h1>
 
-      <Section title="Account">
-        <Row label="Name" description="Your display name">
-          <span className="text-sm text-slate-500 dark:text-slate-400">{teacherName || "—"}</span>
+      {mustChangePassword && (
+        <p role="alert" className="mb-6 px-4 py-3 rounded-xl border text-ui font-medium bg-warning-soft border-warning/30 text-warning-fg">
+          {t("teacher.settings.mustChange")}
+        </p>
+      )}
+
+      <Section title={t("teacher.settings.account")}>
+        <Row label={t("teacher.settings.name")} description={t("teacher.settings.nameHelp")}>
+          <span className="text-ui text-fg-subtle">{teacherName || "—"}</span>
         </Row>
-        <Row label="Email" description="Your login email">
-          <span className="text-sm text-slate-500 dark:text-slate-400">{teacherEmail || "—"}</span>
+        <Row label={t("teacher.settings.email")} description={t("teacher.settings.emailHelp")}>
+          <span className="text-ui text-fg-subtle">{teacherEmail || "—"}</span>
         </Row>
-        <Row label="Role">
-          <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[#2E8282]/10 text-[#2E8282]">Teacher</span>
+        <Row label={t("teacher.settings.role")}>
+          <span className="text-caption font-semibold px-2.5 py-1 rounded-full bg-brand/10 text-brand-fg">{t("teacher.settings.teacherRole")}</span>
         </Row>
+        <AboutMeRows />
       </Section>
 
-      <Section title="Display">
-        <Row label="Brightness" description="Adjust screen brightness to your preference">
+      <Section title={t("teacher.settings.security")}>
+        <div className="px-5 py-4">
+          <p className="text-ui font-medium text-fg-muted">{t("learner.account.changePassword")}</p>
+          <p className="text-caption text-fg-muted mt-0.5 mb-4">{t("teacher.settings.passwordHelp")}</p>
+          {passwordStatus.message && (
+            <p role="status" className={`mb-4 text-ui font-medium ${passwordStatus.type === "success" ? "text-success-fg" : "text-danger-fg"}`}>
+              {passwordStatus.message}
+            </p>
+          )}
+          <ChangePasswordForm onStatus={setPasswordStatus} accent="var(--brand-primary)" />
+        </div>
+        {!mustChangePassword && (
+          <Row label={t("teacher.settings.signOutOthers")} description={t("teacher.settings.signOutOthersHelp")}>
+            <button
+              onClick={signOutOthers}
+              disabled={signingOutOthers}
+              className="text-ui px-4 py-1.5 rounded-lg border border-line text-fg-muted hover:bg-surface-hover transition-colors disabled:opacity-50"
+            >
+              {t("teacher.settings.signOutOthersButton")}
+            </button>
+          </Row>
+        )}
+      </Section>
+
+      <Section title={t("teacher.settings.display")}>
+        <Row label={t("teacher.settings.brightness")} description={t("teacher.settings.brightnessHelp")}>
           <BrightnessSlider className="w-32" />
         </Row>
-        <Row label="Language" description="Interface language">
-          <select
-            value={language}
-            onChange={(e) => setLanguage(e.target.value)}
-            className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none focus:border-[#2E8282]"
-          >
-            <option value="en">English</option>
-            <option value="fr">Français</option>
-            <option value="rw">Kinyarwanda</option>
-            <option value="sw">Swahili</option>
-          </select>
+        <Row label={t("teacher.settings.language")} description={t("teacher.settings.languageHelp")}>
+          <Select
+            aria-label={t("teacher.settings.language")}
+            value={lang}
+            onChange={(e) => setLang(e.target.value)}
+            size="sm"
+            className="w-40"
+            options={Object.entries(LANGUAGE_NAMES).map(([code, name]) => ({ value: code, label: name }))}
+          />
         </Row>
       </Section>
 
-      <Section title="Notifications">
-        <Row label="Email notifications" description="Receive updates via email">
-          <Toggle enabled={emailNotifications} onChange={setEmailNotifications} />
-        </Row>
-        <Row label="Assignment alerts" description="Notify when students complete assignments">
-          <Toggle enabled={assignmentAlerts} onChange={setAssignmentAlerts} />
-        </Row>
-        <Row label="Student join alerts" description="Notify when a student joins your class">
-          <Toggle enabled={studentJoinAlerts} onChange={setStudentJoinAlerts} />
-        </Row>
-      </Section>
-
-      <Section title="Account Actions">
-        <Row label="Sign out" description="Log out of your account">
+      <Section title={t("teacher.settings.accountActions")}>
+        <Row label={t("teacher.settings.signOut")} description={t("teacher.settings.signOutHelp")}>
           <button
             onClick={logout}
-            className="text-sm px-4 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+            className="text-ui px-4 py-1.5 rounded-lg border border-line text-fg-muted hover:bg-surface-hover transition-colors"
           >
-            Sign Out
+            {t("teacher.settings.signOutButton")}
           </button>
         </Row>
       </Section>

@@ -4,7 +4,6 @@ import React, { useState, useEffect, useContext, useRef } from 'react';
 import {
     User,
     Phone,
-    MapPin,
     GraduationCap,
     Globe,
     CheckCircle2,
@@ -17,43 +16,53 @@ import {
     Loader2
 } from 'lucide-react';
 import DataContext from '@/context/DataContext';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/queryKeys';
+import { apiFetch, getErrorMessage } from '@/lib/api';
 import { useLanguage } from '@/context/LanguageContext';
 import { useToast } from '@/context/ToastContext';
+import LanguageSwitcher from '@/components/global/LanguageSwitcher';
+import { fill } from '@/lib/fill';
+import { GRADE_LEVELS } from '@/lib/grades';
+import { AccessibilityField, GenderField } from '@/components/profile/ProfileFields';
+import { GENDERS } from '@/lib/profileOptions';
+import { Field, Select, TextInput } from '@/components/form';
+import { Label } from "@/components/form";
 
-// Rwanda Provinces and Districts Dataset
-const RWANDA_LOCATIONS = {
-    "Kigali City": ["Gasabo", "Kicukiro", "Nyarugenge"],
-    "Northern Province": ["Burera", "Gakenke", "Gicumbi", "Musanze", "Rulindo"],
-    "Southern Province": ["Gisagara", "Huye", "Kamonyi", "Muhanga", "Nyamagabe", "Nyanza", "Nyaruguru", "Ruhango"],
-    "Eastern Province": ["Bugesera", "Gatsibo", "Kayonza", "Kirehe", "Ngoma", "Nyagatare", "Rwamagana"],
-    "Western Province": ["Karongi", "Ngororero", "Nyabihu", "Nyamasheke", "Rubavu", "Rusizi", "Rutsiro"],
-    "International / Other": ["Other District / Region"]
+// Nobody is asked where they live: one box serves one school, and the box places everyone at the
+// school's location (province, district, rural/urban), set by the admin on the School page.
+
+
+// What each role is asked, step by step. Learners: who they are, then their class and language.
+// Teachers: only what's theirs to answer (the admin set their name and email), on one step.
+// The `fields` name the blocks rendered by FIELD below; `required` gate the step's button.
+const VARIANTS = {
+    scholar: {
+        text: "learner.profileSetup",
+        steps: [
+            { key: "personal", icon: User, title: "personalTitle", help: "personalHelp", label: "stepPersonal", fields: ["fullName", "phone", "gender", "disability"], required: ["fullName", "gender", "disability"] },
+            { key: "academic", icon: GraduationCap, title: "academicTitle", help: "academicHelp", label: "stepAcademic", fields: ["school", "grade", "language"], required: ["grade"] },
+        ],
+    },
+    teacher: {
+        text: "teacher.profileSetup",
+        steps: [
+            { key: "about", icon: User, title: "aboutTitle", help: "aboutHelp", label: "stepAbout", fields: ["gender", "disability", "language"], required: ["gender", "disability"] },
+        ],
+    },
 };
 
-const GRADE_LEVELS = [
-    { value: "Primary 1", label: "Primary 1 (P1)" },
-    { value: "Primary 2", label: "Primary 2 (P2)" },
-    { value: "Primary 3", label: "Primary 3 (P3)" },
-    { value: "Primary 4", label: "Primary 4 (P4)" },
-    { value: "Primary 5", label: "Primary 5 (P5)" },
-    { value: "Primary 6", label: "Primary 6 (P6)" },
-    { value: "Senior 1", label: "Senior 1 (S1 - O'Level)" },
-    { value: "Senior 2", label: "Senior 2 (S2 - O'Level)" },
-    { value: "Senior 3", label: "Senior 3 (S3 - O'Level)" },
-    { value: "Senior 4", label: "Senior 4 (S4 - A'Level / TVET)" },
-    { value: "Senior 5", label: "Senior 5 (S5 - A'Level / TVET)" },
-    { value: "Senior 6", label: "Senior 6 (S6 - A'Level / TVET)" },
-    { value: "University / Higher Ed", label: "University / Higher Education" },
-    { value: "Teacher / Educator", label: "Teacher / Educator" },
-    { value: "Self-Paced Learner", label: "Self-Paced / Independent Learner" }
-];
-
 export default function MandatoryProfileSetupModal() {
-    const { authenticated, unshiftString, shiftString, role } = useContext(DataContext);
-    const { lang, setLang } = useLanguage();
+    const { authenticated, role, user, refreshUser } = useContext(DataContext);
+    const queryClient = useQueryClient();
+    const { lang, setLang, t } = useLanguage();
     const { showToast } = useToast();
 
     const [isOpen, setIsOpen] = useState(false);
+    // An account a teacher made for a learner: the teacher already knows who they are, so the
+    // questions can wait ("Later", asked again next visit) instead of blocking the first one.
+    const [deferrable, setDeferrable] = useState(false);
+    const DEFER_KEY = "somabox.profileSetup.later";
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
     const [checkingStatus, setCheckingStatus] = useState(true);
@@ -63,12 +72,12 @@ export default function MandatoryProfileSetupModal() {
     const [fullName, setFullName] = useState('');
     const [phone, setPhone] = useState('');
     const [gender, setGender] = useState('');
-    const [province, setProvince] = useState('');
-    const [district, setDistrict] = useState('');
-    const [customDistrict, setCustomDistrict] = useState('');
-    const [isRural, setIsRural] = useState(false);
-    const [disabilityStatus, setDisabilityStatus] = useState('none');
-    const [schoolName, setSchoolName] = useState('');
+    // Must be answered explicitly: a pre-ticked default would record "no disability" for people
+    // who never chose (the school reports on this).
+    const [disabilityStatus, setDisabilityStatus] = useState('');
+    // One box serves one school: the school (name, place, rural/urban) comes from the box's
+    // settings and is shown read-only. { name, code, province, district, isRural }.
+    const [school, setSchool] = useState(null);
     const [gradeLevel, setGradeLevel] = useState('');
     const [preferredLanguage, setPreferredLanguage] = useState(lang || 'en');
 
@@ -81,62 +90,47 @@ export default function MandatoryProfileSetupModal() {
     // heading (and read it) instead of silently staying on the Continue button.
     const stepHeadingRef = useRef(null);
 
-    const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3002';
+    // Switching the UI language here (top of the form) also sets the preferred language saved
+    // with the profile, so finishing the form doesn't switch it back.
+    const firstLangRun = useRef(true);
+    useEffect(() => {
+        if (firstLangRun.current) { firstLangRun.current = false; return; }
+        setPreferredLanguage(lang);
+    }, [lang]);
 
-    const userEmail = typeof window !== 'undefined' && localStorage.getItem('al')
-        ? unshiftString(localStorage.getItem('al'))
-        : '';
+    const userEmail = user?.email || "";
 
-    const currentRole = role ? unshiftString(role) : 'scholar';
+    const currentRole = role || 'scholar';
 
     useEffect(() => {
-        if (!authenticated || !userEmail) {
+        // A temporary password is changed first (the server allows nothing else until then).
+        if (!authenticated || !userEmail || user?.mustChangePassword) {
+            setIsOpen(false);
             setCheckingStatus(false);
             return;
         }
 
         const checkProfileCompleteness = async () => {
             try {
-                // Check if user already marked it completed locally
-                const isLocallyComplete = typeof window !== 'undefined' && localStorage.getItem(`somabox_profile_completed_${userEmail}`) === 'true';
-
-                const params = new URLSearchParams({ email: userEmail, role: currentRole });
-                const res = await fetch(`${SERVER_URL}/users/profile/view?${params}`);
-                if (!res.ok) {
-                    setCheckingStatus(false);
-                    return;
-                }
-                const data = await res.json();
+                // The same kept profile as the account page (one request for both).
+                const data = await queryClient.fetchQuery({ queryKey: queryKeys.profile, queryFn: () => apiFetch("/users/profile/view") });
 
                 // Populate existing data
                 if (data.full_name) setFullName(data.full_name);
                 if (data.phone) setPhone(data.phone);
-                if (data.gender && data.gender !== 'prefer_not_to_say') setGender(data.gender);
-                if (data.region_province && data.region_province !== 'Not Specified') setProvince(data.region_province);
-                if (data.region_district && data.region_district !== 'Not Specified') setDistrict(data.region_district);
-                if (data.is_rural !== undefined) setIsRural(data.is_rural === 1);
-                if (data.disability_status) setDisabilityStatus(data.disability_status);
-                if (data.school_name) setSchoolName(data.school_name);
+                if (GENDERS.includes(data.gender)) setGender(data.gender);
+                if (data.school) setSchool(data.school);
+                // Only reuse this once it was actually answered (older accounts hold defaults).
+                if (data.isProfileComplete && data.disability_status) setDisabilityStatus(data.disability_status);
                 if (data.grade_level) setGradeLevel(data.grade_level);
                 if (data.preferred_language) setPreferredLanguage(data.preferred_language);
 
-                // Check profile completeness
-                const hasGender = Boolean(data.gender && data.gender !== 'prefer_not_to_say' && data.gender.trim() !== '');
-                const hasProvince = Boolean(data.region_province && data.region_province !== 'Not Specified' && data.region_province.trim() !== '');
-                const hasDistrict = Boolean(data.region_district && data.region_district !== 'Not Specified' && data.region_district.trim() !== '');
-
-                const isComplete = Boolean(data.isProfileComplete || (hasGender && hasProvince && hasDistrict));
-
-                if (isComplete) {
-                    // Profile is already filled and complete: record completion flag and DO NOT show popup
-                    if (typeof window !== 'undefined') {
-                        localStorage.setItem(`somabox_profile_completed_${userEmail}`, 'true');
-                    }
-                    setIsOpen(false);
-                } else if (!isLocallyComplete) {
-                    // Profile is missing required information and not marked complete: show mandatory onboarding
-                    setIsOpen(true);
-                }
+                // The server decides: a profile counts as complete once every required answer was
+                // given explicitly (it records when). Nothing on this device can skip it.
+                let later = false;
+                try { later = !!data.profile_deferred && window.sessionStorage.getItem(DEFER_KEY) === "1"; } catch { /* storage unavailable */ }
+                setDeferrable(!!data.profile_deferred);
+                setIsOpen(!data.isProfileComplete && !later);
             } catch (err) {
                 console.error("Error checking profile completion:", err);
             } finally {
@@ -145,61 +139,50 @@ export default function MandatoryProfileSetupModal() {
         };
 
         checkProfileCompleteness();
-    }, [authenticated, userEmail, currentRole, SERVER_URL]);
+    }, [authenticated, userEmail, currentRole, user?.mustChangePassword]); // eslint-disable-line react-hooks/exhaustive-deps
 
+    const variant = VARIANTS[currentRole] || VARIANTS.scholar;
+    // Text that differs per variant (title, step names); the field labels are shared.
+    const vt = (key) => t(`${variant.text}.${key}`);
+    const answers = { fullName: fullName.trim(), gender, disability: disabilityStatus, grade: gradeLevel };
+    const missing = (n) => variant.steps[n - 1].required.filter((field) => !answers[field]);
     // Live per-step validity — drives the disabled/aria-disabled state on
     // Continue directly, independent of whether the user has attempted to
     // submit yet, so the requirement is always accurately represented.
-    const isStep1Valid = fullName.trim() !== '' && !!gender;
-    const isStep2Valid = !!province && (
-        province === "International / Other" ? customDistrict.trim() !== '' : !!district
-    );
-    const isStep3Valid = currentRole !== 'scholar' || !!gradeLevel;
+    const isStepValid = (n) => missing(n).length === 0;
 
-    const STEP_LABELS = { 1: "Personal Details", 2: "Location & Region", 3: "Academic Info" };
+    const STEP_LABELS = Object.fromEntries(variant.steps.map((st, i) => [i + 1, vt(st.label)]));
+    const LAST_STEP = variant.steps.length;
+    const current = variant.steps[step - 1];
+    // "GS Kigali · Gasabo, Kigali City" (the place only when the school has set it).
+    const schoolPlace = [school?.district, school?.province].filter(Boolean).join(", ");
 
-    // Handle step 1 validation
-    const validateStep1 = () => {
-        const errs = {};
-        if (!fullName.trim()) errs.fullName = "Full name is required";
-        if (!gender) errs.gender = "Please select your gender identity";
-        setErrors(errs);
-        return Object.keys(errs).length === 0;
+    const ERROR_TEXT = {
+        fullName: () => t("learner.profileSetup.errName"),
+        gender: () => t("learner.profileSetup.errGender"),
+        disability: () => t("school.onboarding.errDisability"),
+        grade: () => t("learner.profileSetup.errGrade"),
     };
-
-    // Handle step 2 validation
-    const validateStep2 = () => {
-        const errs = {};
-        if (!province) errs.province = "Please select your province / region";
-        const finalDistrict = province === "International / Other" ? customDistrict : district;
-        if (!finalDistrict || !finalDistrict.trim()) errs.district = "Please select or provide your district";
-        setErrors(errs);
-        return Object.keys(errs).length === 0;
-    };
-
-    // Handle step 3 validation
-    const validateStep3 = () => {
-        const errs = {};
-        if (currentRole === 'scholar' && !gradeLevel) {
-            errs.gradeLevel = "Please choose your grade or study level";
-        }
+    const ERROR_KEY = { fullName: "fullName", gender: "gender", disability: "disability", grade: "gradeLevel" };
+    const validateStep = (n) => {
+        const errs = Object.fromEntries(missing(n).map((field) => [ERROR_KEY[field], ERROR_TEXT[field]()]));
         setErrors(errs);
         return Object.keys(errs).length === 0;
     };
 
     const handleNext = () => {
-        const valid = step === 1 ? validateStep1() : step === 2 ? validateStep2() : true;
+        const valid = validateStep(step);
         if (!valid) {
             // Continue is only reachable here via keyboard activation racing the
             // disabled state, or a stale click — announce why it didn't move so
             // a screen-reader user isn't left wondering if anything happened.
-            setAnnouncement("Please fill in the required fields before continuing.");
+            setAnnouncement(t("learner.profileSetup.fillRequired"));
             return;
         }
         const nextStep = step + 1;
         setStep(nextStep);
         setErrors({});
-        setAnnouncement(`Step ${nextStep} of 3: ${STEP_LABELS[nextStep]}`);
+        setAnnouncement(fill(t("learner.profileSetup.stepAnnounce"), { n: nextStep, label: STEP_LABELS[nextStep] }));
     };
 
     const handleBack = () => {
@@ -207,7 +190,7 @@ export default function MandatoryProfileSetupModal() {
             setErrors({});
             const prevStep = step - 1;
             setStep(prevStep);
-            setAnnouncement(`Step ${prevStep} of 3: ${STEP_LABELS[prevStep]}`);
+            setAnnouncement(fill(t("learner.profileSetup.stepAnnounce"), { n: prevStep, label: STEP_LABELS[prevStep] }));
         }
     };
 
@@ -220,52 +203,41 @@ export default function MandatoryProfileSetupModal() {
         }
     }, [step, isOpen, isCompletedSuccess]);
 
+    const asked = new Set(variant.steps.flatMap((st) => st.fields));
+
     const handleFinalSubmit = async (e) => {
         e.preventDefault();
-        if (!validateStep3()) return;
+        if (!validateStep(LAST_STEP)) return;
 
         setLoading(true);
         setErrors({});
 
-        const finalDistrict = province === "International / Other" ? (customDistrict || "International") : district;
-
         try {
-            const res = await fetch(`${SERVER_URL}/users/profile/update`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    email: userEmail,
-                    fullName: fullName.trim(),
-                    phone: phone.trim(),
+            await apiFetch("/users/profile/update", {
+                method: "PATCH",
+                json: {
+                    ...(asked.has("fullName") ? { fullName: fullName.trim() } : {}),
+                    ...(asked.has("phone") ? { phone: phone.trim() } : {}),
+                    ...(asked.has("grade") ? { gradeLevel } : {}),
                     gender,
-                    regionProvince: province,
-                    regionDistrict: finalDistrict,
-                    isRural,
                     disabilityStatus,
-                    schoolName: schoolName.trim(),
-                    gradeLevel,
-                    preferredLanguage
-                })
+                    preferredLanguage,
+                    completeProfile: true
+                },
+            }).catch((err) => {
+                throw new Error(err?.body?.message || (err?.status === 0 ? getErrorMessage(err, t) : t("learner.profileSetup.saveFailed")));
             });
 
-            if (!res.ok) {
-                const errData = await res.json();
-                throw new Error(errData.message || 'Failed to update profile');
-            }
-
-            // Persist completion flag so it never prompts again
-            if (typeof window !== 'undefined') {
-                localStorage.setItem(`somabox_profile_completed_${userEmail}`, 'true');
-                if (fullName.trim()) {
-                    localStorage.setItem('un', shiftString(fullName.trim()));
-                }
-            }
+            // Pick up the new name in the header and menus; the profile reminder goes.
+            await refreshUser();
+            queryClient.invalidateQueries({ queryKey: queryKeys.notifications });
+            queryClient.invalidateQueries({ queryKey: queryKeys.profile });
             if (preferredLanguage) {
                 setLang(preferredLanguage);
             }
 
             setIsCompletedSuccess(true);
-            showToast("Profile completed successfully! Welcome to SomaBox LMS.", "success");
+            showToast(t("learner.profileSetup.doneToast"), "success");
 
             setTimeout(() => {
                 setIsOpen(false);
@@ -273,456 +245,259 @@ export default function MandatoryProfileSetupModal() {
 
         } catch (err) {
             console.error("Failed to complete profile:", err);
-            showToast(`Error: ${err.message}`, "error");
+            showToast(fill(t("learner.profileSetup.errorToast"), { message: err.message }), "error");
         } finally {
             setLoading(false);
         }
     };
 
+    // The blocks a step can show (see VARIANTS).
+    const FIELD = {
+        fullName: () => (
+            <Field label={t("learner.profileSetup.fullName")} error={errors.fullName} required>
+                <TextInput value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder={t("learner.profileSetup.namePlaceholder")} size="lg" autoComplete="name" />
+            </Field>
+        ),
+        phone: () => (
+            <Field label={t("learner.profileSetup.phone")} optional={t("learner.profileSetup.optional")}>
+                <TextInput type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+250 788 123 456" size="lg" autoComplete="tel" />
+            </Field>
+        ),
+        gender: () => <GenderField value={gender} onChange={setGender} error={errors.gender} size="lg" />,
+        disability: () => <AccessibilityField value={disabilityStatus} onChange={setDisabilityStatus} error={errors.disability} size="lg" />,
+        school: () => (
+            <>
+            {/* School and its place: set by the school, shown read-only (nobody is asked). */}
+            {school?.name && (
+                <div className="flex items-start gap-2 p-3.5 rounded-xl bg-surface-sunken border border-line text-ui">
+                    <Building2 className="w-4 h-4 mt-0.5 text-brand-fg shrink-0" aria-hidden="true" />
+                    <div className="min-w-0">
+                        <p className="font-semibold text-fg-muted">
+                            {t("school.onboarding.schoolLabel")}{" "}
+                            <span className="font-extrabold text-fg">{school.name}</span>
+                            {schoolPlace ? <span className="text-fg-muted"> · {schoolPlace}</span> : null}
+                        </p>
+                        <p className="text-caption text-fg-subtle mt-0.5">{t("school.onboarding.setBySchool")}</p>
+                    </div>
+                </div>
+            )}
+            </>
+        ),
+        grade: () => (
+            <Field label={t("learner.profileSetup.grade")} error={errors.gradeLevel} required={currentRole === 'scholar'}>
+                <Select value={gradeLevel} onChange={(e) => setGradeLevel(e.target.value)} size="lg"
+                    placeholder={t("learner.profileSetup.selectLevel")}
+                    options={GRADE_LEVELS.map((g) => ({ value: g.value, label: t(`learner.profileSetup.grades.${g.key}`) }))} />
+            </Field>
+        ),
+        language: () => (
+            <>
+            {/* Preferred Interface Language */}
+            <div>
+                <Label>
+                    {t("learner.profileSetup.preferredLanguage")}
+                </Label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {[
+                        { code: "en", name: "English" },
+                        { code: "rw", name: "Ikinyarwanda" },
+                        { code: "fr", name: "Français" },
+                        { code: "sw", name: "Kiswahili" },
+                        { code: "es", name: "Español" }
+                    ].map((l) => (
+                        <button
+                            key={l.code}
+                            type="button"
+                            onClick={() => setPreferredLanguage(l.code)}
+                            className={`py-2.5 px-3 rounded-xl border text-caption font-bold transition-all flex items-center justify-center gap-1.5 ${
+                                preferredLanguage === l.code
+                                    ? "border-brand bg-brand-soft text-brand-fg ring-2 ring-brand/20"
+                                    : "border-line bg-surface-sunken/50 text-fg-muted hover:bg-surface-hover"
+                            }`}
+                        >
+                            <Globe className="w-3.5 h-3.5 opacity-70" />
+                            {l.name}
+                        </button>
+                    ))}
+                </div>
+            </div>
+            </>
+        ),
+    };
+
     if (!isOpen || checkingStatus) return null;
 
     return (
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-6 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-6 bg-scrim backdrop-blur-md animate-in fade-in duration-200">
             {/* Modal Container */}
             <div
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="onboarding-modal-title"
-                className="w-full max-w-2xl bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[90vh] transition-all transform animate-in zoom-in-95 duration-200"
+                className="w-full max-w-2xl bg-surface-raised rounded-3xl shadow-2xl border border-line overflow-hidden flex flex-col max-h-[90vh] transition-all transform animate-in zoom-in-95 duration-200"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header Banner */}
-                <div className="relative bg-gradient-to-r from-accent-dark via-teal-800 to-teal-900 px-6 sm:px-8 py-6 text-white overflow-hidden shrink-0">
-                    <div className="absolute -top-12 -right-12 w-40 h-40 bg-teal-500/20 rounded-full blur-2xl pointer-events-none" />
-                    <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-amber-500/20 rounded-full blur-xl pointer-events-none" />
+                <div className="dark relative bg-brand-deep px-6 sm:px-8 py-6 text-white overflow-hidden shrink-0">
+                    <div className="absolute -top-12 -right-12 w-40 h-40 bg-brand/20 rounded-full blur-2xl pointer-events-none" />
+                    <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-warning/20 rounded-full blur-xl pointer-events-none" />
 
                     <div className="relative z-10 flex items-start justify-between gap-4">
                         <div className="space-y-1.5">
-                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-teal-200 text-xs font-bold tracking-wide uppercase">
-                                <Sparkles className="w-3.5 h-3.5 text-teal-300" />
-                                First-Time Onboarding
+                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-brand-fg text-caption font-bold">
+                                <Sparkles className="w-3.5 h-3.5 text-brand-fg" />
+                                {vt("badge")}
                             </div>
-                            <h2 id="onboarding-modal-title" className="text-xl sm:text-2xl font-black tracking-tight text-white">
-                                Complete Your Profile
+                            <h2 id="onboarding-modal-title" className="text-section sm:text-title font-extrabold tracking-tight text-white">
+                                {vt("title")}
                             </h2>
-                            <p className="text-white/80 text-xs sm:text-sm font-medium">
-                                Please take a moment to set up your learner information to unlock your full dashboard.
+                            <p className="text-white/80 text-caption sm:text-ui font-medium">
+                                {vt("subtitle")}
                             </p>
                         </div>
-                        <div className="hidden sm:flex p-3 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-sm text-teal-300 shrink-0">
-                            <ShieldCheck className="w-8 h-8" />
+                        <div className="flex flex-col items-end gap-2 shrink-0">
+                            <LanguageSwitcher compact />
+                            <div className="hidden sm:flex p-3 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-sm text-brand-fg">
+                                <ShieldCheck className="w-8 h-8" />
+                            </div>
                         </div>
                     </div>
 
-                    {/* Step Progress Tracker */}
+                    {/* Step Progress Tracker (only when there's more than one step) */}
+                    {LAST_STEP > 1 && (
                     <div className="mt-6 pt-4 border-t border-white/15 flex items-center justify-between gap-2">
-                        {[
-                            { num: 1, label: "Personal Details", icon: User },
-                            { num: 2, label: "Location & Region", icon: MapPin },
-                            { num: 3, label: "Academic Info", icon: GraduationCap }
-                        ].map((item, idx) => {
-                            const IconComponent = item.icon;
+                        {variant.steps.map((st, i) => ({ num: i + 1, label: STEP_LABELS[i + 1] })).map((item, idx) => {
                             const isActive = step === item.num;
                             const isDone = step > item.num || isCompletedSuccess;
 
                             return (
                                 <div key={item.num} className="flex items-center gap-2 flex-1 min-w-0">
                                     <div
-                                        className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs font-black transition-all shrink-0 ${
+                                        className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-caption font-extrabold transition-all shrink-0 ${
                                             isDone
-                                                ? "bg-teal-400 text-slate-900"
+                                                ? "bg-brand text-on-brand"
                                                 : isActive
-                                                ? "bg-white text-slate-900 ring-2 ring-teal-300 ring-offset-2 ring-offset-teal-900"
-                                                : "bg-white/20 text-white/60"
+                                                ? "bg-fg text-surface ring-2 ring-brand/40 ring-offset-2 ring-offset-brand-strong"
+                                                : "bg-white/20 text-on-brand/60"
                                         }`}
                                     >
                                         {isDone ? <CheckCircle2 className="w-4 h-4" /> : item.num}
                                     </div>
                                     <div className="hidden md:block truncate">
-                                        <p className={`text-[11px] font-bold leading-tight ${isActive ? "text-white" : "text-white/60"}`}>
-                                            Step {item.num}
+                                        <p className={`text-caption font-bold leading-tight ${isActive ? "text-white" : "text-white/60"}`}>
+                                            {fill(t("learner.profileSetup.stepN"), { n: item.num })}
                                         </p>
-                                        <p className="text-[10px] text-white/70 truncate">{item.label}</p>
+                                        <p className="text-caption text-white/70 truncate">{item.label}</p>
                                     </div>
-                                    {idx < 2 && (
-                                        <div className={`flex-1 h-0.5 mx-1 hidden sm:block ${step > item.num ? "bg-teal-400" : "bg-white/20"}`} />
+                                    {idx < LAST_STEP - 1 && (
+                                        <div className={`flex-1 h-0.5 mx-1 hidden sm:block ${step > item.num ? "bg-brand" : "bg-white/20"}`} />
                                     )}
                                 </div>
                             );
                         })}
                     </div>
+                    )}
                 </div>
 
                 {/* Form Body Content */}
                 <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-6">
                     {isCompletedSuccess ? (
                         <div className="py-12 flex flex-col items-center justify-center text-center space-y-4 animate-in zoom-in-95 duration-300">
-                            <div className="w-20 h-20 rounded-full bg-emerald-100 dark:bg-emerald-950/60 border-2 border-emerald-500 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shadow-xl">
+                            <div className="w-20 h-20 rounded-full bg-success-soft border-2 border-success text-success-fg flex items-center justify-center shadow-xl">
                                 <CheckCircle2 className="w-10 h-10" />
                             </div>
                             <div className="space-y-1">
-                                <h3 className="text-2xl font-black text-slate-900 dark:text-white">
-                                    You&apos;re All Set!
+                                <h3 className="text-title font-extrabold text-fg">
+                                    {t("learner.profileSetup.allSet")}
                                 </h3>
-                                <p className="text-sm font-medium text-slate-600 dark:text-slate-300 max-w-sm">
-                                    Your profile has been successfully configured. Launching your personalized SomaBox portal...
+                                <p className="text-ui font-medium text-fg-muted max-w-sm">
+                                    {t("learner.profileSetup.allSetBody")}
                                 </p>
                             </div>
-                            <div className="flex items-center gap-2 text-xs font-bold text-teal-600 dark:text-teal-400 pt-2">
+                            <div className="flex items-center gap-2 text-caption font-bold text-brand-fg pt-2">
                                 <Loader2 className="w-4 h-4 animate-spin" />
-                                Unlocking dashboard...
+                                {t("learner.profileSetup.unlocking")}
                             </div>
                         </div>
                     ) : (
                         <div>
-                            {/* STEP 1: Personal Details */}
-                            {step === 1 && (
-                                <div className="space-y-5 animate-in fade-in-50 duration-200">
-                                    <div className="border-b border-slate-200 dark:border-slate-800 pb-3">
-                                        <h3 ref={stepHeadingRef} tabIndex={-1} className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2 outline-none">
-                                            <User className="w-4 h-4 text-teal-600 dark:text-teal-400" />
-                                            Personal Information
-                                        </h3>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                                            Let us know how to address you and keep your account secure.
-                                        </p>
-                                    </div>
-
-                                    {/* Full Name */}
-                                    <div>
-                                        <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1.5">
-                                            Full Name <span className="text-rose-500">*</span>
-                                        </label>
-                                        <div className="relative">
-                                            <input
-                                                type="text"
-                                                value={fullName}
-                                                onChange={(e) => setFullName(e.target.value)}
-                                                placeholder="e.g. Mugisha Jean Claude"
-                                                className={`w-full h-11 px-3.5 rounded-xl border ${
-                                                    errors.fullName
-                                                        ? "border-rose-500 bg-rose-50/30 dark:bg-rose-950/20"
-                                                        : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/60"
-                                                } text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all`}
-                                            />
-                                        </div>
-                                        {errors.fullName && (
-                                            <p className="text-[11px] font-bold text-rose-500 mt-1">{errors.fullName}</p>
-                                        )}
-                                    </div>
-
-                                    {/* Phone Number */}
-                                    <div>
-                                        <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1.5">
-                                            Phone Number <span className="text-slate-600 normal-case font-medium">(optional)</span>
-                                        </label>
-                                        <div className="relative">
-                                            <input
-                                                type="tel"
-                                                value={phone}
-                                                onChange={(e) => setPhone(e.target.value)}
-                                                placeholder="+250 788 123 456"
-                                                className="w-full h-11 px-3.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/60 text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    {/* Gender Identity */}
-                                    <div>
-                                        <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1.5">
-                                            Gender Identity <span className="text-rose-500">*</span>
-                                        </label>
-                                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-2.5">
-                                            Used strictly for demographic equality and educational impact monitoring.
-                                        </p>
-                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                                            {[
-                                                { value: "male", label: "Male" },
-                                                { value: "female", label: "Female" },
-                                                { value: "other", label: "Other / Non-Binary" }
-                                            ].map((opt) => (
-                                                <button
-                                                    key={opt.value}
-                                                    type="button"
-                                                    onClick={() => setGender(opt.value)}
-                                                    className={`py-3 px-3 rounded-xl border text-xs font-extrabold transition-all flex items-center justify-center gap-2 ${
-                                                        gender === opt.value
-                                                            ? "border-teal-600 bg-teal-50 dark:bg-teal-950/50 text-teal-800 dark:text-teal-200 shadow-sm ring-2 ring-teal-500/20"
-                                                            : "border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/40 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-                                                    }`}
-                                                >
-                                                    {gender === opt.value && <CheckCircle2 className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />}
-                                                    {opt.label}
-                                                </button>
-                                            ))}
-                                        </div>
-                                        {errors.gender && (
-                                            <p className="text-[11px] font-bold text-rose-500 mt-1.5">{errors.gender}</p>
-                                        )}
-                                    </div>
+                            <div className="space-y-5 animate-in fade-in-50 duration-200">
+                                <div className="border-b border-line pb-3">
+                                    <h3 ref={stepHeadingRef} tabIndex={-1} className="text-item font-extrabold text-fg flex items-center gap-2 outline-none">
+                                        <current.icon className="w-4 h-4 text-brand-fg" />
+                                        {vt(current.title)}
+                                    </h3>
+                                    <p className="text-caption text-fg-subtle mt-0.5">
+                                        {vt(current.help)}
+                                    </p>
                                 </div>
-                            )}
-
-                            {/* STEP 2: Location & Demographics */}
-                            {step === 2 && (
-                                <div className="space-y-5 animate-in fade-in-50 duration-200">
-                                    <div className="border-b border-slate-200 dark:border-slate-800 pb-3">
-                                        <h3 ref={stepHeadingRef} tabIndex={-1} className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2 outline-none">
-                                            <MapPin className="w-4 h-4 text-teal-600 dark:text-teal-400" />
-                                            Geographic Location & Inclusion
-                                        </h3>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                                            Helps deliver localized curricula and accessibility support.
-                                        </p>
-                                    </div>
-
-                                    {/* Province Selection */}
-                                    <div>
-                                        <label htmlFor="onboarding-province" className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1.5">
-                                            Province / Region <span className="text-rose-500">*</span>
-                                        </label>
-                                        <select
-                                            id="onboarding-province"
-                                            value={province}
-                                            onChange={(e) => {
-                                                setProvince(e.target.value);
-                                                setDistrict('');
-                                            }}
-                                            className={`w-full h-11 px-3 rounded-xl border ${
-                                                errors.province
-                                                    ? "border-rose-500 bg-rose-50/30 dark:bg-rose-950/20"
-                                                    : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/60"
-                                            } text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all`}
-                                        >
-                                            <option value="">-- Select Province / Region --</option>
-                                            {Object.keys(RWANDA_LOCATIONS).map((prov) => (
-                                                <option key={prov} value={prov}>{prov}</option>
-                                            ))}
-                                        </select>
-                                        {errors.province && (
-                                            <p className="text-[11px] font-bold text-rose-500 mt-1">{errors.province}</p>
-                                        )}
-                                    </div>
-
-                                    {/* District Selection */}
-                                    <div>
-                                        <label htmlFor="onboarding-district" className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1.5">
-                                            District <span className="text-rose-500">*</span>
-                                        </label>
-                                        {!province && (
-                                            <p id="district-hint" className="text-[11px] font-semibold text-amber-700 dark:text-amber-400 mb-1.5">
-                                                Select a province above first — district options depend on it.
-                                            </p>
-                                        )}
-                                        {province === "International / Other" ? (
-                                            <input
-                                                id="onboarding-district"
-                                                type="text"
-                                                value={customDistrict}
-                                                onChange={(e) => setCustomDistrict(e.target.value)}
-                                                placeholder="Enter your district or city"
-                                                className="w-full h-11 px-3.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/60 text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all"
-                                            />
-                                        ) : (
-                                            <select
-                                                id="onboarding-district"
-                                                value={district}
-                                                onChange={(e) => setDistrict(e.target.value)}
-                                                disabled={!province}
-                                                aria-describedby={!province ? "district-hint" : undefined}
-                                                className={`w-full h-11 px-3 rounded-xl border ${
-                                                    errors.district
-                                                        ? "border-rose-500 bg-rose-50/30 dark:bg-rose-950/20"
-                                                        : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/60"
-                                                } text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed`}
-                                            >
-                                                <option value="">{province ? "-- Select District --" : "Select a province first"}</option>
-                                                {province && RWANDA_LOCATIONS[province]?.map((dist) => (
-                                                    <option key={dist} value={dist}>{dist}</option>
-                                                ))}
-                                            </select>
-                                        )}
-                                        {errors.district && (
-                                            <p className="text-[11px] font-bold text-rose-500 mt-1">{errors.district}</p>
-                                        )}
-                                    </div>
-
-                                    {/* Rural / Urban Checkbox */}
-                                    <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80 flex items-start gap-3">
-                                        <input
-                                            type="checkbox"
-                                            id="ruralOnboarding"
-                                            checked={isRural}
-                                            onChange={(e) => setIsRural(e.target.checked)}
-                                            className="mt-0.5 w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500 cursor-pointer"
-                                        />
-                                        <label htmlFor="ruralOnboarding" className="text-xs font-semibold text-slate-800 dark:text-slate-200 cursor-pointer select-none">
-                                            Located in Rural / Remote Community
-                                            <span className="block text-[11px] font-normal text-slate-500 dark:text-slate-400 mt-0.5">
-                                                Enables offline caching and low-bandwidth optimizations automatically.
-                                            </span>
-                                        </label>
-                                    </div>
-
-                                    {/* Inclusion & Disability Support */}
-                                    <div>
-                                        <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1.5">
-                                            Accessibility & Inclusion Support
-                                        </label>
-                                        <select
-                                            value={disabilityStatus}
-                                            onChange={(e) => setDisabilityStatus(e.target.value)}
-                                            className="w-full h-11 px-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/60 text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all"
-                                        >
-                                            <option value="none">None / Standard Interface</option>
-                                            <option value="visual">Visual Impairment (High Contrast / Screen Reader)</option>
-                                            <option value="hearing">Hearing Impairment (Captions / Visual Cues)</option>
-                                            <option value="mobility">Mobility / Motor Assistance</option>
-                                            <option value="cognitive">Cognitive & Learning Assistance</option>
-                                            <option value="other">Other Inclusion Need</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* STEP 3: Academic & Learning Profile */}
-                            {step === 3 && (
-                                <div className="space-y-5 animate-in fade-in-50 duration-200">
-                                    <div className="border-b border-slate-200 dark:border-slate-800 pb-3">
-                                        <h3 ref={stepHeadingRef} tabIndex={-1} className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2 outline-none">
-                                            <GraduationCap className="w-4 h-4 text-teal-600 dark:text-teal-400" />
-                                            Academic & Learning Profile
-                                        </h3>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                                            Tailor lesson materials and recommendations to your education level.
-                                        </p>
-                                    </div>
-
-                                    {/* School / Institution Name */}
-                                    <div>
-                                        <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1.5">
-                                            School / Institution Name <span className="text-slate-600 normal-case font-medium">(optional)</span>
-                                        </label>
-                                        <div className="relative">
-                                            <input
-                                                type="text"
-                                                value={schoolName}
-                                                onChange={(e) => setSchoolName(e.target.value)}
-                                                placeholder="e.g. GS Kigali, Remera Academy, etc."
-                                                className="w-full h-11 px-3.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/60 text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    {/* Grade / Study Level */}
-                                    <div>
-                                        <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1.5">
-                                            Current Grade / Study Level {currentRole === 'scholar' && <span className="text-rose-500">*</span>}
-                                        </label>
-                                        <select
-                                            value={gradeLevel}
-                                            onChange={(e) => setGradeLevel(e.target.value)}
-                                            className={`w-full h-11 px-3 rounded-xl border ${
-                                                errors.gradeLevel
-                                                    ? "border-rose-500 bg-rose-50/30 dark:bg-rose-950/20"
-                                                    : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/60"
-                                            } text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all`}
-                                        >
-                                            <option value="">-- Select Your Level --</option>
-                                            {GRADE_LEVELS.map((g) => (
-                                                <option key={g.value} value={g.value}>{g.label}</option>
-                                            ))}
-                                        </select>
-                                        {errors.gradeLevel && (
-                                            <p className="text-[11px] font-bold text-rose-500 mt-1">{errors.gradeLevel}</p>
-                                        )}
-                                    </div>
-
-                                    {/* Preferred Interface Language */}
-                                    <div>
-                                        <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1.5">
-                                            Preferred Language
-                                        </label>
-                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                            {[
-                                                { code: "en", name: "English" },
-                                                { code: "rw", name: "Ikinyarwanda" },
-                                                { code: "fr", name: "Français" },
-                                                { code: "sw", name: "Kiswahili" },
-                                                { code: "es", name: "Español" }
-                                            ].map((l) => (
-                                                <button
-                                                    key={l.code}
-                                                    type="button"
-                                                    onClick={() => setPreferredLanguage(l.code)}
-                                                    className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                                                        preferredLanguage === l.code
-                                                            ? "border-teal-600 bg-teal-50 dark:bg-teal-950/50 text-teal-800 dark:text-teal-200 ring-2 ring-teal-500/20"
-                                                            : "border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/40 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-                                                    }`}
-                                                >
-                                                    <Globe className="w-3.5 h-3.5 opacity-70" />
-                                                    {l.name}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
+                                {current.fields.map((field) => <React.Fragment key={field}>{FIELD[field]()}</React.Fragment>)}
+                            </div>
                         </div>
                     )}
                 </div>
 
                 {/* Modal Footer Controls */}
                 {!isCompletedSuccess && (
-                    <div className="p-4 sm:p-6 bg-slate-50 dark:bg-slate-900/90 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3 shrink-0">
+                    <div className="p-4 sm:p-6 bg-surface-sunken border-t border-line flex items-center justify-between gap-3 shrink-0">
                         <div>
                             {step > 1 ? (
                                 <button
                                     type="button"
                                     onClick={handleBack}
                                     disabled={loading}
-                                    className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-extrabold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all disabled:opacity-50"
+                                    className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-line-strong bg-surface text-caption font-extrabold text-fg-muted hover:bg-surface-hover transition-all disabled:opacity-50"
                                 >
                                     <ArrowLeft className="w-3.5 h-3.5" />
-                                    Previous Step
+                                    {t("learner.profileSetup.previous")}
+                                </button>
+                            ) : deferrable ? (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        try { window.sessionStorage.setItem(DEFER_KEY, "1"); } catch { /* storage unavailable */ }
+                                        setIsOpen(false);
+                                    }}
+                                    className="inline-flex items-center px-4 py-2.5 rounded-xl border border-line-strong bg-surface text-caption font-extrabold text-fg-muted hover:bg-surface-hover"
+                                >
+                                    {t("learner.profileSetup.later")}
                                 </button>
                             ) : (
-                                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                                    Mandatory Setup (Step 1 of 3)
+                                <span className="text-caption font-bold text-fg-subtle">
+                                    {t("learner.profileSetup.mandatory")}
                                 </span>
                             )}
                         </div>
 
                         <div>
-                            {step < 3 ? (
+                            {step < LAST_STEP ? (
                                 <button
                                     type="button"
                                     onClick={handleNext}
-                                    disabled={step === 1 ? !isStep1Valid : !isStep2Valid}
-                                    aria-disabled={step === 1 ? !isStep1Valid : !isStep2Valid}
-                                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-accent-dark hover:bg-teal-800 text-white text-xs font-black shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-accent-dark"
+                                    disabled={!isStepValid(step)}
+                                    aria-disabled={!isStepValid(step)}
+                                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-brand-strong hover:bg-brand-strong text-on-brand-strong text-caption font-extrabold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-brand-strong"
                                 >
-                                    Continue
+                                    {t("learner.profileSetup.continue")}
                                     <ArrowRight className="w-3.5 h-3.5" />
                                 </button>
                             ) : (
                                 <button
                                     type="button"
                                     onClick={handleFinalSubmit}
-                                    disabled={loading || !isStep3Valid}
-                                    aria-disabled={loading || !isStep3Valid}
-                                    className="inline-flex items-center gap-2 px-7 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white text-xs font-black shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    disabled={loading || !isStepValid(LAST_STEP)}
+                                    aria-disabled={loading || !isStepValid(LAST_STEP)}
+                                    className="inline-flex items-center gap-2 px-7 py-2.5 rounded-xl bg-gradient-to-r from-brand to-brand-strong hover:from-brand hover:to-brand-strong text-white text-caption font-extrabold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {loading ? (
                                         <>
                                             <Loader2 className="w-4 h-4 animate-spin" />
-                                            Saving Profile...
+                                            {t("learner.profileSetup.saving")}
                                         </>
                                     ) : (
                                         <>
                                             <CheckCircle2 className="w-4 h-4" />
-                                            Complete Profile & Launch
+                                            {t("learner.profileSetup.finish")}
                                         </>
                                     )}
                                 </button>

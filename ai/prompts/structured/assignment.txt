@@ -1,0 +1,8 @@
+Write one assignment for the week below.
+
+{CONTEXT}
+
+Rules:
+- "instructions": what learners must do and hand in, in numbered steps, and how it will be judged. Something they can do with paper and pencil or simple local materials.
+- "pointsPossible": usually 10 or 20.
+- "outcomeCode": the course outcome code (listed above) the assignment mainly assesses.

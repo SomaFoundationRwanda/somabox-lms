@@ -1,20 +1,23 @@
 # Soma-X Web Frontend
 
-### Step 1: Set up the backend
+The Next.js frontend for SOMABOX LMS. It lives in this monorepo next to the backend
+(`../soma-x-backend`); there is no separate backend repository to clone.
 
-To set up the repository locally, you need to also clone [this backend repository](https://github.com/SomaFoundationRwanda/soma-x-backend). Please follow the instructions to set it up in it's README before setting this up; and make sure it's running before you continue.
+Full local setup (dependencies, database, env files) is in the [root README](../README.md).
+In short, from the repository root:
 
-### 2. Configuration
-- Copy the example environment file:
-  ```bash
-  cp .env.example .env
-  ```
-- Install dependencies:
-  ```bash
-  npm install
-  ```
+```bash
+pnpm install
+cp .env.example .env                  # one .env for every app (see the root README)
+pnpm dev                              # backend on :3000, frontend on :3001
+```
 
+To run only the frontend (the backend must already be running):
 
-### Step 3: Run
+```bash
+pnpm --filter soma-x run dev
+```
 
-Now use `npm run dev` to run the project
+The backend address the frontend calls is built in at build time from the root `.env`
+(`PUBLIC_BACKEND_URL`, or `http://localhost:<BACKEND_PORT>`), in `next.config.mjs`. Only public
+values reach the browser; the rest of the `.env` stays on the server.

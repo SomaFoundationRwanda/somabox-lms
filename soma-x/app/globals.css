@@ -3,84 +3,235 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ═══════════════════════════════════════════════════
+   DESIGN TOKENS — the single source of truth for colour and type (see DESIGN.md).
+   Screens use these roles (bg-surface, text-fg-muted, text-ui, …), never raw palette colours or
+   pixel sizes. Each role has a light value here and a dark value under .dark; the school's two
+   colours (--brand-primary / --brand-secondary) feed every brand role.
+   ═══════════════════════════════════════════════════ */
+:root {
+  --surface: #FFFFFF;
+  --surface-raised: #FFFFFF;
+  --surface-sunken: #F8FAFC;
+  --surface-hover: #F1F5F9;
+  --fg: #0F172A;
+  --fg-muted: #475569;
+  --fg-subtle: #64748B;
+  --line: #E2E8F0;
+  --line-strong: #CBD5E1;
+  --scrim: rgba(15, 23, 42, 0.5);
+
+  --brand: var(--brand-secondary);
+  --brand-strong: var(--brand-primary);
+  --brand-soft: color-mix(in srgb, var(--brand-secondary) 10%, var(--surface));
+  --brand-fg: var(--brand-fg-light, color-mix(in srgb, var(--brand-secondary) 80%, black));
+  --on-brand: #FFFFFF;
+  --on-brand-strong: #FFFFFF;
+
+  --success: #16A34A;
+  --success-soft: #F0FDF4;
+  --success-fg: #15803D;
+  --on-success: #FFFFFF;
+  --warning: #F59E0B;
+  --warning-soft: #FFFBEB;
+  --warning-fg: #B45309;
+  --on-warning: #1F1300;
+  --danger: #DC2626;
+  --danger-soft: #FEF2F2;
+  --danger-fg: #B91C1C;
+  --on-danger: #FFFFFF;
+  --info: #2563EB;
+  --info-soft: #EFF6FF;
+  --info-fg: #1D4ED8;
+  --on-info: #FFFFFF;
+}
+
+.dark {
+  --surface: #0E1117;
+  --surface-raised: #141922;
+  --surface-sunken: #0A0C11;
+  --surface-hover: rgba(255, 255, 255, 0.06);
+  --fg: #E8ECF0;
+  --fg-muted: #B0B8C5;
+  --fg-subtle: #8B929E;
+  --line: rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.16);
+  --scrim: rgba(0, 0, 0, 0.6);
+
+  --brand-soft: color-mix(in srgb, var(--brand-secondary) 14%, var(--surface));
+  --brand-fg: var(--brand-fg-dark, color-mix(in srgb, var(--brand-secondary) 55%, white));
+
+  --success-soft: rgba(34, 197, 94, 0.12);
+  --success-fg: #4ADE80;
+  --warning-soft: rgba(245, 158, 11, 0.12);
+  --warning-fg: #FBBF24;
+  --danger-soft: rgba(239, 68, 68, 0.12);
+  --danger-fg: #F87171;
+  --info-soft: rgba(59, 130, 246, 0.12);
+  --info-fg: #60A5FA;
+}
+
+@theme inline {
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-surface-hover: var(--surface-hover);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-scrim: var(--scrim);
+  --color-brand: var(--brand);
+  --color-brand-strong: var(--brand-strong);
+  --color-brand-deep: var(--brand-deep);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-fg: var(--brand-fg);
+  --color-on-brand: var(--on-brand);
+  --color-on-brand-strong: var(--on-brand-strong);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-success-fg: var(--success-fg);
+  --color-on-success: var(--on-success);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-fg: var(--warning-fg);
+  --color-on-warning: var(--on-warning);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-fg: var(--danger-fg);
+  --color-on-danger: var(--on-danger);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-info-fg: var(--info-fg);
+  --color-on-info: var(--on-info);
+
+  --text-display: 1.875rem;
+  --text-display--line-height: 2.25rem;
+  --text-title: 1.5rem;
+  --text-title--line-height: 2rem;
+  --text-section: 1.125rem;
+  --text-section--line-height: 1.75rem;
+  --text-item: 1rem;
+  --text-item--line-height: 1.5rem;
+  --text-body: 1rem;
+  --text-body--line-height: 1.625rem;
+  --text-ui: 0.875rem;
+  --text-ui--line-height: 1.25rem;
+  --text-small: 0.8125rem;
+  --text-small--line-height: 1.25rem;
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1rem;
+}
+
+
 :root {
   /* Continuous brightness-slider canvas (see DataContext.jsx computeCanvasVars).
      Recomputed live on every slider change; these are just the pre-JS/SSR
      fallback so there's no flash of unstyled content. */
   --canvas-bg: #F5F6F8;
   --canvas-text: #000000;
+  /* The school's colours (GET /school/public), set on <html> by SchoolBrandingProvider.
+     These are the SOMABOX defaults until the school sets its own. The darker shades are
+     for hover states and follow whatever the school chose. */
+  --brand-primary: #203A3A;
+  --brand-deep: var(--brand-primary);
+  --brand-secondary: #0F766E;
+  --brand-primary-dark: color-mix(in srgb, var(--brand-primary) 85%, black);
+  --brand-secondary-dark: color-mix(in srgb, var(--brand-secondary) 85%, black);
   --color-bg-light-green: #242722;
   --color-bg-light-blue: #E6F1FA;
-  --color-dark-accent: #203b3b;
   --color-text-light: #ffffff;
 
-  --color-primary-500: #2E8282;
-  --color-primary-600: #1f6767;
-  --color-primary-700: #295656;
-  --color-accent-light-2: #E3F2F2;
   --font-sans: var(--font-poppins);
   --font-mono: var(--font-poppins);
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.129 0.042 264.695);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.129 0.042 264.695);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.208 0.042 265.755);
-  --primary-foreground: oklch(0.984 0.003 247.858);
-  --secondary: oklch(0.968 0.007 247.896);
-  --secondary-foreground: oklch(0.208 0.042 265.755);
-  --muted: oklch(0.968 0.007 247.896);
-  --muted-foreground: oklch(0.554 0.046 257.417);
-  --accent: oklch(0.968 0.007 247.896);
-  --accent-foreground: oklch(0.208 0.042 265.755);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.929 0.013 255.508);
-  --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.704 0.04 256.788);
+  --background: var(--surface);
+  --foreground: var(--fg);
+  --card: var(--surface-raised);
+  --card-foreground: var(--fg);
+  --popover: var(--surface-raised);
+  --popover-foreground: var(--fg);
+  --primary: var(--brand-strong);
+  --primary-foreground: var(--on-brand-strong);
+  --secondary: var(--surface-sunken);
+  --secondary-foreground: var(--fg);
+  --muted: var(--surface-sunken);
+  --muted-foreground: var(--fg-subtle);
+  --accent: var(--surface-hover);
+  --accent-foreground: var(--fg);
+  --destructive: var(--danger);
+  --border: var(--line);
+  --input: var(--line-strong);
+  --ring: var(--brand);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.984 0.003 247.858);
-  --sidebar-foreground: oklch(0.129 0.042 264.695);
-  --sidebar-primary: oklch(0.208 0.042 265.755);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.968 0.007 247.896);
-  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
-  --sidebar-border: oklch(0.929 0.013 255.508);
-  --sidebar-ring: oklch(0.704 0.04 256.788);
+  --sidebar: var(--surface);
+  --sidebar-foreground: var(--fg);
+  --sidebar-primary: var(--brand-strong);
+  --sidebar-primary-foreground: var(--on-brand-strong);
+  --sidebar-accent: var(--surface-hover);
+  --sidebar-accent-foreground: var(--fg);
+  --sidebar-border: var(--line);
+  --sidebar-ring: var(--brand);
 }
 
 @theme {
-  --color-accent-dark: #203B3B;
-  --color-accent-light: #295656;
-  --color-accent-lighter:#2e8282;
-  --color-accent-light-3: #B8D9D9;
-  --color-primary: #2E8282;
-  --color-primary-100: #E3F2F2;
-  --color-primary-200: #B8D9D9;
-  --color-primary-300: #295656;
-  --color-primary-400: #44A4A4;
-  --color-primary-500: #2E8282;
-  --color-primary-600: #1f6767;
-  --color-primary-700: #295656;
-  --color-primary-900: #203B3B;
-  --color-accent-light-2: var(--color-accent-light-2);
-  --color-text-light: var(--color-text-light);
-  --color-dark-accent: var(--color-dark-accent);
+  /* Every accent colour follows the school's colours (--brand-primary / --brand-secondary),
+     so a school that sets its own sees them on every button, badge and highlight. With the
+     SOMABOX defaults these come out close to the old fixed teal shades. */
+  --color-primary-25: color-mix(in srgb, var(--brand-secondary) 4%, white);
+  --color-primary-100: color-mix(in srgb, var(--brand-secondary) 12%, white);
+  --color-primary-200: color-mix(in srgb, var(--brand-secondary) 28%, white);
+  --color-primary-400: color-mix(in srgb, var(--brand-secondary) 75%, white);
+  --color-primary-500: color-mix(in srgb, var(--brand-primary) 40%, var(--brand-secondary));
+  --color-primary-600: color-mix(in srgb, var(--brand-primary) 60%, var(--brand-secondary));
+  --color-primary-700: color-mix(in srgb, var(--brand-primary) 80%, var(--brand-secondary));
+  --color-primary-300: var(--color-primary-700);
+  --color-primary-900: var(--brand-primary);
+  --color-primary: var(--color-primary-500);
+  --color-accent-dark: var(--brand-primary);
+  --color-dark-accent: var(--brand-primary);
+  --color-accent-light: var(--color-primary-700);
+  --color-accent-lighter: var(--color-primary-500);
+  --color-accent-light-2: var(--color-primary-100);
+  --color-accent-light-3: var(--color-primary-200);
+  --color-text-light: #ffffff;
+
+  /* Tailwind's teal scale is the app's accent all over the pages (bg-teal-50, text-teal-700...).
+     It is rebuilt from the school's secondary colour; teal-600 is that colour exactly. */
+  --color-teal-50: color-mix(in srgb, var(--brand-secondary) 6%, white);
+  --color-teal-100: color-mix(in srgb, var(--brand-secondary) 14%, white);
+  --color-teal-200: color-mix(in srgb, var(--brand-secondary) 28%, white);
+  --color-teal-300: color-mix(in srgb, var(--brand-secondary) 48%, white);
+  --color-teal-400: color-mix(in srgb, var(--brand-secondary) 72%, white);
+  --color-teal-500: color-mix(in srgb, var(--brand-secondary) 88%, white);
+  --color-teal-600: var(--brand-secondary);
+  --color-teal-700: color-mix(in srgb, var(--brand-secondary) 82%, black);
+  --color-teal-800: color-mix(in srgb, var(--brand-secondary) 68%, black);
+  --color-teal-900: color-mix(in srgb, var(--brand-secondary) 55%, black);
+  --color-teal-950: color-mix(in srgb, var(--brand-secondary) 38%, black);
   --font-sans: var(--font-poppins);
   --font-mono: var(--font-poppins);
 }
 
-div *{
-  transition: all 0.3s ease;
+/* Gentle motion, only for people who haven't asked their device for less of it. */
+@media (prefers-reduced-motion: no-preference) {
+  div *{
+    transition: all 0.3s ease;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
 }
 
-html {
-  scroll-behavior: smooth;
+/* Menus and popovers place themselves next to their button: they must not glide there. */
+[data-radix-popper-content-wrapper] {
+  transition: none !important;
 }
 
 button, [role="button"] {
@@ -336,271 +487,20 @@ body{
 }
 
 .dark {
-  --background: oklch(0.129 0.042 264.695);
-  --foreground: oklch(0.984 0.003 247.858);
-  --card: oklch(0.208 0.042 265.755);
-  --card-foreground: oklch(0.984 0.003 247.858);
-  --popover: oklch(0.208 0.042 265.755);
-  --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.929 0.013 255.508);
-  --primary-foreground: oklch(0.208 0.042 265.755);
-  --secondary: oklch(0.279 0.041 260.031);
-  --secondary-foreground: oklch(0.984 0.003 247.858);
-  --muted: oklch(0.279 0.041 260.031);
-  --muted-foreground: oklch(0.704 0.04 256.788);
-  --accent: oklch(0.279 0.041 260.031);
-  --accent-foreground: oklch(0.984 0.003 247.858);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 264.364);
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.208 0.042 265.755);
-  --sidebar-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.279 0.041 260.031);
-  --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.551 0.027 264.364);
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-line outline-brand/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-surface text-fg;
   }
-  /* Global High Contrast Form Controls & Text Legibility */
-  input[type="text"],
-  input[type="email"],
-  input[type="password"],
-  input[type="search"],
-  input[type="number"],
-  input[type="tel"],
-  select,
-  textarea {
-    color: #0f172a !important;
-    font-weight: 600 !important;
-  }
-
-  input::placeholder,
-  textarea::placeholder {
-    color: #475569 !important;
-    opacity: 1 !important;
-  }
-
-  label {
-    color: #1e293b;
-    font-weight: 700;
-  }
-
-  /* Dark-mode counterpart to the rule above. Must stay inside this same
-     @layer base block (not the unlayered html.dark override list further
-     down this file) — cross-layer !important precedence beats unlayered
-     !important regardless of specificity, so a dark override for these
-     inputs placed outside @layer base would silently lose to the rule
-     above and render near-black text on a near-black background. */
-  html.dark input[type="text"],
-  html.dark input[type="email"],
-  html.dark input[type="password"],
-  html.dark input[type="search"],
-  html.dark input[type="number"],
-  html.dark input[type="tel"],
-  html.dark select,
-  html.dark textarea {
-    color: #E8ECF0 !important;
-  }
-  html.dark input::placeholder,
-  html.dark textarea::placeholder {
-    color: #8B929E !important;
-  }
-}
-
-/* ═══════════════════════════════════════════════════
-   SCHOLAR DARK MODE — pro obsidian theme
-   ═══════════════════════════════════════════════════ */
-
-/* body's background now comes from the shared --canvas-bg token (see the
-   plain `body{}` rule near the top of this file) instead of a separate
-   hardcoded dark value — that mismatch was the "second background layer"
-   bug (content container height collapses on short pages, exposing body,
-   whose color didn't match the sidebar/header/content canvas). */
-
-/* ── Kill the global --border white glow ── */
-html.dark { --border: oklch(1 0 0 / 4%); }
-
-/* ── Surfaces ── */
-html.dark .bg-white         { background-color: #0E1117 !important; }
-html.dark .bg-slate-50      { background-color: #0A0C11 !important; }
-html.dark .bg-slate-100     { background-color: #141922 !important; }
-html.dark .bg-\[\#EFEFEF\]  { background-color: #080B0F !important; }
-html.dark .bg-\[\#F8F9FA\]  { background-color: #080B0F !important; }
-html.dark .bg-\[\#F0F2F5\]  { background-color: #080B0F !important; }
-
-/* ── Text ── */
-html.dark .text-slate-900   { color: #E8ECF0 !important; }
-html.dark .text-slate-800   { color: #D0D5DD !important; }
-html.dark .text-slate-700   { color: #B0B8C5 !important; }
-html.dark .text-slate-600   { color: #8B929E !important; }
-html.dark .text-slate-500   { color: #7A8595 !important; }
-html.dark .text-slate-400   { color: #637080 !important; }
-
-/* ── Borders ── */
-html.dark .border-slate-200  { border-color: rgba(255,255,255,0.05) !important; }
-html.dark .border-slate-100  { border-color: rgba(255,255,255,0.04) !important; }
-html.dark .border-slate-300  { border-color: rgba(255,255,255,0.07) !important; }
-html.dark .border-b          { border-bottom-color: rgba(255,255,255,0.05) !important; }
-html.dark .border-t          { border-top-color: rgba(255,255,255,0.05) !important; }
-html.dark .border-r          { border-right-color: rgba(255,255,255,0.05) !important; }
-html.dark .divide-slate-50  > :not([hidden]) ~ :not([hidden]),
-html.dark .divide-slate-50  > * + *,
-html.dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
-html.dark .divide-slate-100 > * + *,
-html.dark [class*="divide-slate-50"]  > *,
-html.dark [class*="divide-slate-100"] > * { border-color: transparent !important; }
-html.dark .border-amber-200  { border-color: rgba(251,146,60,0.22) !important; }
-html.dark .border-emerald-200 { border-color: rgba(52,211,153,0.22) !important; }
-html.dark .border-red-200    { border-color: rgba(239,68,68,0.22) !important; }
-html.dark .border-violet-100 { border-color: rgba(167,139,250,0.18) !important; }
-html.dark .border-sky-100    { border-color: rgba(56,189,248,0.18) !important; }
-html.dark .border-rose-100   { border-color: rgba(244,63,94,0.18) !important; }
-
-/* ── Interactive hover states ── */
-html.dark .hover\:bg-slate-100:hover  { background-color: rgba(255,255,255,0.06) !important; }
-html.dark .hover\:bg-slate-50:hover   { background-color: rgba(255,255,255,0.04) !important; }
-html.dark .hover\:bg-slate-900:hover  { background-color: rgba(13,148,136,0.12) !important; }
-
-/* ── Status / badge surface colors ── */
-html.dark .bg-green-50      { background-color: rgba(52,211,153,0.10) !important; }
-html.dark .bg-emerald-50    { background-color: rgba(52,211,153,0.10) !important; }
-html.dark .bg-amber-50      { background-color: rgba(251,146,60,0.10) !important; }
-html.dark .bg-blue-50       { background-color: rgba(56,189,248,0.10) !important; }
-html.dark .bg-sky-50        { background-color: rgba(56,189,248,0.10) !important; }
-html.dark .bg-violet-50     { background-color: rgba(167,139,250,0.10) !important; }
-html.dark .bg-orange-50     { background-color: rgba(251,146,60,0.10) !important; }
-html.dark .bg-red-50        { background-color: rgba(239,68,68,0.10) !important; }
-html.dark .bg-rose-50       { background-color: rgba(244,63,94,0.10) !important; }
-html.dark .bg-teal-50       { background-color: rgba(13,148,136,0.10) !important; }
-html.dark .bg-blue-50       { background-color: rgba(56,189,248,0.10) !important; }
-
-/* ── Status / badge text colors ── */
-html.dark .text-green-600    { color: #34D399 !important; }
-html.dark .text-green-500    { color: #34D399 !important; }
-html.dark .text-emerald-600  { color: #34D399 !important; }
-html.dark .text-amber-700    { color: #FB923C !important; }
-html.dark .text-amber-600    { color: #FB923C !important; }
-html.dark .text-amber-500    { color: #FB923C !important; }
-html.dark .text-orange-500   { color: #FB923C !important; }
-html.dark .text-orange-400   { color: #FB923C !important; }
-html.dark .text-blue-600     { color: #38BDF8 !important; }
-html.dark .text-sky-600      { color: #38BDF8 !important; }
-html.dark .text-violet-600   { color: #A78BFA !important; }
-html.dark .text-rose-600     { color: #FB7185 !important; }
-html.dark .text-red-500      { color: #F87171 !important; }
-html.dark .text-teal-600     { color: #0D9488 !important; }
-html.dark .text-teal-500     { color: #0D9488 !important; }
-html.dark .text-teal-300     { color: #5EEAD4 !important; }
-html.dark .text-accent-dark  { color: #5EEAD4 !important; }
-html.dark .text-amber-500    { color: #FB923C !important; }
-html.dark .text-emerald-700  { color: #34D399 !important; }
-html.dark .text-emerald-400  { color: #34D399 !important; }
-html.dark .text-emerald-300  { color: #6EE7B7 !important; }
-html.dark .text-red-600      { color: #F87171 !important; }
-html.dark .text-blue-400     { color: #60A5FA !important; }
-html.dark .text-violet-300   { color: #C4B5FD !important; }
-
-/* ── Status badge borders ── */
-html.dark .border-amber-100  { border-color: rgba(251,146,60,0.20) !important; }
-html.dark .border-green-100  { border-color: rgba(52,211,153,0.20) !important; }
-html.dark .border-emerald-100 { border-color: rgba(52,211,153,0.20) !important; }
-html.dark .border-red-100    { border-color: rgba(239,68,68,0.20) !important; }
-html.dark .border-teal-100   { border-color: rgba(13,148,136,0.18) !important; }
-html.dark .border-blue-100   { border-color: rgba(56,189,248,0.18) !important; }
-html.dark .border-blue-200   { border-color: rgba(56,189,248,0.20) !important; }
-html.dark .bg-blue-100       { background-color: rgba(56,189,248,0.10) !important; }
-html.dark .text-blue-600     { color: #60A5FA !important; }
-html.dark .text-blue-500     { color: #60A5FA !important; }
-html.dark .border-teal-500\/30  { border-color: rgba(20,184,166,0.30) !important; }
-html.dark .bg-teal-500\/10      { background-color: rgba(20,184,166,0.10) !important; }
-html.dark .border-violet-500\/30 { border-color: rgba(139,92,246,0.30) !important; }
-html.dark .bg-violet-500\/10    { background-color: rgba(139,92,246,0.10) !important; }
-
-/* ── Dot indicators ── */
-html.dark .bg-green-500     { background-color: #34D399 !important; }
-html.dark .bg-orange-400    { background-color: #FB923C !important; }
-
-/* ── Top bar — glassmorphism ── */
-html.dark .sticky.top-0 {
-  background: rgba(8,11,15,0.85) !important;
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  box-shadow: 0 4px 32px rgba(0,0,0,0.5) !important;
-}
-
-/* ── Cards — subtle dark elevation, no white glow ── */
-html.dark .bg-white {
-  background: rgba(255,255,255,0.025) !important;
-  border-color: rgba(255,255,255,0.05) !important;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.3), 0 4px 16px rgba(0,0,0,0.2) !important;
-}
-
-/* Cards with shadow-sm */
-html.dark .shadow-sm {
-  box-shadow: 0 1px 3px rgba(0,0,0,0.25), 0 4px 12px rgba(0,0,0,0.15) !important;
-}
-
-/* Lesson rows — hover lift */
-html.dark .hover\:shadow-sm:hover {
-  box-shadow: 0 4px 20px rgba(0,0,0,0.35) !important;
-}
-html.dark .hover\:border-slate-200:hover {
-  border-color: rgba(255,255,255,0.08) !important;
-}
-
-/* ── Outline buttons ── */
-html.dark .border-slate-200.text-slate-700 {
-  border-color: rgba(255,255,255,0.06) !important;
-  color: #7A8595 !important;
-  background: transparent !important;
-}
-html.dark .border-slate-200.text-slate-700:hover {
-  background: rgba(255,255,255,0.04) !important;
-  color: #E8ECF0 !important;
-  border-color: rgba(255,255,255,0.10) !important;
-}
-
-/* ── Completion modal overlay ── */
-html.dark .bg-black\/50 { background: rgba(0,0,0,0.75) !important; }
-
-/* ── Progress bar track ── */
-html.dark .bg-slate-100.rounded-full { background-color: rgba(255,255,255,0.07) !important; }
-
-/* ── Skeleton pulse ── */
-html.dark .animate-pulse.bg-slate-100,
-html.dark .bg-slate-100.animate-pulse {
-  background-color: rgba(255,255,255,0.05) !important;
-}
-
-/* ── Inputs ── */
-html.dark input,
-html.dark textarea {
-  background-color: rgba(255,255,255,0.04) !important;
-  border-color: rgba(255,255,255,0.07) !important;
-  color: #E8ECF0 !important;
-}
-html.dark input::placeholder,
-html.dark textarea::placeholder { color: #4A5567 !important; }
-html.dark input:focus,
-html.dark textarea:focus {
-  border-color: rgba(13,148,136,0.35) !important;
-  box-shadow: 0 0 0 3px rgba(13,148,136,0.08) !important;
-  outline: none !important;
 }
 
 /* ── Scrollbar (dark) ── */
@@ -608,3 +508,40 @@ html.dark ::-webkit-scrollbar { width: 4px; }
 html.dark ::-webkit-scrollbar-track { background: transparent; }
 html.dark ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 99px; }
 html.dark ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.14); }
+/* ------------------------------------------------------------------------------------
+   Keyboard focus safety net (Phase 11). Many controls set `outline-none` / `focus:outline-none`
+   without a replacement focus style, which hides where keyboard focus is. Unlayered, so it
+   wins over Tailwind utilities, but it skips any element that already declares its own
+   focus style (focus/focus-visible ring, outline or border classes).
+   ------------------------------------------------------------------------------------ */
+:is(a, button, summary, [role="button"], [role="tab"], [role="switch"], [role="menuitem"], [role="option"], [tabindex]):is(.outline-none, [class~="focus:outline-none"]):focus-visible:not([tabindex="-1"]):not([class*="focus-visible:ring"]):not([class*="focus:ring"]):not([class*="focus-visible:outline"]):not([class*="focus-visible:border"]):not([class*="focus:border"]) {
+  outline: 2px solid var(--brand-secondary, #0F766E);
+  outline-offset: 2px;
+}
+:is(input, select, textarea):is(.outline-none, [class~="focus:outline-none"]):focus-visible:not([class*="focus:"]):not([class*="focus-visible:"]) {
+  outline: 2px solid var(--brand-secondary, #0F766E);
+  outline-offset: 1px;
+}
+
+/* The form kit's slider thumb (components/form Slider): one look in every browser. */
+.kit-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  background: var(--brand-secondary);
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.3);
+}
+.kit-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  background: var(--brand-secondary);
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.3);
+}
+.kit-slider-on-dark::-webkit-slider-thumb { background: #ffffff; border-color: rgba(15, 23, 42, 0.4); }
+.kit-slider-on-dark::-moz-range-thumb { background: #ffffff; border-color: rgba(15, 23, 42, 0.4); }
+.kit-slider:focus-visible { outline: 2px solid var(--brand-secondary); outline-offset: 3px; }

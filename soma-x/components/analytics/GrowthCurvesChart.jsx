@@ -1,105 +1,112 @@
 "use client"
-import { useEffect, useState } from "react";
-import { Activity, TrendingUp } from "lucide-react";
-import { getGrowthCurves } from "@/lib/analytics-service";
+import { TrendingUp } from "lucide-react";
+import { useGrowthCurves } from "@/lib/analytics-service";
+import { formatDate } from "@/lib/dates";
+import { useLanguage } from "@/context/LanguageContext";
+import { fill } from "@/lib/fill";
+import Loader from "@/components/ui/Loader";
 
-export default function GrowthCurvesChart({ serverUrl, scholarEmail }) {
-    const [data, setData] = useState([]);
-    const [loading, setLoading] = useState(true);
+const W = 600;
+const H = 220;
+const PAD = { top: 12, right: 12, bottom: 28, left: 36 };
 
-    useEffect(() => {
-        if (!serverUrl) return;
-        const load = async () => {
-            setLoading(true);
-            const curves = await getGrowthCurves(serverUrl, scholarEmail);
-            setData(curves);
-            setLoading(false);
-        };
-        load();
-    }, [serverUrl, scholarEmail]);
+const shortDate = (d) => formatDate(d, { day: "numeric", month: "short" });
 
-    if (loading) {
-        return <div className="p-6 text-center text-xs text-slate-600">Loading Longitudinal Growth Curves...</div>;
-    }
+// Weekly average of outcome results (graded work and quizzes; baseline excluded), with the
+// baseline average as a dashed reference line. Only recorded results: no data, no line.
+export default function GrowthCurvesChart({ scholarEmail, weeks: weeksBack = 26, title: titleProp }) {
+    const { t } = useLanguage();
+    const title = titleProp || t("admin.growth.title");
+    const { data, error, loading } = useGrowthCurves(scholarEmail, weeksBack);
 
-    const mathRecords = data.filter(d => d.subject === "Mathematics");
-    const scienceRecords = data.filter(d => d.subject === "Science");
+    const weeks = (data?.weeks || []).filter((w) => w.averagePct != null);
+    const baseline = data?.baselineAverage ?? null;
+
+    const innerW = W - PAD.left - PAD.right;
+    const innerH = H - PAD.top - PAD.bottom;
+    const x = (i) => PAD.left + (weeks.length <= 1 ? innerW / 2 : (i / (weeks.length - 1)) * innerW);
+    const y = (pct) => PAD.top + innerH - (Math.max(0, Math.min(100, pct)) / 100) * innerH;
+    const path = weeks.map((w, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${y(w.averagePct).toFixed(1)}`).join(" ");
+    const labelEvery = Math.max(1, Math.ceil(weeks.length / 6));
+    const latest = weeks.length ? weeks[weeks.length - 1] : null;
+
+    const summary = weeks.length === 0
+        ? t("admin.growth.noResults")
+        : `${fill(t("admin.growth.summary"), { weeks: weeks.length, date: shortDate(latest.weekStart), pct: latest.averagePct, learners: latest.learners })}${baseline != null ? ` ${fill(t("admin.growth.baselineAvg"), { pct: baseline })}` : ""}`;
 
     return (
-        <div className="bg-white dark:bg-[#0f1318] border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                    <span className="p-2 bg-teal-50 dark:bg-teal-950/50 text-teal-700 dark:text-teal-400 rounded-xl">
-                        <TrendingUp className="w-4 h-4" />
-                    </span>
-                    <div>
-                        <h3 className="text-sm font-bold text-slate-900 dark:text-white">Longitudinal Progress Engine</h3>
-                        <p className="text-[10px] text-slate-600">Individual & Cohort growth curves over time</p>
-                    </div>
+        <div className="min-w-0 space-y-3">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="min-w-0">
+                    <h3 className="flex items-center gap-1.5 text-ui font-bold text-fg">
+                        <TrendingUp className="w-4 h-4 text-brand-fg" aria-hidden="true" /> {title}
+                    </h3>
+                    <p className="text-caption text-fg-subtle">{fill(t("admin.growth.subtitle"), { weeks: weeksBack })}</p>
                 </div>
-                <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                    V2.1 Analytics
-                </span>
+                {latest ? (
+                    <p className="text-caption text-fg-muted text-right">
+                        {t("admin.growth.latest")} <strong className="text-fg">{latest.averagePct}%</strong>
+                        {baseline != null ? <> · {t("admin.growth.baselineLower")} <strong className="text-fg">{baseline}%</strong></> : null}
+                    </p>
+                ) : null}
             </div>
 
-            {/* Growth Curves Graph Bars */}
-            <div className="space-y-4">
-                <div>
-                    <div className="flex items-center justify-between text-xs font-semibold mb-1.5">
-                        <span className="text-teal-700 dark:text-teal-400 flex items-center gap-1">
-                            <Activity className="w-3.5 h-3.5" /> Mathematics Progression
-                        </span>
-                        <span className="text-slate-500 font-bold">
-                            {mathRecords.length > 0 ? `${mathRecords[mathRecords.length - 1].score}% Mastery` : '78% Avg'}
-                        </span>
-                    </div>
-                    <div className="grid grid-cols-4 gap-2 items-end h-20 bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
-                        {(mathRecords.length > 0 ? mathRecords : [
-                            { topic: "Baseline", score: 55 },
-                            { topic: "Algebra 1", score: 68 },
-                            { topic: "Geometry", score: 78 },
-                            { topic: "Advanced", score: 85 }
-                        ]).map((rec, i) => (
-                            <div key={i} className="flex flex-col items-center gap-1 h-full justify-end">
-                                <span className="text-[9px] font-bold text-slate-600 dark:text-slate-400">{rec.score}%</span>
-                                <div
-                                    className="w-full bg-teal-600 dark:bg-teal-500 rounded-t-md transition-all duration-500"
-                                    style={{ height: `${Math.max(rec.score, 10)}%` }}
-                                />
-                                <span className="text-[8px] text-slate-600 truncate w-full text-center">{rec.topic}</span>
-                            </div>
-                        ))}
-                    </div>
+            {loading && !data ? (
+                <Loader variant="page" size={48} className="min-h-[10rem]" label={t("admin.common.loading")} />
+            ) : error ? (
+                <p role="alert" className="text-caption text-danger-fg">{error}</p>
+            ) : weeks.length === 0 ? (
+                <div className="flex h-32 items-center justify-center rounded-xl border border-dashed border-line text-caption text-fg-subtle">
+                    {t("admin.growth.noResults")}{baseline != null ? ` ${fill(t("admin.growth.baselineAvgLearners"), { pct: baseline, learners: data.baselineLearners })}` : ""}
                 </div>
-
-                <div>
-                    <div className="flex items-center justify-between text-xs font-semibold mb-1.5">
-                        <span className="text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
-                            <Activity className="w-3.5 h-3.5" /> Science Progression
-                        </span>
-                        <span className="text-slate-500 font-bold">
-                            {scienceRecords.length > 0 ? `${scienceRecords[scienceRecords.length - 1].score}% Mastery` : '85% Avg'}
-                        </span>
-                    </div>
-                    <div className="grid grid-cols-4 gap-2 items-end h-20 bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
-                        {(scienceRecords.length > 0 ? scienceRecords : [
-                            { topic: "Baseline", score: 60 },
-                            { topic: "Physics Motion", score: 75 },
-                            { topic: "Chemistry", score: 82 },
-                            { topic: "Biology", score: 88 }
-                        ]).map((rec, i) => (
-                            <div key={i} className="flex flex-col items-center gap-1 h-full justify-end">
-                                <span className="text-[9px] font-bold text-slate-600 dark:text-slate-400">{rec.score}%</span>
-                                <div
-                                    className="w-full bg-indigo-600 dark:bg-indigo-500 rounded-t-md transition-all duration-500"
-                                    style={{ height: `${Math.max(rec.score, 10)}%` }}
-                                />
-                                <span className="text-[8px] text-slate-600 truncate w-full text-center">{rec.topic}</span>
-                            </div>
+            ) : (
+                <>
+                    <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto" role="img" aria-label={`${title}. ${summary}`}>
+                        {[0, 25, 50, 75, 100].map((tick) => (
+                            <g key={tick}>
+                                <line x1={PAD.left} x2={W - PAD.right} y1={y(tick)} y2={y(tick)} className="stroke-line" strokeWidth="1" />
+                                <text x={PAD.left - 6} y={y(tick) + 3} textAnchor="end" className="fill-fg-subtle" fontSize="10">{tick}%</text>
+                            </g>
                         ))}
-                    </div>
-                </div>
-            </div>
+                        {baseline != null ? (
+                            <g>
+                                <line x1={PAD.left} x2={W - PAD.right} y1={y(baseline)} y2={y(baseline)} className="stroke-fg-subtle" strokeWidth="1.5" strokeDasharray="5 4" />
+                                <text x={W - PAD.right} y={y(baseline) - 4} textAnchor="end" className="fill-fg-muted" fontSize="10">{fill(t("admin.growth.baselineLine"), { pct: baseline })}</text>
+                            </g>
+                        ) : null}
+                        <path d={path} fill="none" className="stroke-brand-fg" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+                        {weeks.map((w, i) => (
+                            <circle key={w.weekStart} cx={x(i)} cy={y(w.averagePct)} r="3.5" className="fill-brand-fg">
+                                <title>{fill(t("admin.growth.pointTitle"), { date: shortDate(w.weekStart), pct: w.averagePct, learners: w.learners, results: w.results })}</title>
+                            </circle>
+                        ))}
+                        {weeks.map((w, i) => (i % labelEvery === 0 || i === weeks.length - 1 ? (
+                            <text key={`l-${w.weekStart}`} x={x(i)} y={H - 8} textAnchor="middle" className="fill-fg-subtle" fontSize="10">{shortDate(w.weekStart)}</text>
+                        ) : null))}
+                    </svg>
+                    <details className="text-caption text-fg-muted">
+                        <summary className="cursor-pointer font-semibold text-fg-muted">{t("admin.growth.showNumbers")}</summary>
+                        <div className="mt-2 overflow-x-auto">
+                            <table className="min-w-full text-left">
+                                <thead className="text-caption text-fg-subtle">
+                                    <tr><th scope="col" className="py-1 pr-3">{t("admin.growth.weekOf")}</th><th scope="col" className="py-1 pr-3 text-right">{t("admin.growth.average")}</th><th scope="col" className="py-1 pr-3 text-right">{t("admin.analytics.learners")}</th><th scope="col" className="py-1 text-right">{t("admin.growth.results")}</th></tr>
+                                </thead>
+                                <tbody>
+                                    {weeks.map((w) => (
+                                        <tr key={w.weekStart} className="border-t border-line">
+                                            <td className="py-1 pr-3 whitespace-nowrap">{shortDate(w.weekStart)}</td>
+                                            <td className="py-1 pr-3 text-right">{w.averagePct}%</td>
+                                            <td className="py-1 pr-3 text-right">{w.learners}</td>
+                                            <td className="py-1 text-right">{w.results}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </details>
+                    {baseline != null ? <p className="text-caption text-fg-subtle">{fill(t("admin.growth.dashed"), { learners: data.baselineLearners })}</p> : null}
+                </>
+            )}
         </div>
     );
 }

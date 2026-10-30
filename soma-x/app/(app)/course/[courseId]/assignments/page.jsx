@@ -1,83 +1,67 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { ClipboardList, HelpCircle, MessageSquare, Plus } from "lucide-react";
 import { useCourse } from "@/context/CourseContext";
 import { useCourseSection } from "@/lib/useCourseSection";
 import Breadcrumbs from "@/components/course/Breadcrumbs";
-import AsyncListState from "@/components/course/AsyncListState";
-import { Button } from "@/components/ui/button";
+import { PageHeader, List, ListRow, EmptyState } from "@/components/layout";
+import { ExplainerText } from "@/components/help/Explainer";
+import { useCourseText } from "@/components/course/useCourseText";
+import Loader from "@/components/ui/Loader";
 
 const KIND_ICONS = { assignment: ClipboardList, quiz: HelpCircle, discussion: MessageSquare };
 
 export default function AssignmentsPage() {
-  const { SERVER_URL, courseId, userEmail, isTeacher } = useCourse();
-  const { data: items, loading, error, refetch } = useCourseSection("assignments");
-  const [creating, setCreating] = useState(false);
-  const [form, setForm] = useState({ title: "", dueAt: "", pointsPossible: 100 });
-
-  const createAssignment = async () => {
-    if (!form.title.trim()) return;
-    await fetch(`${SERVER_URL}/courses/${courseId}/assignments`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ teacherEmail: userEmail, title: form.title.trim(), dueAt: form.dueAt || null, pointsPossible: Number(form.pointsPossible) || 100, published: true }),
-    });
-    setForm({ title: "", dueAt: "", pointsPossible: 100 });
-    setCreating(false);
-    refetch();
-  };
+  const { courseId, isTeacher } = useCourse();
+  const { t, tf, fmtDate, tpts } = useCourseText();
+  const query = useCourseSection("assignments");
+  const items = Array.isArray(query.data) ? query.data : [];
+  const loading = query.loading;
 
   return (
     <div>
       <Breadcrumbs sectionKey="assignments" />
-      <div className="p-4 md:p-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-lg font-bold text-slate-900">Assignments</h1>
-          {isTeacher ? (
-            <Button onClick={() => setCreating((v) => !v)} className="h-9 gap-1.5">
-              <Plus className="w-3.5 h-3.5" /> Add Assignment
-            </Button>
+      <div className="p-4 md:p-6 space-y-6 max-w-4xl">
+        <PageHeader help="pages.assignments"
+          title={t("nav.assignments")}
+          actions={isTeacher ? (
+            <Link
+              href={`/course/${courseId}/modules`}
+              className="flex items-center gap-1.5 text-caption font-semibold text-on-brand bg-brand hover:bg-brand/90 rounded-lg px-3.5 py-2 transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" /> {t("lists.addFromModules")}
+            </Link>
           ) : null}
-        </div>
+        />
 
-        {creating ? (
-          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 p-3">
-            <input value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} placeholder="Assignment title" className="flex-1 min-w-[200px] text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none" />
-            <input type="datetime-local" value={form.dueAt} onChange={(e) => setForm((p) => ({ ...p, dueAt: e.target.value }))} className="text-sm border border-slate-200 rounded-lg px-3 py-2" />
-            <input type="number" min="0" value={form.pointsPossible} onChange={(e) => setForm((p) => ({ ...p, pointsPossible: e.target.value }))} placeholder="Points" className="w-24 text-sm border border-slate-200 rounded-lg px-3 py-2" />
-            <button onClick={createAssignment} className="text-xs font-semibold text-white bg-[#203A3A] rounded-lg px-3 py-2">Create</button>
-          </div>
-        ) : null}
-
-        <AsyncListState loading={loading} error={error} data={items} onRetry={refetch} emptyMessage="No assignments, quizzes, or graded discussions yet.">
-          {(list) => (
-            <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden">
-              {list.map((item) => {
-                const Icon = KIND_ICONS[item.kind] || ClipboardList;
-                const href = item.kind === "assignment" ? `/course/${courseId}/assignments/${item.id}`
-                  : item.kind === "quiz" ? `/course/${courseId}/quizzes/${item.id}`
-                  : `/course/${courseId}/discussions/${item.id}`;
-                return (
-                  <Link key={`${item.kind}-${item.id}`} href={href} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-slate-50 transition-colors">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <Icon className="w-4 h-4 text-slate-400 shrink-0" />
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-slate-800 truncate">{item.title}</p>
-                        <p className="text-xs text-slate-500">
-                          {item.dueAt ? `Due ${new Date(item.dueAt).toLocaleString()}` : "No due date"}
-                          {!item.published && isTeacher ? " · Unpublished" : ""}
-                        </p>
-                      </div>
-                    </div>
-                    <span className="text-xs font-semibold text-slate-500 shrink-0">{item.pointsPossible != null ? `${item.pointsPossible} pts` : ""}</span>
-                  </Link>
-                );
-              })}
-            </div>
-          )}
-        </AsyncListState>
+        {items.length === 0 ? (
+          loading ? <Loader variant="page" size={48} className="min-h-[25vh]" label={t("lists.loadingAssignments")} /> : <EmptyState compact title={t("lists.noAssignments")} description={isTeacher ? <ExplainerText k="pages.assignments" /> : null} />
+        ) : (
+          <List label={t("nav.assignments")}>
+            {items.map((item) => {
+              const Icon = KIND_ICONS[item.kind] || ClipboardList;
+              const href = item.kind === "assignment" ? `/course/${courseId}/assignments/${item.id}`
+                : item.kind === "quiz" ? `/course/${courseId}/quizzes/${item.id}`
+                : `/course/${courseId}/discussions/${item.id}`;
+              return (
+                <ListRow
+                  key={`${item.kind}-${item.id}`}
+                  icon={<Icon className="w-4 h-4 text-brand-fg" />}
+                  title={item.title}
+                  href={href}
+                  subtitle={item.dueAt ? tf("common.dueOn", { date: fmtDate(item.dueAt) }) : t("lists.weekSlot")}
+                  meta={item.pointsPossible != null ? <span className="font-semibold text-fg-muted">{tpts(item.pointsPossible)}</span> : null}
+                  actions={isTeacher && item.kind === "assignment" ? (
+                    <Link href={`${href}#submissions`} className="text-caption font-semibold text-brand-fg border border-brand/40 hover:bg-brand-soft rounded-full px-2.5 py-1 whitespace-nowrap">
+                      {t("submission.gradeLink")} · {tf("submission.handedIn", { n: item.handedIn ?? 0 })}
+                    </Link>
+                  ) : null}
+                />
+              );
+            })}
+          </List>
+        )}
       </div>
     </div>
   );

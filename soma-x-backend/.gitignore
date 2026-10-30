@@ -17,3 +17,6 @@ src/db/*.sqlite3-wal
 api_snapshots/
 snapshots/
 .DS_Store
+# Secrets: never commit service account keys
+service-account.json
+*service-account*.json

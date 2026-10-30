@@ -1,4 +1,27 @@
+import esShell from "./shell/es";
+import esLearner from "./learner/es";
+import esCourse from "./course/es";
+import esProgress from "./progress/es";
+import esAdmin from "./admin/es";
+import esTeacher from "./teacher/es";
+import esSchool from "./school/es";
+import esExplore from "./explore/es";
+import esAttendance from "./attendance/es";
+import esGuest from "./guest/es";
+import esExplainers from "./explainers/es";
+
 export default {
+    "attendance": esAttendance,
+    "guest": esGuest,
+    "explore": esExplore,
+    "school": esSchool,
+    "shell": esShell,
+    "learner": esLearner,
+    "course": esCourse,
+    "progress": esProgress,
+    "admin": esAdmin,
+    "teacher": esTeacher,
+    "explainers": esExplainers,
     "nav": {
         "dashboard": "Tablero",
         "lessons": "Lecciones",
@@ -95,14 +118,12 @@ export default {
     "auth": {
         "authTitle": "Bienvenido de Nuevo",
         "authSubtitle": "Inicia sesión para gestionar tu cuenta",
-        "authUsername": "Nombre de Usuario",
         "authPassword": "Contraseña",
         "authTeacher": "Profesor",
         "authAdmin": "Administrador",
         "authLogin": "Iniciar Sesión"
 
     },
-    "authScholar": "Estudiante",
     "AdminManageOptions": {
         "syncTitle": "Sincronizar contenido",
         "contentTitle": "Gestionar Contenido",
@@ -128,6 +149,10 @@ export default {
         "scholar": "Estudiante"
     },
     "notFound": "Contenido no encontrado",
+    "loading": "Cargando...",
+    "loadingCategories": "Cargando categorías...",
+    "exploreTopics": "Explora los temas a continuación",
+    "notContent": "Todavía no hay contenido aquí.",
     "noContent": "El contenido solicitado no se pudo cargar",
     "thePath": "La ruta",
     "doesNotExist": "No Existe",

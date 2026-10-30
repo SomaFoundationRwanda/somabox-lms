@@ -1,35 +1,34 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCourse } from "@/context/CourseContext";
+import { apiFetch, getErrorMessage } from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
 
-// Fetches GET /courses/:id/<path> with userEmail attached, shared by every course content page.
+/**
+ * GET /courses/:id/<path>, shared by every course content page: kept under ["course", id, ...path]
+ * (so two components asking for the same section share one request). `setData` changes the kept
+ * copy after an edit; `refetch` asks the box again.
+ */
 export function useCourseSection(path) {
-  const { SERVER_URL, courseId, userEmail } = useCourse();
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  const refetch = useCallback(async () => {
-    if (!SERVER_URL || !courseId || !userEmail || !path) return;
-    try {
-      setLoading(true);
-      setError("");
-      const separator = path.includes("?") ? "&" : "?";
-      const res = await fetch(`${SERVER_URL}/courses/${courseId}/${path}${separator}userEmail=${encodeURIComponent(userEmail)}`);
-      const payload = await res.json();
-      if (!res.ok) throw new Error(payload.message || "Failed to load");
-      setData(payload);
-    } catch (err) {
-      setError(err.message || "Failed to load");
-    } finally {
-      setLoading(false);
-    }
-  }, [SERVER_URL, courseId, userEmail, path]);
-
-  useEffect(() => {
-    refetch();
-  }, [refetch]);
-
-  return { data, setData, loading, error, refetch };
+  const { courseId, userEmail } = useCourse();
+  const queryClient = useQueryClient();
+  const queryKey = queryKeys.courseSection(courseId, path);
+  const query = useQuery({
+    queryKey,
+    queryFn: () => apiFetch(`/courses/${courseId}/${path}`),
+    enabled: !!courseId && !!userEmail && !!path,
+  });
+  const setData = useCallback(
+    (next) => queryClient.setQueryData(queryKey, next),
+    [queryClient, queryKey.join("/")], // eslint-disable-line react-hooks/exhaustive-deps
+  );
+  return {
+    data: query.data ?? null,
+    setData,
+    loading: query.isPending,
+    error: query.isError ? getErrorMessage(query.error) : "",
+    refetch: query.refetch,
+  };
 }

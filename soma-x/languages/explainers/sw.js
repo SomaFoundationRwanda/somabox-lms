@@ -1,0 +1,203 @@
+// Swahili explainers: mirrors en.js key for key; translations should be reviewed by a native-speaking teacher.
+export default {
+  ui: {
+    whatIsThis: "Hiki ni nini?",
+    useItWhen: "Kitumie wakati",
+    commonMistake: "Kosa la kawaida",
+    shownInEnglish: "Bado hakijatafsiriwa: kinaonyeshwa kwa Kiingereza",
+    close: "Funga",
+    learnMore: "Jifunze zaidi",
+  },
+  helper: {
+    button: "Niunde nini?",
+    title: "Wanafunzi wafanye nini?",
+    intro: "Chagua unachotaka wanafunzi wafanye. Tutafungua aina sahihi ya nyenzo katika funzo utakalochagua.",
+    module: "Ongeza kwenye",
+    create: "Unda",
+    cancel: "Ghairi",
+    goals: {
+      read: { label: "Kusoma au kutazama kitu", hint: "Ukurasa wenye maandishi, picha au video" },
+      submit: { label: "Kuwasilisha kazi ya maandishi au mradi", hint: "Kazi unayoisahihisha na kutoa alama" },
+      quiz: { label: "Kujibu maswali yanayosahihishwa yenyewe", hint: "Jaribio lenye alama" },
+      practice: { label: "Kufanya mazoezi bila alama", hint: "Jaribio la mazoezi lisilohesabiwa" },
+      discuss: { label: "Kuzungumza na kubadilishana mawazo na wenzao", hint: "Majadiliano" },
+      download: { label: "Kupakua karatasi ya zoezi au faili", hint: "Faili" },
+      organise: { label: "Kugawa wiki hii katika sehemu", hint: "Kichwa kidogo" },
+    },
+  },
+  items: {
+    page: {
+      title: "Ukurasa",
+      what: "Ukurasa wa somo: maandishi, picha, viungo au video.",
+      when: "Wanafunzi wanapaswa kusoma au kutazama kitu kabla ya kufanya mazoezi.",
+      mistake: "Kuweka maswali kwenye ukurasa. Maswali unayotaka yajibiwe na kusahihishwa yaweke kwenye jaribio au kazi.",
+    },
+    assignment: {
+      title: "Kazi",
+      what: "Kazi ambayo wanafunzi wanawasilisha na wewe unatoa alama: insha, mradi, karatasi ya zoezi, picha ya kazi yao.",
+      when: "Unataka kuona wanafunzi wanachoweza kufanya na kuwapa alama na maoni.",
+      mistake: "Kusahau kuiunganisha na tokeo la kujifunza. Bila hilo haionyeshi maendeleo ya mwanafunzi, kwa hiyo haiwezi kuchapishwa.",
+    },
+    quiz: {
+      title: "Jaribio",
+      what: "Maswali ambayo mfumo unakusahihishia.",
+      when: "Unataka kuangalia haraka uelewa wa wanafunzi na kupata matokeo papo hapo.",
+      mistake: "Kuacha maswali bila tokeo la kujifunza. Unganisha kila swali ili uone matokeo ya kujifunza ambayo wanafunzi wameyamudu.",
+    },
+    file: {
+      title: "Faili",
+      what: "Hati ambayo wanafunzi wanaweza kupakua, kama karatasi ya zoezi ya PDF au slaidi.",
+      when: "Tayari una somo kama faili na wanafunzi wanahitaji nakala.",
+      mistake: "Kupakia kazi unayotaka irudishwe. Tumia kazi kwa hilo, na uambatishe faili kwake.",
+    },
+    sub_header: {
+      title: "Kichwa kidogo",
+      what: "Lebo inayogawa funzo katika sehemu, kama \"Jumatatu\" au \"Kazi ya kikundi\". Wanafunzi hawaifungui.",
+      when: "Funzo lina nyenzo nyingi na wanafunzi wanahitaji msaada kupata njia.",
+      mistake: "Kuandika maelekezo kwenye kichwa kidogo. Weka maelekezo kwenye ukurasa.",
+    },
+    discussion: {
+      title: "Majadiliano",
+      what: "Mazungumzo ambapo wanafunzi wanaandika ujumbe na kujibiana.",
+      when: "Unataka wanafunzi wabadilishane mawazo, waeleze wanavyofikiri, au wasaidiane.",
+      mistake: "Kuuliza swali lenye jibu moja sahihi. Tumia jaribio kwa hilo; majadiliano yanafaa zaidi kwa maswali ya wazi.",
+    },
+  },
+  quizKinds: {
+    graded: {
+      title: "Jaribio lenye alama",
+      what: "Linahesabiwa katika alama na maendeleo ya matokeo ya kujifunza.",
+      when: "Unaangalia wanafunzi wamejifunza nini.",
+      mistake: "Kuruhusu nafasi za kujaribu bila kikomo wakati unataka jaribio moja la kweli. Weka idadi ya nafasi.",
+    },
+    practice: {
+      title: "Jaribio la mazoezi",
+      what: "Kwa mazoezi tu: halihesabiwi katika alama wala maendeleo.",
+      when: "Wanafunzi wajaribu, wakosee, na wajaribu tena bila wasiwasi.",
+      mistake: "Kutumia jaribio la mazoezi kwa kitu unachohitaji kukipa alama.",
+    },
+    baseline: {
+      title: "Jaribio la tathmini ya awali",
+      what: "Jaribio fupi kabla ya Funzo 1 linaloonyesha kile kila mwanafunzi anachojua tayari, tokeo kwa tokeo.",
+      when: "Mwanzoni kabisa, ili baadaye uone maendeleo ya kila mwanafunzi.",
+      mistake: "Kufundisha mada kwanza. Tathmini ya awali inafaa tu ikifanywa kabla ya kufundisha.",
+    },
+  },
+  pages: {
+    home: {
+      title: "Mwanzo wa somo",
+      what: "Kinachoendelea wiki hii, kinachohitaji umakini wako, na jinsi wanafunzi wanavyoendelea katika kila tokeo la kujifunza.",
+      when: "Anza hapa kila siku.",
+    },
+    modules: {
+      title: "Vitengo",
+      what: "Somo funzo kwa funzo. Kila funzo lina kila kitu wanafunzi wanachofanya ndani yake.",
+      when: "Panga na uandae somo hapa: kila nyenzo unayounda ni ya funzo fulani.",
+      mistake: "Kuacha nyenzo katika \"Havijapangwa\". Zihamishie kwenye funzo, la sivyo somo haliwezi kufunguliwa.",
+    },
+    outcomes: {
+      title: "Matokeo ya kujifunza",
+      what: "Kile wanafunzi wanapaswa kuweza kufanya mwishoni mwa somo. Kila nyenzo yenye alama imeunganishwa na angalau tokeo moja.",
+      when: "Yaandike kwanza, kabla ya kuandaa mafunzo.",
+      mistake: "Kuandika matokeo yasiyoweza kupimwa, kama \"kuelewa sehemu\". Afadhali \"kujumlisha sehemu zenye vigawanyo tofauti\".",
+    },
+    baseline: {
+      title: "Tathmini ya awali (Funzo 0)",
+      what: "Jaribio fupi lisilo na alama kabla ya Funzo 1. Kila swali limeunganishwa na tokeo la kujifunza, ili uone kila mwanafunzi anaanzia wapi.",
+      when: "Si lazima: kabla ya Funzo 1, ukitaka kuona wanafunzi wanavyokua. Ukiliruka, eleza kwa nini.",
+      mistake: "Kutumia maswali yasiyoweza kusahihishwa yenyewe. Maswali ya tathmini ya awali lazima yawe ya kuchagua jibu, yenye jibu moja sahihi.",
+    },
+    unassigned: {
+      title: "Havijapangwa",
+      what: "Nyenzo ambazo bado haziko katika funzo lolote. Wanafunzi hawazioni.",
+      when: "Utakiona baada ya kuondoa nyenzo kwenye funzo, au baada ya sasisho kuhamishia hapa nyenzo zilizokuwa nje ya mafunzo.",
+      mistake: "Kuacha nyenzo hapa. Hamishia kila moja kwenye funzo; somo haliwezi kufunguliwa wakati hapa kuna nyenzo.",
+    },
+    assignments: {
+      title: "Kazi",
+      what: "Kazi zote zenye alama katika somo: kazi, majaribio yenye alama, na majadiliano yenye alama.",
+      when: "Angalia kinachotakiwa kuwasilishwa na kinachosubiri kusahihishwa.",
+      mistake: "Kuunda kazi hapa. Iunde katika funzo sahihi kwenye ukurasa wa \"Vitengo\".",
+    },
+    quizzes: {
+      title: "Majaribio",
+      what: "Majaribio yote katika somo na jinsi wanafunzi walivyofanya.",
+      when: "Angalia matokeo ya majaribio au mpe mwanafunzi nafasi nyingine.",
+    },
+    pages: {
+      title: "Kurasa",
+      what: "Kurasa zote za nyenzo za kujifunza katika somo.",
+      when: "Tafuta na uhariri ukurasa. Kuongeza ukurasa, nenda kwenye funzo sahihi katika ukurasa wa \"Vitengo\".",
+    },
+    discussions: {
+      title: "Majadiliano",
+      what: "Mazungumzo ambapo wanafunzi wanaandika ujumbe na kujibu.",
+      when: "Fuatilia mazungumzo na ujibu maswali.",
+    },
+    rubrics: {
+      title: "Rubriki",
+      what: "Kila rubriki ni ya kazi moja na inaorodhesha utakachoangalia, na alama kwa kila sehemu. Unganisha kila sehemu na tokeo la kujifunza ili uone maendeleo kwa kila tokeo.",
+      when: "Unataka kutoa alama kwa haki na kwa usawa, na maoni ambayo wanafunzi wanaelewa.",
+      mistake: "Kuweka kigezo kimoja kikubwa sana. Vigezo vidogo kadhaa vilivyo wazi hufanya kusahihisha kuwe haraka na kwa haki zaidi.",
+    },
+    grades: {
+      title: "Alama",
+      what: "Alama za kila mwanafunzi kwa kila nyenzo yenye alama, kwa pointi na asilimia.",
+      when: "Angalia nani yuko nyuma na nani hajawasilisha kazi.",
+      mistake: "Kudhani kisanduku kitupu ni sifuri. Kistari kinamaanisha bado hakuna kilichowasilishwa.",
+    },
+    insights: {
+      title: "Takwimu",
+      what: "Jinsi darasa linavyoendelea, kwa kutumia kazi na majaribio yenye alama pekee. Mazoezi hayahesabiwi. Ukuaji unalinganisha kila lengo sasa na kiwango cha mwanzo (Funzo 0); faida iliyosawazishwa ni sehemu ya maendeleo yanayowezekana ambayo mwanafunzi amefikia (kutoka kiwango cha mwanzo hadi 100%).",
+      when: "Tafuta malengo ya kufundisha upya, wanafunzi wanaohitaji kufuatiliwa, na nyenzo ambazo wengi hawakuwasilisha.",
+      mistake: "Kudhani kistari ni sifuri. Kistari kinamaanisha bado hakuna matokeo, na kila takwimu inasema imetokana na wanafunzi wangapi.",
+    },
+    calendar: {
+      title: "Kalenda",
+      what: "Kila funzo linaanza lini, na kila kazi inafunguliwa, inatakiwa na inafungwa lini.",
+      when: "Panga muhula, au hamishia nyenzo siku nyingine.",
+      mistake: "Kubadilisha tarehe moja moja wakati somo zima limesogea. Tumia \"Sogeza ratiba\" katika \"Mipangilio\".",
+    },
+    people: {
+      title: "Watu",
+      what: "Nani yuko katika somo na jukumu lake.",
+      when: "Ongeza wanafunzi au mwalimu mwingine.",
+    },
+    announcements: {
+      title: "Matangazo",
+      what: "Ujumbe kwa kila mtu katika somo.",
+      when: "Wanafunzi wanahitaji kujua jambo hivi karibuni, kama mabadiliko ya mpango.",
+    },
+    syllabus: {
+      title: "Muhtasari wa kozi",
+      what: "Mpango wa somo: matokeo ya kujifunza, utoaji wa alama, na ratiba ya funzo kwa funzo.",
+      when: "Wanafunzi au wazazi wanataka kuona somo zima kwa haraka.",
+    },
+    files: {
+      title: "Faili",
+      what: "Hati zilizopakiwa kwenye somo.",
+      when: "Tafuta faili, au uone inatumika wapi.",
+    },
+    collaborations: {
+      title: "Ushirikiano",
+      what: "Viungo vya sehemu za kazi za pamoja, kama hati ya pamoja.",
+      when: "Wanafunzi wanafanya kazi pamoja nje ya somo.",
+    },
+    settings: {
+      title: "Mipangilio",
+      what: "Taarifa za somo, tarehe, menyu wanayoiona wanafunzi, na maandalizi ya somo.",
+      when: "Weka tarehe ya kuanza, sogeza ratiba nzima, au maliza maandalizi.",
+    },
+    setup: {
+      title: "Maandalizi ya somo",
+      what: "Kila kitu kinachotakiwa kufanywa kabla somo halijafunguliwa, na kinachofaa kuangaliwa.",
+      when: "Kabla ya kuchapisha somo. Hatua za lazima lazima zikamilike; maonyo ni ushauri.",
+    },
+    shiftTimeline: {
+      title: "Sogeza ratiba",
+      what: "Inasogeza tarehe kwa idadi fulani ya siku: somo zima, au funzo moja na kila kitu kinachofuata.",
+      when: "Shule ilianza kwa kuchelewa, au wiki moja ilipotea.",
+      mistake: "Kutekeleza bila kuangalia. Angalia hakiki kwanza ili uone kila tarehe itakayobadilika.",
+    },
+  },
+};

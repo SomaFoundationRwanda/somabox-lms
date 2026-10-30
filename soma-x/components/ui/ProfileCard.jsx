@@ -1,5 +1,4 @@
 "use client";
-import { PersonOutline } from "@mui/icons-material";
 import useUser from "../../hooks/useUser"; 
 import AvatarFallback from "./AvatarFallBack";
 import Avatar from "./Avatar";
@@ -8,13 +7,18 @@ import { useContext } from "react";
 import DataContext from "../../context/DataContext";
 import { LogOut, Settings, UserRound } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useLanguage } from "../../context/LanguageContext";
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "./dropdown-menu";
+import { startRouteLoading } from "@/components/global/RouteLoader";
+import { accountPage } from "@/lib/session";
+import Loader from "@/components/ui/Loader";
 
 const ProfileCard = () => {
     const { 
@@ -25,24 +29,22 @@ const ProfileCard = () => {
         role 
     } = useUser();
     
-    const { logout, isDark } = useContext(DataContext) || {};
+    const { logout, user } = useContext(DataContext) || {};
+    const { t } = useLanguage();
+    // Learners can sign in with this code instead of their email (e.g. GSK-0012).
+    const learnerCode = user?.learnerCode || "";
     const router = useRouter();
 
-    const dropdownBg = "#0f2d2b";
-    const itemHoverBg = "rgba(45,212,191,0.15)"; // #2dd4bf with opacity
-    const iconColor = "#2dd4bf";
-    const titleColor = "#ffffff";
-    const borderColor = "rgba(255,255,255,0.1)";
+    // The menu is dark in both modes, tinted with the school colour.
+    const dropdownBg = "color-mix(in srgb, var(--brand-deep) 70%, black)";
 
     // Show loading state
     if (loading) {
         return (
-            <section className="relative cursor-pointer bg-white border border-slate-100 px-2.5 shadow-sm flex items-center justify-around rounded-full w-[11rem] h-10">
-                <div className="w-6 h-6 px-3 flex items-center justify-center rounded-[100%] bg-amber-400">
-                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
-                </div>
-                <div>
-                    <p className="ml-3 text-xs font-bold text-slate-600">Loading...</p>
+            <section className="relative cursor-pointer bg-surface border border-line px-2.5 shadow-sm flex items-center justify-around rounded-full w-10 sm:w-[11rem] h-10">
+                <Loader size={24} label={t("shell.common.loading")} />
+                <div className="hidden sm:block">
+                    <p className="ml-3 text-caption font-bold text-fg-muted">{t("shell.common.loading")}</p>
                 </div>
             </section>
         );
@@ -50,10 +52,9 @@ const ProfileCard = () => {
 
     return (
         <DropdownMenu>
-            <DropdownMenuTrigger className="outline-none">
+            <DropdownMenuTrigger aria-label={t("shell.profile.menu")} className="outline-none focus-visible:ring-2 focus-visible:ring-brand rounded-full">
                 <section
-                    className={`relative hover:opacity-90 cursor-pointer shadow-sm border border-transparent flex items-center rounded-full w-[11rem] h-10 px-2 gap-2.5 transition-opacity`}
-                    style={{ backgroundColor: "#203A3A" }}>
+                    className={`relative hover:opacity-90 cursor-pointer shadow-sm border border-transparent bg-brand-strong flex items-center rounded-full w-10 sm:w-[11rem] h-10 px-1 sm:px-2 gap-2.5 transition-opacity`}>
                     {/* Profile picture or default icon */}
                     <Avatar
                         src={getAvatarUrl()}
@@ -63,16 +64,16 @@ const ProfileCard = () => {
                     />
 
                     {/* Dynamic text based on login status */}
-                    <div className="flex flex-col justify-center text-left min-w-0">
-                        <p className={`text-xs ${isLoggedIn ? "hidden" : "visible"} font-bold text-white`}>
-                            Sign in
+                    <div className="hidden sm:flex flex-col justify-center text-left min-w-0">
+                        <p className={`text-caption ${isLoggedIn ? "hidden" : "visible"} font-bold text-on-brand-strong`}>
+                            {t("shell.profile.signIn")}
                         </p>
                         <div className={`${isLoggedIn ? "visible" : "hidden"} flex flex-col`}>
-                            <p className="text-xs font-bold leading-tight truncate w-24 text-white">
+                            <p className="text-caption font-bold leading-tight truncate w-24 text-on-brand-strong">
                                 {getDisplayName()}
                             </p>
-                            <p className="text-[9px] leading-tight capitalize text-slate-400 font-medium">
-                                {role}
+                            <p className="text-caption leading-tight capitalize text-on-brand-strong/70 font-medium">
+                                {t(`role.${role}`) || role}
                             </p>
                         </div>
                     </div>
@@ -80,45 +81,42 @@ const ProfileCard = () => {
             </DropdownMenuTrigger>
             <DropdownMenuContent 
                 align="end" 
-                className="w-48 p-1.5 rounded-[8px] shadow-lg"
-                style={{ 
-                    backgroundColor: dropdownBg, 
-                    borderColor: borderColor 
-                }}
+                className="dark w-48 p-1.5 rounded-[8px] shadow-lg border-line-strong text-fg"
+                style={{ backgroundColor: dropdownBg }}
             >
+                {learnerCode && (
+                    <>
+                        <DropdownMenuLabel className="px-2.5 py-2 text-fg">
+                            <span className="block text-caption font-semibold text-fg-subtle">{t("school.learnerCode")}</span>
+                            <span className="block text-ui font-extrabold font-mono">{learnerCode}</span>
+                        </DropdownMenuLabel>
+                        <DropdownMenuSeparator className="bg-line-strong" />
+                    </>
+                )}
                 <DropdownMenuItem 
-                    onClick={() => router.push('/settings')}
-                    className="cursor-pointer gap-2.5 rounded-[5px] px-2.5 py-2 transition-colors"
-                    onMouseEnter={e => e.currentTarget.style.backgroundColor = itemHoverBg}
-                    onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}
-                    style={{ color: titleColor }}
+                    onClick={() => { startRouteLoading(); router.push('/settings'); }}
+                    className="cursor-pointer gap-2.5 rounded-[5px] px-2.5 py-2 transition-colors text-fg hover:bg-brand/15 focus:bg-brand/15 focus:text-fg"
                 >
-                    <Settings size={15} style={{ color: iconColor }} />
-                    <span className="text-[12px] font-semibold">Settings</span>
+                    <Settings size={15} className="text-brand-fg" />
+                    <span className="text-caption font-semibold">{t("shell.profile.settings")}</span>
                 </DropdownMenuItem>
                 
                 <DropdownMenuItem 
-                    onClick={() => router.push('/account')}
-                    className="cursor-pointer gap-2.5 rounded-[5px] px-2.5 py-2 transition-colors"
-                    onMouseEnter={e => e.currentTarget.style.backgroundColor = itemHoverBg}
-                    onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}
-                    style={{ color: titleColor }}
+                    onClick={() => { startRouteLoading(); router.push(accountPage(user?.role)); }}
+                    className="cursor-pointer gap-2.5 rounded-[5px] px-2.5 py-2 transition-colors text-fg hover:bg-brand/15 focus:bg-brand/15 focus:text-fg"
                 >
-                    <UserRound size={15} style={{ color: iconColor }} />
-                    <span className="text-[12px] font-semibold">Account</span>
+                    <UserRound size={15} className="text-brand-fg" />
+                    <span className="text-caption font-semibold">{t("nav.account") || "Account"}</span>
                 </DropdownMenuItem>
                 
-                <DropdownMenuSeparator style={{ backgroundColor: borderColor }} />
+                <DropdownMenuSeparator className="bg-line-strong" />
                 
                 <DropdownMenuItem 
                     onClick={logout}
-                    className="cursor-pointer gap-2.5 rounded-[5px] px-2.5 py-2 transition-colors"
-                    onMouseEnter={e => e.currentTarget.style.backgroundColor = "rgba(255,0,0,0.1)"}
-                    onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}
-                    style={{ color: "#fca5a5" }}
+                    className="cursor-pointer gap-2.5 rounded-[5px] px-2.5 py-2 transition-colors text-danger-fg hover:bg-danger/10 focus:bg-danger/10 focus:text-danger-fg"
                 >
                     <LogOut size={15} />
-                    <span className="text-[12px] font-semibold">Logout</span>
+                    <span className="text-caption font-semibold">{t("shell.nav.logout")}</span>
                 </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>

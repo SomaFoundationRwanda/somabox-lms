@@ -1,0 +1,175 @@
+import express from 'express';
+import cors from 'cors';
+import { config } from './config/index.js';
+import crypto from 'crypto';
+import path from 'path';
+import fs from 'fs';
+import { authenticate, requireAuthUnlessPublic } from './helpers/auth.js';
+import { requireMediaAccess } from './helpers/media.js';
+import { localDb } from './helpers/db-manager.js';
+
+import cloudServices from './services/cloud.services.js';
+import contentServices from './services/content.services.js';
+import authServices from './services/auth.services.js';
+import userServices from './services/users.service.js';
+import libraryServices from './services/library.services.js';
+import coursesServices from './services/courses.services.js';
+import solServices from './services/sol.services.js';
+import analyticsServices from './services/analytics.services.js';
+import notificationsServices from './services/notifications.service.js';
+import aiServices from './services/ai-proxy.services.js';
+import calendarServices from './services/calendar.services.js';
+import syncServices from './services/sync.services.js';
+import bundleServices from './services/bundles.services.js';
+import schoolServices from './services/school.services.js';
+import setupServices from './services/setup.services.js';
+import liveServices from './services/live.services.js';
+import { publish } from './helpers/live.js';
+
+const WRITES = ['POST', 'PUT', 'PATCH', 'DELETE'];
+const BOX_CHANGES = [
+    { kind: 'school', methods: WRITES, path: /^\/school(\/|$)/ },
+    { kind: 'school', methods: ['POST'], path: /^\/analytics\/branding$/ },
+    { kind: 'catalogue', methods: ['POST', 'DELETE'], path: /^\/library\/(upload|book\/)/ },
+    { kind: 'catalogue', methods: WRITES, path: /^\/content\/manager\// },
+    { kind: 'catalogue', methods: ['PATCH', 'DELETE'], path: /^\/content\/summary$/ },
+];
+
+// API routers in mount order. Exported so tests can enumerate every route.
+export const API_ROUTERS = [
+    ['/cloud', cloudServices],
+    ['/content', contentServices],
+    ['/auth', authServices],
+    ['/users', userServices],
+    ['/library', libraryServices],
+    ['/courses', coursesServices],
+    ['/sol', solServices],
+    ['/analytics', analyticsServices],
+    ['/notifications', notificationsServices],
+    ['/ai', aiServices],
+    ['/calendar', calendarServices],
+    ['/sync', syncServices],
+    ['/bundles', bundleServices],
+    ['/school', schoolServices],
+    ['/setup', setupServices],
+    ['/live', liveServices],
+];
+
+export function createApp({ logRequests = true } = {}) {
+    const app = express();
+
+    // Bearer tokens (not cookies) carry identity, so any origin on the LAN may call the API.
+    const corsOptions = {
+        origin: true,
+        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization'],
+        // The app on the same box (another port) sends the media cookie with credentials.
+        credentials: true,
+        exposedHeaders: ['Content-Disposition'],
+        optionsSuccessStatus: 204
+    };
+    app.use(cors(corsOptions));
+    // Express 5 + path-to-regexp v6 disallow bare '*' routes; use regex to cover all
+    app.options(/.*/, cors(corsOptions));
+    app.use(express.json());
+
+    // Unexpected server errors: the details go to the log with a short reference, and people
+    // see a plain message with that reference instead of raw database or code errors.
+    app.use((req, res, next) => {
+        const json = res.json.bind(res);
+        res.json = (body) => {
+            if (res.statusCode === 500 && body && typeof body === 'object' && !Array.isArray(body)) {
+                const ref = crypto.randomBytes(3).toString('hex').toUpperCase();
+                console.error(`[error ${ref}] ${req.method} ${req.originalUrl}: ${body.message}`);
+                return json({
+                    message: `Something went wrong on the server. Please try again; if it keeps happening, tell your administrator (reference ${ref}).`,
+                    reference: ref,
+                });
+            }
+            return json(body);
+        };
+        next();
+    });
+
+    // Health check for monitoring on the LAN (no login, no personal data): is the API up, can it
+    // reach the database, which migrations are applied, and how much disk is left for uploads.
+    app.get('/health', async (req, res) => {
+        const health = { status: 'ok', uptimeSeconds: Math.round(process.uptime()) };
+        try {
+            const row = await localDb.prepare('SELECT COUNT(*) AS n, MAX(id) AS latest FROM schema_migrations').get();
+            health.database = 'ok';
+            health.migrations = Number(row.n);
+            health.latestMigration = row.latest;
+        } catch {
+            health.status = 'degraded';
+            health.database = 'unreachable';
+        }
+        try {
+            const stats = fs.statfsSync(fs.existsSync(config.paths.content) ? config.paths.content : config.paths.root);
+            health.diskFreeMb = Math.round((stats.bavail * stats.bsize) / (1024 * 1024));
+            if (health.diskFreeMb < 1024) health.status = 'degraded';
+        } catch {
+            health.diskFreeMb = null;
+        }
+        res.status(health.database === 'ok' ? 200 : 503).json(health);
+    });
+
+    if (logRequests) {
+        app.use((req, res, next) => {
+            console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+            next();
+        });
+    }
+
+    // Who is calling (bearer token), if anyone. Nothing is refused here; see the gates below.
+    app.use(authenticate);
+
+    // Files are for signed-in people only. <img>, <video>, iframes, and PDF/EPUB viewers can't send
+    // a bearer token, so they carry the signed media cookie set at sign-in (helpers/media.js).
+    // Covers stay public so guests can browse the catalogue before signing up.
+    const media = requireMediaAccess();
+    // Browsers keep files so pages open fast on the box's Wi-Fi: offline content and lessons
+    // don't change (a week), uploaded files and covers rarely do (a day, then checked by ETag),
+    // the school's logo can be replaced (an hour). Signed-in-only files are "private": kept by
+    // the browser, never by a shared proxy.
+    const keep = (maxAge, isPrivate = false) => ({
+        maxAge,
+        etag: true,
+        setHeaders: isPrivate ? (res) => res.setHeader('Cache-Control', `private, max-age=${Math.round(maxAge / 1000)}`) : undefined,
+    });
+    const WEEK = 7 * 24 * 60 * 60 * 1000;
+    const DAY = 24 * 60 * 60 * 1000;
+    app.use('/khan-academy', media, express.static(config.paths.static.khan, keep(WEEK, true)));
+    app.use('/w3schools', media, express.static(config.paths.static.w3schools, keep(WEEK, true)));
+    app.use('/wikipedia', media, express.static(config.paths.static.wikipedia, keep(WEEK, true)));
+    app.use('/lessons', media, express.static(config.paths.lessons, keep(WEEK, true)));
+    app.use('/course-files', requireMediaAccess({ courseFiles: true }), express.static(config.paths.courseFiles, keep(DAY, true)));
+    app.use('/library-book-covers', express.static(config.paths.libraryCovers, keep(DAY)));
+    app.use('/course-covers', express.static(config.paths.courseCovers, keep(DAY)));
+    app.use('/pdf-book-covers', express.static(config.paths.pdfCovers, keep(DAY)));
+    // The school's logo (public: shown on the login page).
+    app.use('/branding', express.static(path.join(config.paths.content, 'branding'), { ...keep(60 * 60 * 1000), fallthrough: false }));
+
+    // Every API route below requires a session unless listed in PUBLIC_ROUTES.
+    app.use(requireAuthUnlessPublic);
+
+    // Changes everyone sees (the school's look, books, Explore content): open browsers are told
+    // once the change succeeds (helpers/live.js). Course changes are announced by the course guards.
+    app.use((req, res, next) => {
+        const kind = BOX_CHANGES.find((c) => c.methods.includes(req.method) && c.path.test(req.path))?.kind;
+        if (kind) res.on('finish', () => { if (res.statusCode >= 200 && res.statusCode < 300) publish({ kind }, { everyone: true }); });
+        next();
+    });
+
+    for (const [prefix, router] of API_ROUTERS) app.use(prefix, router);
+
+    // Errors thrown outside a route's own try/catch (e.g. upload validation) as JSON.
+    app.use((err, req, res, next) => {
+        if (res.headersSent) return next(err);
+        console.error(`${req.method} ${req.path} failed:`, err);
+        // 4xx keeps its message (e.g. "File too large"); 500s are replaced by the plain message above.
+        res.status(err.status || err.statusCode || 500).json({ message: err.message || 'Request failed' });
+    });
+
+    return app;
+}

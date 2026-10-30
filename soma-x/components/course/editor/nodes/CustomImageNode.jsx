@@ -4,6 +4,8 @@ import { Node, mergeAttributes } from "@tiptap/core";
 import { ReactNodeViewRenderer, NodeViewWrapper } from "@tiptap/react";
 import { useState } from "react";
 import { AlertCircle, AlignLeft, AlignCenter, AlignRight, Maximize2 } from "lucide-react";
+import { useCourseText } from "@/components/course/useCourseText";
+import { TextInput } from "@/components/form";
 
 const SIZE_PRESETS = {
   small: "max-w-[25%]",
@@ -21,6 +23,7 @@ const ALIGN_CLASSES = {
 
 function CustomImageComponent({ node, updateAttributes, editor }) {
   const isEditable = editor.isEditable;
+  const { t } = useCourseText();
   const { file_id, url, alt_text = "", caption = "", alignment = "center", size = "medium" } = node.attrs;
   const [altTextDraft, setAltTextDraft] = useState(alt_text);
   const [captionDraft, setCaptionDraft] = useState(caption);
@@ -47,76 +50,76 @@ function CustomImageComponent({ node, updateAttributes, editor }) {
       <div className={`flex flex-col ${ALIGN_CLASSES[alignment] || "mx-auto"} ${SIZE_PRESETS[size] || "max-w-[50%]"}`}>
         {/* Main Image Wrapper */}
         <div className={`relative group rounded-xl overflow-hidden border transition-all ${
-          missingAlt && isEditable ? "border-amber-400 ring-2 ring-amber-300/50" : "border-slate-200"
+          missingAlt && isEditable ? "border-warning ring-2 ring-warning/50" : "border-line"
         }`}>
           {/* Rendered Image */}
           <img
             src={imageUrl || "/placeholder-image.png"}
-            alt={alt_text || "Embedded image"}
+            alt={alt_text || t("editor.image.embedded")}
             className="w-full h-auto object-cover rounded-xl"
           />
 
           {/* Floating Controls for Teacher/Editor */}
           {isEditable && (
-            <div className="absolute top-2 right-2 flex items-center gap-1 bg-slate-900/80 backdrop-blur-md text-white p-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
+            <div className="absolute top-2 right-2 dark flex items-center gap-1 bg-surface-raised/80 backdrop-blur-md text-fg p-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
               {/* Preset Sizes */}
               <button
                 type="button"
                 onClick={() => updateAttributes({ size: "small" })}
-                className={`px-1.5 py-0.5 text-[10px] font-bold rounded ${size === "small" ? "bg-teal-500 text-white" : "hover:bg-slate-700"}`}
-                title="Small (25%)"
+                className={`px-1.5 py-0.5 text-caption font-bold rounded ${size === "small" ? "bg-brand text-on-brand" : "hover:bg-surface-hover"}`}
+                title={t("editor.image.small")}
               >
                 S
               </button>
               <button
                 type="button"
                 onClick={() => updateAttributes({ size: "medium" })}
-                className={`px-1.5 py-0.5 text-[10px] font-bold rounded ${size === "medium" ? "bg-teal-500 text-white" : "hover:bg-slate-700"}`}
-                title="Medium (50%)"
+                className={`px-1.5 py-0.5 text-caption font-bold rounded ${size === "medium" ? "bg-brand text-on-brand" : "hover:bg-surface-hover"}`}
+                title={t("editor.image.medium")}
               >
                 M
               </button>
               <button
                 type="button"
                 onClick={() => updateAttributes({ size: "large" })}
-                className={`px-1.5 py-0.5 text-[10px] font-bold rounded ${size === "large" ? "bg-teal-500 text-white" : "hover:bg-slate-700"}`}
-                title="Large (75%)"
+                className={`px-1.5 py-0.5 text-caption font-bold rounded ${size === "large" ? "bg-brand text-on-brand" : "hover:bg-surface-hover"}`}
+                title={t("editor.image.large")}
               >
                 L
               </button>
               <button
                 type="button"
                 onClick={() => updateAttributes({ size: "original" })}
-                className={`px-1.5 py-0.5 text-[10px] font-bold rounded ${size === "original" ? "bg-teal-500 text-white" : "hover:bg-slate-700"}`}
-                title="Full Width (100%)"
+                className={`px-1.5 py-0.5 text-caption font-bold rounded ${size === "original" ? "bg-brand text-on-brand" : "hover:bg-surface-hover"}`}
+                title={t("editor.image.full")}
               >
                 100%
               </button>
 
-              <div className="w-px h-3 bg-slate-700 mx-0.5" />
+              <div className="w-px h-3 bg-line-strong mx-0.5" />
 
               {/* Alignments */}
               <button
                 type="button"
                 onClick={() => updateAttributes({ alignment: "left" })}
-                className={`p-1 rounded ${alignment === "left" ? "bg-teal-500 text-white" : "hover:bg-slate-700"}`}
-                title="Align Left"
+                className={`p-1 rounded ${alignment === "left" ? "bg-brand text-on-brand" : "hover:bg-surface-hover"}`}
+                title={t("editor.image.alignLeft")}
               >
                 <AlignLeft className="w-3 h-3" />
               </button>
               <button
                 type="button"
                 onClick={() => updateAttributes({ alignment: "center" })}
-                className={`p-1 rounded ${alignment === "center" ? "bg-teal-500 text-white" : "hover:bg-slate-700"}`}
-                title="Align Center"
+                className={`p-1 rounded ${alignment === "center" ? "bg-brand text-on-brand" : "hover:bg-surface-hover"}`}
+                title={t("editor.image.alignCenter")}
               >
                 <AlignCenter className="w-3 h-3" />
               </button>
               <button
                 type="button"
                 onClick={() => updateAttributes({ alignment: "right" })}
-                className={`p-1 rounded ${alignment === "right" ? "bg-teal-500 text-white" : "hover:bg-slate-700"}`}
-                title="Align Right"
+                className={`p-1 rounded ${alignment === "right" ? "bg-brand text-on-brand" : "hover:bg-surface-hover"}`}
+                title={t("editor.image.alignRight")}
               >
                 <AlignRight className="w-3 h-3" />
               </button>
@@ -129,40 +132,22 @@ function CustomImageComponent({ node, updateAttributes, editor }) {
           <div className="mt-2 space-y-1.5">
             {/* Required Alt Text Field */}
             <div className="flex items-center gap-1.5">
-              <input
-                type="text"
-                value={altTextDraft}
-                onChange={(e) => setAltTextDraft(e.target.value)}
-                onBlur={handleAltBlur}
-                placeholder="Alt text for accessibility (required)"
-                className={`flex-1 text-xs px-2.5 py-1.5 border rounded-lg outline-none transition-colors ${
-                  missingAlt
-                    ? "border-amber-400 bg-amber-50/50 text-amber-900 placeholder:text-amber-500 focus:border-amber-600"
-                    : "border-slate-200 focus:border-[#203A3A] bg-white text-slate-700"
-                }`}
-              />
+              <TextInput aria-label={t("editor.image.alt")} type="text" value={altTextDraft} onChange={(e) => setAltTextDraft(e.target.value)} onBlur={handleAltBlur} placeholder={t("editor.image.alt")} size="sm" aria-invalid={missingAlt || undefined} className="flex-1" />
             </div>
             {missingAlt && (
-              <div className="flex items-center gap-1 text-[11px] font-semibold text-amber-600 bg-amber-50 px-2 py-1 rounded-md">
+              <div className="flex items-center gap-1 text-caption font-semibold text-warning-fg bg-warning-soft px-2 py-1 rounded-md">
                 <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                <span>Add alt text for accessibility (required to save page)</span>
+                <span>{t("editor.image.altRequired")}</span>
               </div>
             )}
 
             {/* Optional Caption Field */}
-            <input
-              type="text"
-              value={captionDraft}
-              onChange={(e) => setCaptionDraft(e.target.value)}
-              onBlur={handleCaptionBlur}
-              placeholder="Add optional image caption..."
-              className="w-full text-xs px-2.5 py-1 border border-slate-200 rounded-lg outline-none focus:border-[#203A3A] bg-slate-50/50 text-slate-600 italic"
-            />
+            <TextInput size="sm" aria-label={t("editor.image.caption")} type="text" value={captionDraft} onChange={(e) => setCaptionDraft(e.target.value)} onBlur={handleCaptionBlur} placeholder={t("editor.image.captionPlaceholder")} className="w-full" />
           </div>
         ) : (
           /* Read-only Caption Rendering */
           caption ? (
-            <p className="mt-1.5 text-center text-xs text-slate-500 italic">
+            <p className="mt-1.5 text-center text-caption text-fg-subtle italic">
               {caption}
             </p>
           ) : null

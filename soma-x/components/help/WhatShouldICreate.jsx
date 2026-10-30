@@ -1,0 +1,117 @@
+"use client";
+
+import { useEffect, useId, useRef, useState } from "react";
+import { useParams } from "next/navigation";
+import { BookOpen, ClipboardCheck, FileDown, Heading, ListChecks, MessagesSquare, PencilLine, X } from "lucide-react";
+import { useLanguage } from "@/context/LanguageContext";
+import { trackEvent } from "@/lib/usage";
+import { useCourseText } from "@/components/course/useCourseText";
+import { ChoiceGroup, Field, Select } from "@/components/form";
+
+// Learner goal -> what to create. `kind` refines quizzes.
+export const CREATE_GOALS = [
+  { id: "read", itemType: "page", icon: BookOpen },
+  { id: "submit", itemType: "assignment", icon: PencilLine },
+  { id: "quiz", itemType: "quiz", kind: "graded", icon: ClipboardCheck },
+  { id: "practice", itemType: "quiz", kind: "practice", icon: ListChecks },
+  { id: "discuss", itemType: "discussion", icon: MessagesSquare },
+  { id: "download", itemType: "file", icon: FileDown },
+  { id: "organise", itemType: "sub_header", icon: Heading },
+];
+
+/**
+ * "What should I create?" — asks what learners should do and which week, then calls
+ * onChoose({ moduleId, itemType, kind }) so the page opens the right editor in that module.
+ * modules: [{ id, title, kind, week_offset }] (Unassigned is left out).
+ */
+export default function WhatShouldICreate({ open, onClose, modules, defaultModuleId, onChoose }) {
+  const { explain } = useLanguage();
+  const { weekLabel } = useCourseText();
+  const params = useParams();
+  const helper = explain("helper").entry || {};
+  const titleId = useId();
+  const dialogRef = useRef(null);
+  const choices = (modules || []).filter((m) => m.kind !== "unassigned");
+  const [goal, setGoal] = useState(null);
+  const [moduleId, setModuleId] = useState(defaultModuleId || choices[0]?.id || "");
+
+  useEffect(() => {
+    if (!open) return undefined;
+    setGoal(null);
+    setModuleId(defaultModuleId || choices[0]?.id || "");
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", onKey);
+    dialogRef.current?.focus();
+    return () => document.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  if (!open) return null;
+
+  const create = () => {
+    const chosen = CREATE_GOALS.find((g) => g.id === goal);
+    if (!chosen || !moduleId) return;
+    trackEvent("create_helper_used", { goal: chosen.id, itemType: chosen.itemType }, params?.courseId);
+    onChoose({ moduleId: Number(moduleId), itemType: chosen.itemType, kind: chosen.kind });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div
+        ref={dialogRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        className="w-full sm:max-w-lg max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-surface p-5 outline-none focus-visible:ring-2 focus-visible:ring-brand"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 id={titleId} className="text-item font-bold text-fg">{helper.title || "What should learners do?"}</h2>
+            <p className="mt-1 text-caption text-fg-subtle">{helper.intro}</p>
+          </div>
+          <button type="button" onClick={onClose} aria-label={helper.cancel || "Cancel"} className="text-fg-subtle hover:text-fg-muted">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <ChoiceGroup
+          layout="list"
+          aria-label={helper.title}
+          className="mt-4"
+          value={goal}
+          onChange={setGoal}
+          options={CREATE_GOALS.map((g) => {
+            const text = helper.goals?.[g.id] || {};
+            return {
+              value: g.id,
+              label: text.label || g.id,
+              description: text.hint,
+              icon: g.icon,
+            };
+          })}
+        />
+
+        <Field label={helper.module || "Add it to"} className="mt-4">
+          <Select value={moduleId} onChange={(e) => setModuleId(e.target.value)}>
+            {choices.map((m) => (
+              <option key={m.id} value={m.id}>{weekLabel(m)}: {m.title}</option>
+            ))}
+          </Select>
+        </Field>
+
+        <div className="mt-5 flex justify-end gap-2">
+          <button type="button" onClick={onClose} className="rounded-lg px-4 py-2 text-ui font-semibold text-fg-muted hover:bg-surface-hover">{helper.cancel || "Cancel"}</button>
+          <button
+            type="button"
+            onClick={create}
+            disabled={!goal || !moduleId}
+            className="rounded-lg bg-brand-strong px-4 py-2 text-ui font-semibold text-on-brand-strong disabled:opacity-40"
+          >
+            {helper.create || "Create it"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

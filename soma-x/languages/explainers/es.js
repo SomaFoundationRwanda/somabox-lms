@@ -1,0 +1,203 @@
+// Spanish explainers: mirrors en.js key for key; translations should be reviewed by a native-speaking teacher.
+export default {
+  ui: {
+    whatIsThis: "¿Qué es esto?",
+    useItWhen: "Úsalo cuando",
+    commonMistake: "Error frecuente",
+    shownInEnglish: "Aún sin traducir: se muestra en inglés",
+    close: "Cerrar",
+    learnMore: "Más información",
+  },
+  helper: {
+    button: "¿Qué debo crear?",
+    title: "¿Qué deben hacer los estudiantes?",
+    intro: "Elige lo que quieres que hagan los estudiantes. Abriremos el tipo de material adecuado en la lección que elijas.",
+    module: "Añadir a",
+    create: "Crear",
+    cancel: "Cancelar",
+    goals: {
+      read: { label: "Leer o ver algo", hint: "Una página con texto, imágenes o un video" },
+      submit: { label: "Entregar un trabajo escrito o un proyecto", hint: "Una tarea que tú calificas" },
+      quiz: { label: "Responder preguntas que se corrigen solas", hint: "Un cuestionario calificado" },
+      practice: { label: "Practicar sin nota", hint: "Un cuestionario de práctica que no cuenta" },
+      discuss: { label: "Hablar y compartir ideas con los compañeros", hint: "Un debate" },
+      download: { label: "Descargar una ficha o un archivo", hint: "Un archivo" },
+      organise: { label: "Dividir esta semana en partes", hint: "Un subtítulo" },
+    },
+  },
+  items: {
+    page: {
+      title: "Página",
+      what: "Una página de material de estudio: texto, imágenes, enlaces o un video.",
+      when: "Los estudiantes deben leer o ver algo antes de practicar.",
+      mistake: "Poner preguntas en una página. Las preguntas que quieres que respondan y corregir van en un cuestionario o una tarea.",
+    },
+    assignment: {
+      title: "Tarea",
+      what: "Trabajo que los estudiantes entregan y tú calificas: una redacción, un proyecto, una ficha, una foto de su trabajo.",
+      when: "Quieres ver lo que los estudiantes saben hacer y darles una nota y comentarios.",
+      mistake: "Olvidar vincularla a un resultado de aprendizaje. Sin él no muestra el progreso, así que no se puede publicar.",
+    },
+    quiz: {
+      title: "Cuestionario",
+      what: "Preguntas con respuestas que el sistema corrige por ti.",
+      when: "Quieres comprobar rápido lo que entienden, con resultados al instante.",
+      mistake: "Dejar preguntas sin resultado de aprendizaje. Vincula cada pregunta para ver qué resultados dominan los estudiantes.",
+    },
+    file: {
+      title: "Archivo",
+      what: "Un documento que los estudiantes pueden descargar, como una ficha en PDF o diapositivas.",
+      when: "Ya tienes el material en un archivo y los estudiantes necesitan una copia.",
+      mistake: "Subir un trabajo que quieres que te devuelvan. Usa una tarea para eso y adjunta el archivo.",
+    },
+    sub_header: {
+      title: "Subtítulo",
+      what: "Una etiqueta que divide una lección en partes, como \"Lunes\" o \"Trabajo en grupo\". Los estudiantes no la abren.",
+      when: "Una lección tiene muchos materiales y los estudiantes necesitan ayuda para orientarse.",
+      mistake: "Escribir instrucciones en un subtítulo. Pon las instrucciones en una página.",
+    },
+    discussion: {
+      title: "Debate",
+      what: "Una conversación donde los estudiantes publican y se responden entre sí.",
+      when: "Quieres que los estudiantes compartan ideas, expliquen su razonamiento o se ayuden.",
+      mistake: "Hacer una pregunta con una sola respuesta correcta. Usa un cuestionario para eso; los debates funcionan mejor con preguntas abiertas.",
+    },
+  },
+  quizKinds: {
+    graded: {
+      title: "Cuestionario calificado",
+      what: "Cuenta para las calificaciones y el progreso en los resultados de aprendizaje.",
+      when: "Estás comprobando lo que los estudiantes han aprendido.",
+      mistake: "Permitir intentos ilimitados cuando quieres un solo intento honesto. Fija el número de intentos.",
+    },
+    practice: {
+      title: "Cuestionario de práctica",
+      what: "Solo para practicar: no cuenta para las calificaciones ni para el progreso.",
+      when: "Los estudiantes deben intentar, equivocarse y volver a intentar sin preocuparse.",
+      mistake: "Usar un cuestionario de práctica para algo que necesitas calificar.",
+    },
+    baseline: {
+      title: "Cuestionario de evaluación inicial",
+      what: "Una prueba corta antes de la lección 1 que muestra lo que cada estudiante ya sabe, resultado por resultado.",
+      when: "Al principio de todo, para ver después el avance de cada estudiante.",
+      mistake: "Enseñar el tema primero. La evaluación inicial solo sirve si va antes de enseñar.",
+    },
+  },
+  pages: {
+    home: {
+      title: "Inicio de la asignatura",
+      what: "Lo que pasa esta semana, lo que necesita tu atención y cómo van los estudiantes en cada resultado de aprendizaje.",
+      when: "Empieza aquí cada día.",
+    },
+    modules: {
+      title: "Unidades",
+      what: "La asignatura lección a lección. Cada lección tiene todo lo que los estudiantes hacen en ella.",
+      when: "Planifica y prepara la asignatura aquí: cada material que creas pertenece a una lección.",
+      mistake: "Dejar materiales en \"Sin asignar\". Muévelos a una lección o la asignatura no podrá abrirse.",
+    },
+    outcomes: {
+      title: "Resultados de aprendizaje",
+      what: "Lo que los estudiantes deben saber hacer al final de la asignatura. Cada material calificado está vinculado a al menos un resultado.",
+      when: "Escríbelos primero, antes de preparar las lecciones.",
+      mistake: "Escribir resultados que no se pueden comprobar, como \"entender las fracciones\". Mejor \"sumar fracciones con distinto denominador\".",
+    },
+    baseline: {
+      title: "Evaluación inicial (lección 0)",
+      what: "Una prueba corta y sin nota antes de la lección 1. Cada pregunta está vinculada a un resultado de aprendizaje, para ver desde dónde empieza cada estudiante.",
+      when: "Opcional: antes de la lección 1, si quieres ver cuánto avanzan los estudiantes. Si lo omites, di por qué.",
+      mistake: "Usar preguntas que no se corrigen solas. Las preguntas deben ser de opción múltiple con una respuesta correcta.",
+    },
+    unassigned: {
+      title: "Sin asignar",
+      what: "Materiales que aún no están en ninguna lección. Los estudiantes no los ven.",
+      when: "Lo verás después de quitar un material de una lección, o después de una actualización que movió aquí materiales sueltos.",
+      mistake: "Dejar materiales aquí. Mueve cada uno a una lección; la asignatura no puede abrirse mientras haya materiales aquí.",
+    },
+    assignments: {
+      title: "Tareas",
+      what: "Todo el trabajo calificado de la asignatura: tareas, cuestionarios calificados y debates calificados.",
+      when: "Revisar qué hay que entregar y qué falta por calificar.",
+      mistake: "Crear trabajos aquí. Créalos en la lección correcta en la página Unidades.",
+    },
+    quizzes: {
+      title: "Cuestionarios",
+      what: "Todos los cuestionarios de la asignatura y cómo les fue a los estudiantes.",
+      when: "Revisar resultados o dar a un estudiante otro intento.",
+    },
+    pages: {
+      title: "Páginas",
+      what: "Todas las páginas de material de estudio de la asignatura.",
+      when: "Buscar y editar una página. Para añadir una, ve a la lección correcta en la página Unidades.",
+    },
+    discussions: {
+      title: "Debates",
+      what: "Conversaciones donde los estudiantes publican y responden.",
+      when: "Seguir la conversación y responder preguntas.",
+    },
+    rubrics: {
+      title: "Rúbricas",
+      what: "Cada rúbrica pertenece a una tarea y lista lo que vas a revisar, con puntos para cada parte. Vincula cada parte a un resultado de aprendizaje para ver el progreso por resultado.",
+      when: "Quieres calificar de forma justa y constante, con comentarios que los estudiantes entiendan.",
+      mistake: "Hacer un solo criterio enorme. Varios criterios pequeños y claros hacen la calificación más rápida y justa.",
+    },
+    grades: {
+      title: "Calificaciones",
+      what: "La nota de cada estudiante en cada material calificado, en puntos y porcentajes.",
+      when: "Ver quién va atrasado y quién no ha entregado su trabajo.",
+      mistake: "Tomar una celda vacía como un cero. Un guion significa que aún no se ha entregado nada.",
+    },
+    insights: {
+      title: "Análisis",
+      what: "Cómo va la clase, calculado solo a partir de trabajos y cuestionarios calificados. Las actividades de práctica no cuentan. El progreso compara cada resultado de aprendizaje con su punto de partida (lección 0); la ganancia normalizada es la parte de la mejora posible que se logró (desde el punto de partida hasta el 100 %).",
+      when: "Encontrar resultados que hay que volver a enseñar, estudiantes que necesitan seguimiento y materiales que muchos no entregaron.",
+      mistake: "Tomar un guion como un cero. Un guion significa que aún no hay resultados, y cada cifra indica en cuántos estudiantes se basa.",
+    },
+    calendar: {
+      title: "Calendario",
+      what: "Cuándo empieza cada lección y cuándo se abre, se entrega y se cierra cada trabajo.",
+      when: "Planificar el trimestre, o mover un material a otro día.",
+      mistake: "Cambiar las fechas una por una cuando se movió toda la asignatura. Usa \"Mover fechas\" en \"Configuración\".",
+    },
+    people: {
+      title: "Personas",
+      what: "Quién está en la asignatura y cuál es su rol.",
+      when: "Añadir estudiantes u otro docente.",
+    },
+    announcements: {
+      title: "Anuncios",
+      what: "Mensajes para todos en la asignatura.",
+      when: "Los estudiantes necesitan saber algo pronto, como un cambio de planes.",
+    },
+    syllabus: {
+      title: "Programa del curso",
+      what: "El plan de la asignatura: resultados de aprendizaje, calificación y el horario lección a lección.",
+      when: "Los estudiantes o los padres quieren ver toda la asignatura de un vistazo.",
+    },
+    files: {
+      title: "Archivos",
+      what: "Documentos subidos a la asignatura.",
+      when: "Buscar un archivo, o ver dónde se usa.",
+    },
+    collaborations: {
+      title: "Colaboraciones",
+      what: "Enlaces a espacios de trabajo compartidos, como un documento compartido.",
+      when: "Los estudiantes trabajan juntos fuera de la asignatura.",
+    },
+    settings: {
+      title: "Configuración",
+      what: "Datos de la asignatura, fechas, el menú que ven los estudiantes y la preparación de la asignatura.",
+      when: "Fijar la fecha de inicio, mover todas las fechas o terminar la preparación.",
+    },
+    setup: {
+      title: "Preparación de la asignatura",
+      what: "Todo lo que hay que hacer antes de que la asignatura pueda abrirse, y lo que conviene revisar.",
+      when: "Antes de publicar la asignatura. Los pasos obligatorios deben estar hechos; las advertencias son consejos.",
+    },
+    shiftTimeline: {
+      title: "Mover fechas",
+      what: "Mueve las fechas un número de días: toda la asignatura, o una lección y todo lo que viene después.",
+      when: "La escuela empezó tarde, o se perdió una semana.",
+      mistake: "Aplicar sin mirar. Primero mira la vista previa para ver todas las fechas que van a cambiar.",
+    },
+  },
+};

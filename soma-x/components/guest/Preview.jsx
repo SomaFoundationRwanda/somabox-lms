@@ -1,0 +1,178 @@
+"use client";
+
+// Visitor previews: when the school allows it (School page), people without an account can open
+// a few Explore and Library items (video, audio, PDF, EPUB) for a short time before they are
+// asked to sign up. POST /content/preview starts the preview on the box (which then serves the
+// file to this visitor for that long, and only the start of videos and audio); the player or
+// reader counts down and shows the sign-up panel when the time is up.
+//
+// Web lessons in the frame and anything in courses are not previewable: they keep the sign-up
+// prompt (useGuestGate().requireAccount).
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
+import { Clock, LockKeyhole } from "lucide-react";
+import DataContext from "@/context/DataContext";
+import { useLanguage } from "@/context/LanguageContext";
+import { useSchool } from "@/context/SchoolContext";
+import { authLinks, useGuestGate } from "@/components/guest/GuestGate";
+import { rememberNext } from "@/lib/session";
+import { fill } from "@/lib/fill";
+import { apiFetch } from "@/lib/api";
+
+const PREVIEWABLE = new Set(["video", "audio", "book", "pdf", "document", "epub"]);
+
+/** "0:32" */
+export const formatPreviewTime = (seconds) => {
+    const s = Math.max(0, Math.ceil(seconds));
+    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+};
+
+/**
+ * open(path, next, type) → { ok, preview }. Signed-in people get { ok: true, preview: null }.
+ * Visitors get a preview ({ seconds, secondsLeft, remainingItems, next }) when the school allows
+ * it and they have items left; otherwise the sign-up prompt is shown (with the box's reason) and
+ * ok is false. `starting` is true while the box is asked.
+ */
+export function useGuestPreview() {
+    const { authenticated } = useContext(DataContext);
+    const { school, loaded } = useSchool();
+    const { requireAccount } = useGuestGate();
+    const { t } = useLanguage();
+    const [starting, setStarting] = useState(false);
+    const busy = useRef(false);
+
+    const open = useCallback(async (path, next, type) => {
+        if (authenticated) return { ok: true, preview: null };
+        // Before the school's settings arrive, let the box decide (it answers PREVIEW_OFF if off).
+        if ((loaded && !school.guestPreview.enabled) || !path || (type && !PREVIEWABLE.has(type))) {
+            requireAccount(next);
+            return { ok: false, preview: null };
+        }
+        if (busy.current) return { ok: false, preview: null };
+        busy.current = true;
+        setStarting(true);
+        try {
+            // The visitor cookie the box uses to count previews travels with it (credentials).
+            let data;
+            try {
+                data = await apiFetch("/content/preview", { method: "POST", json: { path }, allowUnauthenticated: true });
+            } catch (err) {
+                if (err?.status === 0) throw err;
+                // PREVIEW_LIMIT / PREVIEW_ENDED / PREVIEW_OFF: the sign-up prompt, with the box's words.
+                requireAccount(next, { message: err?.body?.message || t("guest.previewFailed") });
+                return { ok: false, preview: null };
+            }
+            if (data?.signedIn) return { ok: true, preview: null };
+            const seconds = Number(data?.seconds) || school.guestPreview.seconds;
+            const secondsLeft = Number.isFinite(Number(data?.secondsLeft)) ? Number(data.secondsLeft) : seconds;
+            return {
+                ok: true,
+                preview: { seconds, secondsLeft, remainingItems: data?.remainingItems ?? null, next, startedAt: Date.now() },
+            };
+        } catch {
+            requireAccount(next, { message: t("guest.previewFailed") });
+            return { ok: false, preview: null };
+        } finally {
+            busy.current = false;
+            setStarting(false);
+        }
+    }, [authenticated, loaded, school.guestPreview.enabled, school.guestPreview.seconds, requireAccount, t]);
+
+    return { open, starting };
+}
+
+/**
+ * Counts down a preview while `running` (playback for video/audio, open time for books).
+ * Returns { left, ended, end() }; end() finishes it early (e.g. the box stopped sending the file).
+ */
+export function usePreview(preview, running) {
+    // `left` belongs to one preview; a new preview starts from its own time (no flash of "ended").
+    const [state, setState] = useState({ preview, left: preview ? preview.secondsLeft : 0, forced: false });
+    const used = useRef(0);
+    const last = useRef(null);
+    const current = state.preview === preview ? state : { preview, left: preview ? preview.secondsLeft : 0, forced: false };
+
+    useEffect(() => {
+        used.current = 0;
+        last.current = null;
+        setState({ preview, left: preview ? preview.secondsLeft : 0, forced: false });
+    }, [preview]);
+
+    const done = current.forced || current.left <= 0;
+    useEffect(() => {
+        if (!preview || !running || done) return undefined;
+        last.current = performance.now();
+        const tick = () => {
+            const now = performance.now();
+            used.current += (now - (last.current ?? now)) / 1000;
+            last.current = now;
+            const left = Math.max(0, preview.secondsLeft - used.current);
+            setState((s) => (s.preview === preview ? { ...s, left } : s));
+        };
+        const id = window.setInterval(tick, 250);
+        return () => {
+            window.clearInterval(id);
+            tick();
+            last.current = null;
+        };
+    }, [preview, running, done]);
+
+    const previewRef = useRef(preview);
+    previewRef.current = preview;
+    const end = useCallback(() => setState((s) => ({ ...s, preview: previewRef.current, forced: true })), []);
+    return { left: current.forced ? 0 : current.left, ended: Boolean(preview) && done, end };
+}
+
+/** "Preview · 0:32 left · Sign up to watch it all" — counts down while the preview runs. */
+export function PreviewChip({ left, next, reading = false, tone = "dark" }) {
+    const { t } = useLanguage();
+    const links = authLinks(next);
+    const dark = tone === "dark";
+    return (
+        <div className={`flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-1.5 text-caption font-semibold ${dark ? "bg-warning text-fg" : "bg-warning-soft text-warning-fg border-b border-warning/30"}`}>
+            <Clock className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+            <span role="timer" aria-live="off" className="tabular-nums">
+                {fill(t("guest.previewChip"), { time: formatPreviewTime(left) })}
+            </span>
+            <span aria-hidden="true">·</span>
+            <a href={links.signup} onClick={() => rememberNext(next)}
+                className="font-bold underline underline-offset-2 hover:no-underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fg">
+                {t(reading ? "guest.previewSignUpRead" : "guest.previewSignUpWatch")}
+            </a>
+        </div>
+    );
+}
+
+/** The panel over the player or reader when the preview has ended. It can't be dismissed. */
+export function PreviewEndedPanel({ next, reading = false }) {
+    const { t } = useLanguage();
+    const links = authLinks(next);
+    const signUpRef = useRef(null);
+    useEffect(() => { signUpRef.current?.focus(); }, []);
+    const remember = () => rememberNext(next);
+
+    return (
+        <div className="absolute inset-0 z-30 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+            <div role="alertdialog" aria-modal="false" aria-labelledby="preview-ended-title" aria-describedby="preview-ended-why"
+                className="w-full max-w-md bg-surface-raised rounded-2xl shadow-2xl border border-line p-6 sm:p-8 text-center">
+                <div className="w-14 h-14 rounded-2xl bg-brand-soft text-brand-fg flex items-center justify-center mx-auto mb-4">
+                    <LockKeyhole className="w-7 h-7" aria-hidden="true" />
+                </div>
+                <h2 id="preview-ended-title" className="text-section font-bold text-fg leading-snug">
+                    {t(reading ? "guest.previewEndedRead" : "guest.previewEndedWatch")}
+                </h2>
+                <p id="preview-ended-why" className="text-ui text-fg-muted mt-2">{t("guest.gateWhy")}</p>
+                <p className="text-caption text-fg-subtle mt-1">{t("guest.gateReturn")}</p>
+                <div className="mt-6 flex flex-col gap-2.5">
+                    <a ref={signUpRef} href={links.signup} onClick={remember}
+                        className="w-full h-11 rounded-xl bg-brand-strong hover:bg-brand-strong/90 text-on-brand-strong text-item font-bold flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-brand">
+                        {t("guest.signUp")}
+                    </a>
+                    <a href={links.login} onClick={remember}
+                        className="w-full h-11 rounded-xl border-2 border-line-strong hover:border-line-strong text-fg text-item font-bold flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-brand">
+                        {t("guest.haveAccount")}
+                    </a>
+                </div>
+            </div>
+        </div>
+    );
+}

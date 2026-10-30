@@ -1,293 +1,248 @@
+// The Library is a folder (local-content/library) like the other Explore roots: whatever is in it
+// (books downloaded from the cloud, uploaded by admins, or copied onto the box, in any subfolders)
+// is what the Library shows. The index and covers come from services/explore. These routes keep
+// the Library page and the admin's cloud book downloads working on top of that folder.
 import express from 'express';
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import multer from 'multer';
-
-import { fileURLToPath } from 'url';
-
-import EPub from 'epub';
-import sharp from 'sharp';
-import { pdfToPng } from 'pdf-to-png-converter';
-
-import { serverDb } from '../helpers/db-manager.js';
+import { localDb } from '../helpers/db-manager.js';
 import { config } from '../config/index.js';
+import { requireRole } from '../helpers/auth.js';
+import { requireMediaAccess } from '../helpers/media.js';
+import { absolutePath, fileType, coverPath } from './explore/roots.js';
+import { syncExploreIndex } from './explore/indexer.js';
+import { getCatalog, invalidateCatalog } from './explore/catalog.js';
+import { guestMayOpen, limitGuestRange } from './explore/preview.js';
+import { recordContentOpen } from './explore/usage.js';
+import { cloudFetch, cloudFiles, downloadTo, forgetCloudFiles, isCurrent, rememberCloudFile } from './sync/cloud-content.js';
+import { createDownloadProgress } from './sync/download-progress.js';
+import { publish } from '../helpers/live.js';
 
 const router = express.Router();
-const CLOUD_URL = config.cloudUrl;
+const requireAdmin = requireRole('admin');
 const LIBRARY_DIR = config.paths.library;
-const COVERS_DIR = config.paths.libraryCovers;
+const upload = multer({ dest: path.join(os.tmpdir(), 'somabox-uploads'), limits: { fileSize: 1024 * 1024 * 1024 } });
 
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, LIBRARY_DIR);
-    },
-    filename: function (req, file, cb) {
-        // We will rename it after we know the next ID
-        cb(null, file.originalname);
-    }
-});
-const upload = multer({ storage });
+fs.mkdirSync(LIBRARY_DIR, { recursive: true });
 
-// Ensure library and covers directory exists
-if (!fs.existsSync(LIBRARY_DIR)) {
-    fs.mkdirSync(LIBRARY_DIR, { recursive: true });
-}
-if (!fs.existsSync(COVERS_DIR)) {
-    fs.mkdirSync(COVERS_DIR, { recursive: true });
+/** A safe file or folder name from a title: "Ubuntu & Me: Part 2" -> "Ubuntu-Me-Part-2". */
+function fileStem(title) {
+    const stem = String(title || '').normalize('NFKD').replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '-').slice(0, 120);
+    return stem || 'book';
 }
 
-let downloadStatus = "init";
-let downloading = false;
-
-async function generateBookCover(filePath, bookId) {
-    return new Promise((resolve) => {
-        const epub = new EPub(filePath);
-
-        epub.on('end', () => {
-            const coverId = epub.metadata.cover;
-            if (!coverId) {
-                console.log(`No cover found for book: ${bookId}`);
-                return resolve(false);
-            }
-
-            epub.getImage(coverId, async (err, data) => {
-                if (err || !data) {
-                    console.error(` Failed to extract image for book: ${bookId}`);
-                    return resolve(false);
-                }
-
-                try {
-                    const outputPath = path.join(COVERS_DIR, `${bookId}.avif`);
-                    await sharp(data)
-                        .resize({ height: 800, withoutEnlargement: true })
-                        .avif({ quality: 45 })
-                        .toFile(outputPath);
-
-                    console.log(` Generated cover for book: ${bookId}`);
-                    resolve(true);
-                } catch (sharpErr) {
-                    console.error(` Cover generation error for book ${bookId}:`, sharpErr.message);
-                    resolve(false);
-                }
-            });
-        });
-
-        epub.on('error', (err) => {
-            console.error('Error parsing EPUB', bookId, ':', err.message);
-            resolve(false);
-        });
-
-        epub.parse();
-    });
+/** A free path_key in `folderKey` for `stem.ext` (adds -2, -3, ... if needed). */
+function freeKey(folderKey, stem, ext) {
+    let key = `${folderKey}/${stem}${ext}`;
+    for (let n = 2; fs.existsSync(absolutePath(key)); n++) key = `${folderKey}/${stem}-${n}${ext}`;
+    return key;
 }
 
-async function generatePDFCover(filePath, bookId) {
+/** Shows a file under the title people know it by (kept across rescans). */
+async function setTitle(pathKey, title) {
+    await localDb.prepare('UPDATE content_items SET title = ?, title_locked = true WHERE path_key = ?').run(title, pathKey);
+    invalidateCatalog();
+}
+
+// The current (or last) batch of cloud book downloads, for GET /download-status.
+const progress = createDownloadProgress();
+
+// Admins: books available in the cloud library, with whether this box has each one and whether
+// the cloud's copy is newer.
+router.get('/available-books', requireAdmin, async (req, res) => {
     try {
-        const pngPages = await pdfToPng(filePath, {
-            pagesToProcess: [1],
-            viewportScale: 2.0
-        });
-
-        if (pngPages.length === 0) {
-            throw new Error('Failed to extract page from PDF');
-        }
-
-        const outputPath = path.join(COVERS_DIR, `${bookId}.avif`);
-        await sharp(pngPages[0].content)
-            .resize({ height: 800, withoutEnlargement: true })
-            .avif({ quality: 45 })
-            .toFile(outputPath);
-
-        console.log(` Generated cover for PDF book: ${bookId}`);
-        return true;
-    } catch (err) {
-        console.error(` PDF cover generation error for book ${bookId}:`, err.message);
-        return false;
-    }
-}
-
-async function downloadBook(book) {
-    const bookUrl = `${CLOUD_URL}/content/library/${book.id}.epub`;
-    const localPath = path.join(LIBRARY_DIR, `${book.id}.epub`);
-
-    const res = await fetch(bookUrl);
-    if (!res.ok) throw new Error(`Failed to download book ${book.id}: ${res.statusText}`);
-
-    const writeStream = fs.createWriteStream(localPath);
-    for await (const chunk of res.body) {
-        writeStream.write(chunk);
-    }
-    writeStream.end();
-
-    await new Promise(resolve => writeStream.on('finish', resolve));
-
-    // Generate cover
-    await generateBookCover(localPath, book.id);
-
-    // Update database
-    const insertBook = serverDb.prepare(`
-        INSERT OR REPLACE INTO books (id, name, category_ids)
-        VALUES (?, ?, ?)
-    `);
-    insertBook.run(book.id, book.book_name, book.categories);
-
-    return { id: book.id, status: 'downloaded' };
-}
-
-router.get('/available-books', async (req, res) => {
-    try {
-        console.log(`Fetching available books from ${CLOUD_URL}/library-metadata`);
-        const cloudRes = await fetch(`${CLOUD_URL}/library-metadata`);
-        console.log(`Cloud response status: ${cloudRes.status}`);
+        const cloudRes = await cloudFetch('/library-metadata?formats=epub,pdf');
         if (!cloudRes.ok) return res.status(503).json({ error: 'Cloud server is not reachable' });
         const books = await cloudRes.json();
-        console.log(`Fetched ${books.length} books`);
-        res.json(books);
+        const byCloudId = new Map([...(await cloudFiles('library')).values()].map((r) => [String(r.cloud_id), r]));
+        return res.json(books.map((book) => {
+            const recorded = byCloudId.get(String(book.id));
+            const isDownloaded = !!recorded && fs.existsSync(absolutePath(recorded.path_key));
+            return { ...book, isDownloaded, isOutdated: isDownloaded && !!book.sha256 && recorded.sha256 !== book.sha256 };
+        }));
     } catch (err) {
         console.error('Error fetching available books:', err);
-        res.status(500).json({ error: 'Failed to fetch available books' });
+        return res.status(503).json({ error: 'Cloud server is not reachable' });
     }
 });
 
-router.post('/download', async (req, res) => {
-    if (downloading) return res.status(400).json({ message: 'Another download is in progress' });
-
-    const { books } = req.body;
-    if (!Array.isArray(books) || !books.length) {
-        return res.status(400).json({ error: 'No books specified' });
+/**
+ * Downloads one cloud book into library/<first category>/<title>.<epub|pdf>, or refreshes the copy
+ * downloaded before if the cloud has a newer one.
+ */
+async function downloadBook(book, onBytes) {
+    if (!/^\d+$/.test(String(book?.id))) throw new Error(`Invalid book id: ${book?.id}`);
+    // Clouds from before ?formats only list EPUBs and send no extension.
+    const ext = book.extension === 'pdf' ? '.pdf' : '.epub';
+    const known = (await localDb.prepare("SELECT * FROM cloud_content WHERE collection = 'library' AND cloud_id = ?").all(Number(book.id)))
+        .find((r) => fs.existsSync(absolutePath(r.path_key)));
+    let target = known?.path_key;
+    if (!target) {
+        const category = String(book.categories || '').split(',').map((c) => c.trim()).find(Boolean);
+        const folderKey = category ? `library/${fileStem(category)}` : 'library';
+        fs.mkdirSync(absolutePath(folderKey), { recursive: true });
+        target = `${folderKey}/${fileStem(book.book_name)}${ext}`;
     }
+    const local = fs.existsSync(absolutePath(target)) ? fs.statSync(absolutePath(target)) : null;
+    if (local && !known) {
+        // A file by that name that the box didn't record downloading: from before hashes were
+        // recorded (same size: adopt it) or someone's own upload (never overwrite it).
+        if (Number(local.size) === Number(book.size)) {
+            await rememberCloudFile(target, { collection: 'library', id: book.id, sha256: book.sha256, version: book.version });
+        }
+        return { id: book.id, status: 'skipped' };
+    }
+    if (local && isCurrent({ localSize: local.size, recorded: known, cloud: book })) return { id: book.id, status: 'skipped' };
 
-    downloading = true;
-    downloadStatus = "downloading";
+    await downloadTo(`/content/library/${book.id}${ext}`, absolutePath(target), { sha256: book.sha256, onBytes });
+    await rememberCloudFile(target, { collection: 'library', id: book.id, sha256: book.sha256, version: book.version });
+    return { id: book.id, status: local ? 'updated' : 'downloaded', pathKey: target, title: book.book_name };
+}
 
-    // Start background download
+router.post('/download', requireAdmin, async (req, res) => {
+    if (progress.running) return res.status(400).json({ message: 'Another download is in progress' });
+    const { books } = req.body;
+    if (!Array.isArray(books) || !books.length) return res.status(400).json({ error: 'No books specified' });
+    if (!books.every((book) => /^\d+$/.test(String(book?.id)))) return res.status(400).json({ error: 'Invalid book id' });
+
+    progress.start(books.map((book) => ({ key: String(book.id), size: book.size })));
     (async () => {
+        let error = false;
         try {
+            const done = [];
+            // One book failing (the cable unplugged, a missing file) doesn't stop the others; it
+            // keeps its partial download, and downloading it again resumes it.
             for (const book of books) {
-                await downloadBook(book);
+                const key = String(book.id);
+                const name = book.book_name || key;
+                progress.begin(key, name);
+                try {
+                    const result = await downloadBook(book, (n) => progress.bytes(key, n));
+                    done.push(result);
+                    progress.finish(key, name, result.status);
+                } catch (err) {
+                    console.error(`Download of book ${key} failed:`, err.message);
+                    progress.finish(key, name, 'failed');
+                }
             }
-            downloadStatus = "finished";
+            await syncExploreIndex({ root: 'library' });
+            for (const d of done) if (d.pathKey && d.title) await setTitle(d.pathKey, d.title);
+            publish({ kind: 'catalogue' }, { everyone: true });
         } catch (err) {
             console.error('Download failed:', err);
-            downloadStatus = "failed";
+            error = true;
         } finally {
-            downloading = false;
+            progress.end({ error });
         }
     })();
-
-    res.status(202).json({ message: 'Download started' });
+    return res.status(202).json({ message: 'Download started' });
 });
 
-router.post('/upload', upload.single('file'), async (req, res) => {
+// { status, total, done, downloaded, skipped, failed, percent, bytesDone, bytesTotal, current, failedNames }
+router.get('/download-status', requireAdmin, (req, res) => res.json(progress.snapshot()));
+
+// Admins: add a book (or any file the Library can open) to the top of the library folder.
+router.post('/upload', requireAdmin, upload.single('file'), async (req, res) => {
+    const cleanup = () => { if (req.file?.path) fs.rmSync(req.file.path, { force: true }); };
     try {
         if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-
-        const originalName = req.file.originalname;
-        const ext = path.extname(originalName).toLowerCase();
-        const bookName = req.body.bookName || originalName.replace(/\.(epub|pdf)$/i, '').replace(/[-_]/g, ' ');
-
-        // Get the next available ID by querying max id
-        const maxRow = serverDb.prepare('SELECT MAX(id) as maxId FROM books').get();
-        // Assume uploaded books will be assigned IDs starting from 1000000 to avoid collision with cloud
-        const nextId = (maxRow.maxId && maxRow.maxId >= 1000000) ? maxRow.maxId + 1 : 1000000;
-
-        const newPath = path.join(LIBRARY_DIR, `${nextId}${ext}`);
-        fs.renameSync(req.file.path, newPath);
-
-        // Generate cover
-        if (ext === '.pdf') {
-            await generatePDFCover(newPath, nextId);
-        } else {
-            await generateBookCover(newPath, nextId);
+        const original = path.basename(req.file.originalname);
+        const ext = path.extname(original).toLowerCase();
+        if (!fileType(original)) {
+            cleanup();
+            return res.status(400).json({ error: 'The library can hold books (pdf, epub), videos, and audio' });
         }
-
-        // Update database
-        const insertBook = serverDb.prepare(`
-            INSERT OR REPLACE INTO books (id, name, category_ids)
-            VALUES (?, ?, ?)
-        `);
-        insertBook.run(nextId, bookName, "Custom Upload");
-
-        res.status(201).json({ id: nextId, name: bookName });
+        const title = String(req.body.bookName || '').trim() || original.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ');
+        const key = freeKey('library', fileStem(title), ext);
+        try { fs.renameSync(req.file.path, absolutePath(key)); } catch { fs.copyFileSync(req.file.path, absolutePath(key)); cleanup(); }
+        await syncExploreIndex({ root: 'library' });
+        await setTitle(key, title);
+        const row = await localDb.prepare('SELECT id FROM content_items WHERE path_key = ?').get(key);
+        return res.status(201).json({ id: row?.id, name: title, path_key: key });
     } catch (err) {
+        cleanup();
         console.error('Upload failed:', err);
-        res.status(500).json({ error: 'Failed to upload book' });
+        return res.status(500).json({ error: 'Failed to upload book' });
     }
 });
 
-router.get('/download-status', (req, res) => {
-    res.json({ status: downloadStatus });
-});
-
-router.get('/books', (req, res) => {
-    try {
-        const books = serverDb.prepare('SELECT * FROM books').all();
-        const booksWithExt = books.map(book => {
-            let ext = 'epub'; // default
-            if (fs.existsSync(path.join(LIBRARY_DIR, `${book.id}.pdf`))) ext = 'pdf';
-            else if (fs.existsSync(path.join(LIBRARY_DIR, `${book.id}.epub`))) ext = 'epub';
-            return { ...book, ext };
-        });
-        res.json(booksWithExt);
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Failed to fetch local books' });
-    }
-});
-
-router.get('/file/:id', (req, res) => {
-    const epubPath = path.join(LIBRARY_DIR, `${req.params.id}.epub`);
-    const pdfPath = path.join(LIBRARY_DIR, `${req.params.id}.pdf`);
-    
-    if (fs.existsSync(epubPath)) {
-        res.sendFile(epubPath);
-    } else if (fs.existsSync(pdfPath)) {
-        res.sendFile(pdfPath);
-    } else {
-        res.status(404).json({ error: 'Book not found' });
-    }
-});
-
-router.get('/categories', (req, res) => {
-    try {
-        const books = serverDb.prepare('SELECT category_ids FROM books').all();
-        const categories = new Set();
-        books.forEach(book => {
-            book.category_ids.split(',').forEach(cat => {
-                const trimmed = cat.trim();
-                if (trimmed) categories.add(trimmed.toLowerCase());
+/** Library entries from the shared catalogue: every visible file under library/, with its folder. */
+async function libraryEntries() {
+    const { summary } = await getCatalog();
+    const entries = [];
+    const walk = (key, folders) => {
+        const node = summary[key];
+        if (!node) return;
+        for (const item of node.content) {
+            entries.push({
+                id: item.id, name: item.title, title: item.title, type: item.type, path_key: item.slug,
+                ext: path.extname(item.slug).slice(1).toLowerCase(),
+                category_ids: folders[0] || '', folders,
+                url: `/content/files/${item.slug}`, cover: item.cover,
             });
-        });
-        res.json(Array.from(categories));
+        }
+        for (const child of node.items) walk(child.slug, [...folders, child.title]);
+    };
+    walk('library', []);
+    return entries;
+}
+
+// The Library page: [{ id, name, title, type, path_key, ext, category_ids, folders, url, cover }].
+router.get('/books', async (req, res) => {
+    try {
+        return res.json(await libraryEntries());
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: 'Failed to fetch categories' });
+        return res.status(500).json({ error: 'Failed to fetch library' });
     }
 });
 
-router.delete('/book/:id', (req, res) => {
-    const id = req.params.id;
-    const epubPath = path.join(LIBRARY_DIR, `${id}.epub`);
-    const pdfPath = path.join(LIBRARY_DIR, `${id}.pdf`);
-    const coverPath = path.join(COVERS_DIR, `${id}.avif`);
-    
+// Shelf names: the library's top-level folders.
+router.get('/categories', async (req, res) => {
     try {
-        // Delete file if exists
-        if (fs.existsSync(epubPath)) fs.unlinkSync(epubPath);
-        if (fs.existsSync(pdfPath)) fs.unlinkSync(pdfPath);
-
-        // Delete cover if exists
-        if (fs.existsSync(coverPath)) {
-            fs.unlinkSync(coverPath);
-        }
-        
-        // Delete from database
-        serverDb.prepare('DELETE FROM books WHERE id = ?').run(id);
-        
-        res.json({ message: 'Book deleted successfully' });
+        const { summary } = await getCatalog();
+        return res.json((summary.library?.items || []).map((f) => f.title));
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: 'Failed to delete book' });
+        return res.status(500).json({ error: 'Failed to fetch categories' });
+    }
+});
+
+// Opens a library file by its id in the catalogue (books from before the library was a folder
+// may also be asked for by their old number, kept as their file name).
+router.get('/file/:id', requireMediaAccess({ allowGuests: true }), async (req, res) => {
+    const id = String(req.params.id);
+    if (!/^\d+$/.test(id)) return res.status(404).json({ error: 'Book not found' });
+    const row = await localDb.prepare("SELECT path_key FROM content_items WHERE id = ? AND path_key LIKE 'library/%'").get(id);
+    const candidates = [row?.path_key, `library/${id}.epub`, `library/${id}.pdf`].filter(Boolean);
+    const { isHidden } = await getCatalog();
+    const signUp = () => res.status(401).json({ error: 'Sign up for free to keep reading', code: 'LOGIN_REQUIRED' });
+    for (const key of candidates) {
+        if (!fs.existsSync(absolutePath(key)) || isHidden(key)) continue;
+        // Visitors: only during their preview of this book, and only the start of videos and audio.
+        if (!req.mediaUser && (!await guestMayOpen(req, key) || !limitGuestRange(req, key))) return signUp();
+        recordContentOpen(req, key, req.mediaUser);
+        return res.sendFile(absolutePath(key));
+    }
+    // Visitors are asked to sign up rather than told what exists.
+    return req.mediaUser ? res.status(404).json({ error: 'Book not found' }) : signUp();
+});
+
+// Admins: remove a library file (and its cover).
+router.delete('/book/:id', requireAdmin, async (req, res) => {
+    try {
+        const row = await localDb.prepare("SELECT path_key FROM content_items WHERE id = ? AND path_key LIKE 'library/%'").get(req.params.id);
+        if (!row) return res.status(404).json({ error: 'Book not found' });
+        fs.rmSync(absolutePath(row.path_key), { force: true });
+        fs.rmSync(coverPath(row.path_key), { force: true });
+        await forgetCloudFiles(row.path_key);
+        await syncExploreIndex({ root: 'library' });
+        return res.json({ message: 'Book deleted successfully' });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ error: 'Failed to delete book' });
     }
 });
 

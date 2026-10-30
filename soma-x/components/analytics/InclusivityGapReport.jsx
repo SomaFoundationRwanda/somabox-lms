@@ -1,115 +1,97 @@
 "use client"
-import { useEffect, useState } from "react";
-import { Globe, RefreshCw, Users } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { getInclusivityGap, triggerMeSync } from "@/lib/analytics-service";
+import Link from "next/link";
+import { CloudUpload, Globe, ShieldCheck } from "lucide-react";
+import { useInclusivityGap } from "@/lib/analytics-service";
+import { useLanguage } from "@/context/LanguageContext";
+import { fill } from "@/lib/fill";
+import Loader from "@/components/ui/Loader";
 
-export default function InclusivityGapReport({ serverUrl }) {
-    const [report, setReport] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [syncing, setSyncing] = useState(false);
-    const [syncMsg, setSyncMsg] = useState("");
+// Average outcome result by group (rural/urban, gender, accessibility needs). Aggregates only:
+// any group with fewer than `minGroupSize` learners with results comes back null and is listed
+// in `suppressed`, so no small group (or person) can be singled out.
 
-    const loadReport = async () => {
-        if (!serverUrl) return;
-        setLoading(true);
-        const data = await getInclusivityGap(serverUrl);
-        setReport(data);
-        setLoading(false);
-    };
-
-    useEffect(() => {
-        loadReport();
-    }, [serverUrl]);
-
-    const handleSync = async () => {
-        setSyncing(true);
-        setSyncMsg("");
-        const res = await triggerMeSync(serverUrl);
-        setSyncing(false);
-        setSyncMsg(res.message || "M&E Sync completed");
-        setTimeout(() => setSyncMsg(""), 4000);
-    };
+export default function InclusivityGapReport() {
+    const { t } = useLanguage();
+    const { report, loading } = useInclusivityGap();
 
     if (loading) {
-        return <div className="p-6 text-center text-xs text-slate-600">Generating Inclusivity & Demographic Gap Report...</div>;
+        return <Loader variant="page" size={48} className="min-h-[10rem]" label={t("admin.gap.loading")} />;
     }
 
-    if (!report) return null;
+    if (!report) {
+        return <p className="text-caption text-fg-subtle">{t("admin.gap.unavailable")}</p>;
+    }
+
+    const minGroup = report.minGroupSize ?? 5;
+    const suppressed = new Set(Array.isArray(report.suppressed) ? report.suppressed : []);
+    const tooFew = fill(t("admin.gap.tooFew"), { min: minGroup });
+
+    // A group's average: a percentage, "too few" when suppressed, or "No results yet".
+    const groupValue = (value, group) => {
+        if (value !== null && value !== undefined) return <span className="font-bold text-fg">{value}%</span>;
+        if (suppressed.has(group)) return <span className="text-caption text-fg-subtle">{tooFew}</span>;
+        return <span className="text-caption text-fg-subtle">{t("admin.gap.noResults")}</span>;
+    };
+
+    const gap = report.ruralVsUrban?.gapPercentage;
+    const accessCount = report.accessibilityMetrics?.scholarsWithAccessibilityNeeds;
+
+    const rows = [
+        { label: t("admin.gap.ruralLearners"), node: groupValue(report.ruralVsUrban?.ruralAverage, "rural") },
+        { label: t("admin.gap.urbanLearners"), node: groupValue(report.ruralVsUrban?.urbanAverage, "urban") },
+        {
+            label: t("admin.gap.gap"),
+            node: gap === null || gap === undefined
+                ? <span className="text-caption text-fg-subtle">{t("admin.gap.needsBoth")}</span>
+                : <span className="font-bold text-fg">{gap === 0 ? t("admin.gap.noGap") : fill(t(gap > 0 ? "admin.gap.higherUrban" : "admin.gap.higherRural"), { pts: Math.abs(gap) })}</span>,
+        },
+        { label: t("admin.gap.ruralGirls"), node: groupValue(report.genderBreakdown?.femaleRuralAverage, "ruralFemale") },
+        { label: t("admin.gap.ruralBoys"), node: groupValue(report.genderBreakdown?.maleRuralAverage, "ruralMale") },
+        { label: t("admin.gap.urbanGirls"), node: groupValue(report.genderBreakdown?.femaleUrbanAverage, "urbanFemale") },
+        { label: t("admin.gap.urbanBoys"), node: groupValue(report.genderBreakdown?.maleUrbanAverage, "urbanMale") },
+        { label: t("admin.gap.accessAverage"), node: groupValue(report.accessibilityMetrics?.averagePerformance, "disability") },
+        {
+            label: t("admin.gap.accessNumber"),
+            node: accessCount === null || accessCount === undefined
+                ? <span className="text-caption text-fg-subtle">{fill(t("admin.gap.fewerThan"), { min: minGroup })}</span>
+                : <span className="font-bold text-fg">{accessCount}</span>,
+        },
+    ];
 
     return (
-        <div className="bg-white dark:bg-[#0f1318] border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <span className="p-2 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-400 rounded-xl">
-                        <Globe className="w-4 h-4" />
-                    </span>
-                    <div>
-                        <h3 className="text-sm font-bold text-slate-900 dark:text-white">M&E Inclusivity & Gap Analysis</h3>
-                        <p className="text-[10px] text-slate-600">Rural vs. Urban performance across gender lines</p>
-                    </div>
+        <div className="min-w-0 space-y-3">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="min-w-0">
+                    <h3 className="flex items-center gap-1.5 text-ui font-bold text-fg">
+                        <Globe className="w-4 h-4 text-info-fg" aria-hidden="true" /> {t("admin.gap.title")}
+                    </h3>
+                    <p className="text-caption text-fg-subtle">
+                        {t("admin.gap.subtitle")}
+                        {report.scholarsWithData != null ? ` ${fill(t("admin.gap.basedOn"), { x: report.scholarsWithData, y: report.totalScholars ?? "—" })}` : ""}
+                    </p>
                 </div>
-
-                <Button
-                    onClick={handleSync}
-                    disabled={syncing}
-                    variant="outline"
-                    className="h-8 px-3 text-[11px] font-bold border-slate-200 dark:border-slate-800 flex items-center gap-1.5 rounded-xl"
+                <Link
+                    href="/manage/admin/sync"
+                    className="inline-flex items-center gap-1.5 h-8 px-3 text-caption font-bold rounded-xl border border-line text-fg-muted hover:bg-surface-hover"
                 >
-                    <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
-                    {syncing ? 'Syncing...' : 'M&E Real-time Sync'}
-                </Button>
+                    <CloudUpload className="w-3.5 h-3.5" aria-hidden="true" />
+                    {t("admin.analytics.cloudSync")}
+                </Link>
             </div>
 
-            {syncMsg && (
-                <div className="p-2.5 bg-emerald-50 text-emerald-800 text-xs font-semibold rounded-xl border border-emerald-200">
-                    {syncMsg}
-                </div>
-            )}
-
-            {/* Gap Summary Metrics */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800 text-center">
-                    <span className="text-[10px] text-slate-600 font-bold uppercase">Rural Average</span>
-                    <p className="text-lg font-black text-slate-800 dark:text-slate-200">{report.ruralVsUrban?.ruralAverage}%</p>
-                </div>
-                <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800 text-center">
-                    <span className="text-[10px] text-slate-600 font-bold uppercase">Urban Average</span>
-                    <p className="text-lg font-black text-slate-800 dark:text-slate-200">{report.ruralVsUrban?.urbanAverage}%</p>
-                </div>
-                <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800 text-center">
-                    <span className="text-[10px] text-slate-600 font-bold uppercase">Rural/Urban Gap</span>
-                    <p className="text-lg font-black text-teal-600 dark:text-teal-400">-{report.ruralVsUrban?.gapPercentage}%</p>
-                </div>
-                <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800 text-center">
-                    <span className="text-[10px] text-slate-600 font-bold uppercase">Accessibility Learners</span>
-                    <p className="text-lg font-black text-indigo-600 dark:text-indigo-400">{report.accessibilityMetrics?.scholarsWithAccessibilityNeeds}</p>
-                </div>
-            </div>
-
-            {/* Detailed Gender Breakdown */}
-            <div className="border-t border-slate-100 dark:border-slate-800 pt-3">
-                <p className="text-xs font-bold text-slate-800 dark:text-slate-200 mb-2 flex items-center gap-1.5">
-                    <Users className="w-3.5 h-3.5 text-slate-500" /> Gender & Region Equity Breakdown
-                </p>
-
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="bg-teal-50/50 dark:bg-teal-950/20 p-3 rounded-xl border border-teal-100 dark:border-teal-900">
-                        <span className="text-[10px] font-bold text-teal-800 dark:text-teal-300 block mb-1">Rural Female vs. Male</span>
-                        <div className="flex justify-between items-center text-slate-700 dark:text-slate-300">
-                            <span>Female: <strong>{report.genderBreakdown?.femaleRuralAverage}%</strong></span>
-                            <span>Male: <strong>{report.genderBreakdown?.maleRuralAverage}%</strong></span>
-                        </div>
+            <dl className="divide-y divide-line rounded-xl border border-line">
+                {rows.map((r) => (
+                    <div key={r.label} className="flex items-center justify-between gap-3 px-3 py-2 text-ui">
+                        <dt className="text-fg-muted">{r.label}</dt>
+                        <dd className="text-right">{r.node}</dd>
                     </div>
-                    <div className="bg-indigo-50/50 dark:bg-indigo-950/20 p-3 rounded-xl border border-indigo-100 dark:border-indigo-900">
-                        <span className="text-[10px] font-bold text-indigo-800 dark:text-indigo-300 block mb-1">Urban Female vs. Male</span>
-                        <div className="flex justify-between items-center text-slate-700 dark:text-slate-300">
-                            <span>Female: <strong>{report.genderBreakdown?.femaleUrbanAverage}%</strong></span>
-                            <span>Male: <strong>{report.genderBreakdown?.maleUrbanAverage}%</strong></span>
-                        </div>
-                    </div>
-                </div>
-            </div>
+                ))}
+            </dl>
+
+            <p className="flex items-start gap-1.5 text-caption text-fg-subtle">
+                <ShieldCheck className="w-3.5 h-3.5 mt-0.5 shrink-0" aria-hidden="true" />
+                <span>{fill(t("admin.gap.privacy"), { min: minGroup })}</span>
+            </p>
         </div>
     );
 }

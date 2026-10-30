@@ -4,29 +4,35 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --test --test-concurrency=1 \"test/**/*.test.js\"",
     "dev": "nodemon --exitcrash index.js",
     "setup": "node -e \"import('./src/helpers/db-manager.js').then(m => m.initSchemas())\"",
-    "backfill:lesson-progress": "node ./src/scripts/backfill-lesson-progress.js",
-    "seed:test-data": "node ./src/scripts/seed-test-data.js",
-    "seed": "node src/db/seed.js",
-    "start": "pm2 start index.js --name soma-x-backend"
+    "backup": "node src/scripts/backup.js backup",
+    "restore": "node src/scripts/backup.js restore",
+    "backup:verify": "node src/scripts/backup.js verify",
+    "start": "pm2 start index.js --name soma-x-backend",
+    "setup:code": "node src/scripts/setup-code.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@somabox/config": "workspace:*",
+    "@somabox/timeline": "workspace:*",
     "bcrypt": "^6.0.0",
-    "better-sqlite3": "^12.2.0",
     "cors": "^2.8.5",
-    "dotenv": "^17.2.1",
     "epub": "^2.1.1",
     "express": "^5.1.0",
     "firebase-admin": "^13.10.0",
     "multer": "^2.0.2",
     "pdf-to-png-converter": "^3.11.0",
+    "pdfjs-dist": "^5.4.624",
+    "pg": "^8.23.0",
     "sharp": "^0.34.5",
     "typescript": "^6.0.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
   }
 }

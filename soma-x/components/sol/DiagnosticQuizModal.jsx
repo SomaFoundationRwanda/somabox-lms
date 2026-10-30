@@ -3,6 +3,13 @@ import { useState } from "react";
 import { Award, BookOpen, Brain, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { submitDiagnosticQuiz } from "@/lib/sol-service";
+import PracticeLabel from "@/components/sol/PracticeLabel";
+import { useLanguage } from "@/context/LanguageContext";
+import { fill } from "@/lib/fill";
+
+// The questions themselves stay in English: they test English-language items (e.g. synonyms),
+// so translating them would change what they measure. The screen around them is translated.
+const SUBJECT_KEYS = { Mathematics: "math", Science: "science", Literacy: "literacy" };
 
 const DIAGNOSTIC_QUESTIONS = [
     { id: 1, subject: "Mathematics", question: "What is 15% of 200?", options: ["20", "25", "30", "35"], correct: 2 },
@@ -13,6 +20,7 @@ const DIAGNOSTIC_QUESTIONS = [
 ];
 
 export default function DiagnosticQuizModal({ isOpen, onClose, serverUrl, scholarEmail }) {
+    const { t } = useLanguage();
     const [step, setStep] = useState(0);
     const [answers, setAnswers] = useState({});
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -50,49 +58,50 @@ export default function DiagnosticQuizModal({ isOpen, onClose, serverUrl, schola
                 Literacy: Math.round((breakdown.Literacy / counts.Literacy) * 100),
             };
 
-            await submitDiagnosticQuiz(serverUrl, scholarEmail, overallScore, subjectPct);
+            await submitDiagnosticQuiz(serverUrl, overallScore, subjectPct);
             setIsSubmitting(false);
             setIsFinished(true);
         }
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4">
-            <div className="bg-white dark:bg-[#0f1318] border border-slate-200 dark:border-slate-800 rounded-3xl max-w-xl w-full p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim backdrop-blur-md p-4">
+            <div className="bg-surface-raised border border-line rounded-3xl max-w-xl w-full p-6 shadow-2xl">
                 {!isFinished ? (
                     <div>
                         <div className="flex items-center gap-2 mb-2">
-                            <span className="p-2 bg-teal-50 dark:bg-teal-950/50 text-teal-700 dark:text-teal-400 rounded-xl">
+                            <span className="p-2 bg-brand-soft text-brand-fg rounded-xl">
                                 <Brain className="w-5 h-5" />
                             </span>
                             <div>
-                                <span className="text-[10px] font-black uppercase tracking-wider text-teal-600 dark:text-teal-400">
-                                    Baseline Assessment
+                                <span className="text-caption font-extrabold text-brand-fg">
+                                    {t("learner.diagnostic.eyebrow")}
                                 </span>
-                                <h3 className="text-lg font-black text-slate-900 dark:text-white">
-                                    Getting Started Quiz
+                                <h3 className="text-section font-extrabold text-fg">
+                                    {t("learner.diagnostic.title")}
                                 </h3>
                             </div>
                         </div>
 
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-                            Welcome to SOMABOX! A few quick questions to get a sense of where you're starting from.
+                        <p className="text-caption text-fg-subtle mb-4">
+                            {t("learner.diagnostic.intro")}
                         </p>
+                        <p className="mb-4"><PracticeLabel /></p>
 
-                        <div className="flex items-center justify-between text-xs font-bold text-slate-500 mb-2">
-                            <span>Subject: {currentQ.subject}</span>
-                            <span>Question {step + 1} of {DIAGNOSTIC_QUESTIONS.length}</span>
+                        <div className="flex items-center justify-between text-caption font-bold text-fg-subtle mb-2">
+                            <span>{fill(t("learner.diagnostic.subject"), { subject: t(`learner.diagnostic.subjects.${SUBJECT_KEYS[currentQ.subject]}`) || currentQ.subject })}</span>
+                            <span>{fill(t("learner.diagnostic.questionOf"), { n: step + 1, total: DIAGNOSTIC_QUESTIONS.length })}</span>
                         </div>
 
-                        <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full mb-4 overflow-hidden">
+                        <div className="h-1.5 w-full bg-surface-sunken rounded-full mb-4 overflow-hidden">
                             <div
-                                className="h-full bg-teal-600 transition-all duration-300 rounded-full"
+                                className="h-full bg-brand transition-all duration-300 rounded-full"
                                 style={{ width: `${((step + 1) / DIAGNOSTIC_QUESTIONS.length) * 100}%` }}
                             />
                         </div>
 
-                        <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded-2xl mb-4 border border-slate-100 dark:border-slate-800">
-                            <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                        <div className="bg-surface-sunken p-4 rounded-2xl mb-4 border border-line">
+                            <p className="text-ui font-bold text-fg">
                                 {currentQ.question}
                             </p>
                         </div>
@@ -104,14 +113,14 @@ export default function DiagnosticQuizModal({ isOpen, onClose, serverUrl, schola
                                     <button
                                         key={idx}
                                         onClick={() => handleSelectOption(idx)}
-                                        className={`w-full text-left p-3.5 text-xs rounded-xl border font-semibold transition-all flex items-center justify-between ${
+                                        className={`w-full text-left p-3.5 text-caption rounded-xl border font-semibold transition-all flex items-center justify-between ${
                                             isSelected
-                                                ? "border-teal-600 bg-teal-50 dark:bg-teal-950/60 text-teal-900 dark:text-teal-200 shadow-sm"
-                                                : "border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-700 dark:text-slate-300"
+                                                ? "border-brand bg-brand-soft text-brand-fg shadow-sm"
+                                                : "border-line hover:bg-surface-hover text-fg-muted"
                                         }`}
                                     >
                                         <span>{opt}</span>
-                                        {isSelected && <CheckCircle className="w-4 h-4 text-teal-600 shrink-0" />}
+                                        {isSelected && <CheckCircle className="w-4 h-4 text-brand-fg shrink-0" />}
                                     </button>
                                 );
                             })}
@@ -121,26 +130,26 @@ export default function DiagnosticQuizModal({ isOpen, onClose, serverUrl, schola
                             <Button
                                 onClick={handleNext}
                                 disabled={answers[currentQ.id] === undefined || isSubmitting}
-                                className="bg-[#203A3A] hover:bg-[#162727] text-white text-xs font-extrabold px-6 h-10 rounded-xl"
+                                className="bg-brand-strong hover:bg-brand-strong/90 text-on-brand-strong text-caption font-extrabold px-6 h-10 rounded-xl"
                             >
-                                {step + 1 < DIAGNOSTIC_QUESTIONS.length ? "Next Question" : (isSubmitting ? "Submitting..." : "Complete Assessment")}
+                                {step + 1 < DIAGNOSTIC_QUESTIONS.length ? t("learner.diagnostic.next") : (isSubmitting ? t("learner.diagnostic.submitting") : t("learner.diagnostic.finish"))}
                             </Button>
                         </div>
                     </div>
                 ) : (
                     <div className="text-center py-6">
-                        <Award className="w-16 h-16 text-teal-500 mx-auto mb-3 animate-bounce" />
-                        <h3 className="text-xl font-black text-slate-900 dark:text-white mb-1">
-                            Done!
+                        <Award className="w-16 h-16 text-brand-fg mx-auto mb-3 animate-bounce" />
+                        <h3 className="text-section font-extrabold text-fg mb-1">
+                            {t("learner.diagnostic.done")}
                         </h3>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto mb-6">
-                            Thanks for completing the quiz — you're ready to start your classes.
+                        <p className="text-caption text-fg-subtle max-w-md mx-auto mb-6">
+                            {t("learner.diagnostic.doneBody")}
                         </p>
                         <Button
                             onClick={onClose}
-                            className="bg-[#203A3A] hover:bg-[#162727] text-white text-xs font-bold px-8 h-10 rounded-xl"
+                            className="bg-brand-strong hover:bg-brand-strong/90 text-on-brand-strong text-caption font-bold px-8 h-10 rounded-xl"
                         >
-                            Go to Dashboard
+                            {t("learner.diagnostic.toDashboard")}
                         </Button>
                     </div>
                 )}

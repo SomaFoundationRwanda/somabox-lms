@@ -1,4 +1,27 @@
+import enShell from "./shell/en";
+import enLearner from "./learner/en";
+import enCourse from "./course/en";
+import enProgress from "./progress/en";
+import enAdmin from "./admin/en";
+import enTeacher from "./teacher/en";
+import enSchool from "./school/en";
+import enExplore from "./explore/en";
+import enAttendance from "./attendance/en";
+import enGuest from "./guest/en";
+import enExplainers from "./explainers/en";
+
 export default {
+    "attendance": enAttendance,
+    "guest": enGuest,
+    "explore": enExplore,
+    "school": enSchool,
+    "shell": enShell,
+    "learner": enLearner,
+    "course": enCourse,
+    "progress": enProgress,
+    "admin": enAdmin,
+    "teacher": enTeacher,
+    "explainers": enExplainers,
     "nav": {
         "dashboard": "Dashboard",
         "lessons": "Lessons",
@@ -95,13 +118,10 @@ export default {
     "auth":{
         "authTitle":"Welcome Back",
         "authSubtitle":"Login to manage your account",
-        "authEmail": "Email",
         "authPassword": "Password",
         "authTeacher": "Teacher",
         "authAdmin": "Admin",
-        "authLogin": "Login",
-        "authScholar": "Scholar"
-
+        "authLogin": "Login"
     },
     "AdminManageOptions": {
         "syncTitle": "Sync content",
@@ -125,9 +145,13 @@ export default {
     "role":{
         "teacher":"Teacher",
         "admin":"Admin",
-        "scholar": "Scholar"
+        "scholar": "Learner"
     },
     "notFound":"Content not found",
+    "loading": "Loading...",
+    "loadingCategories": "Loading categories...",
+    "exploreTopics": "Explore the topics below",
+    "notContent": "There is no content here yet.",
     "noContent":"The requested content could not be loaded",
     "thePath": "The path",
     "doesNotExist":"Does not Exist",

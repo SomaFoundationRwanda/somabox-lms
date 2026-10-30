@@ -1,0 +1,16 @@
+{
+  "name": "@somabox/config",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Loads and validates the repository's single .env for every SOMABOX app.",
+  "main": "index.cjs",
+  "exports": {
+    ".": "./index.cjs"
+  },
+  "scripts": {
+    "test": "node --test \"test/**/*.test.cjs\""
+  },
+  "dependencies": {
+    "zod": "^4.6.7"
+  }
+}

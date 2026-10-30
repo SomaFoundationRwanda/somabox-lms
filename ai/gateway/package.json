@@ -1,0 +1,17 @@
+{
+  "name": "ai-gateway",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "node --test \"test/**/*.test.js\""
+  },
+  "dependencies": {
+    "@somabox/config": "workspace:*",
+    "better-sqlite3": "^12.11.1",
+    "express": "^5.0.0",
+    "js-yaml": "^4.1.0",
+    "uuid": "^11.0.5"
+  }
+}

@@ -1,5 +1,9 @@
+"use client";
+
 import { useState } from "react";
+import { useLanguage } from "@/context/LanguageContext";
 import AvatarFallback from "./AvatarFallBack";
+import { clickableProps } from "@/lib/a11y";
 
 const sizeClasses = {
   xsmall: "w-7 h-7",
@@ -11,19 +15,21 @@ const sizeClasses = {
 export default function Avatar({
   src,
   size = "small",
-  alt = "Profile image",
+  alt,
   isLoggedIn = false,
   showStatus = false,
   onClick
 }) {
   const [error, setError] = useState(false);
+  const t = useLanguage()?.t;
+  alt = alt ?? (t?.("shell.common.profileImage") ?? "Profile image");
 
   return (
     <div className="relative flex-shrink-0 group">
       {/* Outer ring container */}
       <div
-        className={`rounded-full overflow-hidden flex items-center justify-center shadow-sm border-2 border-white transition-all duration-300 hover:border-accent-blue cursor-pointer ${sizeClasses[size]}`}
-        onClick={onClick}
+        className={`rounded-full overflow-hidden flex items-center justify-center shadow-sm border-2 border-white transition-all duration-300 hover:border-accent-blue cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${sizeClasses[size]}`}
+        {...(onClick ? clickableProps(onClick, alt || "Profile") : {})}
       >
         {src && !error ? (
           <img

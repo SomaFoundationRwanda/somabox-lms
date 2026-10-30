@@ -1,0 +1,144 @@
+"use client";
+
+import { Suspense, useEffect, useRef } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useCourse } from "@/context/CourseContext";
+import { useCourseSection } from "@/lib/useCourseSection";
+import Breadcrumbs from "@/components/course/Breadcrumbs";
+import { PageHeader } from "@/components/layout";
+import { trackEvent } from "@/lib/usage";
+import { LoadingRows, ErrorNote } from "@/components/insights/bits";
+import ClassTab from "@/components/insights/ClassTab";
+import OutcomesTab from "@/components/insights/OutcomesTab";
+import LearnersTab from "@/components/insights/LearnersTab";
+import ItemsTab from "@/components/insights/ItemsTab";
+import { useProgressText, fmtDateTime } from "@/components/progress/text";
+
+// Tab labels: insights.tabs.<key> in languages/progress.
+const TABS = [
+  { key: "class" },
+  { key: "outcomes" },
+  { key: "learners" },
+  { key: "items" },
+];
+
+function TeacherInsights() {
+  const { courseId, course } = useCourse();
+  const { tp, locale } = useProgressText();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const tab = TABS.some((t) => t.key === tabParam) ? tabParam : "class";
+  const flaggedOnly = searchParams.get("flagged") === "1";
+  const tabRefs = useRef({});
+
+  // The class report: kept until the app reloads (or Refresh), not rebuilt on every visit.
+  const report = useCourseSection("insights");
+  const data = report.data;
+  const loading = report.loading;
+  const error = report.error ? report.error || tp("insights.loadFailed") : "";
+  const load = report.refetch;
+
+  useEffect(() => {
+    if (courseId) trackEvent("insights_viewed", { tab }, courseId);
+  }, [tab, courseId]);
+
+  const setParams = (next) => {
+    const params = new URLSearchParams(searchParams.toString());
+    for (const [k, v] of Object.entries(next)) {
+      if (v == null || v === "") params.delete(k);
+      else params.set(k, v);
+    }
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  };
+
+  const selectTab = (key, focus = false) => {
+    setParams({ tab: key === "class" ? null : key, flagged: key === "learners" ? searchParams.get("flagged") : null });
+    if (focus) tabRefs.current[key]?.focus();
+  };
+
+  const onTabKey = (e) => {
+    const i = TABS.findIndex((t) => t.key === tab);
+    let next = null;
+    if (e.key === "ArrowRight") next = TABS[(i + 1) % TABS.length];
+    else if (e.key === "ArrowLeft") next = TABS[(i - 1 + TABS.length) % TABS.length];
+    else if (e.key === "Home") next = TABS[0];
+    else if (e.key === "End") next = TABS[TABS.length - 1];
+    if (next) {
+      e.preventDefault();
+      selectTab(next.key, true);
+    }
+  };
+
+  return (
+    <div>
+      <Breadcrumbs sectionKey="insights" />
+      <div className="p-4 md:p-6 space-y-6 max-w-6xl">
+        <PageHeader
+          title={tp("insights.title")}
+          help="pages.insights"
+          description={tp("insights.description", { course: data?.course?.title || course?.title || tp("insights.thisCourse") })}
+          meta={data?.today ? <span>{tp("insights.figuresAsOf", { date: fmtDateTime(new Date(`${data.today}T12:00:00`), locale, { day: "numeric", month: "short", year: "numeric" }) })}</span> : null}
+        />
+
+        <div role="tablist" aria-label={tp("insights.tabsLabel")} className="flex gap-1 overflow-x-auto border-b border-line" onKeyDown={onTabKey}>
+          {TABS.map((t) => {
+            const selected = t.key === tab;
+            return (
+              <button
+                key={t.key}
+                ref={(el) => { tabRefs.current[t.key] = el; }}
+                type="button"
+                role="tab"
+                id={`insights-tab-${t.key}`}
+                aria-selected={selected}
+                aria-controls={`insights-panel-${t.key}`}
+                tabIndex={selected ? 0 : -1}
+                onClick={() => selectTab(t.key)}
+                className={`shrink-0 px-3 py-2 text-ui font-semibold border-b-2 -mb-px transition-colors ${
+                  selected ? "border-brand text-brand-fg" : "border-transparent text-fg-subtle hover:text-fg"
+                }`}
+              >
+                {tp(`insights.tabs.${t.key}`)}
+              </button>
+            );
+          })}
+        </div>
+
+        <div role="tabpanel" id={`insights-panel-${tab}`} aria-labelledby={`insights-tab-${tab}`} tabIndex={0} className="focus:outline-none focus-visible:ring-2 focus-visible:ring-brand">
+          {loading && !data ? (
+            <LoadingRows count={4} />
+          ) : error ? (
+            <ErrorNote message={error} onRetry={load} />
+          ) : !data ? null : tab === "class" ? (
+            <ClassTab data={data} reload={load} onShowFlagged={() => setParams({ tab: "learners", flagged: "1" })} />
+          ) : tab === "outcomes" ? (
+            <OutcomesTab data={data} />
+          ) : tab === "learners" ? (
+            <LearnersTab data={data} flaggedOnly={flaggedOnly} setFlaggedOnly={(v) => setParams({ flagged: v ? "1" : null })} />
+          ) : (
+            <ItemsTab data={data} />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function InsightsRoute() {
+  const { isTeacher, adminView } = useCourse();
+  // The class view, for staff and admins reading the course. Learners have My progress (the
+  // course layout sends them there), and observers don't get either.
+  if (isTeacher || adminView) return <TeacherInsights />;
+  return null;
+}
+
+export default function InsightsPage() {
+  return (
+    <Suspense fallback={<div className="p-4 md:p-6"><LoadingRows /></div>}>
+      <InsightsRoute />
+    </Suspense>
+  );
+}

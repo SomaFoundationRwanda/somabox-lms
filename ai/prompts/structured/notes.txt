@@ -1,0 +1,7 @@
+Read this part of a book or video transcript and write short notes on what it says.
+
+{CONTEXT}
+
+Rules:
+- "notes": 2 to 6 short sentences with the main ideas, facts, or events of this part.
+- Use only what is in the source text. Do not add facts or opinions.

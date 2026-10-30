@@ -1,0 +1,203 @@
+// French explainers: mirrors en.js key for key; translations should be reviewed by a native-speaking teacher.
+export default {
+  ui: {
+    whatIsThis: "Qu'est-ce que c'est ?",
+    useItWhen: "À utiliser quand",
+    commonMistake: "Erreur fréquente",
+    shownInEnglish: "Pas encore traduit : affiché en anglais",
+    close: "Fermer",
+    learnMore: "En savoir plus",
+  },
+  helper: {
+    button: "Que dois-je créer ?",
+    title: "Que doivent faire les apprenants ?",
+    intro: "Choisissez ce que les apprenants doivent faire. Nous ouvrirons le bon type de support dans la leçon choisie.",
+    module: "Ajouter à",
+    create: "Créer",
+    cancel: "Annuler",
+    goals: {
+      read: { label: "Lire ou regarder quelque chose", hint: "Une page avec du texte, des images ou une vidéo" },
+      submit: { label: "Rendre un travail écrit ou un projet", hint: "Un devoir que vous notez" },
+      quiz: { label: "Répondre à des questions corrigées automatiquement", hint: "Un quiz noté" },
+      practice: { label: "S'entraîner sans note", hint: "Un quiz d'entraînement qui ne compte pas" },
+      discuss: { label: "Échanger des idées avec les camarades", hint: "Une discussion" },
+      download: { label: "Télécharger une fiche ou un fichier", hint: "Un fichier" },
+      organise: { label: "Diviser cette semaine en parties", hint: "Un sous-titre" },
+    },
+  },
+  items: {
+    page: {
+      title: "Page",
+      what: "Une page de cours : du texte, des images, des liens ou une vidéo.",
+      when: "Les apprenants doivent lire ou regarder quelque chose avant de s'entraîner.",
+      mistake: "Mettre des questions sur une page. Les questions à corriger vont dans un quiz ou un devoir.",
+    },
+    assignment: {
+      title: "Devoir",
+      what: "Un travail que les apprenants rendent et que vous notez : une rédaction, un projet, une fiche, une photo de leur travail.",
+      when: "Vous voulez voir ce que les apprenants savent faire et leur donner une note et un commentaire.",
+      mistake: "Oublier de le lier à un résultat d'apprentissage. Sans cela, il ne montre pas les progrès et ne peut pas être publié.",
+    },
+    quiz: {
+      title: "Quiz",
+      what: "Des questions que le système corrige pour vous.",
+      when: "Vous voulez vérifier vite ce qui est compris, avec des résultats immédiats.",
+      mistake: "Laisser des questions sans résultat d'apprentissage. Liez chaque question pour voir quels résultats les apprenants maîtrisent.",
+    },
+    file: {
+      title: "Fichier",
+      what: "Un document que les apprenants peuvent télécharger, comme une fiche PDF ou des diapositives.",
+      when: "Vous avez déjà le support en fichier et les apprenants ont besoin d'une copie.",
+      mistake: "Déposer un travail à rendre. Utilisez plutôt un devoir et joignez-y le fichier.",
+    },
+    sub_header: {
+      title: "Sous-titre",
+      what: "Une étiquette qui divise une leçon en parties, comme \"Lundi\" ou \"Travail de groupe\". Les apprenants ne l'ouvrent pas.",
+      when: "Une leçon contient beaucoup de supports et les apprenants ont besoin d'aide pour s'y retrouver.",
+      mistake: "Écrire des consignes dans un sous-titre. Mettez les consignes sur une page.",
+    },
+    discussion: {
+      title: "Discussion",
+      what: "Un échange où les apprenants publient des messages et se répondent.",
+      when: "Vous voulez que les apprenants partagent des idées, expliquent leur raisonnement ou s'entraident.",
+      mistake: "Poser une question avec une seule bonne réponse. Utilisez un quiz pour cela ; les discussions marchent mieux avec des questions ouvertes.",
+    },
+  },
+  quizKinds: {
+    graded: {
+      title: "Quiz noté",
+      what: "Compte dans les notes et les progrès par résultat d'apprentissage.",
+      when: "Vous vérifiez ce que les apprenants ont appris.",
+      mistake: "Permettre des essais illimités quand vous voulez un seul essai honnête. Fixez le nombre d'essais.",
+    },
+    practice: {
+      title: "Quiz d'entraînement",
+      what: "Seulement pour s'entraîner : il ne compte ni dans les notes ni dans les progrès.",
+      when: "Les apprenants doivent essayer, se tromper et recommencer sans crainte.",
+      mistake: "Utiliser un quiz d'entraînement pour quelque chose qui doit être noté.",
+    },
+    baseline: {
+      title: "Quiz d'évaluation initiale",
+      what: "Un court test avant la leçon 1 qui montre ce que chaque apprenant sait déjà, résultat par résultat.",
+      when: "Tout au début, pour voir ensuite les progrès de chaque apprenant.",
+      mistake: "Enseigner le sujet d'abord. L'évaluation initiale ne marche que si elle vient avant l'enseignement.",
+    },
+  },
+  pages: {
+    home: {
+      title: "Accueil de la matière",
+      what: "Ce qui se passe cette semaine, ce qui demande votre attention, et où en sont les apprenants pour chaque résultat d'apprentissage.",
+      when: "Commencez ici chaque jour.",
+    },
+    modules: {
+      title: "Unités",
+      what: "La matière leçon par leçon. Chaque leçon contient tout ce que les apprenants y font.",
+      when: "Préparez et construisez la matière ici : chaque support créé appartient à une leçon.",
+      mistake: "Laisser des supports dans \"Non attribués\". Placez-les dans une leçon, sinon la matière ne peut pas ouvrir.",
+    },
+    outcomes: {
+      title: "Résultats d'apprentissage",
+      what: "Ce que les apprenants doivent savoir faire à la fin de la matière. Chaque support noté est lié à au moins un résultat.",
+      when: "Écrivez-les en premier, avant de construire les leçons.",
+      mistake: "Écrire des résultats impossibles à vérifier, comme \"comprendre les fractions\". Préférez \"additionner des fractions de dénominateurs différents\".",
+    },
+    baseline: {
+      title: "Évaluation initiale (leçon 0)",
+      what: "Un court test non noté avant la leçon 1. Chaque question est liée à un résultat d'apprentissage, pour voir d'où part chaque apprenant.",
+      when: "Facultatif : avant la leçon 1, si vous voulez voir combien les apprenants progressent. Si vous le passez, dites pourquoi.",
+      mistake: "Utiliser des questions qui ne se corrigent pas automatiquement. Les questions doivent être à choix multiple avec une bonne réponse.",
+    },
+    unassigned: {
+      title: "Non attribués",
+      what: "Les supports qui ne sont dans aucune leçon. Les apprenants ne les voient pas.",
+      when: "Vous le verrez après avoir retiré un support d'une leçon, ou après une mise à jour qui y a placé des supports isolés.",
+      mistake: "Laisser des supports ici. Placez chacun dans une leçon ; la matière ne peut pas ouvrir tant qu'il en reste.",
+    },
+    assignments: {
+      title: "Devoirs",
+      what: "Tout le travail noté de la matière : devoirs, quiz notés et discussions notées.",
+      when: "Voir ce qui est à rendre et ce qui reste à noter.",
+      mistake: "Créer du travail ici. Créez-le dans la bonne leçon sur la page Unités.",
+    },
+    quizzes: {
+      title: "Quiz",
+      what: "Tous les quiz de la matière et les résultats des apprenants.",
+      when: "Voir les résultats d'un quiz ou donner un nouvel essai à un apprenant.",
+    },
+    pages: {
+      title: "Pages",
+      what: "Toutes les pages de support de la matière.",
+      when: "Trouver et modifier une page. Pour en ajouter une, allez dans la bonne leçon sur la page Unités.",
+    },
+    discussions: {
+      title: "Discussions",
+      what: "Les échanges où les apprenants publient et se répondent.",
+      when: "Suivre les échanges et répondre aux questions.",
+    },
+    rubrics: {
+      title: "Grilles d'évaluation",
+      what: "Chaque grille appartient à un devoir et liste ce que vous allez regarder, avec des points pour chaque partie. Liez chaque partie à un résultat d'apprentissage pour voir les progrès par résultat.",
+      when: "Vous voulez une notation juste et régulière, et des commentaires que les apprenants comprennent.",
+      mistake: "Faire un seul critère énorme. Plusieurs petits critères clairs rendent la notation plus rapide et plus juste.",
+    },
+    grades: {
+      title: "Notes",
+      what: "La note de chaque apprenant pour chaque support noté, en points et en pourcentages.",
+      when: "Voir qui est en retard et qui n'a pas rendu son travail.",
+      mistake: "Prendre une case vide pour un zéro. Un tiret veut dire que rien n'a encore été rendu.",
+    },
+    insights: {
+      title: "Statistiques",
+      what: "Comment la classe progresse, calculé uniquement à partir des travaux et quiz notés. Les activités d'entraînement ne comptent pas. La progression compare chaque objectif à son niveau de départ (leçon 0) ; le gain normalisé est la part de l'amélioration possible atteinte (du niveau de départ jusqu'à 100 %).",
+      when: "Repérer les objectifs à retravailler, les apprenants à suivre de près et les supports que beaucoup ont manqués.",
+      mistake: "Prendre un tiret pour un zéro. Un tiret veut dire qu'il n'y a pas encore de résultats, et chaque chiffre indique sur combien d'apprenants il repose.",
+    },
+    calendar: {
+      title: "Calendrier",
+      what: "Quand chaque leçon commence, et quand chaque travail ouvre, est à rendre et se ferme.",
+      when: "Planifier le trimestre, ou déplacer un support à un autre jour.",
+      mistake: "Changer les dates une par une alors que toute la matière a bougé. Utilisez \"Décaler le calendrier\" dans \"Paramètres\".",
+    },
+    people: {
+      title: "Personnes",
+      what: "Qui est dans la matière et quel est son rôle.",
+      when: "Ajouter des apprenants ou un autre enseignant.",
+    },
+    announcements: {
+      title: "Annonces",
+      what: "Des messages pour tout le monde dans la matière.",
+      when: "Les apprenants doivent savoir quelque chose bientôt, comme un changement de programme.",
+    },
+    syllabus: {
+      title: "Programme du cours",
+      what: "Le plan de la matière : résultats d'apprentissage, notation et calendrier leçon par leçon.",
+      when: "Les apprenants ou les parents veulent voir toute la matière d'un coup d'œil.",
+    },
+    files: {
+      title: "Fichiers",
+      what: "Les documents déposés dans la matière.",
+      when: "Trouver un fichier, ou voir où il est utilisé.",
+    },
+    collaborations: {
+      title: "Collaborations",
+      what: "Des liens vers des espaces de travail partagés, comme un document partagé.",
+      when: "Les apprenants travaillent ensemble en dehors de la matière.",
+    },
+    settings: {
+      title: "Paramètres",
+      what: "Les informations de la matière, les dates, le menu que voient les apprenants, et la préparation de la matière.",
+      when: "Fixer la date de début, décaler tout le calendrier, ou terminer la préparation.",
+    },
+    setup: {
+      title: "Préparation de la matière",
+      what: "Tout ce qui doit être fait avant que la matière puisse ouvrir, et ce qu'il vaut la peine de vérifier.",
+      when: "Avant de publier la matière. Les étapes obligatoires doivent être faites ; les avertissements sont des conseils.",
+    },
+    shiftTimeline: {
+      title: "Décaler le calendrier",
+      what: "Déplace les dates d'un certain nombre de jours : toute la matière, ou une leçon et tout ce qui suit.",
+      when: "L'école a commencé en retard, ou une semaine a été perdue.",
+      mistake: "Appliquer sans regarder. Faites d'abord un aperçu pour voir toutes les dates qui vont changer.",
+    },
+  },
+};

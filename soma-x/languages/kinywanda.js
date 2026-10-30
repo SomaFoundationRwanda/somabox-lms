@@ -1,4 +1,27 @@
+import rwShell from "./shell/rw";
+import rwLearner from "./learner/rw";
+import rwCourse from "./course/rw";
+import rwProgress from "./progress/rw";
+import rwAdmin from "./admin/rw";
+import rwTeacher from "./teacher/rw";
+import rwSchool from "./school/rw";
+import rwExplore from "./explore/rw";
+import rwAttendance from "./attendance/rw";
+import rwGuest from "./guest/rw";
+// Kinyarwanda explainers are not written yet: they fall back to English (marked as such)
+// until a native-speaking teacher translates languages/explainers/en.js.
 export default {
+    "attendance": rwAttendance,
+    "guest": rwGuest,
+    "explore": rwExplore,
+    "school": rwSchool,
+    "shell": rwShell,
+    "learner": rwLearner,
+    "course": rwCourse,
+    "progress": rwProgress,
+    "admin": rwAdmin,
+    "teacher": rwTeacher,
+    "explainers": {},
     "nav": {
         "dashboard": "Ahabanza",
         "lessons": "Amasomo",
@@ -97,13 +120,11 @@ export default {
     "auth": {
         "authTitle": "Murakaza neza",
         "authSubtitle": "Injira kugirango ucunge konti yawe",
-        "authUsername": "Izina ry'ukoresha",
         "authPassword": "Ijambo ry'ibanga",
         "authTeacher": "Umwarimu",
         "authAdmin": "Umuyobozi",
         "authLogin": "Injira"
     },
-    "authScholar": "Umunyeshuri",
     "AdminManageOptions": {
         "syncTitle": "Guhuza ibikubiyemo",
         "contentTitle": "Tunganya ibikubiyemo",
@@ -128,6 +149,9 @@ export default {
         "scholar": "Umunyeshuri"
     },
     "notFound": "Ibikubiyemo ntibyabonetse",
+    "loadingCategories": "Ibyiciro biraza...",
+    "exploreTopics": "Sura ingingo ziri hepfo",
+    "notContent": "Nta bikubiyemo biri hano.",
     "noContent": "Ibikubiyemo wasabye ntibyari byashoboye gutangizwa",
     "thePath": "Inzira",
     "doesNotExist": "Ntibibaho",

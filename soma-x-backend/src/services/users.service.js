@@ -1,9 +1,36 @@
 import express from 'express';
+import { renameEmailEverywhere, releaseEmail, coursesOnlyTaughtBy } from '../helpers/identity.js';
+import { assignLearnerCode, assignStaffCode, applySchoolToUser, getSchool } from './school.js';
 import bcrypt from "bcrypt";
 
 import { serverDb, localDb } from '../helpers/db-manager.js';
+import { requireRole, revokeUserSessions } from '../helpers/auth.js';
+import { groupHiddenItems } from "./courses/groups.js";
 
 const router = express.Router();
+const requireAdmin = requireRole('admin');
+const VALID_ROLES = ['admin', 'teacher', 'scholar'];
+
+// Columns safe to return about a user (never password_hash).
+const PUBLIC_USER_COLUMNS = `id, email, full_name, role, phone, school_name, grade_level, preferred_language,
+    gender, region_province, region_district, is_rural, disability_status, accessibility_profile,
+    COALESCE(is_active, 1) AS is_active, created_at, learner_code, staff_code, teacher_classes, teacher_subjects, annex_classes`;
+
+/**
+ * A teacher's classes or subjects from a request: a list of the school's own names ("S1B",
+ * "English"), trimmed, without repeats. Returns undefined when not given, or { error }.
+ */
+export function namesList(value, what) {
+    if (value === undefined) return undefined;
+    if (!Array.isArray(value)) return { error: `${what} must be a list` };
+    const seen = new Map();
+    for (const v of value) {
+        const name = String(v ?? '').replace(/\s+/g, ' ').trim().slice(0, 40);
+        if (name && !seen.has(name.toLowerCase())) seen.set(name.toLowerCase(), name);
+    }
+    if (seen.size > 50) return { error: `At most 50 ${what}` };
+    return [...seen.values()];
+}
 
 export const hashPassword = async (password) => {
     const saltRounds = 12;
@@ -13,10 +40,23 @@ export const hashPassword = async (password) => {
 /**
  * Helper to log admin audit action
  */
-export function logAdminAuditAction({ adminEmail, action, targetUserId = null, targetUserEmail = null, details = null }) {
+// The genders the school records now. Answers given before ("other") still count as answered.
+export const GENDERS = ['male', 'female'];
+const ANSWERED_GENDERS = [...GENDERS, 'other'];
+
+/**
+ * Whether someone has finished their first-visit profile: every required answer given by them
+ * (see /profile/update, which records when). Admins aren't asked.
+ */
+// Admins and teachers aren't asked first-visit questions (an admin enters a teacher's details).
+export function profileComplete(user) {
+    return user.role === 'admin' || user.role === 'teacher' || (Boolean(user.profile_completed_at) && ANSWERED_GENDERS.includes(user.gender));
+}
+
+export async function logAdminAuditAction({ adminEmail, action, targetUserId = null, targetUserEmail = null, details = null }) {
     try {
         if (!adminEmail) return;
-        serverDb.prepare(`
+        await serverDb.prepare(`
             INSERT INTO admin_audit_logs (admin_email, action, target_user_id, target_user_email, details)
             VALUES (?, ?, ?, ?, ?)
         `).run(adminEmail.trim().toLowerCase(), action, targetUserId, targetUserEmail, details);
@@ -25,7 +65,7 @@ export function logAdminAuditAction({ adminEmail, action, targetUserId = null, t
     }
 }
 
-router.get('/', (req, res) => {
+router.get('/', requireAdmin, async (req, res) => {
     try {
         const search = String(req.query.search || '').trim();
         const roles = String(req.query.role || '').trim(); // e.g. "admin,teacher"
@@ -67,9 +107,9 @@ router.get('/', (req, res) => {
 
         // Date range filter
         if (dateRange === '7days') {
-            whereClauses.push("created_at >= datetime('now', '-7 days')");
+            whereClauses.push("created_at >= NOW() - INTERVAL '7 days'");
         } else if (dateRange === '30days') {
-            whereClauses.push("created_at >= datetime('now', '-30 days')");
+            whereClauses.push("created_at >= NOW() - INTERVAL '30 days'");
         }
 
         const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
@@ -82,20 +122,21 @@ router.get('/', (req, res) => {
 
         // Count total
         const countStmt = serverDb.prepare(`SELECT COUNT(*) as total FROM users ${whereSql}`);
-        const { total } = countStmt.get(...params);
+        const countRes = await countStmt.get(...params);
+        const total = Number(countRes?.total || 0);
 
         // Query users
         const queryStmt = serverDb.prepare(`
             SELECT id, email, full_name, role, phone, school_name, grade_level, preferred_language,
                    gender, region_province, region_district, is_rural, disability_status,
-                   COALESCE(is_active, 1) as is_active, created_at
+                   COALESCE(is_active, 1) as is_active, created_at, learner_code
             FROM users
             ${whereSql}
             ORDER BY ${sortColumn} ${sortOrder}
             LIMIT ? OFFSET ?
         `);
         
-        const users = queryStmt.all(...params, limit, offset);
+        const users = await queryStmt.all(...params, limit, offset);
 
         res.json({
             users,
@@ -110,28 +151,31 @@ router.get('/', (req, res) => {
     }
 });
 
-router.get('/me/assignment-summary', (req, res) => {
+router.get('/me/assignment-summary', async (req, res) => {
     try {
-        const email = String(req.query.userEmail || '').trim().toLowerCase();
-        if (!email) return res.status(400).json({ message: 'userEmail is required' });
+        const email = req.user.email;
 
-        const enrolledCourseIds = localDb.prepare(
+        const enrolledCourseRows = await localDb.prepare(
             "SELECT course_id FROM enrollments WHERE LOWER(user_email) = LOWER(?) AND status = 'active'"
-        ).all(email).map((r) => r.course_id);
+        ).all(email);
+        const enrolledCourseIds = enrolledCourseRows.map((r) => r.course_id);
 
         const outstanding = [];
         let completedCount = 0;
 
         for (const courseId of enrolledCourseIds) {
-            const course = localDb.prepare("SELECT id, title FROM courses WHERE id = ?").get(courseId);
+            const course = await localDb.prepare("SELECT id, title FROM courses WHERE id = ?").get(courseId);
             if (!course) continue;
 
-            const assignments = localDb.prepare(
+            const assignments = await localDb.prepare(
                 "SELECT id, title, due_at FROM assignments WHERE course_id = ? AND published = 1"
             ).all(courseId);
 
+            // Assignments given to other groups aren't this learner's.
+            const groupHidden = await groupHiddenItems(courseId, email);
             for (const a of assignments) {
-                const submission = localDb.prepare(
+                if (groupHidden.has(`assignment:${a.id}`)) continue;
+                const submission = await localDb.prepare(
                     "SELECT grade FROM assignment_submissions WHERE assignment_id = ? AND LOWER(scholar_email) = LOWER(?)"
                 ).get(a.id, email);
 
@@ -146,6 +190,7 @@ router.get('/me/assignment-summary', (req, res) => {
                         title: a.title,
                         course_title: course.title,
                         due_at: a.due_at,
+                        status,
                         overdue: status === 'not_submitted' && !!a.due_at && new Date(a.due_at) < new Date(),
                     });
                 }
@@ -159,10 +204,17 @@ router.get('/me/assignment-summary', (req, res) => {
             return new Date(x.due_at) - new Date(y.due_at);
         });
 
+        // Everything this learner has handed in (assignments and quizzes), for milestones.
+        const handedIn = await localDb.prepare(`
+            SELECT (SELECT COUNT(*) FROM assignment_submissions s WHERE LOWER(s.scholar_email) = LOWER(?) AND (s.body <> '' OR s.graded_at IS NULL OR s.submitted_at <> s.graded_at))
+                 + (SELECT COUNT(*) FROM quiz_submissions q WHERE LOWER(q.scholar_email) = LOWER(?)) AS n
+        `).get(email, email);
+
         return res.json({
             outstanding,
             completed_count: completedCount,
             outstanding_count: outstanding.length,
+            handed_in_count: Number(handedIn?.n || 0),
         });
     } catch (error) {
         console.error('Error building assignment summary:', error);
@@ -170,34 +222,35 @@ router.get('/me/assignment-summary', (req, res) => {
     }
 });
 
-router.get('/me/dashboard', (req, res) => {
+router.get('/me/dashboard', async (req, res) => {
     try {
-        const email = String(req.query.userEmail || '').trim().toLowerCase();
-        if (!email) return res.status(400).json({ message: 'userEmail is required' });
+        const email = req.user.email;
 
-        const enrolledRows = localDb.prepare(`
+        const enrolledRows = await localDb.prepare(`
             SELECT c.*, e.role AS my_role, e.status AS my_status
             FROM courses c
             JOIN enrollments e ON e.course_id = c.id
             WHERE LOWER(e.user_email) = LOWER(?) AND e.status = 'active'
+              AND (e.role IN ('teacher', 'ta') OR c.lifecycle <> 'draft')
             ORDER BY c.created_at DESC
         `).all(email);
 
-        const enrolledCourses = enrolledRows.map((course) => {
-            const totalAssignments = Number(
-                localDb.prepare("SELECT COUNT(*) AS c FROM assignments WHERE course_id = ? AND published = 1").get(course.id)?.c || 0
-            );
-            const gradedAssignments = Number(
-                localDb.prepare(`
-                    SELECT COUNT(*) AS c FROM assignment_submissions s
-                    JOIN assignments a ON a.id = s.assignment_id
-                    WHERE a.course_id = ? AND LOWER(s.scholar_email) = LOWER(?) AND s.grade IS NOT NULL
-                `).get(course.id, email)?.c || 0
-            );
-            const studentCount = Number(
-                localDb.prepare("SELECT COUNT(*) AS total FROM enrollments WHERE course_id = ? AND role = 'student' AND status = 'active'").get(course.id)?.total || 0
-            );
-            const progress = totalAssignments > 0 ? Math.round((gradedAssignments / totalAssignments) * 100) : 0;
+        const enrolledCourses = await Promise.all(enrolledRows.map(async (course) => {
+            const totalRes = await localDb.prepare("SELECT COUNT(*) AS c FROM assignments WHERE course_id = ? AND published = 1").get(course.id);
+            const totalAssignments = Number(totalRes?.c || 0);
+
+            const gradedRes = await localDb.prepare(`
+                SELECT COUNT(*) AS c FROM assignment_submissions s
+                JOIN assignments a ON a.id = s.assignment_id
+                WHERE a.course_id = ? AND a.published = 1 AND LOWER(s.scholar_email) = LOWER(?) AND s.grade IS NOT NULL
+            `).get(course.id, email);
+            const gradedAssignments = Number(gradedRes?.c || 0);
+
+            const studentRes = await localDb.prepare("SELECT COUNT(*) AS total FROM enrollments WHERE course_id = ? AND role = 'student' AND status = 'active'").get(course.id);
+            const studentCount = Number(studentRes?.total || 0);
+
+            // No published assignments yet means no progress figure, not 0%.
+            const progress = totalAssignments > 0 ? Math.round((gradedAssignments / totalAssignments) * 100) : null;
 
             return {
                 ...course,
@@ -205,25 +258,26 @@ router.get('/me/dashboard', (req, res) => {
                 progress,
                 coverImageUrl: course.cover_image ? `/course-covers/${course.cover_image}` : null,
             };
-        });
+        }));
 
-        const publicRows = localDb.prepare(
-            "SELECT * FROM courses WHERE visibility = 'public' ORDER BY created_at DESC"
+        const publicRows = await localDb.prepare(
+            "SELECT * FROM courses WHERE visibility = 'public' AND lifecycle = 'open' ORDER BY created_at DESC"
         ).all();
 
         const enrolledIds = new Set(enrolledCourses.map((c) => c.id));
-        const publicCourses = publicRows
-            .filter((course) => !enrolledIds.has(course.id))
-            .map((course) => {
-                const studentCount = Number(
-                    localDb.prepare("SELECT COUNT(*) AS total FROM enrollments WHERE course_id = ? AND role = 'student' AND status = 'active'").get(course.id)?.total || 0
-                );
-                return {
-                    ...course,
-                    studentCount,
-                    coverImageUrl: course.cover_image ? `/course-covers/${course.cover_image}` : null,
-                };
-            });
+        const publicCourses = await Promise.all(
+            publicRows
+                .filter((course) => !enrolledIds.has(course.id))
+                .map(async (course) => {
+                    const studentRes = await localDb.prepare("SELECT COUNT(*) AS total FROM enrollments WHERE course_id = ? AND role = 'student' AND status = 'active'").get(course.id);
+                    const studentCount = Number(studentRes?.total || 0);
+                    return {
+                        ...course,
+                        studentCount,
+                        coverImageUrl: course.cover_image ? `/course-covers/${course.cover_image}` : null,
+                    };
+                })
+        );
 
         return res.json({ enrolled_courses: enrolledCourses, public_courses: publicCourses });
     } catch (error) {
@@ -232,49 +286,41 @@ router.get('/me/dashboard', (req, res) => {
     }
 });
 
-router.get('/:id', (req, res) => {
-    const stmt = serverDb.prepare('SELECT *, COALESCE(is_active, 1) as is_active FROM users WHERE id = ?');
-    const user = stmt.get(req.params.id);
-    if (!user) return res.status(404).json({ message: "User not found" });
-    res.json(user);
+router.get('/:id', async (req, res) => {
+    try {
+        if (req.user.role !== 'admin' && String(req.user.id) !== String(req.params.id)) {
+            return res.status(403).json({ message: 'You do not have permission to do this' });
+        }
+        const user = await serverDb.prepare(`SELECT ${PUBLIC_USER_COLUMNS} FROM users WHERE id = ?`).get(req.params.id);
+        if (!user) return res.status(404).json({ message: "User not found" });
+        res.json(user);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
 });
 
-router.get('/profile/view', (req, res) => {
+router.get('/profile/view', async (req, res) => {
     try {
-        const email = String(req.query.email || '').trim().toLowerCase();
-        const role = String(req.query.role || '').trim().toLowerCase();
-
-        if (!email) {
-            return res.status(400).json({ message: 'Email is required' });
-        }
-
-        let query = `
+        const user = await serverDb.prepare(`
             SELECT id, email, full_name, role, phone, school_name, grade_level, preferred_language,
-                   gender, region_province, region_district, is_rural, disability_status, accessibility_profile, created_at
+                   gender, region_province, region_district, is_rural, disability_status, accessibility_profile, created_at,
+                   profile_completed_at, learner_code, staff_code, profile_deferred, teacher_classes, teacher_subjects
             FROM users
-            WHERE LOWER(email) = LOWER(?)
-        `;
-        const params = [email];
-        if (role) {
-            query += ` AND LOWER(role) = LOWER(?)`;
-            params.push(role);
-        }
-
-        const user = serverDb.prepare(query).get(...params);
+            WHERE id = ?
+        `).get(req.user.id);
 
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        const hasGender = Boolean(user.gender && user.gender !== 'prefer_not_to_say' && user.gender.trim() !== '');
-        const hasProvince = Boolean(user.region_province && user.region_province !== 'Not Specified' && user.region_province.trim() !== '');
-        const hasDistrict = Boolean(user.region_district && user.region_district !== 'Not Specified' && user.region_district.trim() !== '');
+        const isProfileComplete = profileComplete(user);
 
-        const isProfileComplete = hasGender && hasProvince && hasDistrict;
-
+        const school = await getSchool();
         return res.json({
             ...user,
-            isProfileComplete
+            isProfileComplete,
+            // The school's details aren't asked of learners: one box serves one school.
+            school: { name: school.name, code: school.code, province: school.province, district: school.district, isRural: school.isRural },
         });
     } catch (error) {
         console.error('Error fetching profile:', error);
@@ -282,50 +328,65 @@ router.get('/profile/view', (req, res) => {
     }
 });
 
-router.post('/', async (req, res) => {
+// Admin-created accounts. Self-registration goes through POST /auth/register (scholars only).
+// The admin gives a temporary password, which the person must change at first sign-in. The admin
+// may also enter their gender and phone (a teacher isn't asked anything at first sign-in).
+router.post('/', requireAdmin, async (req, res) => {
   try {
-    const { email, password, role, fullName, phone, schoolName, gradeLevel, preferredLanguage, gender, regionProvince, regionDistrict, isRural, disabilityStatus, accessibilityProfile } = req.body;
+    const { email, password, fullName, gradeLevel, preferredLanguage } = req.body;
+    const classes = namesList(req.body.teacherClasses, 'classes');
+    const subjects = namesList(req.body.teacherSubjects, 'subjects');
+    if (classes?.error || subjects?.error) return res.status(400).json({ message: (classes?.error || subjects?.error) });
     const normalizedEmail = String(email || '').trim().toLowerCase();
+    const role = String(req.body.role || '').trim().toLowerCase();
 
     if (!normalizedEmail || !password || !role) {
       return res.status(400).json({ message: 'Email, password, and role are required' });
     }
+    if (!VALID_ROLES.includes(role)) {
+      return res.status(400).json({ message: 'Role must be admin, teacher, or scholar' });
+    }
+    if (String(password).length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    }
+    const gender = req.body.gender ? String(req.body.gender).trim() : null;
+    if (gender && !GENDERS.includes(gender)) return res.status(400).json({ message: 'Gender must be male or female' });
+    const phone = req.body.phone ? String(req.body.phone).trim() : null;
 
-    const existingUser = serverDb.prepare('SELECT id FROM users WHERE email = ?').get(normalizedEmail);
+    const existingUser = await serverDb.prepare('SELECT id FROM users WHERE LOWER(email) = LOWER(?)').get(normalizedEmail);
     if (existingUser) {
       return res.status(409).json({ message: 'User already exists' });
     }
 
     const password_hash = await hashPassword(password);
-    const accessibility_profile = accessibilityProfile ? (typeof accessibilityProfile === 'object' ? JSON.stringify(accessibilityProfile) : String(accessibilityProfile)) : '{}';
+    await serverDb.prepare(`
+      INSERT INTO users (email, password_hash, role, full_name, grade_level, preferred_language, gender, phone, must_change_password)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
+    `).run(normalizedEmail, password_hash, role, String(fullName || '').trim(), gradeLevel || null, preferredLanguage || null, gender, phone);
 
-    const insert = serverDb.prepare(`
-      INSERT INTO users (
-        email, password_hash, role, full_name, phone, school_name, grade_level, preferred_language,
-        gender, region_province, region_district, is_rural, disability_status, accessibility_profile
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
+    // Learners get the school's details and a learner code straight away; teachers their
+    // classes, subjects and a staff code.
+    let learnerCode = null;
+    let staffCode = null;
+    const created = await serverDb.prepare('SELECT id FROM users WHERE LOWER(email) = LOWER(?)').get(normalizedEmail);
+    await applySchoolToUser(created.id);
+    if (role === 'scholar') learnerCode = await assignLearnerCode(created.id);
+    if (role === 'teacher') {
+      await serverDb.prepare('UPDATE users SET teacher_classes = ?::jsonb, teacher_subjects = ?::jsonb WHERE id = ?')
+        .run(JSON.stringify(classes || []), JSON.stringify(subjects || []), created.id);
+      staffCode = await assignStaffCode(created.id);
+    }
 
-    insert.run(
-      normalizedEmail,
-      password_hash,
-      role,
-      fullName || '',
-      phone || null,
-      schoolName || null,
-      gradeLevel || null,
-      preferredLanguage || null,
-      gender || 'prefer_not_to_say',
-      regionProvince || 'Not Specified',
-      regionDistrict || 'Not Specified',
-      isRural ? 1 : 0,
-      disabilityStatus || 'none',
-      accessibility_profile
-    );
+    await logAdminAuditAction({
+      adminEmail: req.user.email,
+      action: 'CREATE_USER',
+      targetUserEmail: normalizedEmail,
+      details: `Created ${role} account ${normalizedEmail}`
+    });
 
     res.status(201).json({
       message: 'User created successfully',
-      user: { email: normalizedEmail, role, full_name: fullName || '' }
+      user: { email: normalizedEmail, role, full_name: fullName || '', learner_code: learnerCode, staff_code: staffCode }
     });
   } catch (error) {
     console.error('Error creating user:', error);
@@ -333,9 +394,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-
-
-router.patch('/:id', async (req, res) => {
+router.patch('/:id', requireAdmin, async (req, res) => {
     try {
         const email = req.body.email !== undefined ? String(req.body.email || '').trim().toLowerCase() : undefined;
         const fullName = req.body.fullName !== undefined ? String(req.body.fullName || '').trim() : undefined;
@@ -352,6 +411,24 @@ router.patch('/:id', async (req, res) => {
         const accessibilityProfile = req.body.accessibilityProfile !== undefined ? (typeof req.body.accessibilityProfile === 'object' ? JSON.stringify(req.body.accessibilityProfile) : String(req.body.accessibilityProfile)) : undefined;
         const password = req.body.password;
         const userId = req.params.id;
+        const classes = namesList(req.body.teacherClasses, 'classes');
+        const subjects = namesList(req.body.teacherSubjects, 'subjects');
+        if (classes?.error || subjects?.error) return res.status(400).json({ message: (classes?.error || subjects?.error) });
+
+        if (role !== undefined && !VALID_ROLES.includes(role)) {
+            return res.status(400).json({ message: 'Role must be admin, teacher, or scholar' });
+        }
+        if (String(userId) === String(req.user.id) && role !== undefined && role !== req.user.role) {
+            return res.status(400).json({ message: 'You cannot change your own role' });
+        }
+        if (password && String(password).length < 6) {
+            return res.status(400).json({ message: 'Password must be at least 6 characters' });
+        }
+        if (role === 'scholar') {
+            const target = await serverDb.prepare('SELECT email FROM users WHERE id = ?').get(userId);
+            const stranded = target ? await coursesOnlyTaughtBy([target.email]) : [];
+            if (stranded.length) return res.status(409).json({ message: strandedMessage(stranded, 'Making this person a learner'), code: 'SOLE_TEACHER', courses: stranded });
+        }
 
         if (
             email === undefined &&
@@ -367,6 +444,8 @@ router.patch('/:id', async (req, res) => {
             isRural === undefined &&
             disabilityStatus === undefined &&
             accessibilityProfile === undefined &&
+            classes === undefined &&
+            subjects === undefined &&
             !password
         ) {
             return res.status(400).json({ message: 'At least one field is required for update' });
@@ -383,27 +462,56 @@ router.patch('/:id', async (req, res) => {
         if (schoolName !== undefined) { updates.push('school_name = ?'); params.push(schoolName || null); }
         if (gradeLevel !== undefined) { updates.push('grade_level = ?'); params.push(gradeLevel || null); }
         if (preferredLanguage !== undefined) { updates.push('preferred_language = ?'); params.push(preferredLanguage || null); }
-        if (gender !== undefined) { updates.push('gender = ?'); params.push(gender); }
+        if (gender !== undefined) {
+            if (!GENDERS.includes(gender)) return res.status(400).json({ message: 'Gender must be male or female' });
+            updates.push('gender = ?'); params.push(gender);
+        }
         if (regionProvince !== undefined) { updates.push('region_province = ?'); params.push(regionProvince); }
         if (regionDistrict !== undefined) { updates.push('region_district = ?'); params.push(regionDistrict); }
         if (isRural !== undefined) { updates.push('is_rural = ?'); params.push(isRural); }
         if (disabilityStatus !== undefined) { updates.push('disability_status = ?'); params.push(disabilityStatus); }
         if (accessibilityProfile !== undefined) { updates.push('accessibility_profile = ?'); params.push(accessibilityProfile); }
+        if (classes !== undefined) { updates.push('teacher_classes = ?::jsonb'); params.push(JSON.stringify(classes)); }
+        if (subjects !== undefined) { updates.push('teacher_subjects = ?::jsonb'); params.push(JSON.stringify(subjects)); }
         if (password) {
             const password_hash = await hashPassword(password);
             updates.push('password_hash = ?');
             params.push(password_hash);
+            // An admin-set password is temporary: the user must choose their own.
+            updates.push('must_change_password = 1');
         }
 
         query += updates.join(', ') + ' WHERE id = ?';
         params.push(userId);
 
-        const stmt = serverDb.prepare(query);
-        const info = stmt.run(...params);
+        // The email is still the key in many tables: a change is carried into all of them, in
+        // the same transaction, so the person's courses, work, and grades stay theirs.
+        const info = await serverDb.transaction(async () => {
+            const before = await serverDb.prepare('SELECT email FROM users WHERE id = ?').get(userId);
+            if (!before) return { changes: 0 };
+            if (email !== undefined && email !== String(before.email).toLowerCase()) {
+                const taken = await serverDb.prepare('SELECT 1 FROM users WHERE LOWER(email) = LOWER(?) AND id <> ?').get(email, userId);
+                if (taken) return { taken: true };
+                await renameEmailEverywhere(before.email, email);
+            }
+            return serverDb.prepare(query).run(...params);
+        })();
 
+        if (info.taken) return res.status(409).json({ message: 'Another account already uses that email' });
         if (info.changes === 0) {
             return res.status(404).json({ message: 'User not found' });
         }
+
+        if (role === 'teacher') await assignStaffCode(userId);
+        if (password || role !== undefined || email !== undefined) {
+            await revokeUserSessions(userId);
+        }
+        await logAdminAuditAction({
+            adminEmail: req.user.email,
+            action: 'UPDATE_USER',
+            targetUserId: Number(userId),
+            details: `Updated fields: ${updates.map((u) => u.split(' = ')[0]).join(', ')}`
+        });
 
         res.status(200).json({ message: 'User updated successfully' });
     } catch (error) {
@@ -412,28 +520,26 @@ router.patch('/:id', async (req, res) => {
     }
 });
 
+const DISABILITY_ANSWERS = ['none', 'visual', 'hearing', 'mobility', 'cognitive', 'other'];
+// Everyone answers their gender (there's no "prefer not to say"); the school reports on it.
+
 router.patch('/profile/update', async (req, res) => {
     try {
-        const email = String(req.body.email || '').trim().toLowerCase();
+        const email = req.user.email;
         const fullName = req.body.fullName !== undefined ? String(req.body.fullName).trim() : undefined;
         const phone = req.body.phone !== undefined ? String(req.body.phone).trim() : undefined;
-        const schoolName = req.body.schoolName !== undefined ? String(req.body.schoolName).trim() : undefined;
+        // The school and its location are the box's (set by the admin), not something people enter.
+        const schoolControlled = req.user.role !== 'admin';
+        const schoolName = !schoolControlled && req.body.schoolName !== undefined ? String(req.body.schoolName).trim() : undefined;
         const gradeLevel = req.body.gradeLevel !== undefined ? String(req.body.gradeLevel).trim() : undefined;
         const preferredLanguage = req.body.preferredLanguage !== undefined ? String(req.body.preferredLanguage).trim() : undefined;
         const gender = req.body.gender !== undefined ? String(req.body.gender).trim() : undefined;
-        const regionProvince = req.body.regionProvince !== undefined ? String(req.body.regionProvince).trim() : undefined;
-        const regionDistrict = req.body.regionDistrict !== undefined ? String(req.body.regionDistrict).trim() : undefined;
-        const isRural = req.body.isRural !== undefined ? (req.body.isRural ? 1 : 0) : undefined;
+        const regionProvince = !schoolControlled && req.body.regionProvince !== undefined ? String(req.body.regionProvince).trim() : undefined;
+        const regionDistrict = !schoolControlled && req.body.regionDistrict !== undefined ? String(req.body.regionDistrict).trim() : undefined;
+        const isRural = !schoolControlled && req.body.isRural !== undefined ? (req.body.isRural ? 1 : 0) : undefined;
         const disabilityStatus = req.body.disabilityStatus !== undefined ? String(req.body.disabilityStatus).trim() : undefined;
 
-        if (!email) {
-            return res.status(400).json({ message: 'User email is required' });
-        }
-
-        const user = serverDb.prepare('SELECT id FROM users WHERE LOWER(email) = LOWER(?)').get(email);
-        if (!user) {
-            return res.status(404).json({ message: 'User account not found' });
-        }
+        const user = { id: req.user.id };
 
         let query = 'UPDATE users SET ';
         const params = [];
@@ -444,7 +550,10 @@ router.patch('/profile/update', async (req, res) => {
         if (schoolName !== undefined) { updates.push('school_name = ?'); params.push(schoolName || null); }
         if (gradeLevel !== undefined) { updates.push('grade_level = ?'); params.push(gradeLevel || null); }
         if (preferredLanguage !== undefined) { updates.push('preferred_language = ?'); params.push(preferredLanguage || null); }
-        if (gender !== undefined) { updates.push('gender = ?'); params.push(gender); }
+        if (gender !== undefined) {
+            if (!GENDERS.includes(gender)) return res.status(400).json({ message: 'Gender must be male or female' });
+            updates.push('gender = ?'); params.push(gender);
+        }
         if (regionProvince !== undefined) { updates.push('region_province = ?'); params.push(regionProvince); }
         if (regionDistrict !== undefined) { updates.push('region_district = ?'); params.push(regionDistrict); }
         if (isRural !== undefined) { updates.push('is_rural = ?'); params.push(isRural); }
@@ -454,16 +563,28 @@ router.patch('/profile/update', async (req, res) => {
             return res.status(400).json({ message: 'No fields provided to update' });
         }
 
+        // Finishing the profile step: every required answer must be in this request, chosen by the
+        // person (not a default), or the profile stays incomplete and they're asked again.
+        if (req.body.completeProfile) {
+            const missing = [];
+            // Location (province, district, rural/urban) is the school's, set by the admin; nobody is asked.
+            if (!GENDERS.includes(gender)) missing.push('gender');
+            if (!DISABILITY_ANSWERS.includes(disabilityStatus)) missing.push('accessibility needs');
+            if (req.user.role === 'scholar' && !gradeLevel) missing.push('grade');
+            if (missing.length) return res.status(400).json({ message: `Please answer: ${missing.join(', ')}`, missing });
+            updates.push('profile_completed_at = CURRENT_TIMESTAMP');
+        }
+
         query += updates.join(', ') + ' WHERE id = ?';
         params.push(user.id);
 
-        serverDb.prepare(query).run(...params);
+        await serverDb.prepare(query).run(...params);
+        await applySchoolToUser(user.id);
 
         // Auto-mark any profile completion notifications as read in localDb
         try {
-            const { localDb } = await import('../helpers/db-manager.js');
-            localDb.prepare(`
-                UPDATE user_notifications SET is_read = 1 WHERE user_email = ? AND type = 'profile_reminder'
+            await localDb.prepare(`
+                UPDATE user_notifications SET is_read = 1 WHERE LOWER(user_email) = LOWER(?) AND type = 'profile_reminder'
             `).run(email);
         } catch (e) {
             console.error("Failed to mark profile_reminder notification as read:", e);
@@ -478,22 +599,22 @@ router.patch('/profile/update', async (req, res) => {
 
 router.patch('/profile/password', async (req, res) => {
     try {
-        const currentEmail = String(req.body.currentEmail || '').trim().toLowerCase();
-        const currentRole = String(req.body.currentRole || '').trim().toLowerCase();
         const currentPassword = String(req.body.currentPassword || '');
         const newPassword = String(req.body.newPassword || '');
 
-        if (!currentEmail || !currentRole || !currentPassword || !newPassword) {
-            return res.status(400).json({ message: 'Current email, role, and passwords are required' });
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({ message: 'Current and new passwords are required' });
         }
 
         if (newPassword.length < 6) {
             return res.status(400).json({ message: 'New password must be at least 6 characters' });
         }
 
-        const user = serverDb
-            .prepare('SELECT id, password_hash FROM users WHERE LOWER(email) = LOWER(?) AND LOWER(role) = LOWER(?)')
-            .get(currentEmail, currentRole);
+        if (newPassword === currentPassword) {
+            return res.status(400).json({ message: 'New password must be different from the current password' });
+        }
+
+        const user = await serverDb.prepare('SELECT id, password_hash FROM users WHERE id = ?').get(req.user.id);
 
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
@@ -501,11 +622,14 @@ router.patch('/profile/password', async (req, res) => {
 
         const isMatch = await bcrypt.compare(currentPassword, user.password_hash);
         if (!isMatch) {
-            return res.status(401).json({ message: 'Current password is incorrect' });
+            // 400, not 401: the app treats any 401 as an expired session and signs the person out.
+            return res.status(400).json({ message: 'Current password is incorrect' });
         }
 
         const passwordHash = await hashPassword(newPassword);
-        serverDb.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(passwordHash, user.id);
+        await serverDb.prepare('UPDATE users SET password_hash = ?, must_change_password = 0 WHERE id = ?').run(passwordHash, user.id);
+        // Sign out every other device; this one stays logged in.
+        await revokeUserSessions(user.id, req.sessionToken);
 
         return res.json({ message: 'Password updated successfully' });
     } catch (error) {
@@ -518,21 +642,31 @@ router.patch('/profile/password', async (req, res) => {
  * PATCH /users/:id/status
  * Soft deactivate or reactivate user account
  */
-router.patch('/:id/status', (req, res) => {
+const strandedMessage = (courses, what) =>
+    `${what} would leave ${courses.length === 1 ? 'a course' : `${courses.length} courses`} with no teacher (${courses.map((c) => c.title).join(', ')}). ` +
+    'Give each course another teacher first (Courses: Change teacher), or deactivate the account instead.';
+
+router.patch('/:id/status', requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
-        const { isActive, adminEmail } = req.body;
+        const { isActive } = req.body;
+        const adminEmail = req.user.email;
 
-        const user = serverDb.prepare('SELECT id, email, full_name, is_active FROM users WHERE id = ?').get(id);
+        if (String(id) === String(req.user.id) && !isActive) {
+            return res.status(400).json({ message: 'You cannot deactivate your own account' });
+        }
+
+        const user = await serverDb.prepare('SELECT id, email, full_name, is_active FROM users WHERE id = ?').get(id);
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
 
         const newStatus = isActive ? 1 : 0;
-        serverDb.prepare('UPDATE users SET is_active = ? WHERE id = ?').run(newStatus, id);
+        await serverDb.prepare('UPDATE users SET is_active = ? WHERE id = ?').run(newStatus, id);
+        if (newStatus === 0) await revokeUserSessions(user.id);
 
         const actionName = newStatus === 1 ? 'REACTIVATE_USER' : 'DEACTIVATE_USER';
-        logAdminAuditAction({
+        await logAdminAuditAction({
             adminEmail,
             action: actionName,
             targetUserId: user.id,
@@ -542,7 +676,9 @@ router.patch('/:id/status', (req, res) => {
 
         res.json({
             message: `User ${newStatus === 1 ? 'reactivated' : 'deactivated'} successfully`,
-            is_active: newStatus
+            is_active: newStatus,
+            // Courses with no active teacher now: the admin gives them one (Courses: Change teacher).
+            coursesWithoutTeacher: newStatus === 0 ? await coursesOnlyTaughtBy([user.email]) : [],
         });
     } catch (error) {
         console.error('Error updating user status:', error);
@@ -554,24 +690,27 @@ router.patch('/:id/status', (req, res) => {
  * PATCH /users/:id/reset-password
  * Admin password reset
  */
-router.patch('/:id/reset-password', async (req, res) => {
+router.patch('/:id/reset-password', requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
-        const { newPassword, adminEmail } = req.body;
+        const { newPassword } = req.body;
+        const adminEmail = req.user.email;
 
         if (!newPassword || newPassword.length < 6) {
             return res.status(400).json({ message: 'New password must be at least 6 characters' });
         }
 
-        const user = serverDb.prepare('SELECT id, email FROM users WHERE id = ?').get(id);
+        const user = await serverDb.prepare('SELECT id, email FROM users WHERE id = ?').get(id);
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
 
         const passwordHash = await hashPassword(newPassword);
-        serverDb.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(passwordHash, id);
+        // The reset password is temporary: the user must choose their own at next login.
+        await serverDb.prepare('UPDATE users SET password_hash = ?, must_change_password = 1 WHERE id = ?').run(passwordHash, id);
+        await revokeUserSessions(user.id);
 
-        logAdminAuditAction({
+        await logAdminAuditAction({
             adminEmail,
             action: 'RESET_USER_PASSWORD',
             targetUserId: user.id,
@@ -590,11 +729,16 @@ router.patch('/:id/reset-password', async (req, res) => {
  * POST /users/bulk-action
  * Perform bulk operations (bulk_role, bulk_deactivate, bulk_reactivate, bulk_delete)
  */
-router.post('/bulk-action', (req, res) => {
+router.post('/bulk-action', requireAdmin, async (req, res) => {
     try {
-        const { userIds, action, newRole, adminEmail } = req.body;
-        if (!Array.isArray(userIds) || userIds.length === 0) {
+        const { action, newRole } = req.body;
+        const adminEmail = req.user.email;
+        const userIds = Array.isArray(req.body.userIds) ? req.body.userIds.map(Number).filter(Number.isInteger) : [];
+        if (userIds.length === 0) {
             return res.status(400).json({ message: 'userIds array is required' });
+        }
+        if (userIds.includes(Number(req.user.id))) {
+            return res.status(400).json({ message: 'Bulk actions cannot include your own account' });
         }
 
         const placeholders = userIds.map(() => '?').join(',');
@@ -602,27 +746,40 @@ router.post('/bulk-action', (req, res) => {
 
         if (action === 'bulk_deactivate') {
             const stmt = serverDb.prepare(`UPDATE users SET is_active = 0 WHERE id IN (${placeholders})`);
-            const info = stmt.run(...userIds);
+            const info = await stmt.run(...userIds);
             affected = info.changes;
-            logAdminAuditAction({ adminEmail, action: 'BULK_DEACTIVATE', details: `Deactivated ${affected} users` });
+            for (const userId of userIds) await revokeUserSessions(userId);
+            await logAdminAuditAction({ adminEmail, action: 'BULK_DEACTIVATE', details: `Deactivated ${affected} users` });
         } else if (action === 'bulk_reactivate') {
             const stmt = serverDb.prepare(`UPDATE users SET is_active = 1 WHERE id IN (${placeholders})`);
-            const info = stmt.run(...userIds);
+            const info = await stmt.run(...userIds);
             affected = info.changes;
-            logAdminAuditAction({ adminEmail, action: 'BULK_REACTIVATE', details: `Reactivated ${affected} users` });
+            await logAdminAuditAction({ adminEmail, action: 'BULK_REACTIVATE', details: `Reactivated ${affected} users` });
         } else if (action === 'bulk_role') {
             if (!newRole || !['admin', 'teacher', 'scholar'].includes(newRole.toLowerCase())) {
                 return res.status(400).json({ message: 'Valid newRole is required' });
             }
+            if (newRole.toLowerCase() === 'scholar') {
+                const emails = (await serverDb.prepare(`SELECT email FROM users WHERE id IN (${placeholders})`).all(...userIds)).map((u) => u.email);
+                const stranded = await coursesOnlyTaughtBy(emails);
+                if (stranded.length) return res.status(409).json({ message: strandedMessage(stranded, 'Making these people learners'), code: 'SOLE_TEACHER', courses: stranded });
+            }
             const stmt = serverDb.prepare(`UPDATE users SET role = ? WHERE id IN (${placeholders})`);
-            const info = stmt.run(newRole.toLowerCase(), ...userIds);
+            const info = await stmt.run(newRole.toLowerCase(), ...userIds);
             affected = info.changes;
-            logAdminAuditAction({ adminEmail, action: 'BULK_ROLE_CHANGE', details: `Changed role to ${newRole} for ${affected} users` });
+            for (const userId of userIds) await revokeUserSessions(userId);
+            await logAdminAuditAction({ adminEmail, action: 'BULK_ROLE_CHANGE', details: `Changed role to ${newRole} for ${affected} users` });
         } else if (action === 'bulk_delete') {
-            const stmt = serverDb.prepare(`DELETE FROM users WHERE id IN (${placeholders})`);
-            const info = stmt.run(...userIds);
+            const emails = (await serverDb.prepare(`SELECT email FROM users WHERE id IN (${placeholders})`).all(...userIds)).map((u) => u.email);
+            const stranded = await coursesOnlyTaughtBy(emails);
+            if (stranded.length) return res.status(409).json({ message: strandedMessage(stranded, 'Deleting these accounts'), code: 'SOLE_TEACHER', courses: stranded });
+            const info = await serverDb.transaction(async () => {
+                const doomed = await serverDb.prepare(`SELECT email FROM users WHERE id IN (${placeholders})`).all(...userIds);
+                for (const u of doomed) await releaseEmail(u.email);
+                return serverDb.prepare(`DELETE FROM users WHERE id IN (${placeholders})`).run(...userIds);
+            })();
             affected = info.changes;
-            logAdminAuditAction({ adminEmail, action: 'BULK_DELETE', details: `Deleted ${affected} users` });
+            await logAdminAuditAction({ adminEmail, action: 'BULK_DELETE', details: `Deleted ${affected} users` });
         } else {
             return res.status(400).json({ message: 'Invalid bulk action specified' });
         }
@@ -634,19 +791,29 @@ router.post('/bulk-action', (req, res) => {
     }
 });
 
-router.delete('/:id', (req, res) => {
+router.delete('/:id', requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
-        const adminEmail = req.body?.adminEmail || req.query?.adminEmail;
+        const adminEmail = req.user.email;
+        if (String(id) === String(req.user.id)) {
+            return res.status(400).json({ message: 'You cannot delete your own account' });
+        }
 
-        const user = serverDb.prepare('SELECT id, email FROM users WHERE id = ?').get(id);
+        const user = await serverDb.prepare('SELECT id, email FROM users WHERE id = ?').get(id);
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
+        const stranded = await coursesOnlyTaughtBy([user.email]);
+        if (stranded.length) {
+            return res.status(409).json({ message: strandedMessage(stranded, 'Deleting this account'), code: 'SOLE_TEACHER', courses: stranded });
+        }
 
-        serverDb.prepare('DELETE FROM users WHERE id = ?').run(id);
+        await serverDb.transaction(async () => {
+            await releaseEmail(user.email);
+            await serverDb.prepare('DELETE FROM users WHERE id = ?').run(id);
+        })();
 
-        logAdminAuditAction({
+        await logAdminAuditAction({
             adminEmail,
             action: 'DELETE_USER',
             targetUserId: user.id,

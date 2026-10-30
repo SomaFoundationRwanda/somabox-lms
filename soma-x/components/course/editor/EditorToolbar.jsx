@@ -5,6 +5,8 @@ import {
   Bold, Italic, Underline, Heading1, Heading2, Heading3,
   List, ListOrdered, Link as LinkIcon, Unlink, Quote, Minus, Code,
 } from "lucide-react";
+import { useCourseText } from "@/components/course/useCourseText";
+import { FileButton, TextInput } from "@/components/form";
 
 function ToolbarButton({ onClick, isActive, children, title }) {
   return (
@@ -14,8 +16,8 @@ function ToolbarButton({ onClick, isActive, children, title }) {
       title={title}
       className={`p-1.5 rounded-md transition-colors ${
         isActive
-          ? "bg-[#203A3A] text-white"
-          : "text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+          ? "bg-brand-strong text-on-brand-strong"
+          : "text-fg-subtle hover:bg-surface-hover hover:text-fg-muted"
       }`}
     >
       {children}
@@ -24,10 +26,14 @@ function ToolbarButton({ onClick, isActive, children, title }) {
 }
 
 function ToolbarDivider() {
-  return <div className="w-px h-5 bg-slate-200 mx-0.5" />;
+  return <div className="w-px h-5 bg-line mx-0.5" />;
 }
 
+// A chosen file goes to the editor, which uploads and places it (RichTextEditor listens).
+const uploadToEditor = ([file]) => window.dispatchEvent(new CustomEvent("editor-upload-file", { detail: file }));
+
 export default function EditorToolbar({ editor }) {
+  const { t } = useCourseText();
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
 
@@ -46,26 +52,26 @@ export default function EditorToolbar({ editor }) {
   if (!editor) return null;
 
   return (
-    <div className="flex items-center flex-wrap gap-0.5 px-2 py-1.5 bg-slate-50">
+    <div className="flex items-center flex-wrap gap-0.5 px-2 py-1.5 bg-surface-sunken">
       {/* Headings */}
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
         isActive={editor.isActive("heading", { level: 1 })}
-        title="Heading 1"
+        title={t("editor.heading1")}
       >
         <Heading1 className="w-4 h-4" />
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
         isActive={editor.isActive("heading", { level: 2 })}
-        title="Heading 2"
+        title={t("editor.heading2")}
       >
         <Heading2 className="w-4 h-4" />
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
         isActive={editor.isActive("heading", { level: 3 })}
-        title="Heading 3"
+        title={t("editor.heading3")}
       >
         <Heading3 className="w-4 h-4" />
       </ToolbarButton>
@@ -76,21 +82,21 @@ export default function EditorToolbar({ editor }) {
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBold().run()}
         isActive={editor.isActive("bold")}
-        title="Bold"
+        title={t("editor.bold")}
       >
         <Bold className="w-4 h-4" />
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleItalic().run()}
         isActive={editor.isActive("italic")}
-        title="Italic"
+        title={t("editor.italic")}
       >
         <Italic className="w-4 h-4" />
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleUnderline().run()}
         isActive={editor.isActive("underline")}
-        title="Underline"
+        title={t("editor.underline")}
       >
         <Underline className="w-4 h-4" />
       </ToolbarButton>
@@ -101,14 +107,14 @@ export default function EditorToolbar({ editor }) {
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBulletList().run()}
         isActive={editor.isActive("bulletList")}
-        title="Bullet List"
+        title={t("editor.bulletList")}
       >
         <List className="w-4 h-4" />
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleOrderedList().run()}
         isActive={editor.isActive("orderedList")}
-        title="Numbered List"
+        title={t("editor.numberedList")}
       >
         <ListOrdered className="w-4 h-4" />
       </ToolbarButton>
@@ -119,21 +125,21 @@ export default function EditorToolbar({ editor }) {
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBlockquote().run()}
         isActive={editor.isActive("blockquote")}
-        title="Block Quote"
+        title={t("editor.quote")}
       >
         <Quote className="w-4 h-4" />
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleCodeBlock().run()}
         isActive={editor.isActive("codeBlock")}
-        title="Code Block"
+        title={t("editor.codeBlock")}
       >
         <Code className="w-4 h-4" />
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.chain().focus().setHorizontalRule().run()}
         isActive={false}
-        title="Horizontal Rule"
+        title={t("editor.divider")}
       >
         <Minus className="w-4 h-4" />
       </ToolbarButton>
@@ -151,34 +157,26 @@ export default function EditorToolbar({ editor }) {
           }
         }}
         isActive={editor.isActive("link")}
-        title={editor.isActive("link") ? "Remove Link" : "Add Link"}
+        title={editor.isActive("link") ? t("editor.removeLink") : t("editor.addLink")}
       >
         {editor.isActive("link") ? <Unlink className="w-4 h-4" /> : <LinkIcon className="w-4 h-4" />}
       </ToolbarButton>
 
       {/* Link input popover */}
       {showLinkInput && (
-        <div className="flex items-center gap-1.5 ml-1 bg-white border border-slate-200 rounded-lg px-2 py-1 shadow-sm">
-          <input
-            type="url"
-            value={linkUrl}
-            onChange={(e) => setLinkUrl(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); setLink(); } if (e.key === "Escape") setShowLinkInput(false); }}
-            placeholder="https://..."
-            className="text-xs border-none outline-none w-48 bg-transparent"
-            autoFocus
-          />
+        <div className="flex items-center gap-1.5 ml-1 bg-surface border border-line rounded-lg px-2 py-1 shadow-sm">
+          <TextInput size="sm" aria-label={t("editor.linkUrl")} type="url" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); setLink(); } if (e.key === "Escape") setShowLinkInput(false); }} placeholder="https://..." className="w-48" autoFocus />
           <button
             type="button"
             onClick={setLink}
-            className="text-[10px] font-semibold text-white bg-[#203A3A] rounded px-2 py-0.5"
+            className="text-caption font-semibold text-on-brand-strong bg-brand-strong rounded px-2 py-0.5"
           >
-            Set
+            {t("editor.setLink")}
           </button>
-          <button
+          <button aria-label={t("editor.cancelLink")}
             type="button"
             onClick={() => setShowLinkInput(false)}
-            className="text-[10px] text-slate-400 hover:text-slate-600"
+            className="text-caption text-fg-subtle hover:text-fg-muted"
           >
             ✕
           </button>
@@ -188,46 +186,22 @@ export default function EditorToolbar({ editor }) {
       <ToolbarDivider />
 
       {/* Insert Image */}
-      <label className="p-1.5 rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-700 cursor-pointer transition-colors" title="Insert Image">
+      <FileButton variant="bare" accept="image/*" title={t("editor.insertImage")} aria-label={t("editor.insertImage")} onFiles={uploadToEditor}
+        className="p-1.5 rounded-md text-fg-subtle hover:bg-surface-hover hover:text-fg-muted transition-colors">
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <rect x="3" y="3" width="18" height="18" rx="2" ry="2" strokeWidth="2" />
           <circle cx="8.5" cy="8.5" r="1.5" strokeWidth="2" />
           <path d="M21 15l-5-5L5 21" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
-        <input
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) {
-              const domEvent = new CustomEvent("editor-upload-file", { detail: file });
-              window.dispatchEvent(domEvent);
-              e.target.value = "";
-            }
-          }}
-        />
-      </label>
+      </FileButton>
 
       {/* Attach File */}
-      <label className="p-1.5 rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-700 cursor-pointer transition-colors" title="Attach File">
+      <FileButton variant="bare" accept="*/*" title={t("editor.attachFile")} aria-label={t("editor.attachFile")} onFiles={uploadToEditor}
+        className="p-1.5 rounded-md text-fg-subtle hover:bg-surface-hover hover:text-fg-muted transition-colors">
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
-        <input
-          type="file"
-          accept="*/*"
-          className="hidden"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) {
-              const domEvent = new CustomEvent("editor-upload-file", { detail: file });
-              window.dispatchEvent(domEvent);
-              e.target.value = "";
-            }
-          }}
-        />
-      </label>
+      </FileButton>
     </div>
   );
 }
