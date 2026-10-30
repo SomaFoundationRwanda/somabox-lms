@@ -242,6 +242,28 @@ test("library PDFs from the cloud are listed and saved as .pdf", async () => {
   }
 });
 
+test("one book failing doesn't stop the others, and the status says how many of each", async () => {
+  cloud.state.books[79] = { book_name: "Tag Map", categories: tag, extension: "pdf", body: "map pdf" };
+  try {
+    const map = (await asAdmin("GET", "/library/available-books")).body.find((b) => b.id === "79");
+    // A book the cloud no longer has comes first: the one after it still downloads.
+    const gone = { id: "99", book_name: "Tag Gone", categories: tag, extension: "pdf", size: 5 };
+    const res = await asAdmin("POST", "/library/download", { books: [gone, map] });
+    assert.equal(res.status, 202);
+    const s = await waitFor(async () => {
+      const body = (await asAdmin("GET", "/library/download-status")).body;
+      return body.status !== "downloading" && body;
+    });
+    assert.deepEqual(
+      [s.status, s.total, s.done, s.downloaded, s.failed, s.percent, s.failedNames],
+      ["failed", 2, 2, 1, 1, 100, ["Tag Gone"]],
+    );
+    assert.equal(fs.readFileSync(path.join(content, "library", tag, "Tag-Map.pdf"), "utf8"), "map pdf");
+  } finally {
+    delete cloud.state.books[79];
+  }
+});
+
 // --- Boxes are mostly offline ---------------------------------------------------------------------
 
 const ETH = { eth0: [{ address: "192.168.137.20", family: "IPv4", internal: false }] };

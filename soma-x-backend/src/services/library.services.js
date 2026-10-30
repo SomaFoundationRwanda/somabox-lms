@@ -17,6 +17,7 @@ import { getCatalog, invalidateCatalog } from './explore/catalog.js';
 import { guestMayOpen, limitGuestRange } from './explore/preview.js';
 import { recordContentOpen } from './explore/usage.js';
 import { cloudFetch, cloudFiles, downloadTo, forgetCloudFiles, isCurrent, rememberCloudFile } from './sync/cloud-content.js';
+import { createDownloadProgress } from './sync/download-progress.js';
 import { publish } from '../helpers/live.js';
 
 const router = express.Router();
@@ -45,8 +46,8 @@ async function setTitle(pathKey, title) {
     invalidateCatalog();
 }
 
-let downloadStatus = 'init';
-let downloading = false;
+// The current (or last) batch of cloud book downloads, for GET /download-status.
+const progress = createDownloadProgress();
 
 // Admins: books available in the cloud library, with whether this box has each one and whether
 // the cloud's copy is newer.
@@ -71,7 +72,7 @@ router.get('/available-books', requireAdmin, async (req, res) => {
  * Downloads one cloud book into library/<first category>/<title>.<epub|pdf>, or refreshes the copy
  * downloaded before if the cloud has a newer one.
  */
-async function downloadBook(book) {
+async function downloadBook(book, onBytes) {
     if (!/^\d+$/.test(String(book?.id))) throw new Error(`Invalid book id: ${book?.id}`);
     // Clouds from before ?formats only list EPUBs and send no extension.
     const ext = book.extension === 'pdf' ? '.pdf' : '.epub';
@@ -95,38 +96,52 @@ async function downloadBook(book) {
     }
     if (local && isCurrent({ localSize: local.size, recorded: known, cloud: book })) return { id: book.id, status: 'skipped' };
 
-    await downloadTo(`/content/library/${book.id}${ext}`, absolutePath(target), { sha256: book.sha256 });
+    await downloadTo(`/content/library/${book.id}${ext}`, absolutePath(target), { sha256: book.sha256, onBytes });
     await rememberCloudFile(target, { collection: 'library', id: book.id, sha256: book.sha256, version: book.version });
     return { id: book.id, status: local ? 'updated' : 'downloaded', pathKey: target, title: book.book_name };
 }
 
 router.post('/download', requireAdmin, async (req, res) => {
-    if (downloading) return res.status(400).json({ message: 'Another download is in progress' });
+    if (progress.running) return res.status(400).json({ message: 'Another download is in progress' });
     const { books } = req.body;
     if (!Array.isArray(books) || !books.length) return res.status(400).json({ error: 'No books specified' });
     if (!books.every((book) => /^\d+$/.test(String(book?.id)))) return res.status(400).json({ error: 'Invalid book id' });
 
-    downloading = true;
-    downloadStatus = 'downloading';
+    progress.start(books.map((book) => ({ key: String(book.id), size: book.size })));
     (async () => {
+        let error = false;
         try {
             const done = [];
-            for (const book of books) done.push(await downloadBook(book));
+            // One book failing (the cable unplugged, a missing file) doesn't stop the others; it
+            // keeps its partial download, and downloading it again resumes it.
+            for (const book of books) {
+                const key = String(book.id);
+                const name = book.book_name || key;
+                progress.begin(key, name);
+                try {
+                    const result = await downloadBook(book, (n) => progress.bytes(key, n));
+                    done.push(result);
+                    progress.finish(key, name, result.status);
+                } catch (err) {
+                    console.error(`Download of book ${key} failed:`, err.message);
+                    progress.finish(key, name, 'failed');
+                }
+            }
             await syncExploreIndex({ root: 'library' });
             for (const d of done) if (d.pathKey && d.title) await setTitle(d.pathKey, d.title);
-            downloadStatus = 'finished';
             publish({ kind: 'catalogue' }, { everyone: true });
         } catch (err) {
             console.error('Download failed:', err);
-            downloadStatus = 'failed';
+            error = true;
         } finally {
-            downloading = false;
+            progress.end({ error });
         }
     })();
     return res.status(202).json({ message: 'Download started' });
 });
 
-router.get('/download-status', requireAdmin, (req, res) => res.json({ status: downloadStatus }));
+// { status, total, done, downloaded, skipped, failed, percent, bytesDone, bytesTotal, current, failedNames }
+router.get('/download-status', requireAdmin, (req, res) => res.json(progress.snapshot()));
 
 // Admins: add a book (or any file the Library can open) to the top of the library folder.
 router.post('/upload', requireAdmin, upload.single('file'), async (req, res) => {

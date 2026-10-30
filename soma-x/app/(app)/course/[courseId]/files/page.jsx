@@ -9,28 +9,31 @@ import AsyncListState from "@/components/course/AsyncListState";
 import { PageHeader, List } from "@/components/layout";
 import { useCourseText } from "@/components/course/useCourseText";
 import { useToast } from "@/context/ToastContext";
-import { apiFetch, apiUrl, getErrorMessage } from "@/lib/api";
+import { apiFetch, apiUpload, apiUrl, getErrorMessage } from "@/lib/api";
 import { FileButton } from "@/components/form";
+import TransferProgress from "@/components/ui/TransferProgress";
 
 export default function FilesPage() {
   const { courseId, isTeacher } = useCourse();
   const { t, tf } = useCourseText();
   const { showToast } = useToast();
   const { data: files, loading, error, refetch } = useCourseSection("files");
-  const [uploading, setUploading] = useState(false);
+  const [uploading, setUploading] = useState(null); // { file, percent } while a file goes up
 
   const handleUpload = async (file) => {
     if (!file) return;
-    setUploading(true);
+    setUploading({ file, percent: 0 });
     try {
       const formData = new FormData();
       formData.append("file", file);
-      await apiFetch(`/courses/${courseId}/files`, { method: "POST", body: formData });
+      await apiUpload(`/courses/${courseId}/files`, formData, {
+        onProgress: (percent) => setUploading((u) => (u ? { ...u, percent } : u)),
+      }).promise;
       refetch();
     } catch (err) {
       showToast(getErrorMessage(err), "error");
     } finally {
-      setUploading(false);
+      setUploading(null);
     }
   };
 
@@ -50,11 +53,24 @@ export default function FilesPage() {
         <PageHeader help="pages.files"
           title={t("nav.files")}
           actions={isTeacher ? (
-            <FileButton variant="default" onFiles={([f]) => handleUpload(f)} disabled={uploading}>
+            <FileButton variant="default" onFiles={([f]) => handleUpload(f)} disabled={!!uploading}>
               <Upload className="w-3.5 h-3.5" aria-hidden="true" /> {uploading ? t("editors.file.uploading") : t("editors.file.title")}
             </FileButton>
           ) : null}
         />
+
+        {uploading && (
+          <TransferProgress
+            kind="upload"
+            status="uploading"
+            total={1}
+            done={0}
+            percent={uploading.percent}
+            bytesDone={Math.round((uploading.file.size * uploading.percent) / 100)}
+            bytesTotal={uploading.file.size}
+            current={[uploading.file.name]}
+          />
+        )}
 
         <AsyncListState loading={loading} error={error} data={files} onRetry={refetch} emptyMessage={t("files.empty")}>
           {(list) => (

@@ -404,6 +404,7 @@ export default {
         "deleteError": "Ocurrió un error al eliminar.",
         "confirmDelete": "¿Eliminar «{name}»? No se puede deshacer.",
         "uploaded": "¡Libro subido!",
+        "selectAll": "Seleccionar todos los libros",
         "colSelect": "Elegir",
         "colName": "Nombre",
         "colAction": "Acción",

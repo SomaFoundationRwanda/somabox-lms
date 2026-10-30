@@ -1,6 +1,19 @@
 // shell screen text (rw): app shell (navigation, header, notifications, login, sign-up, shared UI). Keys must match en.js; checked by scripts/check-ui-translations.mjs.
 // Kinyarwanda: please have a native-speaking teacher review.
 export default {
+    "transfer": {
+        "label": "Aho kohereza bigeze",
+        "downloading": "Birimo gukururwa: {done} kuri {total} birarangiye",
+        "uploading": "Biroherezwa: {done} kuri {total} birarangiye",
+        "downloaded": "Byakuruwe: {done} kuri {total}",
+        "uploaded": "Byoherejwe: {done} kuri {total}",
+        "failed": "{count} byanze",
+        "skipped": "{count} bisanzwe kuri SOMABOX",
+        "size": "{done} kuri {total}",
+        "now": "Ubu: {names}",
+        "notDone": "Ibitarangiye: {names}",
+        "selected": "{count} kuri {total} byatoranyijwe"
+    },
     "common": {
         "cantReachBox": "Ntibishoboka kugera kuri SOMABOX. Reba Wi-Fi wongere ugerageze.",
         "somethingWrong": "Habaye ikibazo. Ongera ugerageze.",

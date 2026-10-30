@@ -2,7 +2,7 @@
 import formatSize from "@/components/helpers/formatSize";
 import Unauthorized from "@/components/sections/Unauthorized";
 import DataContext from "@/context/DataContext";
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiError, apiFetch } from "@/lib/api";
 
@@ -13,9 +13,10 @@ import CloudSyncSection from "@/components/sync/CloudSyncSection";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/context/LanguageContext";
 import { fill } from "@/lib/fill";
-import { AlertCircle, CheckCircle2, ChevronDown, ChevronRight, File, FolderClosed, FolderOpen, Loader2, X } from "lucide-react";
+import { AlertCircle, ChevronDown, ChevronRight, File, FolderClosed, FolderOpen, Loader2, X } from "lucide-react";
 import Loader from "@/components/ui/Loader";
 import { Checkbox } from "@/components/form";
+import TransferProgress from "@/components/ui/TransferProgress";
 
 /* ── Inline feedback banner ── */
 const Banner = ({ type, message, onDismiss }) => {
@@ -145,7 +146,8 @@ const ManageSync = () => {
     const fetching = available.isFetching;
     const refreshAvailable = () => queryClient.invalidateQueries({ queryKey: AVAILABLE });
     const [checked, setChecked]                 = useState({});
-    const [downloadStatus, setDownloadStatus]   = useState('init');
+    const [starting, setStarting]               = useState(false); // between the click and the box starting
+    const [watched, setWatched]                 = useState(false); // a download ran while this page was open
     const [deleting, setDeleting]               = useState(false);
     const [banner, setBanner]                   = useState(null);
     const [confirm, setConfirm]                 = useState(null);
@@ -169,17 +171,46 @@ const ManageSync = () => {
         return files;
     }
 
+    // The box's download job: { status, total, done, failed, percent, current, ... }. Read once when
+    // the page opens (a download may already be running), then every second while one runs.
+    const job = useQuery({
+        queryKey: DOWNLOAD_STATUS,
+        queryFn: () => apiFetch("/cloud/download-status"),
+        enabled: authenticated,
+        refetchInterval: (q) => (q.state.data?.status === "downloading" ? 1000 : false),
+        retry: false,
+    });
+    const jobStatus = job.data?.status;
+    const downloading = starting || jobStatus === "downloading";
+
+    // A finished download changes what's on the box, and what Explore shows.
+    function downloadEnded() {
+        refreshAvailable();
+        refreshExplore?.();
+        setChecked({});
+    }
+    const lastStatus = useRef(jobStatus);
+    useEffect(() => {
+        if (jobStatus === "downloading") setWatched(true);
+        if (lastStatus.current === "downloading" && jobStatus && jobStatus !== "downloading") downloadEnded();
+        lastStatus.current = jobStatus;
+    }, [jobStatus]); // eslint-disable-line react-hooks/exhaustive-deps
+
     const executeDownload = async (selected) => {
+        setStarting(true);
+        setWatched(true);
         try {
-            // A finished earlier download mustn't count as this one finishing.
-            queryClient.removeQueries({ queryKey: DOWNLOAD_STATUS });
-            const current = await apiFetch("/cloud/download-status");
-            setDownloadStatus("downloading");
-            if (current.status === "downloading") return;
             await apiFetch("/cloud/download", { method: "POST", json: { files: selected } });
         } catch (err) {
-            console.error(err);
-            setDownloadStatus("failed");
+            // 400 "Another download is in progress": its progress shows below.
+            if (!(err instanceof ApiError && err.status === 400)) {
+                setBanner({ type: 'error', message: err?.body?.error || err?.body?.message || t("admin.sync.unknownError") });
+            }
+        } finally {
+            const { data } = await job.refetch();
+            setStarting(false);
+            // A few small files can be done before the first check.
+            if (data?.status && data.status !== "downloading") downloadEnded();
         }
     };
 
@@ -241,30 +272,12 @@ const ManageSync = () => {
         });
     };
 
-    // While a download runs (and only then), its progress is checked every 2 seconds.
-    const progress = useQuery({
-        queryKey: DOWNLOAD_STATUS,
-        queryFn: () => apiFetch("/cloud/download-status"),
-        enabled: downloadStatus === "downloading",
-        refetchInterval: 2000,
-        retry: false,
-    });
-    useEffect(() => {
-        const status = progress.data?.status;
-        if (progress.isError) setDownloadStatus("failed");
-        else if (status === "finished" || status === "failed") setDownloadStatus(status);
-    }, [progress.data, progress.isError]);
-
-    // A finished download changes what's on the box, and what Explore shows.
-    useEffect(() => {
-        if (downloadStatus !== "finished") return;
-        refreshAvailable();
-        refreshExplore?.();
-    }, [downloadStatus]); // eslint-disable-line react-hooks/exhaustive-deps
-
     if (!authenticated) return <Unauthorized />;
 
-    const selectedCount = Object.values(checked).filter(Boolean).length;
+    // Counted in files (a folder stands for the files in it), out of every file the cloud offers.
+    const selectedCount = getCheckedFiles(contentTree, checked).length;
+    const countFiles = (nodes) => nodes.reduce((n, node) => n + (node.type === 'file' ? 1 : countFiles(node.children || [])), 0);
+    const fileCount = countFiles(contentTree);
 
     return (
         <div className="min-h-screen pb-24 md:pb-8">
@@ -320,25 +333,15 @@ const ManageSync = () => {
                         </div>
                     )}
 
+                    {watched && job.data && <TransferProgress kind="download" {...job.data} className="mt-3" />}
+
                     {/* Action bar */}
                     <div className="flex flex-wrap items-center justify-between gap-3 pt-3">
                         {/* Left: status + selection count */}
                         <div className="flex items-center gap-3 flex-wrap">
-                            {selectedCount > 0 && (
+                            {fileCount > 0 && (
                                 <span className="text-caption font-semibold text-fg-subtle">
-                                    {fill(t("admin.sync.selected"), { count: selectedCount })}
-                                </span>
-                            )}
-                            {downloadStatus !== 'init' && (
-                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-caption font-bold ${
-                                    downloadStatus === 'finished'   ? 'bg-success-soft text-success-fg' :
-                                    downloadStatus === 'failed'     ? 'bg-danger-soft text-danger-fg' :
-                                    downloadStatus === 'downloading' ? 'bg-info-soft text-info-fg' :
-                                    'bg-surface-sunken text-fg-subtle'
-                                }`}>
-                                    {downloadStatus === 'downloading' && <Loader2 className="w-3 h-3 animate-spin" />}
-                                    {downloadStatus === 'finished'    && <CheckCircle2 className="w-3 h-3" />}
-                                    {["downloading", "finished", "failed"].includes(downloadStatus) ? t(`admin.sync.status.${downloadStatus}`) : downloadStatus}
+                                    {fill(t("shell.transfer.selected"), { count: selectedCount, total: fileCount })}
                                 </span>
                             )}
                         </div>
@@ -356,10 +359,10 @@ const ManageSync = () => {
                                 <>
                                     <Button
                                         onClick={handleDownload}
-                                        disabled={downloadStatus === "downloading"}
+                                        disabled={downloading}
                                         className="h-8 px-4 rounded-[5px] text-caption gap-1.5"
                                     >
-                                        {downloadStatus === "downloading" && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                                        {downloading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                                         {t("admin.sync.download")}
                                     </Button>
                                     <Button

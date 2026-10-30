@@ -5,6 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { syncExploreIndex } from './explore/indexer.js';
 import { cloudFetch, cloudFiles, downloadTo, forgetCloudFiles, isCurrent, rememberCloudFile } from './sync/cloud-content.js';
+import { createDownloadProgress } from './sync/download-progress.js';
 
 import { config } from '../config/index.js';
 import { requireRole } from '../helpers/auth.js';
@@ -116,9 +117,8 @@ router.get('/metadata', (req, res) => {
 
 
 const MAX_CONCURRENT = 5;
-let downloadStatus = "init";
-let downloadSummary = null;
-let downloading = false;
+// The current (or last) batch of curriculum downloads, for GET /download-status.
+const progress = createDownloadProgress();
 
 function limitConcurrency(tasks, limit) {
     const results = [];
@@ -146,7 +146,7 @@ function limitConcurrency(tasks, limit) {
     });
 }
 
-async function downloadFile(filePath, cloud) {
+async function downloadFile(filePath, cloud, onBytes) {
     const encodedPath = filePath.split('/').map(encodeURIComponent).join('/');
     const contentPath = `/content/${encodedPath}`;
     const localPath = path.join(LOCAL_STORAGE_ROOT, filePath);
@@ -171,7 +171,7 @@ async function downloadFile(filePath, cloud) {
     }
 
     // Resumes a download the box lost its connection in the middle of, and checks the hash.
-    await downloadTo(contentPath, localPath, { sha256: info.sha256 });
+    await downloadTo(contentPath, localPath, { sha256: info.sha256, onBytes });
     if (info.id) await rememberCloudFile(pathKeyOf(filePath), { collection: 'curriculum', ...info });
 
     return { file: filePath, status: localStat ? 'updated' : 'downloaded' };
@@ -179,8 +179,8 @@ async function downloadFile(filePath, cloud) {
 
 // Background download helper
 async function startDownload(files) {
-    downloadStatus = "downloading";
-    downloading = true;
+    progress.start(files.map((f) => ({ key: f })));
+    let error = false;
     try {
         let catalogue = new Map();
         try {
@@ -188,7 +188,20 @@ async function startDownload(files) {
         } catch (err) {
             console.error('Could not read the cloud catalogue; comparing sizes only:', err.message);
         }
-        const fileTasks = files.map(f => () => downloadFile(f, catalogue.get(f)));
+        // Sizes come from the catalogue; without it the bar counts files instead of bytes.
+        progress.start(files.map((f) => ({ key: f, size: catalogue.get(f)?.size })));
+        const fileTasks = files.map((f) => async () => {
+            const name = path.basename(f);
+            progress.begin(f, name);
+            try {
+                const result = await downloadFile(f, catalogue.get(f), (n) => progress.bytes(f, n));
+                progress.finish(f, name, result.status);
+                return result;
+            } catch (err) {
+                progress.finish(f, name, 'failed');
+                throw err;
+            }
+        });
         const results = await limitConcurrency(fileTasks, MAX_CONCURRENT);
 
         // Explore follows the disk: index what arrived (covers are made in the background).
@@ -198,21 +211,19 @@ async function startDownload(files) {
         // downloading again resumes it.
         const failed = results.filter((r) => r instanceof Error);
         for (const err of failed) console.error('Download failed:', err.message);
-        downloadSummary = { total: files.length, failed: failed.length };
-        downloadStatus = failed.length ? "failed" : "finished";
         publish({ kind: "catalogue" }, { everyone: true });
         return results;
     } catch (err) {
         console.error(err);
-        downloadStatus = "failed";
+        error = true;
         return [];
     } finally {
-        downloading = false;
+        progress.end({ error });
     }
 }
 
 router.post('/download', (req, res) => {
-    if (downloading) return res.status(400).json({ message: 'Another download is in progress' });
+    if (progress.running) return res.status(400).json({ message: 'Another download is in progress' });
 
     const { files } = req.body;
     if (!Array.isArray(files) || !files.length) {
@@ -227,9 +238,8 @@ router.post('/download', (req, res) => {
     res.status(202).json({ message: 'Download started' });
 });
 
-router.get('/download-status', (req, res) => {
-    res.json({ status: downloadStatus, ...(downloadSummary || {}) });
-});
+// { status, total, done, downloaded, skipped, failed, percent, bytesDone, bytesTotal, current, failedNames }
+router.get('/download-status', (req, res) => res.json(progress.snapshot()));
 
 router.post('/delete', async (req, res) => {
     const { paths } = req.body;

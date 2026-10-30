@@ -1,5 +1,18 @@
 // shell screen text (en): app shell (navigation, header, notifications, login, sign-up, shared UI). Keys must match en.js; checked by scripts/check-ui-translations.mjs.
 export default {
+    "transfer": {
+        "label": "Transfer progress",
+        "downloading": "Downloading: {done} of {total} done",
+        "uploading": "Uploading: {done} of {total} done",
+        "downloaded": "Downloaded {done} of {total}",
+        "uploaded": "Uploaded {done} of {total}",
+        "failed": "{count} failed",
+        "skipped": "{count} already on this SOMABOX",
+        "size": "{done} of {total}",
+        "now": "Now: {names}",
+        "notDone": "Not done: {names}",
+        "selected": "{count} of {total} selected"
+    },
     "common": {
         "cantReachBox": "Can't reach SOMABOX. Check the Wi-Fi and try again.",
         "somethingWrong": "Something went wrong. Please try again.",

@@ -1,10 +1,10 @@
 "use client"
 import Unauthorized from "@/components/sections/Unauthorized";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiFetch, getErrorMessage } from "@/lib/api";
+import { apiFetch, apiUpload, getErrorMessage } from "@/lib/api";
 import { queryKeys } from "@/lib/queryKeys";
 import DataContext from "@/context/DataContext";
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import ManageTitle from "@/components/manage/ManageTitle";
 import { DataTable, Section } from "@/components/layout";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import { libraryCoverUrl, libraryFileUrl, libraryShelf, libraryViewer } from "@/
 import Loader from "@/components/ui/Loader";
 import { Checkbox, Field, TextInput } from "@/components/form";
 import { FileDrop } from "@/components/form";
+import TransferProgress from "@/components/ui/TransferProgress";
 
 // What the library can hold: books, videos and audio.
 const LIBRARY_ACCEPT = ".pdf,.epub,.mp4,.webm,.mkv,.m4v,.mov,.mp3,.wav,.ogg,.m4a";
@@ -52,6 +53,7 @@ function LibraryUploadModal({ onClose, onSubmit }) {
     const [file, setFile] = useState(null);
     const [bookName, setBookName] = useState('');
     const [status, setStatus] = useState('idle'); // idle | uploading | done | error
+    const [percent, setPercent] = useState(0);
     const [errorMsg, setErrorMsg] = useState('');
 
     const handleFile = (f) => { 
@@ -67,9 +69,10 @@ function LibraryUploadModal({ onClose, onSubmit }) {
         e.preventDefault();
         if (!file) return;
         setStatus('uploading');
+        setPercent(0);
         setErrorMsg('');
         try {
-            await onSubmit(file, bookName);
+            await onSubmit(file, bookName, setPercent);
             setStatus('done');
             setTimeout(onClose, 1200);
         } catch (err) {
@@ -139,16 +142,17 @@ function LibraryUploadModal({ onClose, onSubmit }) {
                         </Field>
                     )}
 
-                    {status === 'uploading' && (
-                        <div className="flex items-center gap-3 px-3 py-2.5 rounded-[5px] bg-info-soft border border-info/30">
-                            <Loader2 className="w-4 h-4 text-info-fg animate-spin shrink-0" />
-                            <div className="flex-1 min-w-0">
-                                <p className="text-caption font-semibold text-info-fg">{t("admin.library.uploading")}</p>
-                                <div className="h-1 w-full bg-info-soft rounded-full mt-1.5 overflow-hidden">
-                                    <div className="h-full bg-info rounded-full animate-pulse w-3/4" />
-                                </div>
-                            </div>
-                        </div>
+                    {status === 'uploading' && file && (
+                        <TransferProgress
+                            kind="upload"
+                            status="uploading"
+                            total={1}
+                            done={0}
+                            percent={percent}
+                            bytesDone={Math.round((file.size * percent) / 100)}
+                            bytesTotal={file.size}
+                            current={[file.name]}
+                        />
                     )}
                     {status === 'done' && (
                         <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-[5px] bg-success-soft border border-success/30">
@@ -240,7 +244,8 @@ const ManageLibrary = () => {
     const fetching = cloud.isFetching;
     const loadLocalBooks = () => queryClient.invalidateQueries({ queryKey: queryKeys.libraryBooks });
     const [selectedBooks, setSelectedBooks] = useState({});
-    const [downloadStatus, setDownloadStatus] = useState('init');
+    const [starting, setStarting]         = useState(false); // between the click and the box starting
+    const [watched, setWatched]           = useState(false); // a download ran while this page was open
     const [banner, setBanner]             = useState(null);
     const [confirm, setConfirm]           = useState(null);
     const [showUploadModal, setShowUploadModal] = useState(false);
@@ -250,19 +255,36 @@ const ManageLibrary = () => {
         setSelectedBooks(prev => ({ ...prev, [book.id]: isChecked ? book : null }));
     };
 
+    // The box's download job: { status, total, done, failed, percent, current, ... }. Read once when
+    // the page opens (a download may already be running), then every second while one runs.
+    const job = useQuery({
+        queryKey: LIBRARY_DOWNLOAD,
+        queryFn: () => apiFetch("/library/download-status"),
+        enabled: authenticated,
+        refetchInterval: (q) => (q.state.data?.status === "downloading" ? 1000 : false),
+        retry: false,
+    });
+    const jobStatus = job.data?.status;
+    const downloading = starting || jobStatus === "downloading";
+
     const handleDownload = async () => {
         const selected = Object.values(selectedBooks).filter(Boolean);
         if (selected.length === 0) {
             setBanner({ type: 'warning', message: t("admin.library.selectBook") });
             return;
         }
+        setStarting(true);
+        setWatched(true);
         try {
-            queryClient.removeQueries({ queryKey: LIBRARY_DOWNLOAD });
-            setDownloadStatus("downloading");
             await apiFetch("/library/download", { method: "POST", json: { books: selected } });
         } catch (err) {
-            console.error(err);
-            setDownloadStatus("failed");
+            // 400: another download is already running; its progress shows below.
+            if (err?.status !== 400) setBanner({ type: 'error', message: getErrorMessage(err, t) });
+        } finally {
+            const { data } = await job.refetch();
+            setStarting(false);
+            // A batch of small books can be over before the first check.
+            if (data?.status && data.status !== "downloading") downloadEnded();
         }
     };
 
@@ -283,27 +305,26 @@ const ManageLibrary = () => {
         });
     };
 
-    // While a download runs (and only then), its progress is checked every 2 seconds.
-    const progress = useQuery({
-        queryKey: LIBRARY_DOWNLOAD,
-        queryFn: () => apiFetch("/library/download-status"),
-        enabled: downloadStatus === "downloading",
-        refetchInterval: 2000,
-    });
+    // When a download ends, the box has new books: show them, and clear what was selected.
+    function downloadEnded() {
+        loadLocalBooks();
+        queryClient.invalidateQueries({ queryKey: ["cloud", "available-books"] });
+        setSelectedBooks({});
+    }
+    const lastStatus = useRef(jobStatus);
     useEffect(() => {
-        const status = progress.data?.status;
-        if (status !== "finished" && status !== "failed") return;
-        setDownloadStatus(status);
-        if (status === "finished") loadLocalBooks();
-    }, [progress.data]); // eslint-disable-line react-hooks/exhaustive-deps
+        if (jobStatus === "downloading") setWatched(true);
+        if (lastStatus.current === "downloading" && jobStatus && jobStatus !== "downloading") downloadEnded();
+        lastStatus.current = jobStatus;
+    }, [jobStatus]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const handleModalSubmit = async (file, bookName) => {
+    const handleModalSubmit = async (file, bookName, onProgress) => {
         const formData = new FormData();
         formData.append("file", file);
         if (bookName) formData.append("bookName", bookName);
 
         try {
-            await apiFetch("/library/upload", { method: "POST", body: formData });
+            await apiUpload("/library/upload", formData, { onProgress }).promise;
         } catch (err) {
             throw new Error(err?.body?.error || getErrorMessage(err, t));
         }
@@ -313,20 +334,32 @@ const ManageLibrary = () => {
 
     // Downloaded cloud books are titled with their cloud name (local ids are the box's own).
     const localTitles = new Set(localBooks.map((lb) => String(lb.title || lb.name || '').trim().toLowerCase()));
-    const isDownloaded = (book) => localTitles.has(String(book.book_name || '').trim().toLowerCase());
+    const isDownloaded = (book) => !!book.isDownloaded || localTitles.has(String(book.book_name || '').trim().toLowerCase());
+    const selectable = books.filter((book) => !isDownloaded(book));
+    const selectedCount = Object.values(selectedBooks).filter(Boolean).length;
+    const allSelected = selectable.length > 0 && selectable.every((book) => selectedBooks[book.id]);
+    const selectAll = (on) => setSelectedBooks(on ? Object.fromEntries(selectable.map((book) => [book.id, book])) : {});
 
     if (!authenticated) return <Unauthorized />;
 
     const cloudColumns = [
         {
             key: "select",
-            header: t("admin.library.colSelect"),
+            header: (
+                <Checkbox
+                    aria-label={t("admin.library.selectAll")}
+                    disabled={downloading || selectable.length === 0}
+                    checked={allSelected}
+                    onCheckedChange={(v) => selectAll(v === true)}
+                />
+            ),
             className: "w-10 whitespace-nowrap",
             render: (book) => {
                 const isLocal = isDownloaded(book);
                 return (
                     <Checkbox
-                        disabled={isLocal}
+                        aria-label={book.book_name}
+                        disabled={isLocal || downloading}
                         onCheckedChange={(v) => handleCheck(book, v)}
                         checked={!!selectedBooks[book.id]}
                     />
@@ -462,24 +495,17 @@ const ManageLibrary = () => {
                             ) : t("admin.library.noBooks")}
                             className="max-h-[500px] overflow-y-auto"
                         />
+                        {watched && job.data && <TransferProgress kind="download" {...job.data} className="mt-3" />}
                         <div className="flex items-center justify-between gap-3 pt-3">
-                            {downloadStatus !== 'init' ? (
-                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-caption font-bold ${
-                                    downloadStatus === 'finished'    ? 'bg-success-soft text-success-fg' :
-                                    downloadStatus === 'failed'      ? 'bg-danger-soft text-danger-fg' :
-                                    'bg-info-soft text-info-fg'
-                                }`}>
-                                    {downloadStatus === 'downloading' && <Loader2 className="w-3 h-3 animate-spin" />}
-                                    {downloadStatus === 'finished'    && <CheckCircle2 className="w-3 h-3" />}
-                                    {["downloading", "finished", "failed"].includes(downloadStatus) ? t(`admin.sync.status.${downloadStatus}`) : downloadStatus}
-                                </span>
-                            ) : <span />}
+                            <span className="text-caption font-semibold text-fg-subtle">
+                                {selectable.length > 0 ? fill(t("shell.transfer.selected"), { count: selectedCount, total: selectable.length }) : null}
+                            </span>
                             <Button
                                 onClick={handleDownload}
-                                disabled={downloadStatus === "downloading"}
+                                disabled={downloading || selectedCount === 0}
                                 className="h-8 px-4 rounded-[5px] text-caption gap-1.5"
                             >
-                                {downloadStatus === "downloading" && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                                {downloading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                                 {t("admin.library.downloadSelected")}
                             </Button>
                         </div>
