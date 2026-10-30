@@ -63,13 +63,20 @@ async function startCloud() {
         return send(200, { accepted: 0, duplicates: 0, rejected: 0 });
       }
       if (url === "/metadata") return send(200, tree());
-      if (url === "/library-metadata") {
-        return send(200, Object.entries(state.books).map(([id, b]) => ({
-          id, book_name: b.book_name, categories: b.categories, size: Buffer.byteLength(b.body), sha256: sha(b.body), version: 1,
+      if (url.split("?")[0] === "/library-metadata") {
+        // Like soma-x-server: EPUBs only unless the box asks for more with ?formats=epub,pdf.
+        const formats = new URL(url, "http://cloud").searchParams.get("formats")?.split(",") || ["epub"];
+        return send(200, Object.entries(state.books).filter(([, b]) => formats.includes(b.extension || "epub")).map(([id, b]) => ({
+          id, book_name: b.book_name, categories: b.categories, extension: b.extension || "epub",
+          size: Buffer.byteLength(b.body), sha256: sha(b.body), version: 1,
         })));
       }
-      const book = url.match(/^\/content\/library\/(\d+)\.epub$/);
-      if (book) return state.books[book[1]] ? send(200, state.books[book[1]].body, "application/epub+zip") : send(404, {});
+      const book = url.match(/^\/content\/library\/(\d+)\.(epub|pdf)$/);
+      if (book) {
+        const b = state.books[book[1]];
+        if (!b || (b.extension || "epub") !== book[2]) return send(404, {});
+        return send(200, b.body, book[2] === "pdf" ? "application/pdf" : "application/epub+zip");
+      }
       const file = state.files[url.replace(/^\/content\//, "")];
       return file ? send(200, file.body, "application/pdf") : send(404, {});
     });
@@ -218,6 +225,21 @@ test("library downloads are refreshed when the cloud copy changes, and never ove
   await downloadBooks(available);
   assert.equal(fs.readFileSync(target, "utf8"), "epub v2");
   assert.ok(cloud.state.auth.some((a) => a === `GET /content/library/77.epub Bearer ${KEY}`));
+});
+
+test("library PDFs from the cloud are listed and saved as .pdf", async () => {
+  cloud.state.books[78] = { book_name: "Tag Atlas", categories: tag, extension: "pdf", body: "atlas pdf" };
+  try {
+    const available = (await asAdmin("GET", "/library/available-books")).body;
+    const atlas = available.find((b) => b.id === "78");
+    assert.equal(atlas?.extension, "pdf");
+    await downloadBooks([atlas]);
+    assert.equal(fs.readFileSync(path.join(content, "library", tag, "Tag-Atlas.pdf"), "utf8"), "atlas pdf");
+    assert.ok(cloud.state.auth.some((a) => a === `GET /content/library/78.pdf Bearer ${KEY}`));
+    assert.equal((await asAdmin("GET", "/library/available-books")).body.find((b) => b.id === "78").isDownloaded, true);
+  } finally {
+    delete cloud.state.books[78];
+  }
 });
 
 // --- Boxes are mostly offline ---------------------------------------------------------------------

@@ -52,7 +52,7 @@ let downloading = false;
 // the cloud's copy is newer.
 router.get('/available-books', requireAdmin, async (req, res) => {
     try {
-        const cloudRes = await cloudFetch('/library-metadata');
+        const cloudRes = await cloudFetch('/library-metadata?formats=epub,pdf');
         if (!cloudRes.ok) return res.status(503).json({ error: 'Cloud server is not reachable' });
         const books = await cloudRes.json();
         const byCloudId = new Map([...(await cloudFiles('library')).values()].map((r) => [String(r.cloud_id), r]));
@@ -68,11 +68,13 @@ router.get('/available-books', requireAdmin, async (req, res) => {
 });
 
 /**
- * Downloads one cloud book into library/<first category>/<title>.epub, or refreshes the copy
+ * Downloads one cloud book into library/<first category>/<title>.<epub|pdf>, or refreshes the copy
  * downloaded before if the cloud has a newer one.
  */
 async function downloadBook(book) {
     if (!/^\d+$/.test(String(book?.id))) throw new Error(`Invalid book id: ${book?.id}`);
+    // Clouds from before ?formats only list EPUBs and send no extension.
+    const ext = book.extension === 'pdf' ? '.pdf' : '.epub';
     const known = (await localDb.prepare("SELECT * FROM cloud_content WHERE collection = 'library' AND cloud_id = ?").all(Number(book.id)))
         .find((r) => fs.existsSync(absolutePath(r.path_key)));
     let target = known?.path_key;
@@ -80,7 +82,7 @@ async function downloadBook(book) {
         const category = String(book.categories || '').split(',').map((c) => c.trim()).find(Boolean);
         const folderKey = category ? `library/${fileStem(category)}` : 'library';
         fs.mkdirSync(absolutePath(folderKey), { recursive: true });
-        target = `${folderKey}/${fileStem(book.book_name)}.epub`;
+        target = `${folderKey}/${fileStem(book.book_name)}${ext}`;
     }
     const local = fs.existsSync(absolutePath(target)) ? fs.statSync(absolutePath(target)) : null;
     if (local && !known) {
@@ -93,7 +95,7 @@ async function downloadBook(book) {
     }
     if (local && isCurrent({ localSize: local.size, recorded: known, cloud: book })) return { id: book.id, status: 'skipped' };
 
-    await downloadTo(`/content/library/${book.id}.epub`, absolutePath(target), { sha256: book.sha256 });
+    await downloadTo(`/content/library/${book.id}${ext}`, absolutePath(target), { sha256: book.sha256 });
     await rememberCloudFile(target, { collection: 'library', id: book.id, sha256: book.sha256, version: book.version });
     return { id: book.id, status: local ? 'updated' : 'downloaded', pathKey: target, title: book.book_name };
 }
