@@ -1,6 +1,8 @@
 // Progress of one batch of cloud downloads (library books, curriculum files), for the admin pages:
 // how many of the selected files are done, skipped or failed, how many bytes have arrived, and
 // which files are on their way. One per download kind; GET .../download-status returns snapshot().
+// An admin can stop a batch (cancel()): the file on its way is cut off (its partial download is
+// kept, so downloading it again resumes it) and the rest aren't started.
 
 const MAX_LISTED = 20;
 
@@ -8,6 +10,7 @@ export function createDownloadProgress() {
     let state = idle();
     let fileBytes = new Map(); // key -> bytes counted so far for that file
     let sizes = new Map();     // key -> expected size, when the cloud said
+    let controller = new AbortController();
 
     function idle() {
         return {
@@ -29,8 +32,21 @@ export function createDownloadProgress() {
     return {
         get running() { return state.status === 'downloading'; },
 
+        /** Aborts the batch's requests when it's stopped; pass it to every download. */
+        get signal() { return controller.signal; },
+        get cancelled() { return controller.signal.aborted; },
+
+        /** Stops the running batch. Returns false when nothing is running. */
+        cancel() {
+            if (state.status !== 'downloading') return false;
+            controller.abort();
+            return true;
+        },
+
         /** items: [{ key, name, size? }] */
         start(items) {
+            // A batch's second start() (once sizes are known) keeps its stop switch.
+            if (state.status !== 'downloading') controller = new AbortController();
             state = { ...idle(), status: 'downloading', total: items.length, startedAt: new Date().toISOString() };
             fileBytes = new Map();
             sizes = new Map();
@@ -69,7 +85,7 @@ export function createDownloadProgress() {
 
         end({ error = false } = {}) {
             state.current = [];
-            state.status = error || state.failed ? 'failed' : 'finished';
+            state.status = controller.signal.aborted ? 'cancelled' : error || state.failed ? 'failed' : 'finished';
             state.finishedAt = new Date().toISOString();
         },
 

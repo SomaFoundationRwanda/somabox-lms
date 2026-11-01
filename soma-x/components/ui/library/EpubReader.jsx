@@ -3,69 +3,26 @@ import React, { useState, useEffect } from 'react';
 import { ReactReader } from 'react-reader';
 import { AlertTriangle, X } from 'lucide-react';
 import { MediaAccessNotice } from '@/components/guest/MediaAccess';
-import { PreviewChip, PreviewEndedPanel, usePreview } from '@/components/guest/Preview';
-import { getSessionToken } from '@/lib/session';
 import { useLanguage } from '@/context/LanguageContext';
 import SummaryPanel, { SummaryToggleButton, useContentSummary } from '@/components/explore/SummaryPanel';
-import Loader from "@/components/ui/Loader";
-import { apiFetch, getErrorMessage } from '@/lib/api'
+import FileProgress from "@/components/ui/FileProgress";
+import { getErrorMessage } from '@/lib/api'
+import { useFileDownload } from '@/lib/useFileDownload'
 
 // `summaryPath`: the book's path_key, to offer its AI summary beside the reader.
-// `preview`: a visitor's preview (see components/guest/Preview.jsx): the time the book is open
-// counts down, then the sign-up panel covers the reader.
-const EpubReader = ({ url, title, onClose, summaryPath = null, preview = null }) => {
+const EpubReader = ({ url, title, onClose, summaryPath = null }) => {
     const { t } = useLanguage()
     const [summaryOpen, setSummaryOpen] = useState(false)
     const summary = useContentSummary(summaryPath, { active: Boolean(summaryPath) })
     const [location, setLocation] = useState(null)
-    const [data, setData] = useState(null)
-    const [loading, setLoading] = useState(true)
-    const [error, setError] = useState(null)
-    // "guest" | "expired" | "forbidden" when the book couldn't be opened for sign-in reasons.
-    const [access, setAccess] = useState(null)
     const renditionRef = React.useRef(null)
-    const { left: previewLeft, ended: previewEnded, end: endPreview } = usePreview(preview, Boolean(preview && data && !access))
-
-    useEffect(() => {
-        async function loadEpub() {
-            try {
-                setLoading(true)
-                setError(null)
-                setAccess(null)
-                // The book is fetched here (with the session token and the media cookie,
-                // credentials: "include" via the fetch wrapper) and handed to epub.js as a Blob,
-                // so epub.js itself makes no credentialed requests.
-                const signedIn = Boolean(getSessionToken())
-                let buffer
-                try {
-                    // A visitor's 401 is the end of their preview, not a session to end.
-                    buffer = await (await apiFetch(url, { responseType: 'response', allowUnauthenticated: !signedIn })).arrayBuffer()
-                } catch (err) {
-                    if (err?.status === 401) {
-                        // A visitor whose preview window has closed: the sign-up panel.
-                        if (!signedIn && preview) { endPreview(); return }
-                        setAccess(signedIn ? 'expired' : 'guest')
-                        return
-                    }
-                    if (err?.status === 403) {
-                        setAccess('forbidden')
-                        return
-                    }
-                    throw new Error(err?.status === 0 ? getErrorMessage(err) : `Failed to fetch book (${err?.status})`)
-                }
-                // Convert to Blob for better compatibility with epub.js
-                const blob = new Blob([buffer], { type: 'application/epub+zip' })
-                setData(blob)
-            } catch (err) {
-                console.error("Error loading EPUB:", err)
-                setError(err.message)
-            } finally {
-                setLoading(false)
-            }
-        }
-        if (url) loadEpub()
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [url])
+    // The book is fetched here (with the session token and the media cookie) and handed to epub.js
+    // as a Blob, so epub.js itself makes no credentialed requests; the download shows its progress.
+    const book = useFileDownload(url, { type: 'application/epub+zip' })
+    const access = ['guest', 'expired', 'forbidden'].includes(book.state) ? book.state : null
+    const error = book.state === 'error'
+        ? (book.error?.status === 0 ? getErrorMessage(book.error) : book.error?.message || t("learner.reader.failed"))
+        : null
 
     // UX Improvements: Escape key and Scroll Lock
     useEffect(() => {
@@ -121,21 +78,13 @@ const EpubReader = ({ url, title, onClose, summaryPath = null, preview = null })
                     </div>
                 </div>
 
-                {preview && !previewEnded ? <PreviewChip left={previewLeft} next={preview.next} reading tone="light" /> : null}
-
                 <div className="relative flex-1 min-h-0 flex flex-col md:flex-row">
-                {preview && previewEnded ? <PreviewEndedPanel next={preview.next} reading /> : null}
-
                 {/* Reader Container */}
                 <div className="flex-1 min-h-0 min-w-0 relative bg-surface flex items-center justify-center overflow-hidden">
-                    {preview && previewEnded ? null : access ? (
+                    {access ? (
                         <MediaAccessNotice state={access} />
-                    ) : loading ? (
-                        // The SOMABOX loader while the book opens (brand green; light teal in dark mode).
-                        <div className="flex flex-col items-center gap-4">
-                            <Loader size={64} label={t("learner.reader.opening")} />
-                            <p className="text-fg-subtle font-medium" aria-hidden="true">{t("learner.reader.opening")}</p>
-                        </div>
+                    ) : book.state === 'loading' ? (
+                        <FileProgress percent={book.percent} received={book.received} />
                     ) : error ? (
                         <div className="text-center p-8">
                             <AlertTriangle className="w-10 h-10 text-warning-fg mx-auto mb-4" />
@@ -151,7 +100,7 @@ const EpubReader = ({ url, title, onClose, summaryPath = null, preview = null })
                     ) : (
                         <div className="w-full h-full">
                             <ReactReader
-                                url={data}
+                                url={book.blob}
                                 location={location}
                                 locationChanged={locationChanged}
                                 title={title}

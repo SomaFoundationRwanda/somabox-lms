@@ -84,15 +84,6 @@ export default {
         "previewButton": "Bouton",
         "previewButtonDark": "Bouton foncé",
         "previewLink": "Lien",
-        "sectionVisitors": "Aperçus pour les visiteurs",
-        "visitorsHelp": "Les visiteurs peuvent ouvrir quelques éléments d'Explorer et de la Bibliothèque pendant cette durée, puis on leur demande de s'inscrire. Les vidéos et l'audio s'arrêtent.",
-        "visitorsOn": "Permettre aux visiteurs d'avoir un aperçu",
-        "seconds": "Secondes par élément",
-        "secondsHelp": "De 10 à 600 secondes.",
-        "secondsInvalid": "La durée d'aperçu doit être de 10 à 600 secondes.",
-        "items": "Éléments par visiteur et par jour",
-        "itemsHelp": "De 1 à 50 éléments.",
-        "itemsInvalid": "Les visiteurs peuvent prévisualiser de 1 à 50 éléments."
     },
     "device": {
         "unknown": "Inconnu",

@@ -5,10 +5,10 @@
 //
 //   <TransferProgress kind="download" status="downloading" done={13} total={20} percent={65} />
 //
-// status: "downloading" | "uploading" (running), "finished", or "failed" (some files didn't make
-// it). The download status endpoints (/library/download-status, /cloud/download-status) return
+// status: "downloading" | "uploading" (running), "finished", "failed" (some files didn't make
+// it) or "cancelled" (an admin stopped it). With onCancel, a running transfer has a Stop button. The download status endpoints (/library/download-status, /cloud/download-status) return
 // these fields, so their answer can be passed straight in: <TransferProgress kind="download" {...status} />
-import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, Loader2, OctagonX } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { fill } from "@/lib/fill";
 import formatSize from "@/components/helpers/formatSize";
@@ -23,21 +23,25 @@ function names(list) {
 export default function TransferProgress({
     kind = "download", status, total = 0, done = 0, downloaded, skipped = 0, failed = 0,
     percent = 0, bytesDone = 0, bytesTotal = 0, current = [], failedNames = [], className = "",
+    onCancel, cancelling = false,
 }) {
     const { t } = useLanguage();
     if (!status || status === "init" || !total) return null;
 
     const running = status === "downloading" || status === "uploading";
     const succeeded = downloaded ?? done - failed - skipped;
-    const tone = running ? "info" : failed ? "danger" : "success";
+    const cancelled = status === "cancelled";
+    const tone = running ? "info" : cancelled ? "warning" : failed ? "danger" : "success";
     const styles = {
         info: { box: "bg-info-soft border-info/30 text-info-fg", bar: "bg-info" },
+        warning: { box: "bg-warning-soft border-warning/30 text-warning-fg", bar: "bg-warning" },
         danger: { box: "bg-danger-soft border-danger/30 text-danger-fg", bar: "bg-danger" },
         success: { box: "bg-success-soft border-success/30 text-success-fg", bar: "bg-success" },
     }[tone];
-    const Icon = running ? Loader2 : failed ? AlertCircle : CheckCircle2;
+    const Icon = running ? Loader2 : cancelled ? OctagonX : failed ? AlertCircle : CheckCircle2;
     const headline = running
         ? fill(t(`shell.transfer.${kind === "upload" ? "uploading" : "downloading"}`), { done, total })
+        : cancelled ? fill(t("shell.transfer.stopped"), { done, total })
         : fill(t(`shell.transfer.${kind === "upload" ? "uploaded" : "downloaded"}`), { done: succeeded + skipped, total });
     const details = [
         bytesTotal > 0 ? fill(t("shell.transfer.size"), { done: formatSize(bytesDone), total: formatSize(bytesTotal) }) : null,
@@ -52,6 +56,16 @@ export default function TransferProgress({
                 <Icon className={`w-4 h-4 shrink-0 ${running ? "animate-spin" : ""}`} aria-hidden="true" />
                 <p className="text-caption font-semibold flex-1 min-w-0">{headline}</p>
                 <span className="text-caption font-bold tabular-nums">{value}%</span>
+                {running && onCancel ? (
+                    <button
+                        type="button"
+                        onClick={onCancel}
+                        disabled={cancelling}
+                        className="text-caption px-3 h-7 rounded-full border border-current font-semibold hover:bg-surface/60 disabled:opacity-60 transition-colors shrink-0"
+                    >
+                        {cancelling ? t("shell.transfer.stopping") : t("shell.transfer.stop")}
+                    </button>
+                ) : null}
             </div>
             <div
                 role="progressbar"

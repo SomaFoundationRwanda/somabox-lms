@@ -1,5 +1,6 @@
-// Files need a signed-in person: guests can browse the catalogue but must sign up to open
-// anything. Media tags use the signed cookie set at sign-in; course files also need membership.
+// The box's learning content (Explore, Library, offline sites, lessons) opens for everyone,
+// visitors included. Course files need a signed-in member: media tags use the signed cookie set
+// at sign-in.
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -38,28 +39,40 @@ function lessonFile() {
   return `/lessons/test-${process.pid}/lesson.txt`;
 }
 
-test("guests can browse the catalogue but not open files", async () => {
+/** A file in a new course of the test teacher; returns its URL. */
+async function courseFile() {
+  const courseId = await ctx.createCourse("Cookie");
+  const dir = path.join(config.paths.courseFiles, courseId);
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, "sheet.txt"), "worksheet");
+  created.push(dir);
+  return `/course-files/${courseId}/sheet.txt`;
+}
+
+test("guests browse the catalogue and open the box's learning content, not course files", async () => {
   for (const url of ["/content/main-categories", "/content/levels/summary", "/library/books", "/library/categories", "/courses/public"]) {
     const res = await get(url);
     assert.equal(res.status, 200, url);
   }
-  const lesson = lessonFile();
-  const blocked = await get(lesson);
+  const lesson = await get(lessonFile());
+  assert.equal(lesson.status, 200, "no account needed, and no limit");
+  assert.equal(await lesson.text(), "a lesson");
+  for (const url of ["/library/file/1", "/content/files/anything.mp4"]) {
+    assert.equal((await get(url)).status, 404, url);
+  }
+  const blocked = await get("/course-files/123456/x.pdf");
   assert.equal(blocked.status, 401);
   assert.equal((await blocked.json()).code, "LOGIN_REQUIRED");
-  for (const url of ["/library/file/1", "/content/files/anything.mp4", "/khan-academy/index.html", "/course-files/123456/x.pdf"]) {
-    assert.equal((await get(url)).status, 401, url);
-  }
   // Signed-in API data stays private.
   assert.equal((await get("/courses/mine")).status, 401);
 });
 
-test("signing in sets a media cookie that opens files; a forged or expired cookie doesn't", async () => {
-  const lesson = lessonFile();
-  const cookie = await mediaCookie(USERS.student.email);
+test("signing in sets a media cookie that opens course files; a forged or expired cookie doesn't", async () => {
+  const lesson = await courseFile();
+  const cookie = await mediaCookie(USERS.teacher.email);
   const ok = await get(lesson, cookie);
   assert.equal(ok.status, 200);
-  assert.equal(await ok.text(), "a lesson");
+  assert.equal(await ok.text(), "worksheet");
 
   const [name, value] = cookie.split("=");
   const [uid, , sig] = value.split(".");

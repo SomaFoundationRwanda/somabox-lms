@@ -84,15 +84,6 @@ export default {
         "previewButton": "Button",
         "previewButtonDark": "Dark button",
         "previewLink": "Link",
-        "sectionVisitors": "Visitor previews",
-        "visitorsHelp": "Visitors can open a few Explore and Library items for this long, then they are asked to sign up. Videos and audio stop.",
-        "visitorsOn": "Let visitors preview items",
-        "seconds": "Seconds per item",
-        "secondsHelp": "10 to 600 seconds.",
-        "secondsInvalid": "Preview time must be 10 to 600 seconds.",
-        "items": "Items per visitor per day",
-        "itemsHelp": "1 to 50 items.",
-        "itemsInvalid": "Visitors can preview 1 to 50 items."
     },
     "device": {
         "unknown": "Not known",

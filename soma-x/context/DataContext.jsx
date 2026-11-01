@@ -88,7 +88,9 @@ export function DataProvider({ children }) {
     const explore = useQuery({ queryKey: queryKeys.explore, queryFn: () => apiFetch("/content/explore") });
     // On a failed first load, an empty catalogue: pages show their empty state, not a spinner.
     const catalogue = explore.data ?? (explore.isError ? {} : null);
-    const mainCategories = catalogue ? (Array.isArray(catalogue.mainCategories) ? catalogue.mainCategories : []) : null;
+    // International education (the web lessons: Wikipedia, W3Schools, Kolibri...) is hidden for
+    // now, tab included; drop the .filter() to show it again.
+    const mainCategories = catalogue ? (Array.isArray(catalogue.mainCategories) ? catalogue.mainCategories.filter((cat) => cat.kind !== "web") : []) : null;
     const summaryData = catalogue ? catalogue.summary || {} : null;
     const customContentSummary = summaryData;
     const exploreVersion = catalogue?.version ?? null;

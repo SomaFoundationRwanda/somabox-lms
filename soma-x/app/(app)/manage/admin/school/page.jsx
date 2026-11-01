@@ -17,11 +17,11 @@ import Loader from "@/components/ui/Loader";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch, apiUrl, getErrorMessage } from "@/lib/api";
 import { queryKeys } from "@/lib/queryKeys";
-import { ChoiceGroup, ColorInput, Field, FileButton, Select, Switch, TextInput } from "@/components/form";
+import { ChoiceGroup, ColorInput, Field, FileButton, Select, TextInput } from "@/components/form";
 
 // One box serves one school. Everything about it is set here (GET/PUT /school): its name and
 // learner-code prefix, its location (applied to every learner and teacher, who are never asked),
-// its look (logo and colours, shown to everyone including visitors) and visitor previews.
+// its look (logo and colours, shown to everyone including visitors).
 
 const CODE_RE = /^[A-Z0-9]{2,8}$/;
 const LABEL = "block text-caption font-bold text-fg-muted mb-1";
@@ -83,7 +83,6 @@ export default function SchoolSettingsPage() {
     const [form, setForm] = useState({
         name: "", code: "", province: "", district: "", rural: "unset",
         primaryColor: DEFAULT_PRIMARY, secondaryColor: DEFAULT_SECONDARY,
-        previewEnabled: true, previewSeconds: "40", previewItems: "5",
     });
     const [logoUrl, setLogoUrl] = useState(null);
     const [logoBusy, setLogoBusy] = useState(false);
@@ -98,9 +97,6 @@ export default function SchoolSettingsPage() {
             rural: ruralToValue(data?.isRural),
             primaryColor: isHexColor(data?.primaryColor) ? data.primaryColor.toUpperCase() : DEFAULT_PRIMARY,
             secondaryColor: isHexColor(data?.secondaryColor) ? data.secondaryColor.toUpperCase() : DEFAULT_SECONDARY,
-            previewEnabled: data?.guestPreview?.enabled !== false,
-            previewSeconds: String(data?.guestPreview?.seconds ?? 40),
-            previewItems: String(data?.guestPreview?.items ?? 5),
         });
         setLogoUrl(data?.logoUrl || null);
         setSavedCode(data?.code || "");
@@ -127,10 +123,6 @@ export default function SchoolSettingsPage() {
     const preview = codeValid && nextNumber != null ? `${code}-${String(nextNumber).padStart(4, "0")}` : "";
     const districts = form.province ? RWANDA_LOCATIONS[form.province] || [] : [];
     const isOther = form.province === OTHER_PROVINCE || (form.province && !RWANDA_LOCATIONS[form.province]);
-    const seconds = Number(form.previewSeconds);
-    const items = Number(form.previewItems);
-    const secondsValid = Number.isInteger(seconds) && seconds >= 10 && seconds <= 600;
-    const itemsValid = Number.isInteger(items) && items >= 1 && items <= 50;
     const coloursValid = isHexColor(form.primaryColor) && isHexColor(form.secondaryColor);
     const previewPrimary = isHexColor(form.primaryColor) ? form.primaryColor : DEFAULT_PRIMARY;
     const previewSecondary = isHexColor(form.secondaryColor) ? form.secondaryColor : DEFAULT_SECONDARY;
@@ -141,9 +133,7 @@ export default function SchoolSettingsPage() {
         e.preventDefault();
         const problem = !codeValid ? t("school.settings.codeInvalid")
             : !coloursValid ? t("school.settings.colourInvalid")
-                : form.previewEnabled && !secondsValid ? t("school.settings.secondsInvalid")
-                    : form.previewEnabled && !itemsValid ? t("school.settings.itemsInvalid")
-                        : "";
+                : "";
         if (problem) {
             setMsg({ type: "error", text: problem });
             return;
@@ -158,9 +148,6 @@ export default function SchoolSettingsPage() {
                 isRural: valueToRural(form.rural),
                 primaryColor: form.primaryColor,
                 secondaryColor: form.secondaryColor,
-                guestPreview: form.previewEnabled
-                    ? { enabled: true, seconds, items }
-                    : { enabled: false },
             };
             // The name can't be emptied on the box; an empty field just leaves it as it is.
             if (form.name.trim()) body.name = form.name.trim();
@@ -390,34 +377,6 @@ export default function SchoolSettingsPage() {
                                     </span>
                                 </div>
                             </div>
-                        </div>
-                    </Section>
-
-                    {/* ── Visitor previews ── */}
-                    <Section divided title={t("school.settings.sectionVisitors")}>
-                        <p className="mb-4 text-ui text-fg-muted">{t("school.settings.visitorsHelp")}</p>
-                        <div className="space-y-5">
-                            <div className="flex items-center justify-between gap-3 min-h-[44px]">
-                                <p id="school-preview-label" className="text-ui font-semibold text-fg">{t("school.settings.visitorsOn")}</p>
-                                <Switch checked={form.previewEnabled} aria-labelledby="school-preview-label"
-                                    onChange={(previewEnabled) => setForm((f) => ({ ...f, previewEnabled }))} />
-                            </div>
-                            {form.previewEnabled && (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <Field id="school-preview-seconds" label={t("school.settings.seconds")}>
-                                        <TextInput type="number" inputMode="numeric" min={10} max={600} step={1}
-                                            value={form.previewSeconds} onChange={set("previewSeconds")} size="lg"
-                                            aria-invalid={!secondsValid} aria-describedby="school-preview-seconds-help" />
-                                        <p id="school-preview-seconds-help" className={HELP}>{secondsValid ? t("school.settings.secondsHelp") : t("school.settings.secondsInvalid")}</p>
-                                    </Field>
-                                    <Field id="school-preview-items" label={t("school.settings.items")}>
-                                        <TextInput type="number" inputMode="numeric" min={1} max={50} step={1}
-                                            value={form.previewItems} onChange={set("previewItems")} size="lg"
-                                            aria-invalid={!itemsValid} aria-describedby="school-preview-items-help" />
-                                        <p id="school-preview-items-help" className={HELP}>{itemsValid ? t("school.settings.itemsHelp") : t("school.settings.itemsInvalid")}</p>
-                                    </Field>
-                                </div>
-                            )}
                         </div>
                     </Section>
 

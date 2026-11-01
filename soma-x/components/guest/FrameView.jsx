@@ -1,9 +1,7 @@
 "use client";
 
-// Web lessons (Khan Academy, W3Schools, Wikipedia...) in a full-page iframe. The backend only
-// serves them to signed-in people, with the media cookie, and an iframe can't report a 401,
-// so this checks first: guests get the sign-up prompt and an expired cookie is renewed (or
-// the person is asked to sign in again) instead of a page of JSON.
+// Web lessons (Khan Academy, W3Schools, Wikipedia...) in a full-page iframe, open to everyone.
+// An iframe can't report an error, so the file is checked first instead of showing a page of JSON.
 import { useContext, useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
@@ -32,11 +30,10 @@ function FrameTopBar() {
 }
 
 export default function FrameView({ src, title, next }) {
-    const { authLoading, authenticated } = useContext(DataContext);
+    const { authLoading } = useContext(DataContext);
+    // Lessons are open to everyone, visitors included (GuestGate reminds them to sign up).
     const { state } = useMediaAccess(src);
-    // Some lessons (e.g. the Kiwix Wikipedia server) aren't served by the backend, so the
-    // cookie check can't see them: guests get the prompt whatever the source.
-    const shown = authLoading ? "checking" : !authenticated ? "guest" : state;
+    const shown = authLoading ? "checking" : state;
     // The lesson itself takes a moment to load in the iframe: the SOMABOX loader until it has.
     const [frameLoaded, setFrameLoaded] = useState(false);
     useEffect(() => {

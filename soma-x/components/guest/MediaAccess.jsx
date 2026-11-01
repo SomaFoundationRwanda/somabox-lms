@@ -1,9 +1,10 @@
 "use client";
 
-// Files load in <video>, <img>, <iframe> and the book readers with the HttpOnly media cookie
-// (see lib/session.js). useMediaAccess checks a backend file before an <iframe> shows it
-// (iframes can't report a 401) and, when a <video>/<img> fails, works out whether the cookie
-// ran out: it renews it once and reloads the element, or asks the person to sign in again.
+// The box's learning content (Explore, Library, offline sites) opens for everyone, visitors
+// included. Course files load in <video>, <img>, <iframe> and the book readers with the HttpOnly
+// media cookie (see lib/session.js). useMediaAccess checks a backend file before an <iframe>
+// shows it (iframes can't report a 401) and, when a <video>/<img> fails, works out whether the
+// cookie ran out: it renews it once and reloads the element, or asks the person to sign in again.
 import { useCallback, useContext, useEffect, useState } from "react";
 import { LogIn, ShieldAlert } from "lucide-react";
 import DataContext from "@/context/DataContext";
@@ -12,14 +13,15 @@ import { checkMediaAccess, clearSession, isBackendUrl, loginUrlWithNext } from "
 import { SignUpPrompt } from "@/components/guest/GuestGate";
 import Loader from "@/components/ui/Loader";
 
+/** Course files need a signed-in member; everything else on the box is open to everyone. */
+const needsAccount = (url) => String(url || "").includes("/course-files/");
+
 /**
  * state: "checking" | "ok" | "expired" | "forbidden" | "guest". With precheck=false the file
  * is shown straight away and only checked when the element reports an error (onMediaError).
  * reloadKey changes after a renewal; use it as the element's key so it loads again.
- * With preview=true (a visitor's preview, see Preview.jsx) a visitor's file is shown ("ok"): the
- * box serves it during the preview, and the player handles the end of it.
  */
-export function useMediaAccess(url, { active = true, precheck = true, preview = false } = {}) {
+export function useMediaAccess(url, { active = true, precheck = true } = {}) {
     const { authenticated, authLoading } = useContext(DataContext);
     const [state, setState] = useState(precheck ? "checking" : "ok");
     const [reloadKey, setReloadKey] = useState(0);
@@ -27,7 +29,7 @@ export function useMediaAccess(url, { active = true, precheck = true, preview = 
     useEffect(() => {
         if (!active || !url || authLoading) return undefined;
         if (!isBackendUrl(url)) { setState("ok"); return undefined; }
-        if (!authenticated) { setState(preview ? "ok" : "guest"); return undefined; }
+        if (!authenticated) { setState(needsAccount(url) ? "guest" : "ok"); return undefined; }
         if (!precheck) { setState("ok"); return undefined; }
         let cancelled = false;
         setState("checking");
@@ -36,15 +38,15 @@ export function useMediaAccess(url, { active = true, precheck = true, preview = 
             setState(result === "expired" || result === "forbidden" ? result : "ok");
         });
         return () => { cancelled = true; };
-    }, [url, active, precheck, preview, authenticated, authLoading]);
+    }, [url, active, precheck, authenticated, authLoading]);
 
     const onMediaError = useCallback(async () => {
         if (!url || !isBackendUrl(url)) return;
-        if (!authenticated) { if (!preview) setState("guest"); return; }
+        if (!authenticated) { if (needsAccount(url)) setState("guest"); return; }
         const result = await checkMediaAccess(url);
         if (result === "renewed") setReloadKey((k) => k + 1);
         else if (result === "expired" || result === "forbidden") setState(result);
-    }, [url, authenticated, preview]);
+    }, [url, authenticated]);
 
     return { state, onMediaError, reloadKey };
 }

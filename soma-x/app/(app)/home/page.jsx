@@ -8,7 +8,6 @@ import DataContext from "@/context/DataContext";
 import { useLanguage } from '@/context/LanguageContext';
 import { Heading, Text } from "@/components/typography";
 import { Button } from "@/components/ui/button";
-import { useGuestGate } from "@/components/guest/GuestGate";
 import Loader from "@/components/ui/Loader";
 
 export default function SomaboxHomepage() {
@@ -17,7 +16,6 @@ export default function SomaboxHomepage() {
     const { mainCategories } = useContext(DataContext);
     const [activeTab, setActiveTab] = useState(null);
     // Web lessons (Khan Academy, W3Schools, Wikipedia...) open only with an account.
-    const { requireAccount } = useGuestGate();
 
     const loading = mainCategories == null;
     const noCategories = Array.isArray(mainCategories) && mainCategories.length === 0;
@@ -123,9 +121,6 @@ export default function SomaboxHomepage() {
                                     <a
                                         key={course.slug}
                                         href={`/frame?slug=${course.slug}`}
-                                        onClick={(e) => {
-                                            if (!requireAccount(`/frame?slug=${course.slug}`)) e.preventDefault();
-                                        }}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="block group rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-strong focus-visible:ring-offset-2"

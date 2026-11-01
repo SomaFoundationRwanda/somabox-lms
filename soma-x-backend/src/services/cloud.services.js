@@ -146,7 +146,7 @@ function limitConcurrency(tasks, limit) {
     });
 }
 
-async function downloadFile(filePath, cloud, onBytes) {
+async function downloadFile(filePath, cloud, onBytes, signal) {
     const encodedPath = filePath.split('/').map(encodeURIComponent).join('/');
     const contentPath = `/content/${encodedPath}`;
     const localPath = path.join(LOCAL_STORAGE_ROOT, filePath);
@@ -160,7 +160,7 @@ async function downloadFile(filePath, cloud, onBytes) {
     // The catalogue entry says what the cloud has; without it (older cloud) ask for the size.
     let info = cloud;
     if (!info) {
-        const headRes = await cloudFetch(contentPath, { method: 'HEAD' });
+        const headRes = await cloudFetch(contentPath, { method: 'HEAD', signal });
         if (!headRes.ok) throw new Error(`File not found in cloud: ${contentPath}`);
         info = { size: parseInt(headRes.headers.get('content-length'), 10) };
     }
@@ -171,7 +171,7 @@ async function downloadFile(filePath, cloud, onBytes) {
     }
 
     // Resumes a download the box lost its connection in the middle of, and checks the hash.
-    await downloadTo(contentPath, localPath, { sha256: info.sha256, onBytes });
+    await downloadTo(contentPath, localPath, { sha256: info.sha256, onBytes, signal });
     if (info.id) await rememberCloudFile(pathKeyOf(filePath), { collection: 'curriculum', ...info });
 
     return { file: filePath, status: localStat ? 'updated' : 'downloaded' };
@@ -191,13 +191,16 @@ async function startDownload(files) {
         // Sizes come from the catalogue; without it the bar counts files instead of bytes.
         progress.start(files.map((f) => ({ key: f, size: catalogue.get(f)?.size })));
         const fileTasks = files.map((f) => async () => {
+            // Stopped by the admin: the files not started yet are left alone.
+            if (progress.cancelled) return { file: f, status: 'cancelled' };
             const name = path.basename(f);
             progress.begin(f, name);
             try {
-                const result = await downloadFile(f, catalogue.get(f), (n) => progress.bytes(f, n));
+                const result = await downloadFile(f, catalogue.get(f), (n) => progress.bytes(f, n), progress.signal);
                 progress.finish(f, name, result.status);
                 return result;
             } catch (err) {
+                if (progress.cancelled) return { file: f, status: 'cancelled' };
                 progress.finish(f, name, 'failed');
                 throw err;
             }
@@ -236,6 +239,12 @@ router.post('/download', (req, res) => {
     // Start download in the background, immediately respond
     startDownload(files);
     res.status(202).json({ message: 'Download started' });
+});
+
+// Stops the running download; what arrived stays, and a cut-off file resumes next time.
+router.post('/download/cancel', (req, res) => {
+    if (!progress.cancel()) return res.status(400).json({ message: 'No download is running' });
+    return res.json({ message: 'Download stopped' });
 });
 
 // { status, total, done, downloaded, skipped, failed, percent, bytesDone, bytesTotal, current, failedNames }

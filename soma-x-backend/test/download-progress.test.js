@@ -38,3 +38,20 @@ test("without sizes the bar counts files", () => {
   p.end();
   assert.deepEqual([p.snapshot().status, p.snapshot().percent, p.snapshot().downloaded], ["finished", 100, 4]);
 });
+
+test("a stopped batch aborts its requests and reports 'cancelled'; the next batch starts fresh", () => {
+  const p = createDownloadProgress();
+  assert.equal(p.cancel(), false, "nothing running");
+  p.start([{ key: "a", size: 10 }, { key: "b", size: 10 }]);
+  const { signal } = p;
+  p.start([{ key: "a", size: 10 }, { key: "b", size: 10 }]); // sizes known: same batch, same switch
+  assert.equal(p.signal, signal);
+  p.finish("a", "a", "downloaded");
+  assert.equal(p.cancel(), true);
+  assert.deepEqual([signal.aborted, p.cancelled], [true, true]);
+  p.end();
+  assert.deepEqual([p.snapshot().status, p.snapshot().downloaded, p.running], ["cancelled", 1, false]);
+
+  p.start([{ key: "c" }]);
+  assert.deepEqual([p.cancelled, p.signal.aborted], [false, false]);
+});
