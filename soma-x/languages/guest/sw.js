@@ -1,6 +1,6 @@
 // guest screen text (sw). Keys must match en.js; checked by scripts/check-ui-translations.mjs.
 export default {
-    "banner": "Unavinjari kama mgeni. Jisajili ili utazame, usome na ujiunge na masomo.",
+    "banner": "Unavinjari kama mgeni. Jisajili ili ujiunge na masomo na uhifadhi maendeleo yako.",
     "signUp": "Jisajili",
     "logIn": "Ingia",
     "haveAccount": "Nina akaunti tayari",
@@ -23,12 +23,5 @@ export default {
     "mediaExpiredBody": "Ingia tena ili uendelee kutazama na kusoma. Utarudi kwenye ukurasa huu.",
     "signInAgain": "Ingia tena",
     "language": "Lugha",
-    "mediaForbidden": "Faili hili ni la somo ambalo haumo.",
-    "previewChip": "Hakikisho · zimebaki {time}",
-    "previewSignUpWatch": "Jisajili utazame yote",
-    "previewSignUpRead": "Jisajili usome yote",
-    "previewEndedWatch": "Hakikisho lako limeisha. Fungua akaunti ya bure uendelee kutazama",
-    "previewEndedRead": "Hakikisho lako limeisha. Fungua akaunti ya bure uendelee kusoma",
-    "previewStarting": "Inaanzisha hakikisho…",
-    "previewFailed": "Imeshindwa kuanzisha hakikisho. Jisajili bure ili ufungue hiki."
+    "mediaForbidden": "Faili hili ni la somo ambalo haumo."
 };

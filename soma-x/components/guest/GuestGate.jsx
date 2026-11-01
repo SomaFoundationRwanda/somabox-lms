@@ -1,11 +1,10 @@
 "use client";
 
-// Guests may browse the catalogue, the library and public courses, but opening anything
-// (a video, a book, a lesson, a course) needs an account: the files themselves are only
-// served to signed-in people. requireAccount(next) returns true for signed-in people and,
-// for guests, shows the "create a free account" prompt and remembers `next` so they come
-// back to it after signing up (and the profile step) or logging in. requireAccount(next, { message })
-// also shows why (e.g. the box's "You've tried 5 items…" after visitor previews, see Preview.jsx).
+// Guests may browse and open the box's learning content (videos, books, lessons), and every few
+// minutes the "create a free account" prompt reminds them to sign up. Joining a course and
+// course files need an account: requireAccount(next) returns true for signed-in people and, for
+// guests, shows the prompt and remembers `next` so they come back to it after signing up (and
+// the profile step) or logging in. requireAccount(next, { message }) also shows why.
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { LockKeyhole, X } from "lucide-react";
 import DataContext from "@/context/DataContext";
@@ -13,6 +12,9 @@ import { useLanguage } from "@/context/LanguageContext";
 import { rememberNext, safeNext } from "@/lib/session";
 
 const GuestGateContext = createContext(null);
+
+// How often a guest is reminded to sign up.
+const REMIND_EVERY_MS = 6 * 60 * 1000;
 
 const currentPath = () =>
     typeof window === "undefined" ? "" : window.location.pathname + window.location.search;
@@ -132,6 +134,13 @@ export function GuestGateProvider({ children }) {
     }, [authenticated]);
 
     const close = useCallback(() => { setPendingNext(null); setMessage(""); }, []);
+
+    // The reminder: the same prompt, unless it's already showing. It comes back where they are.
+    useEffect(() => {
+        if (authenticated) return undefined;
+        const timer = window.setInterval(() => setPendingNext((open) => open ?? currentPath()), REMIND_EVERY_MS);
+        return () => window.clearInterval(timer);
+    }, [authenticated]);
     const value = useMemo(() => ({ isGuest: !authenticated, requireAccount }), [authenticated, requireAccount]);
 
     return (

@@ -84,15 +84,6 @@ export default {
         "previewButton": "Kitufe",
         "previewButtonDark": "Kitufe kilichokolea",
         "previewLink": "Kiungo",
-        "sectionVisitors": "Hakikisho kwa wageni",
-        "visitorsHelp": "Wageni wanaweza kufungua vitu vichache vya Vinjari na Maktaba kwa muda huu, kisha wanaombwa kujisajili. Video na sauti zinasimama.",
-        "visitorsOn": "Ruhusu wageni kuona hakikisho",
-        "seconds": "Sekunde kwa kila kitu",
-        "secondsHelp": "Sekunde 10 hadi 600.",
-        "secondsInvalid": "Muda wa hakikisho lazima uwe sekunde 10 hadi 600.",
-        "items": "Vitu kwa kila mgeni kwa siku",
-        "itemsHelp": "Vitu 1 hadi 50.",
-        "itemsInvalid": "Wageni wanaweza kuona vitu 1 hadi 50."
     },
     "device": {
         "unknown": "Haijulikani",

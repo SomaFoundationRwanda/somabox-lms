@@ -1,6 +1,9 @@
 // shell screen text (sw): app shell (navigation, header, notifications, login, sign-up, shared UI). Keys must match en.js; checked by scripts/check-ui-translations.mjs.
 export default {
     "transfer": {
+        "stop": "Simamisha upakuaji",
+        "stopping": "Inasimamisha…",
+        "stopped": "Imesimamishwa: {done} kati ya {total} zimekamilika. Pakua tena ili kuendelea pale ilipoishia.",
         "label": "Maendeleo ya uhamisho",
         "downloading": "Inapakua: {done} kati ya {total} zimekamilika",
         "uploading": "Inapakia: {done} kati ya {total} zimekamilika",
@@ -255,6 +258,8 @@ export default {
         "send": "Tuma arifa"
     },
     "player": {
+        "loadingPercent": "Inafunguka… {percent}%",
+        "loadingSize": "Inafunguka… {size} zimefika",
         "pause": "Sitisha",
         "play": "Cheza",
         "seek": "Sogeza mbele au nyuma",

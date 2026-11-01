@@ -1,6 +1,9 @@
 // shell screen text (en): app shell (navigation, header, notifications, login, sign-up, shared UI). Keys must match en.js; checked by scripts/check-ui-translations.mjs.
 export default {
     "transfer": {
+        "stop": "Stop download",
+        "stopping": "Stopping…",
+        "stopped": "Stopped: {done} of {total} done. Download again to carry on where it stopped.",
         "label": "Transfer progress",
         "downloading": "Downloading: {done} of {total} done",
         "uploading": "Uploading: {done} of {total} done",
@@ -255,6 +258,8 @@ export default {
         "send": "Send notification"
     },
     "player": {
+        "loadingPercent": "Opening… {percent}%",
+        "loadingSize": "Opening… {size} so far",
         "pause": "Pause",
         "play": "Play",
         "seek": "Seek",

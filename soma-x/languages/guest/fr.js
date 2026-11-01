@@ -1,6 +1,6 @@
 // guest screen text (fr). Keys must match en.js; checked by scripts/check-ui-translations.mjs.
 export default {
-    "banner": "Vous explorez en tant qu'invité. Inscrivez-vous pour regarder, lire et suivre des matières.",
+    "banner": "Vous explorez en tant qu'invité. Inscrivez-vous pour suivre des matières et garder votre progression.",
     "signUp": "S'inscrire",
     "logIn": "Se connecter",
     "haveAccount": "J'ai déjà un compte",
@@ -23,12 +23,5 @@ export default {
     "mediaExpiredBody": "Reconnectez-vous pour continuer à regarder et à lire. Vous reviendrez sur cette page.",
     "signInAgain": "Se reconnecter",
     "language": "Langue",
-    "mediaForbidden": "Ce fichier appartient à une matière dont vous ne faites pas partie.",
-    "previewChip": "Aperçu · encore {time}",
-    "previewSignUpWatch": "Inscrivez-vous pour tout regarder",
-    "previewSignUpRead": "Inscrivez-vous pour tout lire",
-    "previewEndedWatch": "Votre aperçu est terminé. Créez un compte gratuit pour continuer à regarder",
-    "previewEndedRead": "Votre aperçu est terminé. Créez un compte gratuit pour continuer à lire",
-    "previewStarting": "Ouverture de l'aperçu…",
-    "previewFailed": "Impossible de lancer l'aperçu. Inscrivez-vous gratuitement pour ouvrir ceci."
+    "mediaForbidden": "Ce fichier appartient à une matière dont vous ne faites pas partie."
 };

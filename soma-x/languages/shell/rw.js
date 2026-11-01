@@ -2,6 +2,9 @@
 // Kinyarwanda: please have a native-speaking teacher review.
 export default {
     "transfer": {
+        "stop": "Hagarika gukuramo",
+        "stopping": "Birimo guhagarara…",
+        "stopped": "Byahagaritswe: {done} kuri {total} byarangiye. Ongera ukuremo kugira ngo bikomereze aho byari bigeze.",
         "label": "Aho kohereza bigeze",
         "downloading": "Birimo gukururwa: {done} kuri {total} birarangiye",
         "uploading": "Biroherezwa: {done} kuri {total} birarangiye",
@@ -256,6 +259,8 @@ export default {
         "send": "Ohereza ubutumwa"
     },
     "player": {
+        "loadingPercent": "Birafunguka… {percent}%",
+        "loadingSize": "Birafunguka… {size} bimaze kugera",
         "pause": "Hagarara",
         "play": "Kina",
         "seek": "Imbere cyangwa inyuma",

@@ -124,14 +124,14 @@ export function createApp({ logRequests = true } = {}) {
     // Who is calling (bearer token), if anyone. Nothing is refused here; see the gates below.
     app.use(authenticate);
 
-    // Files are for signed-in people only. <img>, <video>, iframes, and PDF/EPUB viewers can't send
-    // a bearer token, so they carry the signed media cookie set at sign-in (helpers/media.js).
-    // Covers stay public so guests can browse the catalogue before signing up.
-    const media = requireMediaAccess();
+    // The box's offline learning content is open to everyone, visitors included (they're reminded
+    // to sign up). Subject files are for the subject's members: <img>, <video>, iframes and PDF/EPUB
+    // viewers can't send a bearer token, so they carry the signed media cookie set at sign-in
+    // (helpers/media.js).
     // Browsers keep files so pages open fast on the box's Wi-Fi: offline content and lessons
     // don't change (a week), uploaded files and covers rarely do (a day, then checked by ETag),
-    // the school's logo can be replaced (an hour). Signed-in-only files are "private": kept by
-    // the browser, never by a shared proxy.
+    // the school's logo can be replaced (an hour). Subject files are "private": kept by the
+    // browser, never by a shared proxy.
     const keep = (maxAge, isPrivate = false) => ({
         maxAge,
         etag: true,
@@ -139,10 +139,10 @@ export function createApp({ logRequests = true } = {}) {
     });
     const WEEK = 7 * 24 * 60 * 60 * 1000;
     const DAY = 24 * 60 * 60 * 1000;
-    app.use('/khan-academy', media, express.static(config.paths.static.khan, keep(WEEK, true)));
-    app.use('/w3schools', media, express.static(config.paths.static.w3schools, keep(WEEK, true)));
-    app.use('/wikipedia', media, express.static(config.paths.static.wikipedia, keep(WEEK, true)));
-    app.use('/lessons', media, express.static(config.paths.lessons, keep(WEEK, true)));
+    app.use('/khan-academy', express.static(config.paths.static.khan, keep(WEEK)));
+    app.use('/w3schools', express.static(config.paths.static.w3schools, keep(WEEK)));
+    app.use('/wikipedia', express.static(config.paths.static.wikipedia, keep(WEEK)));
+    app.use('/lessons', express.static(config.paths.lessons, keep(WEEK)));
     app.use('/course-files', requireMediaAccess({ courseFiles: true }), express.static(config.paths.courseFiles, keep(DAY, true)));
     app.use('/library-book-covers', express.static(config.paths.libraryCovers, keep(DAY)));
     app.use('/course-covers', express.static(config.paths.courseCovers, keep(DAY)));

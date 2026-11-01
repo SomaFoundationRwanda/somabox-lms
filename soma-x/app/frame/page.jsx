@@ -1,4 +1,5 @@
 import FrameView from "@/components/guest/FrameView";
+import { GuestGateProvider } from "@/components/guest/GuestGate";
 
 export async function generateMetadata({ searchParams }) {
     const {slug} = await searchParams
@@ -29,11 +30,14 @@ export default async function Frame({ searchParams }) {
 		: slug === "wikipedia" ? "http://10.0.0.1:8083/"
 		: `${SERVER_URL}/${slug}`;
 
+    // Visitors open lessons too; the gate reminds them to sign up every few minutes.
     return (
-        <FrameView
-            src={iframeUrl}
-            title={`SomaBox Frame - ${slug}`}
-            next={`/frame?slug=${encodeURIComponent(slug)}`}
-        />
+        <GuestGateProvider>
+            <FrameView
+                src={iframeUrl}
+                title={`SomaBox Frame - ${slug}`}
+                next={`/frame?slug=${encodeURIComponent(slug)}`}
+            />
+        </GuestGateProvider>
     );
 }

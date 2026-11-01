@@ -65,18 +65,19 @@ async function sha256Of(file) {
  * the cable), so the bytes go to `target.part`, which is kept on failure and resumed with a Range
  * request next time. With `sha256` the finished file is checked, so a resumed file built from an
  * older version is thrown away and fetched again in full. `onBytes(n)` is told as bytes arrive
- * (a resumed part file counts at the start). Returns the number of bytes fetched.
+ * (a resumed part file counts at the start). `signal` stops it (the part file is kept). Returns the
+ * number of bytes fetched.
  */
-export async function downloadTo(contentPath, target, { sha256 = null, onBytes = null } = {}, attempt = 0) {
+export async function downloadTo(contentPath, target, { sha256 = null, onBytes = null, signal } = {}, attempt = 0) {
     const partial = `${target}.part`;
     const have = fs.existsSync(partial) ? fs.statSync(partial).size : 0;
-    const res = await cloudFetch(contentPath, have ? { headers: { Range: `bytes=${have}-` } } : {});
+    const res = await cloudFetch(contentPath, { signal, ...(have ? { headers: { Range: `bytes=${have}-` } } : {}) });
     if (res.status === 416) {
         // The part file is already complete or doesn't fit this file any more.
         await res.body?.cancel();
         fs.rmSync(partial, { force: true });
         if (attempt > 0) throw new Error(`Cloud refused the download of ${contentPath}`);
-        return downloadTo(contentPath, target, { sha256, onBytes }, attempt + 1);
+        return downloadTo(contentPath, target, { sha256, onBytes, signal }, attempt + 1);
     }
     if (!res.ok) throw new Error(`Failed to download ${contentPath}: ${res.status} ${res.statusText}`);
     const resumed = res.status === 206 && have > 0;
@@ -91,11 +92,12 @@ export async function downloadTo(contentPath, target, { sha256 = null, onBytes =
         Readable.fromWeb(res.body),
         ...(onBytes ? [count] : []),
         fs.createWriteStream(partial, { flags: resumed ? 'a' : 'w' }),
+        { signal },
     );
 
     if (sha256 && (await sha256Of(partial)) !== sha256) {
         fs.rmSync(partial, { force: true });
-        if (resumed && attempt === 0) return downloadTo(contentPath, target, { sha256, onBytes }, attempt + 1);
+        if (resumed && attempt === 0) return downloadTo(contentPath, target, { sha256, onBytes, signal }, attempt + 1);
         throw new Error(`Downloaded ${contentPath} does not match the cloud's copy`);
     }
     fs.renameSync(partial, target);

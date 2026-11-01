@@ -14,7 +14,6 @@ import { requireMediaAccess } from '../helpers/media.js';
 import { absolutePath, fileType, coverPath } from './explore/roots.js';
 import { syncExploreIndex } from './explore/indexer.js';
 import { getCatalog, invalidateCatalog } from './explore/catalog.js';
-import { guestMayOpen, limitGuestRange } from './explore/preview.js';
 import { recordContentOpen } from './explore/usage.js';
 import { cloudFetch, cloudFiles, downloadTo, forgetCloudFiles, isCurrent, rememberCloudFile } from './sync/cloud-content.js';
 import { createDownloadProgress } from './sync/download-progress.js';
@@ -72,7 +71,7 @@ router.get('/available-books', requireAdmin, async (req, res) => {
  * Downloads one cloud book into library/<first category>/<title>.<epub|pdf>, or refreshes the copy
  * downloaded before if the cloud has a newer one.
  */
-async function downloadBook(book, onBytes) {
+async function downloadBook(book, onBytes, signal) {
     if (!/^\d+$/.test(String(book?.id))) throw new Error(`Invalid book id: ${book?.id}`);
     // Clouds from before ?formats only list EPUBs and send no extension.
     const ext = book.extension === 'pdf' ? '.pdf' : '.epub';
@@ -96,7 +95,7 @@ async function downloadBook(book, onBytes) {
     }
     if (local && isCurrent({ localSize: local.size, recorded: known, cloud: book })) return { id: book.id, status: 'skipped' };
 
-    await downloadTo(`/content/library/${book.id}${ext}`, absolutePath(target), { sha256: book.sha256, onBytes });
+    await downloadTo(`/content/library/${book.id}${ext}`, absolutePath(target), { sha256: book.sha256, onBytes, signal });
     await rememberCloudFile(target, { collection: 'library', id: book.id, sha256: book.sha256, version: book.version });
     return { id: book.id, status: local ? 'updated' : 'downloaded', pathKey: target, title: book.book_name };
 }
@@ -115,14 +114,17 @@ router.post('/download', requireAdmin, async (req, res) => {
             // One book failing (the cable unplugged, a missing file) doesn't stop the others; it
             // keeps its partial download, and downloading it again resumes it.
             for (const book of books) {
+                // Stopped by the admin: the books not started yet are left alone.
+                if (progress.cancelled) break;
                 const key = String(book.id);
                 const name = book.book_name || key;
                 progress.begin(key, name);
                 try {
-                    const result = await downloadBook(book, (n) => progress.bytes(key, n));
+                    const result = await downloadBook(book, (n) => progress.bytes(key, n), progress.signal);
                     done.push(result);
                     progress.finish(key, name, result.status);
                 } catch (err) {
+                    if (progress.cancelled) break;
                     console.error(`Download of book ${key} failed:`, err.message);
                     progress.finish(key, name, 'failed');
                 }
@@ -138,6 +140,12 @@ router.post('/download', requireAdmin, async (req, res) => {
         }
     })();
     return res.status(202).json({ message: 'Download started' });
+});
+
+// Stops the running download; what arrived stays, and a cut-off book resumes next time.
+router.post('/download/cancel', requireAdmin, (req, res) => {
+    if (!progress.cancel()) return res.status(400).json({ message: 'No download is running' });
+    return res.json({ message: 'Download stopped' });
 });
 
 // { status, total, done, downloaded, skipped, failed, percent, bytesDone, bytesTotal, current, failedNames }
@@ -218,16 +226,12 @@ router.get('/file/:id', requireMediaAccess({ allowGuests: true }), async (req, r
     const row = await localDb.prepare("SELECT path_key FROM content_items WHERE id = ? AND path_key LIKE 'library/%'").get(id);
     const candidates = [row?.path_key, `library/${id}.epub`, `library/${id}.pdf`].filter(Boolean);
     const { isHidden } = await getCatalog();
-    const signUp = () => res.status(401).json({ error: 'Sign up for free to keep reading', code: 'LOGIN_REQUIRED' });
     for (const key of candidates) {
         if (!fs.existsSync(absolutePath(key)) || isHidden(key)) continue;
-        // Visitors: only during their preview of this book, and only the start of videos and audio.
-        if (!req.mediaUser && (!await guestMayOpen(req, key) || !limitGuestRange(req, key))) return signUp();
         recordContentOpen(req, key, req.mediaUser);
         return res.sendFile(absolutePath(key));
     }
-    // Visitors are asked to sign up rather than told what exists.
-    return req.mediaUser ? res.status(404).json({ error: 'Book not found' }) : signUp();
+    return res.status(404).json({ error: 'Book not found' });
 });
 
 // Admins: remove a library file (and its cover).

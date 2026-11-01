@@ -85,15 +85,6 @@ export default {
         "previewButton": "Buto",
         "previewButtonDark": "Buto ijimye",
         "previewLink": "Umuyoboro",
-        "sectionVisitors": "Ibyo abashyitsi bareba",
-        "visitorsHelp": "Abashyitsi bashobora gufungura ibintu bike byo muri Shakisha no mu Isomero muri icyo gihe, hanyuma bagasabwa Kwiyandikisha. Amashusho n'amajwi birahagarara.",
-        "visitorsOn": "Emerera abashyitsi kureba bike",
-        "seconds": "Amasegonda kuri buri kintu",
-        "secondsHelp": "Kuva ku masegonda 10 kugeza kuri 600.",
-        "secondsInvalid": "Igihe cyo kureba kigomba kuba hagati y'amasegonda 10 na 600.",
-        "items": "Ibintu kuri buri mushyitsi ku munsi",
-        "itemsHelp": "Kuva ku kintu 1 kugeza kuri 50.",
-        "itemsInvalid": "Abashyitsi bashobora kureba ibintu kuva kuri 1 kugeza kuri 50."
     },
     "device": {
         "unknown": "Ntibizwi",

@@ -1,6 +1,6 @@
 // guest screen text (es). Keys must match en.js; checked by scripts/check-ui-translations.mjs.
 export default {
-    "banner": "Estás explorando como invitado. Regístrate para ver, leer y tomar asignaturas.",
+    "banner": "Estás explorando como invitado. Regístrate para tomar asignaturas y guardar tu progreso.",
     "signUp": "Registrarse",
     "logIn": "Iniciar sesión",
     "haveAccount": "Ya tengo una cuenta",
@@ -23,12 +23,5 @@ export default {
     "mediaExpiredBody": "Vuelve a iniciar sesión para seguir viendo y leyendo. Regresarás a esta página.",
     "signInAgain": "Volver a iniciar sesión",
     "language": "Idioma",
-    "mediaForbidden": "Este archivo pertenece a una asignatura en la que no estás inscrito.",
-    "previewChip": "Vista previa · quedan {time}",
-    "previewSignUpWatch": "Regístrate para verlo entero",
-    "previewSignUpRead": "Regístrate para leerlo entero",
-    "previewEndedWatch": "Tu vista previa ha terminado. Crea una cuenta gratuita para seguir viendo",
-    "previewEndedRead": "Tu vista previa ha terminado. Crea una cuenta gratuita para seguir leyendo",
-    "previewStarting": "Iniciando la vista previa…",
-    "previewFailed": "No se pudo iniciar la vista previa. Regístrate gratis para abrir esto."
+    "mediaForbidden": "Este archivo pertenece a una asignatura en la que no estás inscrito."
 };

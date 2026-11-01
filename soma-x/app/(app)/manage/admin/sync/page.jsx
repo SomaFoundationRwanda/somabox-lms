@@ -15,6 +15,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { fill } from "@/lib/fill";
 import { AlertCircle, ChevronDown, ChevronRight, File, FolderClosed, FolderOpen, Loader2, X } from "lucide-react";
 import Loader from "@/components/ui/Loader";
+import Modal from "@/components/ui/Modal";
 import { Checkbox } from "@/components/form";
 import TransferProgress from "@/components/ui/TransferProgress";
 
@@ -39,27 +40,28 @@ const Banner = ({ type, message, onDismiss }) => {
     );
 };
 
-/* ── Inline confirmation panel ── */
-const ConfirmBanner = ({ message, onConfirm, onCancel }) => {
+/* ── Confirmation pop-up: shown over the page, so it's seen wherever the admin has scrolled ── */
+const ConfirmDialog = ({ message, onConfirm, onCancel }) => {
     const { t } = useLanguage();
     return (
-    <div className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-[5px] border bg-warning-soft border-warning/30">
-        <p className="text-caption font-medium text-warning-fg flex-1">{message}</p>
-        <div className="flex gap-2 shrink-0">
-            <button
-                onClick={onCancel}
-                className="text-caption px-3 h-7 rounded-full border border-warning/30 text-warning-fg font-semibold hover:bg-warning-soft transition-colors"
-            >
-                {t("admin.common.cancel")}
-            </button>
-            <button
-                onClick={onConfirm}
-                className="text-caption px-3 h-7 rounded-full bg-warning text-on-warning font-semibold hover:bg-warning transition-colors"
-            >
-                {t("admin.common.confirm")}
-            </button>
-        </div>
-    </div>
+        <Modal title={t("admin.common.confirm")} onClose={onCancel}>
+            <p role="alert" className="text-ui text-warning-fg bg-warning-soft border border-warning/30 rounded-[5px] px-3 py-2.5">{message}</p>
+            <div className="flex justify-end gap-2 mt-5">
+                <button
+                    onClick={onCancel}
+                    className="text-caption px-4 h-9 rounded-full border border-line-strong text-fg font-semibold hover:bg-surface-hover transition-colors"
+                >
+                    {t("admin.common.cancel")}
+                </button>
+                <button
+                    autoFocus
+                    onClick={onConfirm}
+                    className="text-caption px-4 h-9 rounded-full bg-warning text-on-warning font-semibold hover:bg-warning/90 transition-colors"
+                >
+                    {t("admin.common.confirm")}
+                </button>
+            </div>
+        </Modal>
     );
 };
 
@@ -196,6 +198,23 @@ const ManageSync = () => {
         lastStatus.current = jobStatus;
     }, [jobStatus]); // eslint-disable-line react-hooks/exhaustive-deps
 
+    // Stops the running download: what arrived stays, and a cut-off file resumes next time.
+    const [stopping, setStopping] = useState(false);
+    const stopDownload = async () => {
+        setStopping(true);
+        try {
+            await apiFetch("/cloud/download/cancel", { method: "POST" });
+        } catch (err) {
+            // 400: it had already finished.
+            if (!(err instanceof ApiError && err.status === 400)) {
+                setBanner({ type: 'error', message: err?.body?.error || err?.body?.message || t("admin.sync.unknownError") });
+            }
+        } finally {
+            await job.refetch();
+            setStopping(false);
+        }
+    };
+
     const executeDownload = async (selected) => {
         setStarting(true);
         setWatched(true);
@@ -292,23 +311,19 @@ const ManageSync = () => {
 
             <div className="space-y-4 pt-6 border-t border-line">
                 {/* Feedback banners */}
-                {(banner || confirm) && (
-                    <div className="space-y-2">
-                        {banner && (
-                            <Banner
-                                type={banner.type}
-                                message={banner.message}
-                                onDismiss={() => setBanner(null)}
-                            />
-                        )}
-                        {confirm && (
-                            <ConfirmBanner
-                                message={confirm.message}
-                                onConfirm={confirm.onConfirm}
-                                onCancel={() => setConfirm(null)}
-                            />
-                        )}
-                    </div>
+                {banner && (
+                    <Banner
+                        type={banner.type}
+                        message={banner.message}
+                        onDismiss={() => setBanner(null)}
+                    />
+                )}
+                {confirm && (
+                    <ConfirmDialog
+                        message={confirm.message}
+                        onConfirm={confirm.onConfirm}
+                        onCancel={() => setConfirm(null)}
+                    />
                 )}
 
                 <Section title={t("admin.sync.downloadTitle")} description={t("admin.sync.downloadHelp")}>
@@ -333,7 +348,7 @@ const ManageSync = () => {
                         </div>
                     )}
 
-                    {watched && job.data && <TransferProgress kind="download" {...job.data} className="mt-3" />}
+                    {watched && job.data && <TransferProgress kind="download" {...job.data} onCancel={stopDownload} cancelling={stopping} className="mt-3" />}
 
                     {/* Action bar */}
                     <div className="flex flex-wrap items-center justify-between gap-3 pt-3">

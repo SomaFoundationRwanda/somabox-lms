@@ -1,6 +1,6 @@
 // guest screen text (en). Keys must match en.js; checked by scripts/check-ui-translations.mjs.
 export default {
-    "banner": "You're exploring as a guest. Sign up to watch, read and take subjects.",
+    "banner": "You're exploring as a guest. Sign up to join subjects and keep your progress.",
     "signUp": "Sign up",
     "logIn": "Log in",
     "haveAccount": "I have an account",
@@ -23,12 +23,5 @@ export default {
     "mediaExpiredBody": "Sign in again to keep watching and reading. You'll come back to this page.",
     "signInAgain": "Sign in again",
     "language": "Language",
-    "mediaForbidden": "This file belongs to a subject you're not in.",
-    "previewChip": "Preview · {time} left",
-    "previewSignUpWatch": "Sign up to watch it all",
-    "previewSignUpRead": "Sign up to read it all",
-    "previewEndedWatch": "Your preview has ended. Create a free account to keep watching",
-    "previewEndedRead": "Your preview has ended. Create a free account to keep reading",
-    "previewStarting": "Starting your preview…",
-    "previewFailed": "Couldn't start the preview. Sign up for free to open this."
+    "mediaForbidden": "This file belongs to a subject you're not in."
 };

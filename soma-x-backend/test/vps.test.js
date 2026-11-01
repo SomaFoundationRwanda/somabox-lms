@@ -30,6 +30,8 @@ async function startCloud() {
     ranges: [],
     pushes: [],
     offline: false, // drop every connection, as if the cable were unplugged
+    slow: false, // send half of each file, then hang (a download to stop part-way)
+    held: [],
   };
   const tree = () => [{
     type: "folder", name: tag, path: tag, children: [{
@@ -56,6 +58,10 @@ async function startCloud() {
           return res.end(req.method === "HEAD" ? undefined : buf.subarray(from));
         }
         res.writeHead(status, { "Content-Type": type, "Content-Length": buf.length });
+        if (state.slow && req.method !== "HEAD" && url.startsWith("/content/")) {
+          res.write(buf.subarray(0, Math.floor(buf.length / 2)));
+          return state.held.push(res);
+        }
         res.end(req.method === "HEAD" ? undefined : buf);
       };
       if (url === "/api/v1/box-sync") {
@@ -358,6 +364,35 @@ test("a download cut off by unplugging resumes where it stopped, and a stale par
   fs.writeFileSync(`${local}.part`, body.slice(0, 200));
   await downloadCurriculum([rel]);
   assert.equal(fs.readFileSync(local, "utf8"), v2);
+});
+
+test("an admin can stop a download: the file on its way keeps its part and resumes, the rest wait", async () => {
+  const [first, second] = [`${tag}/p6/one.mp4`, `${tag}/p6/two.mp4`];
+  cloud.state.files[first] = { id: 44, body: "1".repeat(400) };
+  cloud.state.files[second] = { id: 45, body: "2".repeat(400) };
+  const local = (rel) => path.join(content, "rwandan-education", rel);
+  cloud.state.slow = true;
+  try {
+    assert.equal((await asAdmin("POST", "/cloud/download/cancel")).status, 400, "nothing to stop yet");
+    assert.equal((await asAdmin("POST", "/cloud/download", { files: [first, second] })).status, 202);
+    await waitFor(async () => (await asAdmin("GET", "/cloud/download-status")).body.bytesDone > 0);
+    assert.equal((await asAdmin("POST", "/cloud/download/cancel")).status, 200);
+    const status = await waitFor(async () => {
+      const s = (await asAdmin("GET", "/cloud/download-status")).body;
+      return s.status !== "downloading" && s;
+    });
+    assert.equal(status.status, "cancelled");
+    assert.equal(status.failed, 0, "stopping isn't a failure");
+  } finally {
+    cloud.state.slow = false;
+    for (const res of cloud.state.held.splice(0)) res.destroy();
+  }
+  const parts = [first, second].filter((rel) => fs.existsSync(`${local(rel)}.part`));
+  assert.ok(parts.length >= 1, "what arrived is kept");
+  assert.ok([first, second].every((rel) => !fs.existsSync(local(rel))), "nothing half-done is shown as a file");
+  await downloadCurriculum([first, second]);
+  assert.equal(fs.readFileSync(local(first), "utf8"), "1".repeat(400));
+  assert.ok(cloud.state.ranges.some((r) => r.endsWith("bytes=200-")), "the cut-off file resumed");
 });
 
 test("a download that fails (cable unplugged) is reported as failed, not finished", async () => {

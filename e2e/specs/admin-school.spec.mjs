@@ -1,5 +1,5 @@
 // School settings: name and learner-code prefix, location, logo, colours (and that they reach
-// every page), and visitor previews.
+// every page).
 import { test, expect } from "@playwright/test";
 import { api, uid } from "../support/api.mjs";
 import { PASSWORD, authFile } from "../support/env.mjs";
@@ -128,24 +128,6 @@ test("custom colours reach buttons, badges and highlights on every page", async 
   await expect(page.locator("#school-primary-hex")).toHaveValue(/#203A3A/i);
   // The SOMABOX colours themselves are readable with white text.
   await expect(page.getByText(s("lowContrast"))).toHaveCount(0);
-});
-
-test("visitor previews can be limited or switched off", async ({ page }) => {
-  await page.goto("/manage/admin/school");
-  await page.getByLabel(s("seconds"), { exact: true }).fill("5");
-  await save(page);
-  await expect(page.getByText(s("secondsInvalid")).first()).toBeVisible();
-  await page.getByLabel(s("seconds"), { exact: true }).fill("90");
-  await page.getByLabel(s("items"), { exact: true }).fill("3");
-  await save(page);
-  await expect(page.getByText(s("saved")).first()).toBeVisible();
-  expect((await api("GET", "/school/public")).guestPreview).toMatchObject({ enabled: true, seconds: 90, items: 3 });
-
-  await page.getByRole("switch", { name: s("visitorsOn") }).click();
-  await expect(page.getByRole("switch", { name: s("visitorsOn") })).not.toBeChecked();
-  await save(page);
-  await expect(page.getByText(s("saved")).first()).toBeVisible();
-  expect((await api("GET", "/school/public")).guestPreview.enabled).toBe(false);
 });
 
 // A 1x1 transparent PNG.

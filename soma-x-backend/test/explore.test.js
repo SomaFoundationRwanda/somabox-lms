@@ -76,8 +76,8 @@ test("files copied onto the box appear in Explore after a rescan, under one cata
   assert.equal(cat.summary[`rwandan-education/${tag}/.hidden`], undefined);
   assert.ok(!JSON.stringify(cat).includes("notes.docx"));
   assert.equal(cat.summary[`custom-content/${tag}/songs`].content[0].type, "audio");
-  // Guests can browse the catalogue, but opening needs an account.
-  assert.equal((await fileGet(`custom-content/${tag}/songs/morning-song.mp3`)).status, 401);
+  // Guests browse the catalogue and open its files too.
+  assert.equal((await fileGet(`custom-content/${tag}/songs/morning-song.mp3`)).status, 200);
   assert.equal((await fileGet(`custom-content/${tag}/songs/morning-song.mp3`, "student")).status, 200);
 });
 
@@ -175,9 +175,9 @@ test("the library is a folder too: old books keep their titles and covers; uploa
   assert.ok(!books.some((b) => b.path_key.startsWith("library/covers/")), "the old covers folder isn't content");
   assert.ok((await ctx.api("GET", "/library/categories")).body.length >= 1);
 
-  // Old links by book number still open; the file itself needs an account.
+  // Old links by book number still open, for everyone.
   assert.equal((await fetch(`${ctx.baseUrl}/library/file/${legacyId}`, { headers: { Authorization: `Bearer ${ctx.tokens.student}` } })).status, 200);
-  assert.equal((await fetch(`${ctx.baseUrl}/library/file/${legacyId}`)).status, 401);
+  assert.equal((await fetch(`${ctx.baseUrl}/library/file/${legacyId}`)).status, 200);
 
   // Admin upload lands in the folder under its title; teachers don't manage the library.
   const form = new FormData();

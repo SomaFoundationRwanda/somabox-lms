@@ -1,6 +1,6 @@
 // The app around the pages: language, brightness and dark mode, the sidebar, help ("What is
-// this?"), unknown addresses, embedded box services, teacher-only pages, and visitors (guests)
-// with timed previews.
+// this?"), unknown addresses, embedded box services, teacher-only pages, and visitors (guests),
+// who open everything and are reminded to sign up.
 import { test, expect } from "@playwright/test";
 import { api, uid, upload } from "../support/api.mjs";
 import { USERS, authFile } from "../support/env.mjs";
@@ -97,9 +97,10 @@ test.describe("teacher pages", () => {
   test("explore content lists the box's content and the books", async ({ page }) => {
     await page.goto("/teacher/explore");
     await expect(page.getByRole("heading", { name: "Explore content" })).toBeVisible();
+    // International education (Khan Academy, Wikipedia, W3Schools...) is hidden for now.
     await page.getByRole("searchbox", { name: "Search folders…" }).fill("Khan");
-    await expect(page.getByRole("link", { name: /Khan Academy/ })).toBeVisible();
-    await expect(page.getByRole("link", { name: /Wikipedia/ })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: /Khan Academy/ })).toHaveCount(0);
+    await expect(page.getByText(t("explore.categories.international-education"))).toHaveCount(0);
     await page.getByRole("tab", { name: "Books" }).click();
     await expect(page.getByRole("tab", { name: "Books" })).toHaveAttribute("aria-selected", "true");
   });
@@ -134,10 +135,6 @@ test.describe("visitors", () => {
       await upload("POST", "/content/manager/upload", { as: "admin", fields: { path: `custom-content/${folder}` }, file: { name, mimeType: "application/pdf", buffer: pdf(["A book for visitors."]) } });
     }
   });
-  test.afterAll(async () => {
-    await api("PUT", "/school", { as: "admin", body: { guestPreview: { enabled: true, seconds: 40, items: 5 } } });
-  });
-
   test("can browse public pages and are invited to sign up to join a course", async ({ page }) => {
     const pub = await seedCourse({ title: `Guest view ${uid()}`, learners: [], visibility: "public" });
     await page.goto("/discover-courses");
@@ -153,29 +150,34 @@ test.describe("visitors", () => {
     await page.waitForURL(/\/signup/);
   });
 
-  test("get a limited number of timed previews, then are asked to sign up", async ({ page }) => {
-    await api("PUT", "/school", { as: "admin", body: { guestPreview: { enabled: true, seconds: 30, items: 1 } } });
+  test("open any book without an account, as often as they like", async ({ page }) => {
     await page.goto("/home");
+    await expect(page.getByRole("button", { name: "School content" })).toBeVisible();
+    await expect(page.getByText(t("explore.categories.international-education"))).toHaveCount(0);
     await page.getByRole("button", { name: "School content" }).click();
     await page.getByText(new RegExp(folder.replace(/-/g, "[- ]"), "i")).first().click();
     const read = (title) => page.locator("div").filter({ has: page.getByText(title, { exact: true }) }).filter({ has: page.getByRole("button", { name: "Read" }) }).last().getByRole("button", { name: "Read" });
-
-    await read("First book").click();
-    await expect(page.getByText(t("guest.previewChip").split("{")[0].trim()).first()).toBeVisible();
-    await page.keyboard.press("Escape");
-    await expect(page.getByText(t("guest.previewChip").split("{")[0].trim())).toHaveCount(0);
-
-    await read("Second book").click();
-    await expect(page.getByText(t("guest.gateTitle")).first()).toBeVisible();
-    await expect(page.getByRole("link", { name: t("guest.signUp") }).first()).toBeVisible();
+    for (const title of ["First book", "Second book", "First book"]) {
+      await read(title).click();
+      // Downloaded first (with a percentage), then shown: no sign-up gate, no time limit.
+      await expect(page.locator(`iframe[title="${title}"]`)).toBeVisible();
+      await expect(page.locator(`iframe[title="${title}"]`)).toHaveAttribute("src", /^blob:/);
+      await expect(page.getByText(t("guest.gateTitle"))).toHaveCount(0);
+      await page.keyboard.press("Escape");
+    }
   });
 
-  test("with previews switched off, opening anything asks to sign up", async ({ page }) => {
-    await api("PUT", "/school", { as: "admin", body: { guestPreview: { enabled: false } } });
+  test("are reminded to sign up every 6 minutes", async ({ page }) => {
+    await page.clock.install();
     await page.goto("/home");
-    await page.getByRole("button", { name: "School content" }).click();
-    await page.getByText(new RegExp(folder.replace(/-/g, "[- ]"), "i")).first().click();
-    await page.locator("div").filter({ has: page.getByText("First book", { exact: true }) }).filter({ has: page.getByRole("button", { name: "Read" }) }).last().getByRole("button", { name: "Read" }).click();
-    await expect(page.getByText(t("guest.gateTitle")).first()).toBeVisible();
+    await expect(page.getByText(t("guest.banner").split(".")[0]).first()).toBeVisible();
+    await page.clock.fastForward("05:50");
+    await expect(page.getByText(t("guest.gateTitle"))).toHaveCount(0);
+    await page.clock.fastForward("00:15");
+    await expect(page.getByText(t("guest.gateTitle"))).toBeVisible();
+    await page.getByRole("button", { name: t("guest.notNow") }).click();
+    await expect(page.getByText(t("guest.gateTitle"))).toBeHidden();
+    await page.clock.fastForward("06:05");
+    await expect(page.getByText(t("guest.gateTitle"))).toBeVisible();
   });
 });

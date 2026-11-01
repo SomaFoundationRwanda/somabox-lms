@@ -25,7 +25,6 @@ const POLICY = {
   "POST /auth/media-session": "any",
   "GET /analytics/branding": "public",
   "GET /ai/health": "any",
-  "GET /library/file/:id": "any", // signed media cookie or token
 
   "GET /users": "admin",
   "POST /users": "admin",
@@ -72,7 +71,7 @@ const POLICY = {
   "GET /content/levels/summary": "public", // catalogue guests may browse
   "GET /content/custom-content/summary": "public", // catalogue guests may browse
   "GET /content/explore": "public", // catalogue guests may browse
-  "GET /content/files/*filePath": "any", // signed media cookie or token
+  "GET /content/files/*filePath": "public", // guests open the box's learning content
   "GET /content/manager/roots": "staff",
   "PATCH /content/manager/details": "staff",
   "DELETE /content/manager/item": "staff",
@@ -85,7 +84,6 @@ const POLICY = {
   "GET /school/public": "public", // name, logo and colours on the login page
   "POST /school/logo": "admin",
   "DELETE /school/logo": "admin",
-  "POST /content/preview": "public", // visitors start a short preview
   "PUT /school": "admin",
   "GET /content/manager/list": "staff",
   "POST /content/manager/create-folder": "staff",
@@ -94,15 +92,18 @@ const POLICY = {
 
   "GET /library/available-books": "admin",
   "POST /library/download": "admin",
+  "POST /library/download/cancel": "admin",
   "POST /library/upload": "admin",
   "GET /library/download-status": "admin",
   "GET /library/books": "public", // catalogue guests may browse
   "GET /library/categories": "public", // catalogue guests may browse
+  "GET /library/file/:id": "public", // guests open the box's learning content
   "DELETE /library/book/:id": "admin",
 
   "GET /cloud/available-content": "admin",
   "GET /cloud/metadata": "admin",
   "POST /cloud/download": "admin",
+  "POST /cloud/download/cancel": "admin",
   "GET /cloud/download-status": "admin",
   "POST /cloud/delete": "admin",
 

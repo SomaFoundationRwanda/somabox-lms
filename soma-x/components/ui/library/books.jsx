@@ -2,8 +2,6 @@ import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import UniversalPlayerModal from "@/components/ui/UniversalPlayerModal";
 import { BookOpen, Film, Music } from "lucide-react";
-import { useGuestGate } from "@/components/guest/GuestGate";
-import { useGuestPreview } from "@/components/guest/Preview";
 import { useLanguage } from "@/context/LanguageContext";
 import { fill } from "@/lib/fill";
 import { libraryCoverUrl, libraryFileUrl, libraryShelf, libraryViewer } from "./libraryEntry";
@@ -35,30 +33,20 @@ const BooksPage = ({ books = [], loading = false, shelf = null, searchQuery }) =
     const [selectedBook, setSelectedBook] = useState(null);
     const [imageErrors, setImageErrors] = useState({});
     const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL;
-    // Guests see the shelf and covers; reading a book needs an account, or (when the school
-    // allows it) starts a short preview. ?book= brings them back to it after signing up.
-    const { isGuest } = useGuestGate();
-    const { open: openPreview, starting: previewStarting } = useGuestPreview();
-    const [preview, setPreview] = useState(null);
-
-    const openBook = async (book) => {
-        const { ok, preview: started } = await openPreview(book.path_key, `/library?book=${encodeURIComponent(book.id)}`, libraryViewer(book));
-        if (!ok) return;
-        setPreview(started);
-        setSelectedBook(book);
-    };
-    const closeBook = () => { setSelectedBook(null); setPreview(null); };
+    // Everyone reads, visitors included (they're reminded to sign up).
+    const openBook = (book) => setSelectedBook(book);
+    const closeBook = () => setSelectedBook(null);
 
     // Back from signing up (or logging in) to read a book: ?book=<id> opens it.
     useEffect(() => {
-        if (isGuest || !books.length) return;
+        if (!books.length) return;
         let bookId = null;
         try { bookId = new URLSearchParams(window.location.search).get("book"); } catch { /* ignore */ }
         if (!bookId) return;
         const book = books.find((b) => String(b.id) === bookId);
         if (book) setSelectedBook(book);
         window.history.replaceState(null, "", window.location.pathname);
-    }, [isGuest, books]);
+    }, [books]);
 
     const filteredBooks = books.filter(book => {
         if (searchQuery && !String(book.name || "").toLowerCase().includes(searchQuery.toLowerCase())) return false;
@@ -160,8 +148,6 @@ const BooksPage = ({ books = [], loading = false, shelf = null, searchQuery }) =
                 </div>
             </div>
 
-            {previewStarting ? <Loader variant="overlay" label={t("guest.previewStarting")} /> : null}
-
             {/* EPUB books → dedicated reader */}
             {selectedBook && viewer === 'epub' && (
                 <EpubReader
@@ -169,7 +155,6 @@ const BooksPage = ({ books = [], loading = false, shelf = null, searchQuery }) =
                     title={selectedBook.name}
                     onClose={closeBook}
                     summaryPath={selectedBook.path_key || null}
-                    preview={preview}
                 />
             )}
 
@@ -177,7 +162,6 @@ const BooksPage = ({ books = [], loading = false, shelf = null, searchQuery }) =
             <UniversalPlayerModal
                 isOpen={Boolean(selectedBook) && viewer !== 'epub'}
                 onClose={closeBook}
-                preview={preview}
                 summaryPath={selectedBook && viewer !== 'epub' ? (selectedBook.path_key || null) : null}
                 mediaItem={selectedBook && viewer !== 'epub' ? {
                     title: selectedBook.name,

@@ -84,15 +84,6 @@ export default {
         "previewButton": "Botón",
         "previewButtonDark": "Botón oscuro",
         "previewLink": "Enlace",
-        "sectionVisitors": "Vistas previas para visitantes",
-        "visitorsHelp": "Los visitantes pueden abrir algunos elementos de Explorar y de la Biblioteca durante ese tiempo; después se les pide que se registren. Los vídeos y el audio se detienen.",
-        "visitorsOn": "Permitir vistas previas a los visitantes",
-        "seconds": "Segundos por elemento",
-        "secondsHelp": "De 10 a 600 segundos.",
-        "secondsInvalid": "El tiempo de vista previa debe ser de 10 a 600 segundos.",
-        "items": "Elementos por visitante al día",
-        "itemsHelp": "De 1 a 50 elementos.",
-        "itemsInvalid": "Los visitantes pueden ver de 1 a 50 elementos."
     },
     "device": {
         "unknown": "Desconocido",

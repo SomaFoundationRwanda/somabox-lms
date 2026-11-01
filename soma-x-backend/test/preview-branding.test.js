@@ -1,4 +1,4 @@
-// Visitors can preview a few items for a short time; the school's look is the admin's; the
+// Visitors open the box's learning content freely; the school's look is the admin's; the
 // school's location is everyone's (nobody is asked).
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
@@ -35,7 +35,7 @@ function visitor() {
     if (set) cookie = set.split(";")[0];
     return res;
   };
-  return { call, preview: async (p) => { const r = await call("POST", "/content/preview", { body: { path: p } }); return { status: r.status, body: await r.json() }; } };
+  return { call };
 }
 
 before(async () => {
@@ -58,53 +58,18 @@ after(async () => {
   await ctx.stop();
 });
 
-test("a visitor can preview an item for a short time; videos only send their beginning", async () => {
+test("visitors open Explore and Library items in full, as often as they like; hidden ones stay hidden", async () => {
   const v = visitor();
   const video = `custom-content/${tag}/lesson.mp4`;
-  assert.equal((await v.call("GET", `/content/files/${video}`)).status, 401, "nothing without a preview");
-
-  const started = await v.preview(video);
-  assert.equal(started.status, 200, JSON.stringify(started.body));
-  assert.deepEqual([started.body.seconds, started.body.remainingItems], [40, 4]);
-
-  const first = await v.call("GET", `/content/files/${video}`, { headers: { Range: "bytes=0-" } });
-  assert.equal(first.status, 206);
-  const cap = 10 * 1024 * 1024; // a quarter of 40 MB
-  assert.equal(first.headers.get("content-range"), `bytes 0-${cap - 1}/${40 * 1024 * 1024}`);
-  const noRange = await v.call("GET", `/content/files/${video}`);
-  assert.equal(noRange.status, 206, "a full download is turned into the allowed part");
-  assert.equal((await v.call("GET", `/content/files/${video}`, { headers: { Range: `bytes=${cap + 1}-` } })).status, 401, "past the preview part");
-
-  // Another visitor (no cookie) still can't open it; a signed-in learner gets the whole file.
-  assert.equal((await visitor().call("GET", `/content/files/${video}`)).status, 401);
-  const signedIn = await fetch(`${ctx.baseUrl}/content/files/${video}`, { headers: { Authorization: `Bearer ${ctx.tokens.student}`, Range: "bytes=20000000-20000009" } });
-  assert.equal(signedIn.status, 206);
-
-  // When the preview time is up, the file stops and the preview can't restart.
-  await db.prepare("UPDATE guest_previews SET started_at = NOW() - INTERVAL '5 minutes' WHERE path_key = ?").run(video);
-  assert.equal((await v.call("GET", `/content/files/${video}`, { headers: { Range: "bytes=0-99" } })).status, 401);
-  const again = await v.preview(video);
-  assert.deepEqual([again.status, again.body.code], [403, "PREVIEW_ENDED"]);
-});
-
-test("visitors can try a limited number of items; hidden ones and switched-off previews are refused", async () => {
-  assert.equal((await asAdmin("PUT", "/school", { guestPreview: { items: 2 } })).status, 200);
-  const v = visitor();
-  assert.equal((await v.preview(`custom-content/${tag}/story.pdf`)).status, 200);
-  assert.equal((await v.call("GET", `/content/files/custom-content/${tag}/story.pdf`)).status, 200, "books open in full during the preview");
-  assert.equal((await v.preview(`library/${tag}/reader.epub`)).status, 200);
+  const late = await v.call("GET", `/content/files/${video}`, { headers: { Range: "bytes=20000000-20000009" } });
+  assert.equal(late.status, 206, "the whole video, not just its beginning");
+  for (const item of ["story.pdf", "song.mp3", "extra.pdf"]) {
+    assert.equal((await v.call("GET", `/content/files/custom-content/${tag}/${item}`)).status, 200, `${item}: no limit on items`);
+  }
   const lib = (await (await fetch(`${ctx.baseUrl}/library/books`)).json()).find((b) => b.path_key === `library/${tag}/reader.epub`);
   assert.equal((await v.call("GET", `/library/file/${lib.id}`)).status, 200, "library books too");
-  const third = await v.preview(`custom-content/${tag}/song.mp3`);
-  assert.deepEqual([third.status, third.body.code], [403, "PREVIEW_LIMIT"]);
-  assert.equal((await v.preview(`custom-content/${tag}/story.pdf`)).status, 200, "an item already being previewed doesn't count again");
-  assert.equal((await visitor().preview(`custom-content/${tag}/hidden.pdf`)).status, 404);
-
-  assert.equal((await asAdmin("PUT", "/school", { guestPreview: { enabled: false } })).status, 200);
-  const off = await visitor().preview(`custom-content/${tag}/extra.pdf`);
-  assert.deepEqual([off.status, off.body.code], [403, "PREVIEW_OFF"]);
-  assert.equal((await asAdmin("PUT", "/school", { guestPreview: { enabled: true, items: 5, seconds: 9 } })).status, 400, "at least 10 seconds");
-  await asAdmin("PUT", "/school", { guestPreview: { enabled: true, items: 5 } });
+  assert.equal((await v.call("GET", `/content/files/custom-content/${tag}/hidden.pdf`)).status, 404);
+  assert.equal((await v.call("POST", "/content/preview", { body: { path: video } })).status, 404, "no previews to start any more");
 });
 
 test("the school's name, logo and colours are the admin's, and anyone can see them", async () => {

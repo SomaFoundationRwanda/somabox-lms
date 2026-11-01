@@ -288,6 +288,21 @@ const ManageLibrary = () => {
         }
     };
 
+    // Stops the running download: what arrived stays, and a cut-off book resumes next time.
+    const [stopping, setStopping] = useState(false);
+    const stopDownload = async () => {
+        setStopping(true);
+        try {
+            await apiFetch("/library/download/cancel", { method: "POST" });
+        } catch (err) {
+            // 400: it had already finished.
+            if (err?.status !== 400) setBanner({ type: 'error', message: getErrorMessage(err, t) });
+        } finally {
+            await job.refetch();
+            setStopping(false);
+        }
+    };
+
     const executeDelete = async (id) => {
         try {
             await apiFetch(`/library/book/${id}`, { method: "DELETE" });
@@ -495,7 +510,7 @@ const ManageLibrary = () => {
                             ) : t("admin.library.noBooks")}
                             className="max-h-[500px] overflow-y-auto"
                         />
-                        {watched && job.data && <TransferProgress kind="download" {...job.data} className="mt-3" />}
+                        {watched && job.data && <TransferProgress kind="download" {...job.data} onCancel={stopDownload} cancelling={stopping} className="mt-3" />}
                         <div className="flex items-center justify-between gap-3 pt-3">
                             <span className="text-caption font-semibold text-fg-subtle">
                                 {selectable.length > 0 ? fill(t("shell.transfer.selected"), { count: selectedCount, total: selectable.length }) : null}

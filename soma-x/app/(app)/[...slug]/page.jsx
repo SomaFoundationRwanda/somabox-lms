@@ -1,6 +1,6 @@
 
 'use client'
-import { useRouter, useParams, usePathname } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { useContext, useEffect, useState, useMemo } from 'react';
 import HeaderSection from '@/components/ui/HeaderSection';
 import Link from 'next/link';
@@ -11,8 +11,6 @@ import { useLanguage } from '@/context/LanguageContext';
 import { Button } from '@/components/ui/button';
 import UniversalPlayerModal from '@/components/ui/UniversalPlayerModal';
 import { Heading, Text } from '@/components/typography';
-import { useGuestGate } from '@/components/guest/GuestGate';
-import { useGuestPreview } from '@/components/guest/Preview';
 import { startRouteLoading } from "@/components/global/RouteLoader";
 import Loader from "@/components/ui/Loader";
 
@@ -56,19 +54,14 @@ function FolderPage({ levelInfo, breadcrumbs, onBreadcrumbClick }) {
   const [activeFilter, setActiveFilter] = useState('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState(null);
-  // A visitor's preview of the open item (null for signed-in people).
-  const [preview, setPreview] = useState(null);
   const { t } = useLanguage();
-  const pathname = usePathname();
-  const { isGuest } = useGuestGate();
-  const { open: openPreview, starting: previewStarting } = useGuestPreview();
 
   const content = useMemo(() => levelInfo?.content || [], [levelInfo]);
   const folders = levelInfo?.items || [];
 
   // Back from signing up (or logging in) to open something: ?open=<item id> opens it.
   useEffect(() => {
-    if (isGuest || !content.length) return;
+    if (!content.length) return;
     let openId = null;
     try { openId = new URLSearchParams(window.location.search).get('open'); } catch { /* ignore */ }
     if (!openId) return;
@@ -78,7 +71,7 @@ function FolderPage({ levelInfo, breadcrumbs, onBreadcrumbClick }) {
       setIsModalOpen(true);
     }
     window.history.replaceState(null, '', window.location.pathname);
-  }, [isGuest, content]);
+  }, [content]);
 
   const filteredContent = useMemo(() => (
     activeFilter === 'all' ? content : content.filter((item) => item.type === activeFilter)
@@ -96,12 +89,8 @@ function FolderPage({ levelInfo, breadcrumbs, onBreadcrumbClick }) {
 
   const actionLabel = (type) => t(type === 'video' ? 'explore.watch' : type === 'book' ? 'explore.read' : 'explore.listen');
 
-  const handleItemClick = async (item) => {
-    // Guests can browse; opening a video, book or audio needs an account, or (when the school
-    // allows it) starts a short preview. ?open= brings them back to it after signing up.
-    const { ok, preview: started } = await openPreview(item.slug, `${pathname}?open=${encodeURIComponent(item.id)}`, item.type);
-    if (!ok) return;
-    setPreview(started);
+  // Everyone opens videos, books and audio, visitors included (they're reminded to sign up).
+  const handleItemClick = (item) => {
     setSelectedMedia(item);
     setIsModalOpen(true);
   };
@@ -121,13 +110,10 @@ function FolderPage({ levelInfo, breadcrumbs, onBreadcrumbClick }) {
           onClose={() => {
             setIsModalOpen(false);
             setSelectedMedia(null);
-            setPreview(null);
           }}
           mediaItem={selectedMedia}
           summaryPath={selectedMedia?.slug || null}
-          preview={preview}
         />
-        {previewStarting ? <Loader variant="overlay" label={t("guest.previewStarting")} /> : null}
         <div className="flex-1 p-4 space-y-8">
           {hasFolders && (
             <section aria-labelledby="explore-folders-heading" className="space-y-4">
