@@ -26,7 +26,9 @@ const ct = (key, vars) => t(`course.${key}`, vars);
 test.describe("dashboard", () => {
   let c;
   test.beforeAll(async () => {
-    c = await seedCourse({ title: `Dashboard Course ${uid()}`, learners: ["learner"] });
+    // Starts today, not on Monday: Week 1's work (due on day 4) is then still ahead on any day of
+    // the week, weekends included, so it's listed under "By date".
+    c = await seedCourse({ title: `Dashboard Course ${uid()}`, learners: ["learner"], startDate: new Date().toISOString().slice(0, 10) });
   });
 
   test("shows the learner's courses and continues into one", async ({ page }) => {
